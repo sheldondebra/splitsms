@@ -1,18 +1,14 @@
 import { getSession } from "@/lib/auth/session";
-import { getMessageLogs } from "@/lib/analytics/dashboard";
+import { getMessageLogs, getDashboardOverview } from "@/lib/analytics/dashboard";
 import { retryFailedMessagesAction } from "@/lib/actions/messages";
+import { ReportSummary } from "@/components/dashboard/report-summary";
 import { ReportsFilters } from "@/components/dashboard/reports-filters";
-import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/dashboard/empty-state";
+import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Send } from "lucide-react";
+import { STATUS_LABELS } from "@/lib/ux/messages";
 
 export default async function ReportsPage({
   searchParams,
@@ -24,6 +20,7 @@ export default async function ReportsPage({
     q?: string;
     page?: string;
     retried?: string;
+    sent?: string;
   }>;
 }) {
   const session = await getSession();
@@ -31,109 +28,123 @@ export default async function ReportsPage({
   const params = await searchParams;
   const page = parseInt(params.page ?? "1", 10) || 1;
 
-  const { items, total, totalPages } = await getMessageLogs(session.userId, {
-    campaignId: params.campaign,
-    status: params.status,
-    countryCode: params.country,
-    search: params.q,
-    page,
-    pageSize: 50,
-  });
+  const [overview, { items, total, totalPages }] = await Promise.all([
+    getDashboardOverview(session.userId),
+    getMessageLogs(session.userId, {
+      campaignId: params.campaign,
+      status: params.status,
+      countryCode: params.country,
+      search: params.q,
+      page,
+      pageSize: 30,
+    }),
+  ]);
 
-  const failedCount = items.filter((m) => m.status === "FAILED").length;
+  const failedInView = items.filter((m) => m.status === "FAILED").length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">SMS logs</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {total} messages · page {page} of {totalPages || 1}
-          </p>
-        </div>
-        {failedCount > 0 && (
-          <form action={retryFailedMessagesAction}>
-            {params.campaign && (
-              <input type="hidden" name="campaignId" value={params.campaign} />
-            )}
-            <Button type="submit" variant="outline">
-              Retry failed in view
-            </Button>
-          </form>
-        )}
+    <div className="space-y-8 max-w-3xl">
+      <div>
+        <h1 className="text-2xl font-bold sm:text-3xl">Message results</h1>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+          See which messages were delivered, failed, or still on the way.
+        </p>
       </div>
 
+      {params.sent && (
+        <FriendlyAlert success="1" successMessage="Your messages were sent successfully." />
+      )}
       {params.retried && (
-        <p className="text-sm text-green-600 dark:text-green-400">
-          Retry queued for {params.retried} message(s).
-        </p>
+        <FriendlyAlert
+          success="1"
+          successMessage={`We are resending ${params.retried} failed message(s).`}
+        />
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <ReportSummary
+        delivered={overview.delivered}
+        failed={overview.failed}
+        pending={overview.pending}
+      />
+
+      {failedInView > 0 && (
+        <form action={retryFailedMessagesAction}>
+          {params.campaign && (
+            <input type="hidden" name="campaignId" value={params.campaign} />
+          )}
+          <Button type="submit" variant="outline" className="h-11">
+            Try sending failed messages again
+          </Button>
+        </form>
+      )}
+
+      <details className="rounded-xl border bg-muted/20 px-4 py-3">
+        <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+          Advanced filters
+        </summary>
+        <div className="mt-4 pt-2 border-t">
           <ReportsFilters
             campaignId={params.campaign}
             status={params.status ?? "all"}
             country={params.country ?? "all"}
             q={params.q}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </details>
 
-      <Card>
+      <Card className="rounded-2xl">
         <CardHeader>
-          <CardTitle>Delivery log</CardTitle>
+          <CardTitle className="text-lg">Recent messages</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {total} message{total === 1 ? "" : "s"}
+            {totalPages > 1 ? ` · page ${page} of ${totalPages}` : ""}
+          </p>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Recipient</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Country</TableHead>
-                <TableHead>Campaign</TableHead>
-                <TableHead>Sent</TableHead>
-                <TableHead>Delivered</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                    No messages match your filters
-                  </TableCell>
-                </TableRow>
-              ) : (
-                items.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell className="font-mono text-xs">{m.recipient}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{m.status}</Badge>
-                    </TableCell>
-                    <TableCell>{m.countryCode ?? "—"}</TableCell>
-                    <TableCell className="max-w-[120px] truncate">
-                      {m.campaign?.name ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap">
-                      {m.sentAt?.toLocaleString() ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap">
-                      {m.deliveredAt?.toLocaleString() ?? "—"}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+        <CardContent>
+          {items.length === 0 ? (
+            <EmptyState
+              icon={Send}
+              title="No messages to show yet"
+              description="When you send SMS, your delivery results will appear here."
+              actionLabel="Send SMS"
+              actionHref="/dashboard/send"
+            />
+          ) : (
+            <ul className="divide-y">
+              {items.map((m) => (
+                <li key={m.id} className="flex justify-between gap-3 py-4 first:pt-0">
+                  <div className="min-w-0">
+                    <p className="font-medium">{m.recipient}</p>
+                    <p className="text-xs text-muted-foreground truncate max-w-[240px]">
+                      {m.body}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p
+                      className={`text-sm font-semibold ${
+                        m.status === "DELIVERED"
+                          ? "text-emerald-600"
+                          : m.status === "FAILED"
+                            ? "text-destructive"
+                            : "text-muted-foreground"
+                      }`}
+                    >
+                      {STATUS_LABELS[m.status] ?? m.status}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {m.createdAt.toLocaleDateString()}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
           {totalPages > 1 && (
-            <div className="flex gap-2 mt-4 justify-center">
+            <div className="flex gap-4 mt-6 justify-center text-sm font-medium">
               {page > 1 && (
                 <a
                   href={`?${new URLSearchParams({ ...params, page: String(page - 1) } as Record<string, string>).toString()}`}
-                  className="text-sm text-primary hover:underline"
+                  className="text-primary hover:underline"
                 >
                   Previous
                 </a>
@@ -141,7 +152,7 @@ export default async function ReportsPage({
               {page < totalPages && (
                 <a
                   href={`?${new URLSearchParams({ ...params, page: String(page + 1) } as Record<string, string>).toString()}`}
-                  className="text-sm text-primary hover:underline"
+                  className="text-primary hover:underline"
                 >
                   Next
                 </a>

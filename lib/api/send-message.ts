@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/db";
 import { countSmsUnits, normalizePhones } from "@/lib/sms/units";
 import { deductSmsCredits } from "@/lib/sms/billing";
-import { getSmsSendQueue } from "@/lib/queue/sms-queue";
-import { processMessageJob } from "@/lib/queue/process-message";
+import { enqueueSmsJob } from "@/lib/queue/enqueue-sms";
+import { resolveMessagePriority } from "@/lib/enterprise/priority";
 import { processSandboxMessage } from "@/lib/api/sandbox";
 import type { ApiContext } from "@/lib/api/context";
 import { apiError, apiSuccess } from "@/lib/api/errors";
@@ -57,7 +57,7 @@ export async function apiSendMessages(ctx: ApiContext, input: SendSmsInput) {
   });
 
   const ids: string[] = [];
-  const queue = getSmsSendQueue();
+  const priority = resolveMessagePriority({ channel: "api", body: input.message });
 
   for (const recipient of recipientList) {
     const message = await prisma.message.create({
@@ -72,16 +72,16 @@ export async function apiSendMessages(ctx: ApiContext, input: SendSmsInput) {
         cost: ctx.isSandbox ? 0 : costPerUnit * units,
         status: "PENDING",
         isSandbox: ctx.isSandbox,
+        priority: ctx.isSandbox ? "MEDIUM" : priority,
+        channel: "api",
       },
     });
     ids.push(message.id);
 
     if (ctx.isSandbox) {
       await processSandboxMessage(message.id);
-    } else if (queue) {
-      await queue.add("send", { messageId: message.id, countryCode: input.countryCode });
     } else {
-      await processMessageJob(message.id, input.countryCode);
+      await enqueueSmsJob(message.id, input.countryCode, priority);
     }
   }
 

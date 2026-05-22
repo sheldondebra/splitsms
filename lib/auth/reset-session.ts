@@ -10,8 +10,17 @@ function getSecret() {
   return new TextEncoder().encode(secret);
 }
 
-export async function createPasswordResetSession(userId: string, phone: string) {
-  const token = await new SignJWT({ userId, phone, purpose: "password_reset" })
+export async function createPasswordResetSession(
+  userId: string,
+  phone: string,
+  returnTo?: string,
+) {
+  const token = await new SignJWT({
+    userId,
+    phone,
+    purpose: "password_reset",
+    returnTo: returnTo ?? "",
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(TTL)
@@ -30,6 +39,7 @@ export async function createPasswordResetSession(userId: string, phone: string) 
 export async function getPasswordResetSession(): Promise<{
   userId: string;
   phone: string;
+  returnTo?: string;
 } | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
@@ -38,9 +48,11 @@ export async function getPasswordResetSession(): Promise<{
   try {
     const { payload } = await jwtVerify(token, getSecret());
     if (payload.purpose !== "password_reset") return null;
+    const returnTo = payload.returnTo ? String(payload.returnTo) : undefined;
     return {
       userId: String(payload.userId),
       phone: String(payload.phone),
+      returnTo: returnTo || undefined,
     };
   } catch {
     return null;

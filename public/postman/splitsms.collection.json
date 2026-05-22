@@ -1,63 +1,138 @@
 {
   "info": {
     "name": "SplitSMS API v1",
+    "description": "Official SplitSMS REST API collection. Set collection variables: baseUrl, apiKey.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:3000" },
     { "key": "apiKey", "value": "sk_live_your_key_here" }
   ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{apiKey}}", "type": "string" }]
+  },
   "item": [
     {
-      "name": "Send SMS",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{apiKey}}" },
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"sender\": \"SplitSMS\",\n  \"recipients\": [\"+233201234567\"],\n  \"message\": \"Hello from SplitSMS\",\n  \"countryCode\": \"GH\"\n}"
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "Account balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/balance"
+          }
         },
-        "url": "{{baseUrl}}/api/v1/messages/send"
-      }
+        {
+          "name": "Wallet balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/wallet/balance"
+          }
+        },
+        {
+          "name": "Transactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/wallet/transactions?limit=20"
+          }
+        }
+      ]
     },
     {
-      "name": "Wallet Balance",
-      "request": {
-        "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{apiKey}}" }],
-        "url": "{{baseUrl}}/api/v1/wallet/balance"
-      }
+      "name": "SMS",
+      "item": [
+        {
+          "name": "Send SMS",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sender\": \"MYBRAND\",\n  \"recipients\": [\"233201234567\"],\n  \"message\": \"Hello from SplitSMS\",\n  \"countryCode\": \"GH\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/sms/send"
+          }
+        },
+        {
+          "name": "Message reports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/reports?limit=20"
+          }
+        }
+      ]
     },
     {
-      "name": "OTP Send",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{apiKey}}" },
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+233201234567\"\n}" },
-        "url": "{{baseUrl}}/api/v1/otp/send"
-      }
+      "name": "OTP",
+      "item": [
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"233201234567\",\n  \"countryCode\": \"GH\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/otp/send"
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"233201234567\",\n  \"code\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/otp/verify"
+          }
+        }
+      ]
     },
     {
-      "name": "List Campaigns",
-      "request": {
-        "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{apiKey}}" }],
-        "url": "{{baseUrl}}/api/v1/campaigns"
-      }
+      "name": "Contacts",
+      "item": [
+        {
+          "name": "List contacts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/contacts"
+          }
+        },
+        {
+          "name": "Create contact",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"233201234567\",\n  \"name\": \"Jane Doe\",\n  \"countryCode\": \"GH\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/contacts"
+          }
+        }
+      ]
     },
     {
-      "name": "List Contacts",
-      "request": {
-        "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{apiKey}}" }],
-        "url": "{{baseUrl}}/api/v1/contacts"
-      }
+      "name": "Campaigns",
+      "item": [
+        {
+          "name": "List campaigns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/campaigns"
+          }
+        }
+      ]
     }
   ]
 }

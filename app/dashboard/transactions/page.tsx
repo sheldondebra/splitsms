@@ -17,6 +17,7 @@ const typeLabels: Record<string, string> = {
   CREDIT_PURCHASE: "Credit purchase",
   REFUND: "Refund",
   ADMIN_ADJUSTMENT: "Adjustment",
+  PROMO_CREDIT: "Promo credit",
 };
 
 export default async function TransactionsPage() {

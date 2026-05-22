@@ -1,17 +1,24 @@
 import { prisma } from "@/lib/db";
+import { resolveSmsPriceForUser } from "@/lib/reseller/pricing";
+import { recordSmsCommission } from "@/lib/reseller/commission";
 
-/** Deduct SMS credits before send (per mNotify-first spec). Refund on failure. */
+/** Deduct SMS credits before send. Records provider cost in metadata for profit analytics. */
 export async function deductSmsCredits(
   userId: string,
   units: number,
   amount: number,
   currency: string,
   description: string,
+  countryCode = "GH",
 ) {
   const credit = await prisma.smsCredit.findUnique({ where: { userId } });
   if (!credit || credit.balance < units) {
     throw new Error("INSUFFICIENT_CREDITS");
   }
+
+  const price = await resolveSmsPriceForUser(userId, countryCode);
+  const providerCost = units * price.platformCost;
+  const creditsBefore = credit.balance;
 
   await prisma.$transaction([
     prisma.smsCredit.update({
@@ -26,9 +33,20 @@ export async function deductSmsCredits(
         currency,
         credits: units,
         description,
+        status: "completed",
+        metadata: {
+          creditsBefore,
+          creditsAfter: creditsBefore - units,
+          providerCost,
+          sellPrice: price.sellPrice,
+          costPrice: price.costPrice,
+          countryCode,
+        },
       },
     }),
   ]);
+
+  await recordSmsCommission(userId, units, countryCode);
 }
 
 export async function refundSmsCredits(
@@ -38,6 +56,9 @@ export async function refundSmsCredits(
   currency: string,
   description: string,
 ) {
+  const credit = await prisma.smsCredit.findUnique({ where: { userId } });
+  const creditsBefore = credit?.balance ?? 0;
+
   await prisma.$transaction([
     prisma.smsCredit.update({
       where: { userId },
@@ -51,6 +72,8 @@ export async function refundSmsCredits(
         currency,
         credits: units,
         description,
+        status: "completed",
+        metadata: { creditsBefore, creditsAfter: creditsBefore + units },
       },
     }),
   ]);

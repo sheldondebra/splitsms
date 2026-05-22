@@ -4,8 +4,8 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { countSmsUnits, normalizePhones, isGsm7 } from "@/lib/sms/units";
 import { deductSmsCredits } from "@/lib/sms/billing";
-import { getSmsSendQueue, type SmsSendJob } from "@/lib/queue/sms-queue";
-import { processMessageJob } from "@/lib/queue/process-message";
+import { enqueueSmsJob } from "@/lib/queue/enqueue-sms";
+import { resolveMessagePriority } from "@/lib/enterprise/priority";
 import { redirect } from "next/navigation";
 
 export async function sendSmsAction(formData: FormData) {
@@ -58,6 +58,8 @@ export async function sendSmsAction(formData: FormData) {
     },
   });
 
+  const priority = resolveMessagePriority({ channel: "dashboard", body });
+
   const messages = await prisma.$transaction(async (tx) => {
     const created = [];
     for (const recipient of recipients) {
@@ -73,6 +75,8 @@ export async function sendSmsAction(formData: FormData) {
             smsUnits: units,
             cost: costPerUnit * units,
             status: "PENDING",
+            priority,
+            channel: "dashboard",
           },
         }),
       );
@@ -80,14 +84,8 @@ export async function sendSmsAction(formData: FormData) {
     return created;
   });
 
-  const queue = getSmsSendQueue();
   for (const msg of messages) {
-    const job: SmsSendJob = { messageId: msg.id, countryCode };
-    if (queue) {
-      await queue.add("send", job, { removeOnComplete: true });
-    } else {
-      await processMessageJob(msg.id, countryCode);
-    }
+    await enqueueSmsJob(msg.id, countryCode, priority);
   }
 
   await prisma.campaign.update({
@@ -95,7 +93,7 @@ export async function sendSmsAction(formData: FormData) {
     data: { status: "COMPLETED" },
   });
 
-  redirect(`/dashboard/reports?campaign=${campaign.id}`);
+  redirect(`/dashboard/reports?campaign=${campaign.id}&sent=1`);
 }
 
 export async function getSmsEstimate(body: string, recipientCount: number, countryCode: string) {

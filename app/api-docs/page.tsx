@@ -139,9 +139,9 @@ export default function ApiDocsPage() {
             Developer portal
           </Link>
           {" · "}
-          <a href="/postman/splitsms.collection.json" className="text-primary hover:underline">
+          <Link href="/developers/postman" className="text-primary hover:underline">
             Postman collection
-          </a>
+          </Link>
         </p>
         {sections.map((s) => (
           <section key={s.title}>

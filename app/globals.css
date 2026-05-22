@@ -130,6 +130,7 @@
   }
   h1, h2, h3, h4 {
     @apply font-semibold tracking-tight text-foreground;
+    font-feature-settings: "cv11", "ss01";
   }
 }
 
@@ -152,7 +153,13 @@
     background-clip: text;
   }
   .app-shell {
-    @apply bg-muted/30;
+    @apply bg-muted/25;
+  }
+  .dashboard-container {
+    @apply mx-auto w-full max-w-6xl;
+  }
+  .stat-card {
+    @apply rounded-2xl border border-border/60 bg-card shadow-sm transition-shadow hover:shadow-md;
   }
   .glass-header {
     @apply border-b border-white/10 bg-black/70 backdrop-blur-xl supports-[backdrop-filter]:bg-black/50;
@@ -162,5 +169,14 @@
   }
   .page-subtitle {
     @apply text-sm text-muted-foreground mt-1;
+  }
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  .touch-target-lg {
+    @apply min-h-[52px];
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }

@@ -1,89 +1,185 @@
 import Link from "next/link";
 import { getApiAnalytics } from "@/lib/api/analytics";
 import { getSession } from "@/lib/auth/session";
+import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Key,
+  BookOpen,
+  Webhook,
+  Send,
+  Wallet,
+  ArrowRight,
+  Activity,
+  CheckCircle2,
+  Braces,
+  Puzzle,
+} from "lucide-react";
+import { CopyButton } from "@/components/developers/copy-button";
 
 export default async function DevelopersPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const analytics = await getApiAnalytics(session.userId);
+  const [analytics, keyCount] = await Promise.all([
+    getApiAnalytics(session.userId),
+    prisma.apiKey.count({ where: { userId: session.userId, isActive: true } }),
+  ]);
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
+
+  const quickCurl = `curl -X GET '${baseUrl}/api/v1/balance' \\
+  -H "Authorization: Bearer YOUR_API_KEY"`;
+
+  const tiles = [
+    {
+      href: "/developers/api-keys",
+      icon: Key,
+      title: "API Keys",
+      desc: "Create, mask, copy, rotate keys",
+      stat: `${keyCount} active`,
+    },
+    {
+      href: "/developers/docs",
+      icon: BookOpen,
+      title: "API Reference",
+      desc: "GET, POST, PUT, DELETE docs",
+      stat: "All endpoints",
+    },
+    {
+      href: "/developers/postman",
+      icon: Braces,
+      title: "Postman",
+      desc: "Import & test requests",
+      stat: "Collection",
+    },
+    {
+      href: "/developers/integrations",
+      icon: Puzzle,
+      title: "WordPress",
+      desc: "WooCommerce & form plugins",
+      stat: "Plugin",
+    },
+    {
+      href: "/developers/webhooks",
+      icon: Webhook,
+      title: "Webhooks",
+      desc: "Delivery & campaign events",
+      stat: "Real-time",
+    },
+  ];
+
+  const steps = [
+    { n: 1, label: "Generate an API key", href: "/developers/api-keys" },
+    { n: 2, label: "Check balance", href: "/developers/docs" },
+    { n: 3, label: "Send your first SMS", href: "/developers/docs" },
+    { n: 4, label: "Add webhooks", href: "/developers/webhooks" },
+  ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Developer platform</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Build on SplitSMS with REST APIs, webhooks, and SDKs.
+        <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">
+          Developer platform
+        </p>
+        <h1 className="text-3xl font-bold tracking-tight">Build with SplitSMS</h1>
+        <p className="text-muted-foreground mt-2 max-w-xl">
+          REST API for SMS, wallet balance, contacts, campaigns, and OTP — with sandbox keys for safe testing.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">API requests (30d)</CardTitle>
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Requests (30d)
+            </CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{analytics.total}</CardContent>
+          <CardContent className="text-3xl font-bold tabular-nums">{analytics.total}</CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Active keys</CardTitle>
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+              <Key className="h-4 w-4" />
+              Active keys
+            </CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{analytics.activeKeys}</CardContent>
+          <CardContent className="text-3xl font-bold tabular-nums">{analytics.activeKeys}</CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Success rate</CardTitle>
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              Success rate
+            </CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{analytics.successRate}%</CardContent>
+          <CardContent className="text-3xl font-bold tabular-nums">{analytics.successRate}%</CardContent>
         </Card>
       </div>
 
-      <Card>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {tiles.map(({ href, icon: Icon, title, desc, stat }) => (
+          <Link key={href} href={href} className="group">
+            <Card className="rounded-2xl h-full transition-all hover:border-primary/40 hover:shadow-md">
+              <CardContent className="pt-6">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary mb-4">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <p className="font-semibold group-hover:text-primary transition-colors">{title}</p>
+                <p className="text-sm text-muted-foreground mt-1">{desc}</p>
+                <p className="text-xs font-medium text-primary mt-3">{stat} →</p>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+
+      <Card className="rounded-2xl border-2 border-zinc-800/10 dark:border-zinc-700/50 overflow-hidden">
         <CardHeader>
-          <CardTitle>Quick start</CardTitle>
+          <CardTitle className="text-lg">Quick start</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 text-sm">
-          <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-            <li>
-              <Link href="/developers/api-keys" className="text-primary hover:underline">
-                Create an API key
-              </Link>{" "}
-              (use sandbox for safe testing)
-            </li>
-            <li>Read the API reference</li>
-            <li>Send your first SMS with curl or the Node SDK</li>
-            <li>
-              <Link href="/developers/webhooks" className="text-primary hover:underline">
-                Configure webhooks
-              </Link>{" "}
-              for delivery events
-            </li>
+        <CardContent className="space-y-6">
+          <ol className="grid gap-3 sm:grid-cols-2">
+            {steps.map((s) => (
+              <li key={s.n}>
+                <Link
+                  href={s.href}
+                  className="flex items-center gap-3 rounded-xl border p-3 hover:bg-muted/50 transition-colors"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-sm font-bold">
+                    {s.n}
+                  </span>
+                  <span className="text-sm font-medium">{s.label}</span>
+                  <ArrowRight className="h-4 w-4 ml-auto text-muted-foreground" />
+                </Link>
+              </li>
+            ))}
           </ol>
-          <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-xs">{`curl -X POST https://your-app.com/api/v1/messages/send \\
-  -H "Authorization: Bearer sk_live_..." \\
+
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-2">
+              <Wallet className="h-3.5 w-3.5" />
+              Test balance (GET)
+            </p>
+            <pre className="rounded-xl bg-zinc-950 text-emerald-300/90 p-4 text-xs overflow-x-auto font-mono">
+              {quickCurl}
+            </pre>
+            <div className="mt-2">
+              <CopyButton value={quickCurl} label="Copy cURL" />
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-2">
+              <Send className="h-3.5 w-3.5" />
+              Send SMS (POST)
+            </p>
+            <pre className="rounded-xl bg-zinc-950 text-zinc-300 p-4 text-xs overflow-x-auto font-mono whitespace-pre-wrap">{`curl -X POST '${baseUrl}/api/v1/sms/send' \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{"sender":"SplitSMS","recipients":["+233201234567"],"message":"Hello"}'`}</pre>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/developers/api-keys"
-              className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
-            >
-              API keys
-            </Link>
-            <Link
-              href="/developers/docs"
-              className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm font-medium"
-            >
-              Documentation
-            </Link>
-            <a
-              href="/postman/splitsms.collection.json"
-              download
-              className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm font-medium"
-            >
-              Postman collection
-            </a>
+  -d '{"sender":"MYBRAND","recipients":["233201234567"],"message":"Hello"}'`}</pre>
           </div>
         </CardContent>
       </Card>

@@ -20,9 +20,21 @@ function createPrisma() {
 }
 
 /** Dev hot-reload can keep an old Prisma client missing newer models — recreate if stale */
+const REQUIRED_MODELS = [
+  "authAttempt",
+  "invoice",
+  "enterpriseAccount",
+  "apiLog",
+] as const;
+
+function clientHasRequiredModels(client: PrismaClient): boolean {
+  const c = client as unknown as Record<string, unknown>;
+  return REQUIRED_MODELS.every((key) => c[key] != null);
+}
+
 function getPrisma(): PrismaClient {
   const cached = globalForPrisma.prisma;
-  if (cached && typeof cached.authAttempt !== "undefined") {
+  if (cached && clientHasRequiredModels(cached)) {
     return cached;
   }
   const client = createPrisma();

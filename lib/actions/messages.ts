@@ -3,8 +3,7 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { deductSmsCredits } from "@/lib/sms/billing";
-import { getSmsSendQueue } from "@/lib/queue/sms-queue";
-import { processMessageJob } from "@/lib/queue/process-message";
+import { enqueueSmsJob } from "@/lib/queue/enqueue-sms";
 import { redirect } from "next/navigation";
 
 export async function retryFailedMessagesAction(formData: FormData) {
@@ -38,15 +37,13 @@ export async function retryFailedMessagesAction(formData: FormData) {
     redirect("/dashboard/reports?error=credits");
   }
 
-  const queue = getSmsSendQueue();
   for (const msg of failed) {
     await prisma.message.update({
       where: { id: msg.id },
       data: { status: "PENDING", failureReason: null, failedAt: null },
     });
     const countryCode = msg.countryCode ?? "GH";
-    if (queue) await queue.add("send", { messageId: msg.id, countryCode });
-    else await processMessageJob(msg.id, countryCode);
+    await enqueueSmsJob(msg.id, countryCode, msg.priority);
   }
 
   redirect(

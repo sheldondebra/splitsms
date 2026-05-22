@@ -1,23 +1,59 @@
 "use client";
 
-import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
+import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme, theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) {
+    return (
+      <Button variant="ghost" size="icon" type="button" className={cn(className)} aria-hidden>
+        <Sun className="h-4 w-4 opacity-0" />
+      </Button>
+    );
+  }
+
+  function cycle() {
+    if (theme === "light") setTheme("dark");
+    else if (theme === "dark") setTheme("system");
+    else setTheme("light");
+  }
+
   return (
     <Button
       variant="ghost"
       size="icon"
       type="button"
-      className={cn(className)}
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      aria-label="Toggle theme"
+      className={cn("relative", className)}
+      onClick={cycle}
+      aria-label={`Theme: ${theme}. Click to change.`}
+      title={`Theme: ${theme}`}
     >
-      <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-      <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      <Sun
+        className={cn(
+          "h-4 w-4 transition-all",
+          resolvedTheme === "light" && theme !== "system" ? "scale-100" : "scale-0 absolute",
+        )}
+      />
+      <Moon
+        className={cn(
+          "h-4 w-4 transition-all",
+          resolvedTheme === "dark" && theme !== "system" ? "scale-100" : "scale-0 absolute",
+        )}
+      />
+      <Monitor
+        className={cn(
+          "h-4 w-4 transition-all",
+          theme === "system" ? "scale-100" : "scale-0 absolute",
+        )}
+      />
     </Button>
   );
 }

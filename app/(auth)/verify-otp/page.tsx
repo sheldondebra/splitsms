@@ -21,6 +21,7 @@ export default async function VerifyOtpPage({
     resent?: string;
     cooldown?: string;
     country?: string;
+    returnTo?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -70,10 +71,19 @@ export default async function VerifyOtpPage({
           message={params.msg}
           resent={params.resent === "1"}
           initialCooldown={cooldown}
+          returnTo={
+            params.returnTo?.startsWith("/dashboard") ? params.returnTo : undefined
+          }
         />
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          <Link href="/login" className="text-primary font-medium hover:underline">
-            ← Back to login
+          <Link
+            href={
+              params.returnTo?.startsWith("/dashboard") ? params.returnTo : "/login"
+            }
+            className="text-primary font-medium hover:underline"
+          >
+            ←{" "}
+            {params.returnTo?.startsWith("/dashboard") ? "Back to settings" : "Back to login"}
           </Link>
         </p>
       </AuthCard>

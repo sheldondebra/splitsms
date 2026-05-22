@@ -16,6 +16,7 @@ type OtpFormProps = {
   message?: string | null;
   resent?: boolean;
   initialCooldown?: number;
+  returnTo?: string;
 };
 
 const purposeLabels: Record<string, string> = {
@@ -32,6 +33,7 @@ export function OtpForm({
   message,
   resent,
   initialCooldown = 0,
+  returnTo,
 }: OtpFormProps) {
   const [cooldown, setCooldown] = useState(initialCooldown);
 
@@ -61,6 +63,7 @@ export function OtpForm({
         <input type="hidden" name="phone" value={phone} />
         <input type="hidden" name="purpose" value={purpose} />
         <input type="hidden" name="countryCode" value={countryCode} />
+        {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
         <div className="space-y-2">
           <Label htmlFor="code">Verification code</Label>
           <Input

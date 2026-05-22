@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { cookies } from "next/headers";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { THEME_COOKIE, resolveThemeClass } from "@/lib/theme";
 import "./globals.css";
 
-const sans = Plus_Jakarta_Sans({
+const sans = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
   display: "swap",
@@ -23,13 +25,21 @@ export const metadata: Metadata = {
   icons: { icon: "/smslogo.png" },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const cookieStore = await cookies();
+  const themeCookie = cookieStore.get(THEME_COOKIE)?.value;
+  const themeClass = resolveThemeClass(themeCookie);
+
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable} h-full`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${sans.variable} ${mono.variable} h-full ${themeClass}`}
+      suppressHydrationWarning
+    >
       <body className="min-h-full font-sans antialiased">
-        <ThemeProvider>
+        <ThemeProvider initialTheme={themeCookie}>
           {children}
           <Toaster richColors position="top-right" />
         </ThemeProvider>

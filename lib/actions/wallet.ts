@@ -89,9 +89,43 @@ export async function approvePaymentAction(formData: FormData) {
   redirect("/admin/payments");
 }
 
+export async function applyPromoAction(formData: FormData) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  const { applyPromoCode } = await import("@/lib/billing/promo");
+  const code = String(formData.get("code") ?? "");
+  const result = await applyPromoCode(session.userId, code);
+  if (!result.ok) redirect(`/dashboard/wallet?error=promo&msg=${encodeURIComponent(result.error)}`);
+  redirect("/dashboard/wallet?promo=ok");
+}
+
+export async function verifyPaymentCallbackAction(formData: FormData) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  const reference = String(formData.get("reference") ?? "");
+  if (!reference) redirect("/dashboard/wallet?error=payment");
+
+  const { verifyPaystackPayment } = await import("@/lib/payments/paystack-verify");
+  const verified = await verifyPaystackPayment(reference);
+  if (!verified.ok) redirect("/dashboard/wallet?error=payment");
+
+  const payment = await prisma.payment.findFirst({
+    where: {
+      userId: session.userId,
+      OR: [{ id: reference }, { providerReference: reference }],
+    },
+  });
+  if (payment) await creditWalletFromPayment(payment.id);
+  redirect("/dashboard/wallet?funded=1");
+}
+
 export async function handlePaystackWebhook(reference: string) {
   const payment = await prisma.payment.findFirst({
     where: { OR: [{ id: reference }, { providerReference: reference }] },
   });
-  if (payment) await creditWalletFromPayment(payment.id);
+  if (payment && payment.status !== "COMPLETED") {
+    await creditWalletFromPayment(payment.id);
+  }
 }

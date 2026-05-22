@@ -56,7 +56,7 @@ export async function createApiKeyAction(formData: FormData) {
 
   revalidatePath("/dashboard/api-keys");
   revalidatePath("/developers/api-keys");
-  redirect(`/dashboard/api-keys?created=${encodeURIComponent(raw)}`);
+  redirect(`/developers/api-keys?created=${encodeURIComponent(raw)}`);
 }
 
 export async function revokeApiKeyAction(formData: FormData) {
@@ -70,7 +70,8 @@ export async function revokeApiKeyAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard/api-keys");
-  redirect("/dashboard/api-keys");
+  revalidatePath("/developers/api-keys");
+  redirect("/developers/api-keys");
 }
 
 export async function rotateApiKeyAction(formData: FormData) {
@@ -81,7 +82,7 @@ export async function rotateApiKeyAction(formData: FormData) {
   const existing = await prisma.apiKey.findFirst({
     where: { id, userId: session.userId },
   });
-  if (!existing) redirect("/dashboard/api-keys");
+  if (!existing) redirect("/developers/api-keys");
 
   await prisma.apiKey.update({
     where: { id },
@@ -104,5 +105,6 @@ export async function rotateApiKeyAction(formData: FormData) {
     },
   });
 
-  redirect(`/dashboard/api-keys?created=${encodeURIComponent(raw)}`);
+  revalidatePath("/developers/api-keys");
+  redirect(`/developers/api-keys?created=${encodeURIComponent(raw)}`);
 }

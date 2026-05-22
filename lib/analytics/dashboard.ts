@@ -18,10 +18,13 @@ function lastNDaysLabels(n: number) {
 export async function getDashboardOverview(userId: string) {
   const since30 = daysAgo(30);
   const since14 = daysAgo(14);
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
 
   const [
     statusCounts,
     totalMessages,
+    messagesToday,
     campaigns,
     campaignByStatus,
     apiCalls,
@@ -41,6 +44,9 @@ export async function getDashboardOverview(userId: string) {
       _count: true,
     }),
     prisma.message.count({ where: { userId } }),
+    prisma.message.count({
+      where: { userId, createdAt: { gte: todayStart } },
+    }),
     prisma.campaign.count({ where: { userId } }),
     prisma.campaign.groupBy({
       by: ["status"],
@@ -143,6 +149,7 @@ export async function getDashboardOverview(userId: string) {
 
   return {
     totalMessages,
+    messagesToday,
     campaigns,
     apiCalls30d: apiCalls,
     deliveryRate,

@@ -1,0 +1,38 @@
+.splitsms-admin .splitsms-panels {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 920px;
+  margin-top: 1rem;
+}
+
+.splitsms-admin .splitsms-panel {
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-radius: 8px;
+  padding: 1rem 1.25rem 1.25rem;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.splitsms-admin .splitsms-panel h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.splitsms-admin .splitsms-panel h3 {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.splitsms-admin .splitsms-muted {
+  opacity: 0.85;
+}
+
+.splitsms-admin fieldset label {
+  display: block;
+  margin: 0.35rem 0;
+}
+
+.splitsms-admin #splitsms-test-result {
+  margin-left: 0.5rem;
+  font-weight: 500;
+}

@@ -2,6 +2,8 @@ import { prisma } from "@/lib/db";
 import { sendSmsWithFailover } from "@/lib/sms/orchestrator";
 import { refundSmsCredits } from "@/lib/sms/billing";
 import { dispatchUserWebhooks } from "@/lib/webhooks/dispatch";
+import { releaseEnterpriseCredit } from "@/lib/enterprise/credit";
+import type { SmsProviderType } from "@/lib/generated/prisma/client";
 
 /** Credits are deducted before queue; worker only sends via provider. */
 export async function processMessageJob(messageId: string, countryCode: string) {
@@ -17,11 +19,24 @@ export async function processMessageJob(messageId: string, countryCode: string) 
     return;
   }
 
-  const result = await sendSmsWithFailover(countryCode, {
-    to: message.recipient,
-    from: message.senderId,
-    body: message.body,
+  const enterprise = await prisma.enterpriseAccount.findUnique({
+    where: { userId: message.userId },
+    include: { dedicatedRoute: true, credit: true },
   });
+  const lockedProvider =
+    enterprise?.dedicatedRoute?.countryCode === countryCode
+      ? (enterprise.dedicatedRoute.lockedProvider as SmsProviderType | null)
+      : null;
+
+  const result = await sendSmsWithFailover(
+    countryCode,
+    {
+      to: message.recipient,
+      from: message.senderId,
+      body: message.body,
+    },
+    { lockedProvider },
+  );
 
   if (result.success) {
     const updated = await prisma.message.update({
@@ -38,16 +53,21 @@ export async function processMessageJob(messageId: string, countryCode: string) 
   }
 
   const currency = message.user.wallet?.currency ?? "GHS";
-  try {
-    await refundSmsCredits(
-      message.userId,
-      message.smsUnits,
-      message.cost?.toNumber() ?? 0,
-      currency,
-      `Refund failed SMS to ${message.recipient}`,
-    );
-  } catch {
-    /* wallet may be missing */
+  const cost = message.cost?.toNumber() ?? 0;
+  if (enterprise?.credit) {
+    await releaseEnterpriseCredit(enterprise.id, cost);
+  } else {
+    try {
+      await refundSmsCredits(
+        message.userId,
+        message.smsUnits,
+        cost,
+        currency,
+        `Refund failed SMS to ${message.recipient}`,
+      );
+    } catch {
+      /* wallet may be missing */
+    }
   }
 
   const failed = await prisma.message.update({

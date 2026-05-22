@@ -53,9 +53,15 @@ export default async function ResetPasswordPage({
         </form>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          <Link href="/login" className="text-primary font-medium hover:underline">
-            ← Back to login
-          </Link>
+          {reset.returnTo ? (
+            <Link href={reset.returnTo} className="text-primary font-medium hover:underline">
+              ← Back to settings
+            </Link>
+          ) : (
+            <Link href="/login" className="text-primary font-medium hover:underline">
+              ← Back to login
+            </Link>
+          )}
         </p>
       </AuthCard>
     </AuthLayout>

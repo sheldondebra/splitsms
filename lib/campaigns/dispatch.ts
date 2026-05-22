@@ -2,8 +2,8 @@ import { prisma } from "@/lib/db";
 import { countSmsUnits } from "@/lib/sms/units";
 import { deductSmsCredits } from "@/lib/sms/billing";
 import { personalizeMessage } from "@/lib/sms/personalize";
-import { getSmsSendQueue } from "@/lib/queue/sms-queue";
-import { processMessageJob } from "@/lib/queue/process-message";
+import { enqueueSmsJob } from "@/lib/queue/enqueue-sms";
+import { resolveMessagePriority } from "@/lib/enterprise/priority";
 import { createNotification } from "@/lib/notifications";
 import { emitCampaignCompleted } from "@/lib/webhooks/events";
 import {
@@ -131,7 +131,12 @@ export async function dispatchCampaign(campaignId: string) {
     data: { status: "SENDING", recipientCount: recipients.length },
   });
 
-  const queue = getSmsSendQueue();
+  const priority = resolveMessagePriority({
+    channel: "campaign",
+    campaignName: campaign.name,
+    body: campaign.message,
+  });
+
   for (const item of bodies) {
     const msg = await prisma.message.create({
       data: {
@@ -144,11 +149,11 @@ export async function dispatchCampaign(campaignId: string) {
         smsUnits: item.units,
         cost: costPerUnit * item.units,
         status: "PENDING",
+        priority,
+        channel: "campaign",
       },
     });
-    const job = { messageId: msg.id, countryCode };
-    if (queue) await queue.add("send", job);
-    else await processMessageJob(msg.id, countryCode);
+    await enqueueSmsJob(msg.id, countryCode, priority);
   }
 
   await prisma.campaign.update({

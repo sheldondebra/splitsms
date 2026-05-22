@@ -54,14 +54,21 @@ async function main() {
       },
     });
 
+    const memberPrice =
+      c.code === "GH" ? 0.05 : c.code === "NG" ? 0.045 : c.code === "GLOBAL" ? 0.015 : 0.05;
+    const costPrice =
+      c.code === "GH" ? 0.035 : c.code === "NG" ? 0.025 : c.code === "GLOBAL" ? 0.008 : 0.03;
+
     await prisma.smsPricing.upsert({
       where: { countryId: country.id },
-      update: {},
+      update: { memberPrice, costPrice, provider: c.code === "GH" ? "mNotify" : "Infobip" },
       create: {
         countryId: country.id,
         creditsPerSms: 1,
-        memberPrice:
-          c.code === "GH" ? 0.029 : c.code === "NG" ? 0.06 : c.code === "GLOBAL" ? 0.08 : 0.05,
+        memberPrice,
+        costPrice,
+        provider: c.code === "GH" ? "mNotify" : "Infobip",
+        currency: "GHS",
       },
     });
 

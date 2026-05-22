@@ -15,7 +15,13 @@ const adapters: Record<SmsProviderType, SmsProviderAdapter> = {
 export async function sendSmsWithFailover(
   countryCode: string,
   params: SendParams,
+  options?: { lockedProvider?: SmsProviderType | null },
 ): Promise<SendResult & { provider?: SmsProviderType }> {
+  if (options?.lockedProvider) {
+    const adapter = adapters[options.lockedProvider];
+    const result = await adapter.send(params);
+    return { ...result, provider: options.lockedProvider };
+  }
   const mnotifyConfig = await getMnotifyConfig();
 
   if (mnotifyConfig.mnotifyFirst && (await isMnotifyConfigured())) {

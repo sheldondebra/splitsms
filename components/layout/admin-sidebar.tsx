@@ -20,8 +20,11 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/members", label: "Members", icon: Users },
+  { href: "/admin/resellers", label: "Resellers", icon: Users },
+  { href: "/admin/enterprise", label: "Enterprise", icon: Radio },
   { href: "/admin/payments", label: "Payments", icon: CreditCard },
   { href: "/admin/pricing", label: "SMS Pricing", icon: DollarSign },
+  { href: "/admin/billing", label: "Billing", icon: CreditCard },
   { href: "/admin/sender-ids", label: "Sender IDs", icon: BadgeCheck },
   { href: "/admin/routes", label: "Routes", icon: Route },
   { href: "/admin/mnotify", label: "mNotify Setup", icon: Radio },

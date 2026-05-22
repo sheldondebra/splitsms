@@ -92,6 +92,25 @@ export const resetPasswordSchema = z
     path: ["confirmPassword"],
   });
 
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Enter your current password"),
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export const updateProfileSchema = z.object({
+  fullName: z.string().min(2, "Name is too short").max(120),
+  email: z
+    .string()
+    .optional()
+    .transform((v) => (v?.trim() ? v.trim().toLowerCase() : "")),
+});
+
 export function normalizePhone(raw: string) {
   const digits = raw.replace(/\s/g, "").replace(/[^\d+]/g, "");
   if (digits.startsWith("+")) return digits;

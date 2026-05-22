@@ -10,8 +10,28 @@ datasource db {
 enum UserRole {
   MEMBER
   RESELLER
+  ENTERPRISE
   ADMIN
   SUPER_ADMIN
+}
+
+enum MessagePriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum SlaTier {
+  STANDARD
+  BUSINESS
+  ENTERPRISE
+}
+
+enum EnterpriseStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
 }
 
 enum PaymentMethod {
@@ -35,6 +55,27 @@ enum TransactionType {
   SMS_DEBIT
   REFUND
   ADMIN_ADJUSTMENT
+  PROMO_CREDIT
+  RESELLER_SUB_FUND
+}
+
+enum ResellerStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+  REJECTED
+}
+
+enum PromoCodeType {
+  PERCENT_BONUS
+  FIXED_CREDIT
+  WALLET_BONUS
+}
+
+enum InvoiceStatus {
+  DRAFT
+  PAID
+  VOID
 }
 
 enum SmsProviderType {
@@ -131,6 +172,87 @@ model User {
   notifications     Notification[]
   smsTemplates      SmsTemplate[]
   automations       AutomationWorkflow[]
+  customPricing     UserSmsPricing[]
+  invoices          Invoice[]
+  promoRedemptions  PromoRedemption[]
+  reseller          Reseller?
+  resellerMembership ResellerUser?
+  enterpriseAccount EnterpriseAccount?
+}
+
+model Reseller {
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName   String
+  brandName      String?
+  domain         String?        @unique
+  commissionRate Decimal        @default(10) @db.Decimal(5, 2)
+  status         ResellerStatus @default(PENDING)
+  isActive       Boolean        @default(true)
+  dailySmsLimit  Int?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  subUsers       ResellerUser[]
+  commissions    ResellerCommission[]
+  countryPricing ResellerCountryPricing[]
+  branding       WhiteLabelBrand?
+
+  @@index([status])
+}
+
+model ResellerUser {
+  id            String   @id @default(cuid())
+  resellerId    String
+  reseller      Reseller @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailySmsLimit Int?
+  isSuspended   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([resellerId])
+}
+
+model ResellerCountryPricing {
+  id          String   @id @default(cuid())
+  resellerId  String
+  reseller    Reseller @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  countryCode String
+  sellPrice   Decimal  @db.Decimal(10, 4)
+  currency    String   @default("GHS")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([resellerId, countryCode])
+}
+
+model ResellerCommission {
+  id          String   @id @default(cuid())
+  resellerId  String
+  reseller    Reseller @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  amount      Decimal  @db.Decimal(14, 4)
+  currency    String   @default("GHS")
+  source      String
+  referenceId String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([resellerId, createdAt])
+}
+
+model WhiteLabelBrand {
+  id             String   @id @default(cuid())
+  resellerId     String   @unique
+  reseller       Reseller @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  logoUrl        String?
+  primaryColor   String?  @default("#f97316")
+  secondaryColor String?  @default("#0f0f0f")
+  accentColor    String?
+  supportEmail   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model Notification {
@@ -201,19 +323,25 @@ model SmsCredit {
 }
 
 model Transaction {
-  id          String          @id @default(cuid())
-  userId      String
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        TransactionType
-  amount      Decimal         @db.Decimal(14, 2)
-  currency    String          @default("GHS")
-  credits     Int?
-  description String?
-  paymentId   String?
-  payment     Payment?        @relation(fields: [paymentId], references: [id])
-  createdAt   DateTime        @default(now())
+  id             String          @id @default(cuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type           TransactionType
+  amount         Decimal         @db.Decimal(14, 2)
+  currency       String          @default("GHS")
+  credits        Int?
+  description    String?
+  reference      String?
+  status         String          @default("completed")
+  balanceBefore  Decimal?        @db.Decimal(14, 2)
+  balanceAfter   Decimal?        @db.Decimal(14, 2)
+  metadata       Json?
+  paymentId      String?
+  payment        Payment?        @relation(fields: [paymentId], references: [id])
+  createdAt      DateTime        @default(now())
 
   @@index([userId, createdAt])
+  @@index([reference])
 }
 
 model Payment {
@@ -250,10 +378,70 @@ model SmsPricing {
   id            String  @id @default(cuid())
   countryId     String  @unique
   country       Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  provider      String  @default("mNotify")
   creditsPerSms Int     @default(1)
-  memberPrice   Decimal @db.Decimal(10, 4)
+  costPrice     Decimal  @default(0.02) @db.Decimal(10, 4)
+  memberPrice   Decimal  @db.Decimal(10, 4)
   resellerPrice Decimal? @db.Decimal(10, 4)
-  isActive      Boolean @default(true)
+  currency      String   @default("GHS")
+  isActive      Boolean  @default(true)
+  updatedAt     DateTime @default(now()) @updatedAt
+}
+
+model UserSmsPricing {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  countryCode String
+  sellPrice   Decimal  @db.Decimal(10, 4)
+  currency    String   @default("GHS")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, countryCode])
+  @@index([userId])
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoiceNo     String        @unique
+  amount        Decimal       @db.Decimal(14, 2)
+  currency      String        @default("GHS")
+  status        InvoiceStatus @default(PAID)
+  items         Json
+  paymentId     String?
+  transactionId String?
+  createdAt     DateTime      @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model PromoCode {
+  id        String        @id @default(cuid())
+  code      String        @unique
+  type      PromoCodeType
+  value     Decimal       @db.Decimal(14, 2)
+  maxUses   Int?
+  usedCount Int           @default(0)
+  expiresAt DateTime?
+  isActive  Boolean       @default(true)
+  userId    String?
+  createdAt DateTime      @default(now())
+  redemptions PromoRedemption[]
+}
+
+model PromoRedemption {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promoCodeId String
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, promoCodeId])
 }
 
 model SmsProvider {
@@ -401,11 +589,14 @@ model Message {
   deliveredAt   DateTime?
   failedAt      DateTime?
   failureReason String?
+  priority      MessagePriority  @default(MEDIUM)
+  channel       String?
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
   @@index([userId, status, createdAt])
   @@index([campaignId])
+  @@index([priority, status])
 }
 
 model SenderId {
@@ -522,4 +713,94 @@ model ApiLog {
   @@index([userId, createdAt])
   @@index([apiKeyId, createdAt])
   @@index([createdAt])
+}
+
+model DedicatedRoute {
+  id               String              @id @default(cuid())
+  name             String
+  countryCode      String
+  lockedProvider   SmsProviderType?
+  description      String?
+  isActive         Boolean             @default(true)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  enterpriseAccounts EnterpriseAccount[]
+
+  @@index([countryCode, isActive])
+}
+
+model EnterpriseAccount {
+  id               String            @id @default(cuid())
+  userId           String            @unique
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName      String
+  slaTier          SlaTier           @default(STANDARD)
+  status           EnterpriseStatus  @default(PENDING)
+  throughputPerSec Int               @default(10)
+  ipWhitelist      String[]          @default([])
+  apiRateLimit     Int               @default(500)
+  dedicatedRouteId String?
+  dedicatedRoute   DedicatedRoute?   @relation(fields: [dedicatedRouteId], references: [id])
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  smppAccount      SmppAccount?
+  credit           EnterpriseCredit?
+
+  @@index([status])
+}
+
+model EnterpriseCredit {
+  id            String            @id @default(cuid())
+  enterpriseId  String            @unique
+  enterprise    EnterpriseAccount @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
+  creditLimit   Decimal           @db.Decimal(14, 2)
+  usedCredit    Decimal           @default(0) @db.Decimal(14, 2)
+  billingCycle  String            @default("monthly")
+  currency      String            @default("GHS")
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+}
+
+model SmppAccount {
+  id            String            @id @default(cuid())
+  enterpriseId  String            @unique
+  enterprise    EnterpriseAccount @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
+  systemId      String            @unique
+  passwordHash  String
+  throughput    Int               @default(10)
+  ipWhitelist   String[]          @default([])
+  isActive      Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  sessions      SmppSession[]
+  submitLogs    SmppSubmitLog[]
+
+  @@index([systemId])
+}
+
+model SmppSession {
+  id             String      @id @default(cuid())
+  smppAccountId  String
+  smppAccount    SmppAccount @relation(fields: [smppAccountId], references: [id], onDelete: Cascade)
+  bindType       String
+  clientIp       String?
+  isActive       Boolean     @default(true)
+  boundAt        DateTime    @default(now())
+  disconnectedAt DateTime?
+
+  @@index([smppAccountId, isActive])
+}
+
+model SmppSubmitLog {
+  id            String      @id @default(cuid())
+  smppAccountId String
+  smppAccount   SmppAccount @relation(fields: [smppAccountId], references: [id], onDelete: Cascade)
+  messageId     String?
+  sourceAddr    String
+  destAddr      String
+  status        String
+  errorCode     String?
+  createdAt     DateTime    @default(now())
+
+  @@index([smppAccountId, createdAt])
 }

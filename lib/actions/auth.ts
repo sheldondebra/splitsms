@@ -58,6 +58,12 @@ async function finishLogin(user: {
   if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") {
     redirect("/admin");
   }
+  if (user.role === "RESELLER") {
+    redirect("/reseller");
+  }
+  if (user.role === "ENTERPRISE") {
+    redirect("/enterprise");
+  }
   redirect("/dashboard");
 }
 
@@ -199,7 +205,9 @@ export async function verifyOtpAction(formData: FormData) {
   }
 
   if (otpPurpose === "PASSWORD_RESET") {
-    await createPasswordResetSession(user!.id, phone);
+    const returnTo = String(formData.get("returnTo") ?? "").trim();
+    const safeReturn = returnTo.startsWith("/dashboard") ? returnTo : undefined;
+    await createPasswordResetSession(user!.id, phone, safeReturn);
     await logAuthEvent("PASSWORD_RESET_OTP_VERIFIED", { phone }, user!.id);
     redirect("/reset-password");
   }
@@ -344,6 +352,10 @@ export async function resetPasswordAction(formData: FormData) {
   await clearPasswordResetSession();
   await clearRateLimit(rateLimitKey("login", reset.phone));
   await logAuthEvent("PASSWORD_RESET_COMPLETED", { phone: reset.phone }, reset.userId);
+
+  if (reset.returnTo?.startsWith("/dashboard")) {
+    redirect(`${reset.returnTo}?password=updated`);
+  }
 
   authRedirect("/login", { reset: "success" });
 }
