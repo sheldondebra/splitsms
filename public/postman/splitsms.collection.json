@@ -1,0 +1,63 @@
+{
+  "info": {
+    "name": "SplitSMS API v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "apiKey", "value": "sk_live_your_key_here" }
+  ],
+  "item": [
+    {
+      "name": "Send SMS",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{apiKey}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sender\": \"SplitSMS\",\n  \"recipients\": [\"+233201234567\"],\n  \"message\": \"Hello from SplitSMS\",\n  \"countryCode\": \"GH\"\n}"
+        },
+        "url": "{{baseUrl}}/api/v1/messages/send"
+      }
+    },
+    {
+      "name": "Wallet Balance",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{apiKey}}" }],
+        "url": "{{baseUrl}}/api/v1/wallet/balance"
+      }
+    },
+    {
+      "name": "OTP Send",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{apiKey}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+233201234567\"\n}" },
+        "url": "{{baseUrl}}/api/v1/otp/send"
+      }
+    },
+    {
+      "name": "List Campaigns",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{apiKey}}" }],
+        "url": "{{baseUrl}}/api/v1/campaigns"
+      }
+    },
+    {
+      "name": "List Contacts",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{apiKey}}" }],
+        "url": "{{baseUrl}}/api/v1/contacts"
+      }
+    }
+  ]
+}

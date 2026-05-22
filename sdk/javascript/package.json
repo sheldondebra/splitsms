@@ -1,0 +1,9 @@
+{
+  "name": "@splitsms/sdk",
+  "version": "0.1.0",
+  "description": "Official SplitSMS JavaScript/Node.js SDK (starter)",
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": ["index.js", "index.d.ts"]
+}

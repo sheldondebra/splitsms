@@ -1,0 +1,73 @@
+import { NextResponse } from "next/server";
+import { createAndSendOtp, verifyOtp } from "@/lib/auth/otp";
+import { checkRateLimit, recordFailedAttempt, rateLimitKey } from "@/lib/auth/rate-limit";
+import { normalizePhone } from "@/lib/auth/validation";
+import { z } from "zod";
+
+const sendSchema = z.object({
+  phone: z.string().min(10),
+  countryCode: z.string().min(2).max(10).optional(),
+  purpose: z.enum(["signup", "login", "reset"]).optional(),
+});
+
+const verifySchema = z.object({
+  phone: z.string().min(10),
+  code: z.string().length(6),
+  countryCode: z.string().min(2).max(10).optional(),
+  purpose: z.enum(["signup", "login", "reset"]).optional(),
+});
+
+const purposeMap = {
+  signup: "SIGNUP_VERIFY" as const,
+  login: "LOGIN" as const,
+  reset: "PASSWORD_RESET" as const,
+};
+
+export async function handlePublicSendOtp(request: Request) {
+  const body = sendSchema.safeParse(await request.json());
+  if (!body.success) {
+    return NextResponse.json({ error: "Invalid phone" }, { status: 400 });
+  }
+
+  const phone = normalizePhone(body.data.phone);
+  const countryCode = body.data.countryCode ?? "GH";
+  const purpose = purposeMap[body.data.purpose ?? "signup"];
+
+  const limit = await checkRateLimit(rateLimitKey("otp_request", phone));
+  if (!limit.allowed) {
+    return NextResponse.json({ error: limit.reason, retryAfterSec: limit.retryAfterSec }, { status: 429 });
+  }
+
+  const result = await createAndSendOtp(phone, purpose, countryCode);
+  if (!result.ok) {
+    return NextResponse.json(
+      { error: "Cooldown active", cooldownSec: result.cooldownSec },
+      { status: 429 },
+    );
+  }
+
+  return NextResponse.json({ ok: true, message: "OTP sent" });
+}
+
+export async function handlePublicVerifyOtp(request: Request) {
+  const body = verifySchema.safeParse(await request.json());
+  if (!body.success) {
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  const phone = normalizePhone(body.data.phone);
+  const purpose = purposeMap[body.data.purpose ?? "signup"];
+
+  const limit = await checkRateLimit(rateLimitKey("otp", phone));
+  if (!limit.allowed) {
+    return NextResponse.json({ error: limit.reason }, { status: 429 });
+  }
+
+  const result = await verifyOtp(phone, body.data.code, purpose);
+  if (!result.ok) {
+    await recordFailedAttempt(rateLimitKey("otp", phone));
+    return NextResponse.json({ error: result.error }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true, verified: true });
+}

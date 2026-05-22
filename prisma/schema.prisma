@@ -1,0 +1,525 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  MEMBER
+  RESELLER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum PaymentMethod {
+  PAYSTACK
+  FLUTTERWAVE
+  STRIPE
+  MTN_MOMO
+  MANUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum TransactionType {
+  WALLET_TOPUP
+  CREDIT_PURCHASE
+  SMS_DEBIT
+  REFUND
+  ADMIN_ADJUSTMENT
+}
+
+enum SmsProviderType {
+  INFOBIP
+  TWILIO
+  MNOTIFY
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  REJECTED
+  EXPIRED
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  COMPLETED
+  CANCELLED
+  PAUSED
+}
+
+enum CampaignRecurrence {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+  CUSTOM_DAYS
+}
+
+enum AutomationTrigger {
+  MANUAL
+  SIGNUP
+  BIRTHDAY
+  LOW_BALANCE
+  CAMPAIGN_COMPLETE
+}
+
+enum SenderIdStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OtpPurpose {
+  SIGNUP_VERIFY
+  LOGIN
+  PASSWORD_RESET
+}
+
+enum NotificationType {
+  LOW_BALANCE
+  CAMPAIGN_COMPLETED
+  SMS_FAILED
+  WALLET_FUNDED
+  OTP_SENT
+  SYSTEM
+}
+
+model User {
+  id               String          @id @default(cuid())
+  fullName         String
+  phone            String          @unique
+  countryCode      String
+  passwordHash     String
+  role             UserRole        @default(MEMBER)
+  referralCode     String?
+  email            String?         @unique
+  isVerified       Boolean         @default(false)
+  failedLoginCount Int             @default(0)
+  lockedUntil      DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  wallet         Wallet?
+  smsCredit      SmsCredit?
+  transactions   Transaction[]
+  payments       Payment[]
+  contacts       Contact[]
+  contactGroups  ContactGroup[]
+  campaigns      Campaign[]
+  messages       Message[]
+  senderIds      SenderId[]
+  apiKeys        ApiKey[]
+  otpSessions    OtpSession[]
+  supportTickets    SupportTicket[]
+  auditLogs         AuditLog[]         @relation("AuditActor")
+  webhookEndpoints  WebhookEndpoint[]
+  apiLogs           ApiLog[]
+  sessions          UserSession[]
+  notifications     Notification[]
+  smsTemplates      SmsTemplate[]
+  automations       AutomationWorkflow[]
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  message   String
+  readAt    DateTime?
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
+
+model UserSession {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent    String?
+  ip           String?
+  createdAt    DateTime @default(now())
+  lastActiveAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model OtpSession {
+  id        String     @id @default(cuid())
+  phone     String
+  codeHash  String
+  purpose   OtpPurpose @default(SIGNUP_VERIFY)
+  expiresAt DateTime
+  attempts  Int        @default(0)
+  verified  Boolean    @default(false)
+  userId    String?
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@index([phone, purpose])
+}
+
+model AuthAttempt {
+  id           String    @id @default(cuid())
+  key          String    @unique
+  attempts     Int       @default(0)
+  blockedUntil DateTime?
+  updatedAt    DateTime  @updatedAt
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Decimal  @default(0) @db.Decimal(14, 2)
+  currency  String   @default("GHS")
+  updatedAt DateTime @updatedAt
+}
+
+model SmsCredit {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        TransactionType
+  amount      Decimal         @db.Decimal(14, 2)
+  currency    String          @default("GHS")
+  credits     Int?
+  description String?
+  paymentId   String?
+  payment     Payment?        @relation(fields: [paymentId], references: [id])
+  createdAt   DateTime        @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  userId            String
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  method            PaymentMethod
+  status            PaymentStatus @default(PENDING)
+  amount            Decimal       @db.Decimal(14, 2)
+  currency          String        @default("GHS")
+  providerReference String?       @unique
+  proofUrl          String?
+  adminNote         String?
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  transactions      Transaction[]
+
+  @@index([userId, status])
+  @@index([method, status])
+}
+
+model Country {
+  id       String       @id @default(cuid())
+  code     String       @unique
+  name     String
+  dialCode String
+  isActive Boolean      @default(true)
+  routes   SmsRoute[]
+  pricing  SmsPricing[]
+}
+
+model SmsPricing {
+  id            String  @id @default(cuid())
+  countryId     String  @unique
+  country       Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  creditsPerSms Int     @default(1)
+  memberPrice   Decimal @db.Decimal(10, 4)
+  resellerPrice Decimal? @db.Decimal(10, 4)
+  isActive      Boolean @default(true)
+}
+
+model SmsProvider {
+  id       String          @id @default(cuid())
+  type     SmsProviderType @unique
+  name     String
+  isActive Boolean         @default(true)
+  config   Json?
+  steps    SmsRouteStep[]
+}
+
+model SmsRoute {
+  id        String         @id @default(cuid())
+  countryId String         @unique
+  country   Country        @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  steps     SmsRouteStep[]
+  isActive  Boolean        @default(true)
+}
+
+model SmsRouteStep {
+  id         String      @id @default(cuid())
+  routeId    String
+  route      SmsRoute    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  providerId String
+  provider   SmsProvider @relation(fields: [providerId], references: [id])
+  priority   Int
+
+  @@unique([routeId, priority])
+}
+
+model Contact {
+  id          String               @id @default(cuid())
+  userId      String
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String?
+  phone       String
+  email       String?
+  countryCode String?
+  tags        String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  groups      ContactGroupMember[]
+
+  @@unique([userId, phone])
+  @@index([userId, phone])
+  @@index([userId, countryCode])
+  @@index([userId, createdAt])
+}
+
+model ContactGroup {
+  id          String               @id @default(cuid())
+  userId      String
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  members     ContactGroupMember[]
+  campaigns   Campaign[]
+}
+
+model SmsTemplate {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  content    String
+  isFavorite Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model AutomationWorkflow {
+  id        String            @id @default(cuid())
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  trigger   AutomationTrigger @default(MANUAL)
+  message   String
+  isActive  Boolean           @default(true)
+  config    Json?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([userId, isActive])
+}
+
+model ContactGroupMember {
+  id        String       @id @default(cuid())
+  groupId   String
+  group     ContactGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  contactId String
+  contact   Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, contactId])
+}
+
+model Campaign {
+  id               String             @id @default(cuid())
+  userId           String
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  senderId         String
+  message          String
+  status           CampaignStatus     @default(DRAFT)
+  scheduledAt      DateTime?
+  timezone         String             @default("UTC")
+  contactGroupId   String?
+  contactGroup     ContactGroup?      @relation(fields: [contactGroupId], references: [id])
+  recipientCount   Int                @default(0)
+  estimatedCost    Decimal?           @db.Decimal(14, 2)
+  countryCode      String             @default("GH")
+  recipientsText   String?
+  recurrence       CampaignRecurrence @default(NONE)
+  recurrenceDays   Int?
+  recurrenceEndAt  DateTime?
+  parentCampaignId String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  messages         Message[]
+
+  @@index([userId, status])
+  @@index([status, scheduledAt])
+}
+
+model Message {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaignId    String?
+  campaign      Campaign?        @relation(fields: [campaignId], references: [id])
+  recipient     String
+  body          String
+  countryCode   String?
+  isSandbox     Boolean          @default(false)
+  status        MessageStatus    @default(PENDING)
+  cost          Decimal?         @db.Decimal(10, 4)
+  smsUnits      Int              @default(1)
+  providerType  SmsProviderType?
+  providerRef   String?
+  senderId      String
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  failedAt      DateTime?
+  failureReason String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([userId, status, createdAt])
+  @@index([campaignId])
+}
+
+model SenderId {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value       String
+  countryCode String
+  status      SenderIdStatus @default(PENDING)
+  isDefault   Boolean        @default(false)
+  adminNote   String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([userId, status])
+}
+
+model ApiKey {
+  id                 String    @id @default(cuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label              String
+  keyHash            String
+  keyPrefix          String
+  permissions        String[]  @default(["sms.send", "sms.read", "wallet.read", "contacts.read", "contacts.write", "campaigns.read"])
+  isSandbox          Boolean   @default(false)
+  rateLimitPerMinute Int       @default(60)
+  isActive           Boolean   @default(true)
+  lastUsedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  logs               ApiLog[]
+
+  @@index([userId])
+  @@index([keyPrefix])
+  @@index([keyHash])
+}
+
+model SupportTicket {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject   String
+  message   String
+  status    String   @default("OPEN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model PlatformSetting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
+}
+
+model WebhookEndpoint {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url       String
+  secret    String?
+  events    String[] @default(["message.delivered", "message.failed"])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  logs      WebhookDeliveryLog[]
+
+  @@index([userId])
+}
+
+model WebhookDeliveryLog {
+  id           String          @id @default(cuid())
+  endpointId   String
+  endpoint     WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  event        String
+  payload      Json
+  statusCode   Int?
+  success      Boolean         @default(false)
+  retryCount   Int             @default(0)
+  nextRetryAt  DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([endpointId, createdAt])
+  @@index([success, nextRetryAt])
+}
+
+model ApiLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  apiKeyId     String?
+  apiKey       ApiKey?  @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+  method       String
+  path         String
+  statusCode   Int
+  durationMs   Int
+  ip           String?
+  requestBytes Int?
+  errorCode    String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([apiKeyId, createdAt])
+  @@index([createdAt])
+}
