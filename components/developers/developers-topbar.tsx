@@ -15,7 +15,7 @@ export function DevelopersTopbar() {
   const inDevelopers = pathname.startsWith("/developers");
 
   return (
-    <header className="sticky top-0 z-30 -mx-6 md:-mx-10 lg:-mx-12 px-6 md:px-10 lg:px-12 py-3 mb-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header className="hidden md:block sticky top-0 z-30 -mx-6 md:-mx-10 lg:-mx-12 px-6 md:px-10 lg:px-12 py-3 mb-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Link
           href="/dashboard"

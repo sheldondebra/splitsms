@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Workflow } from "lucide-react";
+import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
 
 const TRIGGERS = [
   { value: "MANUAL", label: "Manual (starter)" },
@@ -31,27 +32,24 @@ export default async function AutomationPage() {
   });
 
   return (
-    <div className="space-y-8 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Workflow className="h-7 w-7 text-primary" />
-          Automation
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Starter workflows — full multi-step engine ships in a later batch.
-        </p>
-      </div>
+    <AppPage medium>
+      <PageHeader
+        title="Automation"
+        icon={Workflow}
+        mobileDescription="Workflows triggered by events like signup or low balance."
+        description="Starter workflows — full multi-step engine ships in a later batch."
+      />
 
-      <Card className="border-dashed">
+      <AppCard className="border-dashed">
         <CardHeader>
           <CardTitle className="text-base">Welcome workflow (example)</CardTitle>
           <CardDescription>
             User signup → Send welcome SMS → Wait 1 day → Follow-up (configure triggers below)
           </CardDescription>
         </CardHeader>
-      </Card>
+      </AppCard>
 
-      <Card>
+      <AppCard>
         <CardHeader>
           <CardTitle>New workflow</CardTitle>
         </CardHeader>
@@ -79,14 +77,16 @@ export default async function AutomationPage() {
               <Label>Message</Label>
               <Textarea name="message" rows={3} required placeholder="Hello {name}!" />
             </div>
-            <Button type="submit">Create workflow</Button>
+            <Button type="submit" className="min-h-11">
+              Create workflow
+            </Button>
           </form>
         </CardContent>
-      </Card>
+      </AppCard>
 
       <div className="space-y-3">
         {workflows.map((w) => (
-          <Card key={w.id}>
+          <AppCard key={w.id}>
             <CardContent className="flex flex-wrap items-center justify-between gap-4 py-4">
               <div>
                 <p className="font-medium">{w.name}</p>
@@ -113,9 +113,9 @@ export default async function AutomationPage() {
                 </form>
               </div>
             </CardContent>
-          </Card>
+          </AppCard>
         ))}
       </div>
-    </div>
+    </AppPage>
   );
 }

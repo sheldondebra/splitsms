@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ContactsBulkActions } from "@/components/contacts/contacts-bulk-actions";
+import { ContactsMobileList } from "@/components/contacts/contacts-mobile-list";
 import {
   deleteContactAction,
   addContactToGroupAction,
@@ -61,7 +62,9 @@ export function ContactsTable({
         selectedIds={[...selected]}
         onClear={() => setSelected(new Set())}
       />
-      <div className="rounded-lg border overflow-x-auto">
+      <ContactsMobileList contacts={contacts} groups={groups} />
+
+      <div className="hidden md:block rounded-lg border overflow-x-auto app-scroll-x">
         <Table>
           <TableHeader>
             <TableRow>

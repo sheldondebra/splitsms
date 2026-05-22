@@ -5,9 +5,10 @@ import { ReportSummary } from "@/components/dashboard/report-summary";
 import { ReportsFilters } from "@/components/dashboard/reports-filters";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
+import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Send } from "lucide-react";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Send, BarChart3 } from "lucide-react";
 import { STATUS_LABELS } from "@/lib/ux/messages";
 
 export default async function ReportsPage({
@@ -43,13 +44,13 @@ export default async function ReportsPage({
   const failedInView = items.filter((m) => m.status === "FAILED").length;
 
   return (
-    <div className="space-y-8 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-bold sm:text-3xl">Message results</h1>
-        <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-          See which messages were delivered, failed, or still on the way.
-        </p>
-      </div>
+    <AppPage medium>
+      <PageHeader
+        title="Message results"
+        description="See which messages were delivered, failed, or still on the way."
+        icon={BarChart3}
+        mobileDescription="Delivery status for your recent messages."
+      />
 
       {params.sent && (
         <FriendlyAlert success="1" successMessage="Your messages were sent successfully." />
@@ -72,17 +73,17 @@ export default async function ReportsPage({
           {params.campaign && (
             <input type="hidden" name="campaignId" value={params.campaign} />
           )}
-          <Button type="submit" variant="outline" className="h-11">
+          <Button type="submit" variant="outline" className="w-full md:w-auto min-h-11">
             Try sending failed messages again
           </Button>
         </form>
       )}
 
-      <details className="rounded-xl border bg-muted/20 px-4 py-3">
-        <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+      <details className="app-card rounded-2xl px-4 py-3">
+        <summary className="cursor-pointer text-sm font-medium min-h-11 flex items-center touch-target-lg">
           Advanced filters
         </summary>
-        <div className="mt-4 pt-2 border-t">
+        <div className="mt-4 pt-4 border-t">
           <ReportsFilters
             campaignId={params.campaign}
             status={params.status ?? "all"}
@@ -92,8 +93,8 @@ export default async function ReportsPage({
         </div>
       </details>
 
-      <Card className="rounded-2xl">
-        <CardHeader>
+      <AppCard>
+        <CardHeader className="pb-2">
           <CardTitle className="text-lg">Recent messages</CardTitle>
           <p className="text-sm text-muted-foreground">
             {total} message{total === 1 ? "" : "s"}
@@ -110,14 +111,12 @@ export default async function ReportsPage({
               actionHref="/dashboard/send"
             />
           ) : (
-            <ul className="divide-y">
+            <ul className="divide-y divide-border/60">
               {items.map((m) => (
                 <li key={m.id} className="flex justify-between gap-3 py-4 first:pt-0">
-                  <div className="min-w-0">
-                    <p className="font-medium">{m.recipient}</p>
-                    <p className="text-xs text-muted-foreground truncate max-w-[240px]">
-                      {m.body}
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm">{m.recipient}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{m.body}</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p
@@ -132,7 +131,10 @@ export default async function ReportsPage({
                       {STATUS_LABELS[m.status] ?? m.status}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {m.createdAt.toLocaleDateString()}
+                      {m.createdAt.toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                      })}
                     </p>
                   </div>
                 </li>
@@ -140,11 +142,11 @@ export default async function ReportsPage({
             </ul>
           )}
           {totalPages > 1 && (
-            <div className="flex gap-4 mt-6 justify-center text-sm font-medium">
+            <div className="flex gap-6 mt-6 justify-center text-sm font-medium">
               {page > 1 && (
                 <a
                   href={`?${new URLSearchParams({ ...params, page: String(page - 1) } as Record<string, string>).toString()}`}
-                  className="text-primary hover:underline"
+                  className="text-primary hover:underline min-h-11 flex items-center"
                 >
                   Previous
                 </a>
@@ -152,7 +154,7 @@ export default async function ReportsPage({
               {page < totalPages && (
                 <a
                   href={`?${new URLSearchParams({ ...params, page: String(page + 1) } as Record<string, string>).toString()}`}
-                  className="text-primary hover:underline"
+                  className="text-primary hover:underline min-h-11 flex items-center"
                 >
                   Next
                 </a>
@@ -160,7 +162,7 @@ export default async function ReportsPage({
             </div>
           )}
         </CardContent>
-      </Card>
-    </div>
+      </AppCard>
+    </AppPage>
   );
 }

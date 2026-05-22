@@ -1,5 +1,4 @@
-import { logoutAction } from "@/lib/actions/auth";
-import { Button } from "@/components/ui/button";
+import { LogoutConfirmButton } from "@/components/auth/logout-confirm-button";
 
 type AppTopbarProps = {
   title: string;
@@ -15,11 +14,7 @@ export function AppTopbar({ title, subtitle }: AppTopbarProps) {
           <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
         )}
       </div>
-      <form action={logoutAction}>
-        <Button variant="outline" size="sm" type="submit" className="text-xs">
-          Logout
-        </Button>
-      </form>
+      <LogoutConfirmButton variant="outline" size="sm" label="Sign out" showIcon={false} />
     </header>
   );
 }

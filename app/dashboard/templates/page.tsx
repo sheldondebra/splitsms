@@ -6,12 +6,13 @@ import {
 } from "@/lib/actions/templates";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PERSONALIZATION_HINT } from "@/lib/sms/personalize";
 import { FileText, Star } from "lucide-react";
 import Link from "next/link";
@@ -26,16 +27,15 @@ export default async function TemplatesPage() {
   });
 
   return (
-    <div className="space-y-8 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <FileText className="h-7 w-7 text-primary" />
-          SMS templates
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">{PERSONALIZATION_HINT}</p>
-      </div>
+    <AppPage medium>
+      <PageHeader
+        title="SMS templates"
+        description={PERSONALIZATION_HINT}
+        icon={FileText}
+        mobileDescription="Reusable messages for campaigns."
+      />
 
-      <Card>
+      <AppCard>
         <CardHeader>
           <CardTitle>New template</CardTitle>
         </CardHeader>
@@ -54,44 +54,48 @@ export default async function TemplatesPage() {
                 placeholder="Hello {name}, thanks for joining!"
               />
             </div>
-            <Button type="submit">Save template</Button>
+            <Button type="submit" className="min-h-11">
+              Save template
+            </Button>
           </form>
         </CardContent>
-      </Card>
+      </AppCard>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {templates.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No templates yet.</p>
+          <p className="text-sm text-muted-foreground text-center py-8">No templates yet.</p>
         ) : (
           templates.map((t) => (
-            <Card key={t.id}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <AppCard key={t.id}>
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   {t.name}
                   {t.isFavorite && <Star className="h-4 w-4 fill-primary text-primary" />}
                 </CardTitle>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <form action={toggleTemplateFavoriteAction}>
                     <input type="hidden" name="id" value={t.id} />
-                    <Button type="submit" size="sm" variant="outline">
+                    <Button type="submit" size="sm" variant="outline" className="min-h-10">
                       {t.isFavorite ? "Unfavorite" : "Favorite"}
                     </Button>
                   </form>
                   <form action={deleteTemplateAction}>
                     <input type="hidden" name="id" value={t.id} />
-                    <Button type="submit" size="sm" variant="ghost" className="text-destructive">
+                    <Button type="submit" size="sm" variant="ghost" className="text-destructive min-h-10">
                       Delete
                     </Button>
                   </form>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-sm whitespace-pre-wrap rounded border bg-muted/20 p-3">{t.content}</p>
+                <p className="text-sm whitespace-pre-wrap rounded-xl border bg-muted/20 p-3">
+                  {t.content}
+                </p>
                 <form action={updateTemplateAction} className="space-y-2">
                   <input type="hidden" name="id" value={t.id} />
                   <Input name="name" defaultValue={t.name} />
                   <Textarea name="content" rows={3} defaultValue={t.content} />
-                  <Button type="submit" size="sm">
+                  <Button type="submit" size="sm" className="w-full sm:w-auto min-h-11">
                     Update
                   </Button>
                 </form>
@@ -101,10 +105,10 @@ export default async function TemplatesPage() {
                   </Badge>
                 </Link>
               </CardContent>
-            </Card>
+            </AppCard>
           ))
         )}
       </div>
-    </div>
+    </AppPage>
   );
 }

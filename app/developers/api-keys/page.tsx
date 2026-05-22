@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { ApiKeysManager } from "@/components/developers/api-keys-manager";
 import { Key } from "lucide-react";
+import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 
 export default async function DevelopersApiKeysPage({
   searchParams,
@@ -30,19 +31,14 @@ export default async function DevelopersApiKeysPage({
   }));
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-          <Key className="h-6 w-6" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">API Keys</h1>
-          <p className="text-muted-foreground mt-1 text-sm max-w-lg">
-            Manage multiple keys for production and sandbox. Copy once on create — rotate anytime without downtime planning.
-          </p>
-        </div>
-      </div>
+    <AppPage>
+      <PageHeader
+        title="API Keys"
+        description="Manage production and sandbox keys. Copy once on create — rotate anytime."
+        icon={Key}
+        mobileDescription="Create, copy, and rotate API keys."
+      />
       <ApiKeysManager keys={rows} createdFromUrl={created} />
-    </div>
+    </AppPage>
   );
 }

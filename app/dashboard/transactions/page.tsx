@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
 import { Badge } from "@/components/ui/badge";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -10,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ArrowLeftRight } from "lucide-react";
 
 const typeLabels: Record<string, string> = {
   WALLET_TOPUP: "Deposit",
@@ -38,42 +40,78 @@ export default async function TransactionsPage() {
   const refunds = transactions.filter((t) => t.type === "REFUND");
 
   return (
-    <div className="space-y-8 max-w-5xl">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Wallet funding, SMS deductions, refunds, and bonuses
-        </p>
-      </div>
+    <AppPage>
+      <PageHeader
+        title="Transactions"
+        description="Wallet funding, SMS deductions, refunds, and bonuses"
+        icon={ArrowLeftRight}
+        mobileDescription="Full history of wallet and SMS activity."
+      />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Wallet balance</CardTitle>
+      <div className="grid grid-cols-3 gap-2 md:gap-4 md:grid-cols-3">
+        <AppCard>
+          <CardHeader className="pb-1 md:pb-2">
+            <CardTitle className="text-[10px] md:text-sm text-muted-foreground font-medium">
+              Balance
+            </CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold">
+          <CardContent className="text-lg md:text-2xl font-bold tabular-nums pb-4 md:pb-6">
             {wallet?.currency} {wallet?.balance.toString() ?? "0"}
           </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Top-ups</CardTitle>
+        </AppCard>
+        <AppCard>
+          <CardHeader className="pb-1 md:pb-2">
+            <CardTitle className="text-[10px] md:text-sm text-muted-foreground font-medium">
+              Top-ups
+            </CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{deposits.length}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">SMS debits</CardTitle>
+          <CardContent className="text-lg md:text-2xl font-bold pb-4 md:pb-6">
+            {deposits.length}
+          </CardContent>
+        </AppCard>
+        <AppCard>
+          <CardHeader className="pb-1 md:pb-2">
+            <CardTitle className="text-[10px] md:text-sm text-muted-foreground font-medium">
+              Debits
+            </CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{debits.length}</CardContent>
-        </Card>
+          <CardContent className="text-lg md:text-2xl font-bold pb-4 md:pb-6">
+            {debits.length}
+          </CardContent>
+        </AppCard>
       </div>
 
-      <Card>
+      <ul className="md:hidden divide-y divide-border/60 rounded-2xl border border-border/60 bg-card overflow-hidden">
+        {transactions.map((t) => (
+          <li key={t.id} className="flex justify-between gap-3 px-4 py-3.5 text-sm">
+            <div className="min-w-0">
+              <p className="font-medium truncate">{typeLabels[t.type] ?? t.type}</p>
+              <p className="text-xs text-muted-foreground">
+                {t.createdAt.toLocaleString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            </div>
+            <div className="text-right shrink-0">
+              <p className="font-semibold tabular-nums">
+                {t.currency} {t.amount.toString()}
+              </p>
+              {t.credits != null && (
+                <p className="text-xs text-muted-foreground">{t.credits} cr</p>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <AppCard className="hidden md:block">
         <CardHeader>
           <CardTitle>History</CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="app-scroll-x overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -105,13 +143,13 @@ export default async function TransactionsPage() {
             </TableBody>
           </Table>
         </CardContent>
-      </Card>
+      </AppCard>
 
       {refunds.length > 0 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground text-center md:text-left">
           {refunds.length} refund(s) on record — failed SMS credits returned automatically.
         </p>
       )}
-    </div>
+    </AppPage>
   );
 }

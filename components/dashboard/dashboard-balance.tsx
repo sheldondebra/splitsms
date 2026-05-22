@@ -106,21 +106,40 @@ export function DashboardBalance({
   }
 
   return (
-    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+      {/* Mobile: single combined balance chip */}
       <Link
         href="/dashboard/wallet"
         className={cn(
-          "flex items-center gap-1.5 rounded-xl border bg-muted/40 px-2 py-1.5 sm:px-3 transition-colors hover:bg-muted/70",
-          lowBalance && "border-amber-500/40 bg-amber-500/10",
+          "flex md:hidden items-center gap-2 rounded-lg border bg-muted/50 px-2.5 py-1.5 min-w-0 max-w-[11rem] transition-colors hover:bg-muted",
+          lowBalance && "border-amber-500/35 bg-amber-500/10",
+        )}
+      >
+        <Wallet className="h-3.5 w-3.5 text-primary shrink-0" />
+        <span className="text-xs font-semibold tabular-nums truncate">
+          {walletCurrency} {walletBalance.toFixed(0)}
+          <span className="text-muted-foreground font-normal mx-1">·</span>
+          <span className={cn(lowBalance && "text-amber-600 dark:text-amber-400")}>
+            {creditBalance.toLocaleString()} SMS
+          </span>
+        </span>
+      </Link>
+
+      {/* Desktop: separate chips */}
+      <Link
+        href="/dashboard/wallet"
+        className={cn(
+          "hidden md:flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 transition-colors hover:bg-muted/70",
+          lowBalance && "border-amber-500/35 bg-amber-500/10",
         )}
         title="Wallet balance"
       >
-        <Wallet className="h-3.5 w-3.5 text-primary shrink-0" />
-        <div className="text-left leading-tight">
-          <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold hidden sm:block">
+        <Wallet className="h-4 w-4 text-primary shrink-0" />
+        <div className="text-left leading-none">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
             Wallet
           </p>
-          <p className="text-xs sm:text-sm font-bold tabular-nums whitespace-nowrap">
+          <p className="text-sm font-bold tabular-nums mt-0.5">
             {walletCurrency} {walletBalance.toFixed(2)}
           </p>
         </div>
@@ -129,24 +148,24 @@ export function DashboardBalance({
       <Link
         href="/dashboard/wallet"
         className={cn(
-          "flex items-center gap-1.5 rounded-xl border bg-muted/40 px-2 py-1.5 sm:px-3 transition-colors hover:bg-muted/70",
-          lowBalance && "border-amber-500/40 bg-amber-500/10",
+          "hidden md:flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 transition-colors hover:bg-muted/70",
+          lowBalance && "border-amber-500/35 bg-amber-500/10",
         )}
         title="SMS credits"
       >
         <MessageSquare
           className={cn(
-            "h-3.5 w-3.5 shrink-0",
+            "h-4 w-4 shrink-0",
             lowBalance ? "text-amber-600" : "text-primary",
           )}
         />
-        <div className="text-left leading-tight">
-          <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold hidden sm:block">
+        <div className="text-left leading-none">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
             SMS
           </p>
           <p
             className={cn(
-              "text-xs sm:text-sm font-bold tabular-nums whitespace-nowrap",
+              "text-sm font-bold tabular-nums mt-0.5",
               lowBalance && "text-amber-700 dark:text-amber-400",
             )}
           >
@@ -159,7 +178,7 @@ export function DashboardBalance({
         href="/dashboard/wallet"
         className={cn(
           buttonVariants({ size: "sm" }),
-          "h-8 sm:h-9 px-2.5 sm:px-3 gap-1 font-semibold text-xs shadow-sm inline-flex items-center",
+          "h-8 px-2.5 sm:h-9 sm:px-3 gap-1 font-semibold text-xs shrink-0 inline-flex items-center",
         )}
       >
         <Plus className="h-3.5 w-3.5" />

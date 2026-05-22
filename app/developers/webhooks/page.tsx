@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
+import { Webhook } from "lucide-react";
 
 const EVENTS = [
   "message.sent",
@@ -35,13 +37,13 @@ export default async function DevelopersWebhooksPage({
   ]);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold">Webhooks</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Receive signed POST callbacks for delivery and platform events.
-        </p>
-      </div>
+    <AppPage medium>
+      <PageHeader
+        title="Webhooks"
+        description="Receive signed POST callbacks for delivery and platform events."
+        icon={Webhook}
+        mobileDescription="Configure URL and event subscriptions."
+      />
 
       {params.saved && (
         <p className="text-sm text-green-600">Webhook endpoint saved.</p>
@@ -135,6 +137,6 @@ export default async function DevelopersWebhooksPage({
         Retries: 1 min → 5 min → 30 min → 2 hr. Run{" "}
         <code className="bg-muted px-1 rounded">npm run worker:webhooks</code>
       </p>
-    </div>
+    </AppPage>
   );
 }

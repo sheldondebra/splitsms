@@ -1,7 +1,21 @@
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-import { DevelopersSidebar } from "@/components/developers/developers-sidebar";
-import { DevelopersTopbar } from "@/components/developers/developers-topbar";
+import { MemberAppShell } from "@/components/layout/member-app-shell";
+import {
+  getUserNotifications,
+  getUnreadCount,
+} from "@/lib/notifications";
+import { prisma } from "@/lib/db";
+import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
+import type { Viewport } from "next";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+};
 
 export default async function DevelopersLayout({
   children,
@@ -11,13 +25,26 @@ export default async function DevelopersLayout({
   const session = await getSession();
   if (!session) redirect("/login");
 
+  const [user, balance, notifications, unreadCount] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { fullName: true },
+    }),
+    getBalanceSnapshot(session.userId),
+    getUserNotifications(session.userId, 15),
+    getUnreadCount(session.userId),
+  ]);
+
+  const firstName = user?.fullName?.split(" ")[0] ?? "there";
+
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-background">
-      <DevelopersSidebar />
-      <main className="flex-1 min-w-0 p-6 md:p-10 lg:p-12 max-w-5xl">
-        <DevelopersTopbar />
-        {children}
-      </main>
-    </div>
+    <MemberAppShell
+      greeting={firstName}
+      notifications={notifications}
+      unreadCount={unreadCount}
+      balance={balance}
+    >
+      <div className="app-page md:max-w-5xl">{children}</div>
+    </MemberAppShell>
   );
 }

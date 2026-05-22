@@ -78,13 +78,13 @@
   --chart-4: oklch(0.35 0 0);
   --chart-5: oklch(0.25 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.11 0.005 45);
-  --sidebar-foreground: oklch(0.94 0 0);
+  --sidebar: oklch(0.985 0.002 90);
+  --sidebar-foreground: oklch(0.22 0.01 45);
   --sidebar-primary: oklch(0.72 0.19 45);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.17 0.01 45);
-  --sidebar-accent-foreground: oklch(0.94 0 0);
-  --sidebar-border: oklch(0.2 0.01 45);
+  --sidebar-accent: oklch(0.96 0.008 45);
+  --sidebar-accent-foreground: oklch(0.22 0.01 45);
+  --sidebar-border: oklch(0.91 0.006 90);
   --sidebar-ring: oklch(0.72 0.19 45);
 }
 
@@ -177,6 +177,77 @@
     @apply min-h-[52px];
   }
   .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .app-shell-mobile {
+    @apply bg-background;
+  }
+
+  /* Member app (dashboard + developers) — mobile-first */
+  .member-main {
+    @apply bg-background pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:pb-8 md:bg-muted/25;
+  }
+  .member-content {
+    @apply w-full max-w-lg mx-auto px-4 pt-3 pb-4 min-w-0 md:max-w-6xl md:mx-auto md:px-0 md:pt-0 md:pb-0;
+  }
+
+  .admin-main {
+    @apply bg-muted/20;
+  }
+  .admin-content {
+    @apply w-full mx-auto px-4 py-5 min-w-0 md:px-6 lg:px-8 md:py-8;
+  }
+  .admin-page {
+    @apply w-full min-w-0 mx-auto;
+  }
+
+  .app-page {
+    @apply w-full min-w-0 space-y-4 md:space-y-8;
+  }
+  .app-page-narrow {
+    @apply md:max-w-xl md:mx-auto;
+  }
+  .app-page-medium {
+    @apply md:max-w-3xl md:mx-auto;
+  }
+
+  .page-header-block {
+    @apply space-y-3 md:space-y-0;
+  }
+
+  .app-card {
+    @apply overflow-hidden;
+  }
+
+  .app-mobile-list {
+    @apply list-none p-0 m-0;
+  }
+
+  /* Forms & controls — touch-friendly on phone */
+  @media (max-width: 767px) {
+    .app-page input:not([type="checkbox"]):not([type="radio"]),
+    .app-page select,
+    .app-page textarea {
+      @apply min-h-11 text-base;
+    }
+    .app-page button[type="submit"],
+    .app-page .app-btn-primary {
+      @apply w-full min-h-11 text-base font-semibold;
+    }
+    .app-page .tabs-list-mobile {
+      @apply w-full overflow-x-auto flex-nowrap justify-start max-w-full;
+    }
+    .app-page table {
+      @apply text-sm;
+    }
+    .app-scroll-x {
+      @apply -mx-4 px-4 overflow-x-auto overscroll-x-contain;
+    }
+    .app-page .grid-mobile-stack {
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
   }
 }

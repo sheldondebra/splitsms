@@ -1,4 +1,6 @@
 import { PostmanPanel } from "@/components/developers/postman-panel";
+import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
+import { Braces } from "lucide-react";
 import { headers } from "next/headers";
 
 export default async function DevelopersPostmanPage() {
@@ -9,17 +11,14 @@ export default async function DevelopersPostmanPage() {
     process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? `${proto}://${host}`;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-[#FF6C37] mb-2">
-          Postman
-        </p>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Test the API in Postman</h1>
-        <p className="text-muted-foreground mt-1 text-sm max-w-xl">
-          Import our collection, set your API key, and run requests without writing curl commands.
-        </p>
-      </div>
+    <AppPage medium>
+      <PageHeader
+        title="Postman"
+        description="Import our collection, set your API key, and run requests without writing curl."
+        icon={Braces}
+        mobileDescription="Download collection and test the API."
+      />
       <PostmanPanel baseUrl={baseUrl} />
-    </div>
+    </AppPage>
   );
 }

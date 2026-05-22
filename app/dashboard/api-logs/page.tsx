@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { getApiAnalytics } from "@/lib/api/analytics";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
 import { Badge } from "@/components/ui/badge";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { ScrollText } from "lucide-react";
 
@@ -20,93 +21,108 @@ export default async function ApiLogsPage() {
     getApiAnalytics(session.userId),
   ]);
 
+  const stats = [
+    { label: "Requests", value: analytics.total },
+    { label: "Success", value: `${analytics.successRate}%` },
+    { label: "Keys", value: analytics.activeKeys },
+    { label: "Failed", value: analytics.failed },
+  ];
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <ScrollText className="h-7 w-7 text-primary" />
-          API logs
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">Request history and usage analytics</p>
+    <AppPage>
+      <PageHeader
+        title="API logs"
+        description="Request history and usage analytics"
+        icon={ScrollText}
+        mobileDescription="Recent API calls and usage stats."
+        actions={
+          <Link
+            href="/developers"
+            className="inline-flex h-11 items-center justify-center rounded-xl border px-4 text-sm font-medium md:h-10"
+          >
+            Developers →
+          </Link>
+        }
+      />
+
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4">
+        {stats.map(({ label, value }) => (
+          <AppCard key={label}>
+            <CardHeader className="pb-1">
+              <CardTitle className="text-[10px] md:text-sm font-medium text-muted-foreground">
+                {label}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-lg md:text-2xl font-bold pb-4 md:pb-6">{value}</CardContent>
+          </AppCard>
+        ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Requests (30d)</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-bold">{analytics.total}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Success rate</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-bold">{analytics.successRate}%</CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Rate limit hits</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-bold">{analytics.rateLimited}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Avg latency</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-bold">{analytics.avgLatencyMs}ms</CardContent>
-        </Card>
-      </div>
-
-      {analytics.topEndpoints.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Top endpoints</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm space-y-2">
-            {analytics.topEndpoints.map((e) => (
-              <div key={e.path} className="flex justify-between border-b py-2 last:border-0">
-                <span className="font-mono">{e.path}</span>
-                <span>{e.count}</span>
+      <ul className="md:hidden divide-y divide-border/60 rounded-2xl border border-border/60 bg-card overflow-hidden">
+        {logs.length === 0 ? (
+          <li className="px-4 py-8 text-sm text-muted-foreground text-center">No API calls yet.</li>
+        ) : (
+          logs.map((log) => (
+            <li key={log.id} className="px-4 py-3.5 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <Badge
+                  variant="outline"
+                  className={
+                    log.statusCode >= 400
+                      ? "text-destructive border-destructive/30"
+                      : "text-emerald-600 border-emerald-500/30"
+                  }
+                >
+                  {log.statusCode}
+                </Badge>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {log.durationMs}ms
+                </span>
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+              <p className="font-mono text-xs mt-1 truncate">{log.method} {log.path}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {log.apiKey?.label ?? log.apiKey?.keyPrefix ?? "—"} ·{" "}
+                {log.createdAt.toLocaleString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            </li>
+          ))
+        )}
+      </ul>
 
-      <Card>
+      <AppCard className="hidden md:block">
         <CardHeader>
-          <CardTitle>Recent requests</CardTitle>
+          <CardTitle className="text-lg">Recent requests</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm space-y-2">
+        <CardContent>
           {logs.length === 0 ? (
-            <p className="text-muted-foreground">No API calls yet.</p>
+            <p className="text-sm text-muted-foreground py-6 text-center">No API calls yet.</p>
           ) : (
-            logs.map((l) => (
-              <div key={l.id} className="flex flex-wrap justify-between gap-2 border-b py-2 last:border-0">
-                <div>
-                  <span className="font-mono">
-                    {l.method} {l.path}
-                  </span>
-                  {l.apiKey && (
-                    <p className="text-xs text-muted-foreground">{l.apiKey.label}</p>
-                  )}
-                  {l.ip && <p className="text-xs text-muted-foreground">{l.ip}</p>}
-                </div>
-                <div className="flex gap-2 items-center">
-                  <Badge variant={l.statusCode < 400 ? "outline" : "destructive"}>
-                    {l.statusCode}
-                  </Badge>
-                  <span className="text-muted-foreground">{l.durationMs}ms</span>
-                </div>
-              </div>
-            ))
+            <ul className="divide-y divide-border/60 text-sm">
+              {logs.map((log) => (
+                <li key={log.id} className="flex justify-between gap-4 py-3 first:pt-0">
+                  <div className="min-w-0">
+                    <p className="font-mono font-medium truncate">
+                      {log.method} {log.path}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {log.apiKey?.label ?? log.apiKey?.keyPrefix} · {log.createdAt.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <Badge variant="outline">{log.statusCode}</Badge>
+                    <p className="text-xs text-muted-foreground mt-1">{log.durationMs}ms</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </CardContent>
-      </Card>
-
-      <Link href="/developers/logs" className="text-sm text-primary hover:underline">
-        Open developer portal →
-      </Link>
-    </div>
+      </AppCard>
+    </AppPage>
   );
 }

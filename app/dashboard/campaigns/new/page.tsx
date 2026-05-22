@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
 import { CampaignForm } from "@/components/campaigns/campaign-form";
+import { CardContent } from "@/components/ui/card";
 import Link from "next/link";
+import { Megaphone } from "lucide-react";
 
 export default async function NewCampaignPage({
   searchParams,
@@ -34,34 +36,39 @@ export default async function NewCampaignPage({
     : templates;
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">New campaign</h1>
-        <Link href="/dashboard/campaigns" className="text-sm text-primary">
-          Back
-        </Link>
-      </div>
+    <AppPage narrow>
+      <PageHeader
+        title="New campaign"
+        description="Schedule a bulk message to a contact group."
+        icon={Megaphone}
+        mobileDescription="Name, message, group, and schedule."
+        actions={
+          <Link
+            href="/dashboard/campaigns"
+            className="inline-flex h-11 items-center justify-center rounded-xl border px-4 text-sm font-medium md:h-10"
+          >
+            ← Back
+          </Link>
+        }
+      />
 
       {error && (
-        <p className="text-sm text-destructive rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2">
+        <p className="text-sm text-destructive rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3">
           {error === "credits"
             ? "Insufficient SMS credits for this campaign."
             : "Check campaign details and try again."}
         </p>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Campaign details</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <AppCard>
+        <CardContent className="pt-6 pb-6">
           <CampaignForm
             groups={groups}
             templates={initialTemplates}
             initialMessage={tpl?.content ?? ""}
           />
         </CardContent>
-      </Card>
-    </div>
+      </AppCard>
+    </AppPage>
   );
 }

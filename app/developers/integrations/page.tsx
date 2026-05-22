@@ -12,6 +12,7 @@ import {
   UserPlus,
   CheckCircle2,
 } from "lucide-react";
+import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
 
 export default async function DevelopersIntegrationsPage() {
   const h = await headers();
@@ -52,19 +53,15 @@ export default async function DevelopersIntegrationsPage() {
   ];
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">
-          Integrations
-        </p>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">WordPress plugin</h1>
-        <p className="text-muted-foreground mt-1 text-sm max-w-2xl">
-          Connect WooCommerce and WordPress to SplitSMS. Turn each notification type on or off
-          and edit SMS templates from your WordPress admin.
-        </p>
-      </div>
+    <AppPage>
+      <PageHeader
+        title="WordPress"
+        description="Connect WooCommerce and WordPress to SplitSMS with per-event toggles and templates."
+        icon={Puzzle}
+        mobileDescription="Download plugin and configure API key."
+      />
 
-      <Card className="rounded-2xl border-primary/20 bg-gradient-to-br from-primary/5 to-card">
+      <AppCard className="border-primary/20 bg-gradient-to-br from-primary/5 to-card">
         <CardContent className="pt-8 pb-8 flex flex-col sm:flex-row sm:items-center gap-6">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
             <Puzzle className="h-7 w-7" />
@@ -87,7 +84,7 @@ export default async function DevelopersIntegrationsPage() {
             Download plugin
           </a>
         </CardContent>
-      </Card>
+      </AppCard>
 
       <div className="grid gap-4 md:grid-cols-3">
         {features.map(({ icon: Icon, title, items }) => (
@@ -151,6 +148,6 @@ export default async function DevelopersIntegrationsPage() {
           API reference →
         </Link>
       </div>
-    </div>
+    </AppPage>
   );
 }

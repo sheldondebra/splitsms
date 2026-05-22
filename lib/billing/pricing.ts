@@ -53,3 +53,49 @@ export async function listPublicPricing() {
     orderBy: { country: { name: "asc" } },
   });
 }
+
+export async function listAllPricingForAdmin() {
+  return prisma.smsPricing.findMany({
+    include: { country: true },
+    orderBy: { country: { name: "asc" } },
+  });
+}
+
+export type PublicPricingRow = {
+  id: string;
+  countryCode: string;
+  countryName: string;
+  dialCode: string;
+  memberPrice: number;
+  creditsPerSms: number;
+  currency: string;
+  provider: string;
+};
+
+export function toPublicPricingRows(
+  rows: Awaited<ReturnType<typeof listPublicPricing>>,
+): PublicPricingRow[] {
+  return rows.map((p) => ({
+    id: p.id,
+    countryCode: p.country.code,
+    countryName: p.country.name,
+    dialCode: p.country.dialCode,
+    memberPrice: p.memberPrice.toNumber(),
+    creditsPerSms: p.creditsPerSms,
+    currency: p.currency,
+    provider: p.provider,
+  }));
+}
+
+export function pickPricingRow(
+  rows: PublicPricingRow[],
+  countryCode?: string | null,
+): PublicPricingRow | null {
+  if (rows.length === 0) return null;
+  const code = countryCode?.toUpperCase();
+  if (code) {
+    const match = rows.find((r) => r.countryCode === code);
+    if (match) return match;
+  }
+  return rows.find((r) => r.countryCode === "GH") ?? rows[0];
+}

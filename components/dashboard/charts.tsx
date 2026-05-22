@@ -60,8 +60,10 @@ export function SpendingChart({ data }: { data: DailyPoint[] }) {
 
 export function DeliveryPieChart({
   data,
+  compact,
 }: {
   data: { name: string; value: number; fill?: string }[];
+  compact?: boolean;
 }) {
   if (data.length === 0) {
     return (
@@ -69,7 +71,7 @@ export function DeliveryPieChart({
     );
   }
   return (
-    <ResponsiveContainer width="100%" height={260}>
+    <ResponsiveContainer width="100%" height={compact ? 220 : 260}>
       <PieChart>
         <Pie
           data={data}
@@ -77,8 +79,8 @@ export function DeliveryPieChart({
           nameKey="name"
           cx="50%"
           cy="50%"
-          innerRadius={56}
-          outerRadius={88}
+          innerRadius={compact ? 48 : 56}
+          outerRadius={compact ? 72 : 88}
           paddingAngle={2}
         >
           {data.map((entry, i) => (
@@ -86,7 +88,7 @@ export function DeliveryPieChart({
           ))}
         </Pie>
         <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
-        <Legend wrapperStyle={{ fontSize: 12 }} />
+        {!compact && <Legend wrapperStyle={{ fontSize: 11 }} iconSize={8} />}
       </PieChart>
     </ResponsiveContainer>
   );

@@ -13,7 +13,7 @@ export function EndpointCard({ endpoint }: { endpoint: ApiEndpointDoc }) {
   const curl = curlExample(endpoint.method, endpoint.path, endpoint.body);
 
   return (
-    <div className="rounded-xl border border-border/80 bg-card overflow-hidden">
+    <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm transition-all hover:shadow-md hover:border-primary/25">
       <button
         type="button"
         onClick={() => setOpen(!open)}

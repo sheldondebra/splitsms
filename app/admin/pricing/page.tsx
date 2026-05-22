@@ -1,10 +1,20 @@
-import { updateCountryPricingAction, setUserCustomPricingAction } from "@/lib/actions/pricing";
+import { setUserCustomPricingAction } from "@/lib/actions/pricing";
+import { listAllPricingForAdmin } from "@/lib/billing/pricing";
 import { prisma } from "@/lib/db";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPricingTable, type AdminPricingRow } from "@/components/admin/admin-pricing-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import {
+  AdminPage,
+  AdminPageHeader,
+  AdminStatCard,
+  AdminAlert,
+  AdminCard,
+} from "@/components/admin/admin-page-shell";
+import { DollarSign, ExternalLink, Users } from "lucide-react";
 
 export default async function AdminPricingPage({
   searchParams,
@@ -12,78 +22,90 @@ export default async function AdminPricingPage({
   searchParams: Promise<{ saved?: string; userPricing?: string }>;
 }) {
   const params = await searchParams;
-  const pricing = await prisma.smsPricing.findMany({
-    include: { country: true },
-    orderBy: { country: { name: "asc" } },
-  });
+  const pricing = await listAllPricingForAdmin();
+
+  const tableRows: AdminPricingRow[] = pricing.map((p) => ({
+    id: p.id,
+    countryCode: p.country.code,
+    countryName: p.country.name,
+    dialCode: p.country.dialCode,
+    memberPrice: p.memberPrice.toString(),
+    costPrice: p.costPrice.toString(),
+    creditsPerSms: p.creditsPerSms,
+    currency: p.currency,
+    provider: p.provider,
+    isActive: p.isActive,
+  }));
 
   const members = await prisma.user.findMany({
     where: { role: "MEMBER" },
-    take: 20,
+    take: 30,
+    orderBy: { createdAt: "desc" },
     select: { id: true, fullName: true, phone: true },
   });
 
+  const activePublic = tableRows.filter((r) => r.isActive).length;
+
+  const customCount = await prisma.userSmsPricing.count({ where: { isActive: true } });
+
   return (
-    <div className="space-y-8">
-      <h1 className="text-2xl font-bold">SMS pricing</h1>
-      {params.saved && <p className="text-sm text-green-600">Pricing saved.</p>}
+    <AdminPage wide>
+      <AdminPageHeader
+        title="SMS pricing"
+        description="Set sell price, cost, credits, and currency per country. Active rates appear on the public pricing page."
+        icon={DollarSign}
+        actions={
+          <Link
+            href="/pricing"
+            target="_blank"
+            className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted/50"
+          >
+            Preview public page
+            <ExternalLink className="h-4 w-4" />
+          </Link>
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Country rates</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {pricing.map((p) => {
-            const profit = p.memberPrice.toNumber() - p.costPrice.toNumber();
-            return (
-              <form
-                key={p.id}
-                action={updateCountryPricingAction}
-                className="grid gap-4 border-b pb-6 last:border-0 sm:grid-cols-6 items-end"
-              >
-                <input type="hidden" name="id" value={p.id} />
-                <div className="sm:col-span-2">
-                  <p className="font-medium">{p.country.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Profit: {profit.toFixed(4)} {p.currency}
-                  </p>
-                </div>
-                <div>
-                  <Label>Cost</Label>
-                  <Input name="costPrice" type="number" step="0.0001" defaultValue={p.costPrice.toString()} />
-                </div>
-                <div>
-                  <Label>Sell</Label>
-                  <Input name="memberPrice" type="number" step="0.0001" defaultValue={p.memberPrice.toString()} />
-                </div>
-                <div>
-                  <Label>Provider</Label>
-                  <Input name="provider" defaultValue={p.provider} />
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" name="isActive" defaultChecked={p.isActive} />
-                    Active
-                  </label>
-                  <Button type="submit" size="sm">
-                    Save
-                  </Button>
-                </div>
-              </form>
-            );
-          })}
-        </CardContent>
-      </Card>
+      {params.saved && (
+        <AdminAlert variant="success">
+          Country pricing saved. Public <code className="text-xs bg-muted px-1 rounded">/pricing</code>{" "}
+          page updated.
+        </AdminAlert>
+      )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Custom user pricing</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form action={setUserCustomPricingAction} className="grid gap-4 sm:grid-cols-2 max-w-xl">
-            <div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <AdminStatCard label="Countries" value={tableRows.length} />
+        <AdminStatCard label="Live on website" value={activePublic} variant="primary" />
+        <AdminStatCard label="Custom member rates" value={customCount} />
+      </div>
+
+      <AdminCard
+        title="Country rates"
+        description="Sell = public price per segment. Uncheck Active to hide from /pricing."
+      >
+        <AdminPricingTable rows={tableRows} />
+      </AdminCard>
+
+      <AdminCard
+        title="Custom member pricing"
+        description="Override public rates for a specific account (dashboard only)."
+      >
+        <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
+          <Users className="h-4 w-4 text-primary" />
+          Per-user overrides
+        </div>
+        <div>
+          <form
+            action={setUserCustomPricingAction}
+            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 max-w-3xl"
+          >
+            <div className="sm:col-span-2">
               <Label>Member</Label>
-              <select name="userId" className="flex h-10 w-full rounded-md border px-3 text-sm" required>
+              <select
+                name="userId"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm mt-1.5"
+                required
+              >
                 {members.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.fullName} ({m.phone})
@@ -93,21 +115,25 @@ export default async function AdminPricingPage({
             </div>
             <div>
               <Label>Country code</Label>
-              <Input name="countryCode" defaultValue="GH" required />
+              <Input name="countryCode" defaultValue="GH" required className="mt-1.5" />
             </div>
             <div>
               <Label>Sell price</Label>
-              <Input name="sellPrice" type="number" step="0.0001" required />
+              <Input name="sellPrice" type="number" step="0.0001" required className="mt-1.5" />
             </div>
             <div>
               <Label>Currency</Label>
-              <Input name="currency" defaultValue="GHS" />
+              <Input name="currency" defaultValue="GHS" className="mt-1.5" />
             </div>
-            <Button type="submit">Set custom rate</Button>
+            <div className="sm:col-span-2 lg:col-span-4">
+              <Button type="submit">Set custom rate</Button>
+              {params.userPricing && (
+                <Badge className="ml-3">Custom pricing saved</Badge>
+              )}
+            </div>
           </form>
-          {params.userPricing && <Badge className="mt-4">Custom pricing saved</Badge>}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </AdminCard>
+    </AdminPage>
   );
 }

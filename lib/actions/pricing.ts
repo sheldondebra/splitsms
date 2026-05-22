@@ -13,6 +13,8 @@ export async function updateCountryPricingAction(formData: FormData) {
   const memberPrice = Number(formData.get("memberPrice"));
   const costPrice = Number(formData.get("costPrice"));
   const provider = String(formData.get("provider") ?? "mNotify");
+  const currency = String(formData.get("currency") ?? "GHS").trim() || "GHS";
+  const creditsPerSms = Math.max(1, Number(formData.get("creditsPerSms") ?? 1));
   const isActive = formData.get("isActive") === "on";
 
   await prisma.smsPricing.update({
@@ -21,6 +23,8 @@ export async function updateCountryPricingAction(formData: FormData) {
       memberPrice,
       costPrice,
       provider,
+      currency,
+      creditsPerSms,
       isActive,
     },
   });
@@ -36,6 +40,8 @@ export async function updateCountryPricingAction(formData: FormData) {
   });
 
   revalidatePath("/admin/pricing");
+  revalidatePath("/pricing");
+  revalidatePath("/dashboard/pricing");
   redirect("/admin/pricing?saved=1");
 }
 
@@ -65,6 +71,7 @@ export async function setUserCustomPricingAction(formData: FormData) {
   });
 
   revalidatePath("/admin/pricing");
+  revalidatePath("/dashboard/pricing");
   redirect("/admin/pricing?userPricing=1");
 }
 

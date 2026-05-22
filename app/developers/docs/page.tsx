@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ApiDocsView } from "@/components/developers/api-docs-view";
 import { BookOpen, Braces } from "lucide-react";
+import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 import { headers } from "next/headers";
 
 export default async function DevelopersDocsPage() {
@@ -11,19 +12,13 @@ export default async function DevelopersDocsPage() {
     process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? `${proto}://${host}`;
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-          <BookOpen className="h-6 w-6" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">API Reference</h1>
-          <p className="text-muted-foreground mt-1 text-sm max-w-2xl">
-            Complete REST documentation — balance, wallet, SMS, contacts (GET/POST/PUT/DELETE), campaigns, and OTP.
-            Expand any endpoint for examples and copy-ready cURL.
-          </p>
-        </div>
-      </div>
+    <AppPage>
+      <PageHeader
+        title="API Reference"
+        description="Complete REST documentation — balance, wallet, SMS, contacts, campaigns, and OTP."
+        icon={BookOpen}
+        mobileDescription="Expand endpoints for cURL examples."
+      />
 
       <div className="flex flex-wrap gap-2 text-xs">
         <span className="rounded-md border px-2 py-1 font-mono bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">
@@ -59,6 +54,6 @@ export default async function DevelopersDocsPage() {
       </Link>
 
       <ApiDocsView baseUrl={baseUrl} />
-    </div>
+    </AppPage>
   );
 }

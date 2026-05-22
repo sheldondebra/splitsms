@@ -32,16 +32,20 @@ export function ReportSummary({
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
+    <div className="grid grid-cols-3 gap-2 md:gap-4 md:grid-cols-3">
       {items.map(({ label, value, icon: Icon, className }) => (
-        <Card key={label}>
-          <CardContent className="flex items-center gap-4 pt-6">
-            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${className}`}>
-              <Icon className="h-6 w-6" />
+        <Card key={label} className="border-border/60">
+          <CardContent className="flex flex-col items-center text-center gap-2 pt-4 pb-4 md:flex-row md:text-left md:items-center md:gap-4 md:pt-6">
+            <div
+              className={`flex h-10 w-10 md:h-12 md:w-12 shrink-0 items-center justify-center rounded-full border ${className}`}
+            >
+              <Icon className="h-5 w-5 md:h-6 md:w-6" />
             </div>
-            <div>
-              <p className="text-3xl font-bold tabular-nums">{value}</p>
-              <p className="text-sm text-muted-foreground">{label}</p>
+            <div className="min-w-0">
+              <p className="text-xl md:text-3xl font-bold tabular-nums">{value}</p>
+              <p className="text-[10px] md:text-sm text-muted-foreground leading-tight mt-0.5">
+                {label.replace("Messages ", "")}
+              </p>
             </div>
           </CardContent>
         </Card>

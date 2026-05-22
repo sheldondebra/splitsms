@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Download, Users } from "lucide-react";
+import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 
 export default async function ContactsPage({
   searchParams,
@@ -60,25 +61,22 @@ export default async function ContactsPage({
   if (params.groupId) exportQs.set("groupId", params.groupId);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Users className="h-7 w-7 text-primary" />
-            Contacts
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {total} contacts · import, segment, and group audiences
-          </p>
-        </div>
-        <a
-          href={`/api/dashboard/contacts/export?${exportQs.toString()}`}
-          className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-        >
-          <Download className="h-4 w-4" />
-          Export CSV
-        </a>
-      </div>
+    <AppPage>
+      <PageHeader
+        title="Contacts"
+        description={`${total} contacts · import, segment, and group audiences`}
+        icon={Users}
+        mobileDescription={`${total} contacts — search, import, and manage groups.`}
+        actions={
+          <a
+            href={`/api/dashboard/contacts/export?${exportQs.toString()}`}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-medium md:h-10"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </a>
+        }
+      />
 
       {params.imported && (
         <p className="text-sm text-green-600 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-2">
@@ -88,14 +86,19 @@ export default async function ContactsPage({
         </p>
       )}
 
-      <form method="get" className="flex flex-wrap gap-2 max-w-4xl">
-        <Input name="q" placeholder="Search name, phone, tag…" defaultValue={params.q} className="max-w-xs" />
-        <Input name="country" placeholder="Country GH" defaultValue={params.country} className="w-28" />
-        <Input name="tag" placeholder="Tag" defaultValue={params.tag} className="w-28" />
+      <form method="get" className="grid gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:gap-2">
+        <Input
+          name="q"
+          placeholder="Search name, phone, tag…"
+          defaultValue={params.q}
+          className="w-full sm:col-span-2 lg:max-w-xs"
+        />
+        <Input name="country" placeholder="Country GH" defaultValue={params.country} className="w-full" />
+        <Input name="tag" placeholder="Tag" defaultValue={params.tag} className="w-full" />
         <select
           name="groupId"
           defaultValue={params.groupId ?? ""}
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+          className="h-11 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
         >
           <option value="">All groups</option>
           {groups.map((g) => (
@@ -104,7 +107,7 @@ export default async function ContactsPage({
             </option>
           ))}
         </select>
-        <Button type="submit" variant="secondary">
+        <Button type="submit" variant="secondary" className="w-full sm:col-span-2 lg:w-auto min-h-11">
           Filter
         </Button>
       </form>
@@ -120,11 +123,19 @@ export default async function ContactsPage({
       )}
 
       <Tabs defaultValue="list">
-        <TabsList>
-          <TabsTrigger value="list">All contacts</TabsTrigger>
-          <TabsTrigger value="import">Import CSV</TabsTrigger>
-          <TabsTrigger value="groups">Groups</TabsTrigger>
-          <TabsTrigger value="add">Add one</TabsTrigger>
+        <TabsList className="tabs-list-mobile w-full h-auto flex-wrap md:flex-nowrap justify-start gap-1 p-1">
+          <TabsTrigger value="list" className="text-xs sm:text-sm">
+            All
+          </TabsTrigger>
+          <TabsTrigger value="import" className="text-xs sm:text-sm">
+            Import
+          </TabsTrigger>
+          <TabsTrigger value="groups" className="text-xs sm:text-sm">
+            Groups
+          </TabsTrigger>
+          <TabsTrigger value="add" className="text-xs sm:text-sm">
+            Add
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="list" className="mt-6">
@@ -253,6 +264,6 @@ export default async function ContactsPage({
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </AppPage>
   );
 }

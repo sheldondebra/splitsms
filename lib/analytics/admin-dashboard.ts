@@ -8,24 +8,65 @@ function daysAgo(n: number) {
   return d;
 }
 
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 export async function getAdminDashboardOverview() {
-  const [members, messages, payments, revenue, failed, campaigns, mnotify, dailyMsgs] =
-    await Promise.all([
-      prisma.user.count({ where: { role: "MEMBER" } }),
-      prisma.message.count(),
-      prisma.payment.count({ where: { status: "PENDING" } }),
-      prisma.transaction.aggregate({
-        where: { type: { in: ["WALLET_TOPUP", "CREDIT_PURCHASE"] } },
-        _sum: { amount: true },
-      }),
-      prisma.message.count({ where: { status: "FAILED" } }),
-      prisma.campaign.count({ where: { status: { in: ["SENDING", "SCHEDULED"] } } }),
-      getMnotifyStatus(),
-      prisma.message.findMany({
-        where: { createdAt: { gte: daysAgo(14) } },
-        select: { createdAt: true },
-      }),
-    ]);
+  const today = startOfToday();
+
+  const [
+    members,
+    messages,
+    payments,
+    revenue,
+    failed,
+    campaigns,
+    mnotify,
+    dailyMsgs,
+    pendingSenderIds,
+    messagesToday,
+    recentMembers,
+    recentPayments,
+  ] = await Promise.all([
+    prisma.user.count({ where: { role: "MEMBER" } }),
+    prisma.message.count(),
+    prisma.payment.count({ where: { status: "PENDING" } }),
+    prisma.transaction.aggregate({
+      where: { type: { in: ["WALLET_TOPUP", "CREDIT_PURCHASE"] } },
+      _sum: { amount: true },
+    }),
+    prisma.message.count({ where: { status: "FAILED" } }),
+    prisma.campaign.count({ where: { status: { in: ["SENDING", "SCHEDULED"] } } }),
+    getMnotifyStatus(),
+    prisma.message.findMany({
+      where: { createdAt: { gte: daysAgo(14) } },
+      select: { createdAt: true },
+    }),
+    prisma.senderId.count({ where: { status: "PENDING" } }),
+    prisma.message.count({ where: { createdAt: { gte: today } } }),
+    prisma.user.findMany({
+      where: { role: "MEMBER" },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+      select: {
+        id: true,
+        fullName: true,
+        phone: true,
+        createdAt: true,
+        isVerified: true,
+        smsCredit: { select: { balance: true } },
+      },
+    }),
+    prisma.payment.findMany({
+      where: { status: "PENDING" },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      include: { user: { select: { fullName: true, phone: true } } },
+    }),
+  ]);
 
   const labels = Array.from({ length: 14 }, (_, i) => {
     const d = new Date();
@@ -49,6 +90,10 @@ export async function getAdminDashboardOverview() {
     members,
     messages,
     pendingPayments: payments,
+    pendingSenderIds,
+    messagesToday,
+    recentMembers,
+    recentPayments,
     totalRevenue: revenue._sum.amount?.toNumber() ?? 0,
     failedMessages: failed,
     failureRate,
@@ -57,4 +102,12 @@ export async function getAdminDashboardOverview() {
     dailyVolume,
     providerHealth: mnotify.configured ? "healthy" : "needs_setup",
   };
+}
+
+export async function getAdminNavBadges() {
+  const [pendingPayments, pendingSenderIds] = await Promise.all([
+    prisma.payment.count({ where: { status: "PENDING" } }),
+    prisma.senderId.count({ where: { status: "PENDING" } }),
+  ]);
+  return { "pending-payments": pendingPayments, "pending-sender-ids": pendingSenderIds } as const;
 }

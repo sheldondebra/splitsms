@@ -30,7 +30,7 @@ export function ApiDocsView({ baseUrl }: { baseUrl?: string }) {
       <CardAuthBlock authHeader={authHeader} baseUrl={baseUrl ?? API_BASE_HINT} />
 
       <Tabs defaultValue="sms" className="w-full">
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1 rounded-xl">
+        <TabsList className="sticky top-16 z-10 flex flex-wrap h-auto gap-1 bg-muted/80 backdrop-blur-md p-1.5 rounded-xl border border-border/50 shadow-sm">
           {apiDocSections
             .filter((s) => s.id !== "auth")
             .map((s) => {
@@ -78,7 +78,7 @@ function CardAuthBlock({
   baseUrl: string;
 }) {
   return (
-    <div className="rounded-2xl border bg-card p-5 sm:p-6 space-y-4">
+    <div className="rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 to-card p-5 sm:p-6 space-y-4 shadow-sm">
       <h2 className="text-lg font-semibold flex items-center gap-2">
         <Shield className="h-5 w-5 text-primary" />
         Authentication
@@ -118,7 +118,7 @@ function ErrorsBlock() {
   ];
 
   return (
-    <div className="rounded-2xl border p-5 space-y-3">
+    <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6 space-y-3 shadow-sm">
       <h2 className="text-lg font-semibold">Error responses</h2>
       <p className="text-sm text-muted-foreground">
         All errors return <code className="text-xs bg-muted px-1 rounded">{`{ "success": false, "error": { "code", "message" } }`}</code>

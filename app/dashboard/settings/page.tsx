@@ -5,7 +5,7 @@ import {
   clearWebhookAction,
   updateProfileAction,
 } from "@/lib/actions/settings";
-import { logoutAction } from "@/lib/actions/auth";
+import { LogoutConfirmButton } from "@/components/auth/logout-confirm-button";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,12 +21,13 @@ import {
   Shield,
   Palette,
   Bell,
-  LogOut,
   Code2,
   BadgeCheck,
   LifeBuoy,
   Smartphone,
+  Settings,
 } from "lucide-react";
+import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
 
 export default async function SettingsPage({
   searchParams,
@@ -66,13 +67,13 @@ export default async function SettingsPage({
   if (!user) return null;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 pb-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Settings</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Profile, security, appearance, and notifications
-        </p>
-      </div>
+    <AppPage narrow>
+      <PageHeader
+        title="Settings"
+        description="Profile, security, appearance, and notifications"
+        icon={Settings}
+        mobileDescription="Profile, password, theme, and webhooks."
+      />
 
       <SettingsAlerts
         profile={params.profile}
@@ -82,7 +83,7 @@ export default async function SettingsPage({
         cooldown={params.cooldown}
       />
 
-      <Card className="rounded-2xl">
+      <AppCard>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <User className="h-4 w-4 text-primary" />
@@ -131,9 +132,9 @@ export default async function SettingsPage({
             </Button>
           </form>
         </CardContent>
-      </Card>
+      </AppCard>
 
-      <Card className="rounded-2xl">
+      <AppCard>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Shield className="h-4 w-4 text-primary" />
@@ -150,9 +151,9 @@ export default async function SettingsPage({
             Active sessions on this account: {sessionCount}. Signing out ends your current session.
           </p>
         </CardContent>
-      </Card>
+      </AppCard>
 
-      <Card className="rounded-2xl">
+      <AppCard>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Palette className="h-4 w-4 text-primary" />
@@ -163,9 +164,9 @@ export default async function SettingsPage({
         <CardContent>
           <ThemeSelector />
         </CardContent>
-      </Card>
+      </AppCard>
 
-      <Card className="rounded-2xl">
+      <AppCard>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Bell className="h-4 w-4 text-primary" />
@@ -206,9 +207,9 @@ export default async function SettingsPage({
             </Link>
           </p>
         </CardContent>
-      </Card>
+      </AppCard>
 
-      <Card className="rounded-2xl">
+      <AppCard>
         <CardHeader>
           <CardTitle className="text-base">Shortcuts</CardTitle>
         </CardHeader>
@@ -228,9 +229,9 @@ export default async function SettingsPage({
             </Link>
           ))}
         </CardContent>
-      </Card>
+      </AppCard>
 
-      <Card className="rounded-2xl border-destructive/20">
+      <AppCard className="border-destructive/20">
         <CardHeader>
           <CardTitle className="text-base">Account</CardTitle>
           <CardDescription>
@@ -238,14 +239,12 @@ export default async function SettingsPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={logoutAction}>
-            <Button type="submit" variant="outline" className="h-11 gap-2 text-destructive hover:text-destructive">
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </Button>
-          </form>
+          <LogoutConfirmButton
+            variant="outline"
+            className="h-11 text-destructive hover:text-destructive border-destructive/30"
+          />
         </CardContent>
-      </Card>
-    </div>
+      </AppCard>
+    </AppPage>
   );
 }

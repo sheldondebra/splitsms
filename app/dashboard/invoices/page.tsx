@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { Receipt, Wallet } from "lucide-react";
+import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -52,21 +53,24 @@ export default async function InvoicesPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-2xl mx-auto">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Billing history</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Invoices and payment receipts for your account
-          </p>
-        </div>
-        <Link
-          href="/api/dashboard/invoices/export"
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-10")}
-        >
-          Download CSV
-        </Link>
-      </div>
+    <AppPage narrow>
+      <PageHeader
+        title="Billing history"
+        description="Invoices and payment receipts for your account"
+        icon={Receipt}
+        mobileDescription="Invoices and recent payments."
+        actions={
+          <Link
+            href="/api/dashboard/invoices/export"
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "h-11 w-full md:w-auto md:h-10 inline-flex items-center justify-center",
+            )}
+          >
+            Download CSV
+          </Link>
+        }
+      />
 
       {loadError && (
         <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -74,7 +78,7 @@ export default async function InvoicesPage() {
         </div>
       )}
 
-      <Card className="rounded-2xl shadow-sm">
+      <AppCard>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Receipt className="h-5 w-5 text-primary" />
@@ -117,9 +121,9 @@ export default async function InvoicesPage() {
             </ul>
           )}
         </CardContent>
-      </Card>
+      </AppCard>
 
-      <Card className="rounded-2xl shadow-sm">
+      <AppCard>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Wallet className="h-5 w-5 text-primary" />
@@ -170,7 +174,7 @@ export default async function InvoicesPage() {
             View all transactions
           </Link>
         </CardContent>
-      </Card>
-    </div>
+      </AppCard>
+    </AppPage>
   );
 }

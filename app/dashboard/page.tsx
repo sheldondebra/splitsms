@@ -2,191 +2,187 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { getDashboardOverview } from "@/lib/analytics/dashboard";
-import { DashboardBalance } from "@/components/dashboard/dashboard-balance";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
-import { QuickActions } from "@/components/dashboard/quick-actions";
-import { OnboardingBanner } from "@/components/dashboard/onboarding-banner";
-import { EmptyState } from "@/components/dashboard/empty-state";
-import { SenderIdCard } from "@/components/dashboard/sender-id-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Send, Percent, ArrowUpRight } from "lucide-react";
-import { STATUS_LABELS } from "@/lib/ux/messages";
+import { DashboardChartsPanel } from "@/components/dashboard/dashboard-charts-panel";
+import {
+  SupportChatPanel,
+  type ChatMessage,
+} from "@/components/dashboard/support-chat-panel";
+import { DashboardMetrics, DashboardAlert } from "@/components/dashboard/dashboard-metrics";
+import { RecentActivityList } from "@/components/dashboard/recent-activity-list";
+import { SetupStrip } from "@/components/dashboard/setup-strip";
+import { Send, Megaphone, Percent, BadgeCheck } from "lucide-react";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ chat?: string }>;
+}) {
   const session = await getSession();
   if (!session) return null;
 
-  const [data, balance, user, recentMessages, hasTopup, senderIds] = await Promise.all([
-    getDashboardOverview(session.userId),
-    getBalanceSnapshot(session.userId),
-    prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { isVerified: true, fullName: true },
-    }),
-    prisma.message.findMany({
-      where: { userId: session.userId },
-      orderBy: { createdAt: "desc" },
-      take: 6,
-      select: {
-        id: true,
-        recipient: true,
-        status: true,
-        createdAt: true,
-        body: true,
-        senderId: true,
-      },
-    }),
-    prisma.transaction.findFirst({
-      where: {
-        userId: session.userId,
-        type: { in: ["WALLET_TOPUP", "CREDIT_PURCHASE"] },
-      },
-    }),
-    prisma.senderId.findMany({
-      where: { userId: session.userId },
-      orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
-      take: 5,
-      select: { id: true, value: true, status: true, isDefault: true },
-    }),
-  ]);
+  const { chat } = await searchParams;
 
-  const lowBalance = balance.lowBalance;
-  const hasBalance =
-    data.walletBalance > 0 || data.creditBalance > 0 || Boolean(hasTopup);
+  const [data, balance, user, recentMessages, hasTopup, senderIds, tickets] =
+    await Promise.all([
+      getDashboardOverview(session.userId),
+      getBalanceSnapshot(session.userId),
+      prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { isVerified: true, fullName: true },
+      }),
+      prisma.message.findMany({
+        where: { userId: session.userId },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          recipient: true,
+          status: true,
+          createdAt: true,
+          body: true,
+        },
+      }),
+      prisma.transaction.findFirst({
+        where: {
+          userId: session.userId,
+          type: { in: ["WALLET_TOPUP", "CREDIT_PURCHASE"] },
+        },
+      }),
+      prisma.senderId.findMany({
+        where: { userId: session.userId },
+        select: { status: true },
+      }),
+      prisma.supportTicket.findMany({
+        where: { userId: session.userId },
+        orderBy: { createdAt: "asc" },
+        take: 12,
+        select: { id: true, message: true, status: true, createdAt: true },
+      }),
+    ]);
+
   const hasApprovedSender = senderIds.some((s) => s.status === "APPROVED");
+  const hasBalance =
+    balance.walletBalance > 0 || balance.creditBalance > 0 || Boolean(hasTopup);
+  const firstName = user?.fullName?.split(" ")[0] ?? "there";
+
+  const chatMessages: ChatMessage[] = [
+    {
+      id: "welcome",
+      role: "support",
+      body: `Hi ${firstName}! How can we help? Ask about billing, delivery reports, or Sender IDs.`,
+      time: "SplitSMS",
+    },
+  ];
+
+  for (const t of tickets) {
+    chatMessages.push({
+      id: t.id,
+      role: "user",
+      body: t.message,
+      time: t.createdAt.toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      status: t.status === "OPEN" ? "Open" : t.status,
+    });
+  }
+
+  if (tickets.some((t) => t.status === "OPEN")) {
+    chatMessages.push({
+      id: "ack-latest",
+      role: "support",
+      body: "Thanks — we've received your message. Our team will follow up shortly.",
+      time: "SplitSMS",
+    });
+  }
 
   return (
-    <div className="space-y-8 pb-2">
-      {lowBalance && (
-        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
-          Low message balance — <strong>{data.creditBalance}</strong> credits left.{" "}
-          <Link href="/dashboard/wallet" className="font-semibold text-primary underline">
-            Add money
-          </Link>
-        </div>
-      )}
-
-      {!hasApprovedSender && (
-        <div className="rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
-          <span>Set up your <strong>Sender ID</strong> before sending — it is the name people see on their phone.</span>
-          <Link href="/dashboard/sender-ids" className="font-semibold text-primary text-sm whitespace-nowrap">
-            Set up now →
-          </Link>
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="app-page space-y-5 md:space-y-6 pb-2">
+      <div className="hidden md:flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h2>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Your messaging at a glance
+          <h1 className="text-2xl font-bold tracking-tight sm:text-[1.65rem]">
+            Welcome back, {firstName}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {balance.creditBalance.toLocaleString()} SMS credits ·{" "}
+            {balance.walletCurrency} {balance.walletBalance.toFixed(2)} in wallet
           </p>
         </div>
         <Link
           href="/dashboard/send"
-          className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90 transition-colors"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors shrink-0"
         >
           <Send className="h-4 w-4" />
           Send SMS
         </Link>
       </div>
 
-      <SenderIdCard senderIds={senderIds} />
+      <p className="md:hidden text-sm text-muted-foreground">
+        Hi {firstName} — {balance.creditBalance.toLocaleString()} credits ready to send.
+      </p>
 
-      <OnboardingBanner
+      <Link
+        href="/dashboard/send"
+        className="md:hidden flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 active:scale-[0.98] transition-transform"
+      >
+        <Send className="h-5 w-5" />
+        Send SMS
+      </Link>
+
+      <SetupStrip
         phoneVerified={user?.isVerified ?? false}
         hasBalance={hasBalance}
         hasSenderId={hasApprovedSender}
         hasSentMessage={data.totalMessages > 0}
       />
 
-      <QuickActions />
+      {balance.lowBalance && (
+        <DashboardAlert variant="warning">
+          <span>
+            Low SMS balance — <strong>{balance.creditBalance}</strong> credits left.
+          </span>
+          <Link href="/dashboard/wallet" className="font-semibold text-primary text-sm">
+            Top up →
+          </Link>
+        </DashboardAlert>
+      )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="stat-card p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Sent today
-            </p>
-            <Send className="h-4 w-4 text-muted-foreground/60" />
-          </div>
-          <p className="mt-3 text-3xl font-bold tabular-nums tracking-tight">
-            {data.messagesToday}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1.5">messages</p>
+      {!hasApprovedSender && (
+        <DashboardAlert>
+          <span>Add a Sender ID before sending bulk SMS.</span>
+          <Link href="/dashboard/sender-ids" className="font-semibold text-primary text-sm">
+            Set up →
+          </Link>
+        </DashboardAlert>
+      )}
+
+      <DashboardMetrics
+        metrics={[
+          { label: "Sent today", value: data.messagesToday, icon: Send },
+          { label: "Delivery rate", value: `${data.deliveryRate}%`, icon: Percent },
+          { label: "Campaigns", value: data.campaigns, icon: Megaphone },
+          { label: "Sender IDs", value: data.activeSenderIds, icon: BadgeCheck },
+        ]}
+      />
+
+      <div className="grid gap-6 lg:grid-cols-5 lg:items-stretch">
+        <div className="lg:col-span-3 space-y-6">
+          <DashboardChartsPanel
+            dailySms={data.charts.dailySms}
+            deliveryChart={data.charts.deliveryChart}
+            messagesToday={data.messagesToday}
+            deliveryRate={data.deliveryRate}
+          />
+          <RecentActivityList messages={recentMessages} />
         </div>
-        <div className="stat-card p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Delivery rate
-            </p>
-            <Percent className="h-4 w-4 text-muted-foreground/60" />
-          </div>
-          <p className="mt-3 text-3xl font-bold tabular-nums tracking-tight">
-            {data.deliveryRate}%
-          </p>
-          <p className="text-xs text-muted-foreground mt-1.5">all time</p>
+
+        <div className="lg:col-span-2">
+          <SupportChatPanel messages={chatMessages} sent={chat === "sent"} />
         </div>
       </div>
-
-      <Card className="rounded-2xl border-border/60 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base font-semibold">Recent activity</CardTitle>
-          <Link
-            href="/dashboard/reports"
-            className="text-xs font-semibold text-primary inline-flex items-center gap-1 hover:underline"
-          >
-            View all
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </Link>
-        </CardHeader>
-        <CardContent>
-          {recentMessages.length === 0 ? (
-            <EmptyState
-              icon={Send}
-              title="No messages yet"
-              description="Send your first SMS — make sure your Sender ID is set up first."
-              actionLabel="Send SMS"
-              actionHref="/dashboard/send"
-            />
-          ) : (
-            <ul className="divide-y divide-border/60">
-              {recentMessages.map((m) => (
-                <li key={m.id} className="flex justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate">{m.recipient}</p>
-                    <p className="text-muted-foreground truncate text-xs mt-0.5">{m.body}</p>
-                    <p className="text-[11px] text-muted-foreground/80 mt-1 font-mono">
-                      From: {m.senderId}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p
-                      className={`text-xs font-semibold ${
-                        m.status === "DELIVERED"
-                          ? "text-emerald-600"
-                          : m.status === "FAILED"
-                            ? "text-destructive"
-                            : ""
-                      }`}
-                    >
-                      {STATUS_LABELS[m.status] ?? m.status}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      {m.createdAt.toLocaleString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }

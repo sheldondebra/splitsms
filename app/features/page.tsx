@@ -1,62 +1,127 @@
+import type { Metadata } from "next";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
-import { PageHero } from "@/components/layout/page-hero";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Send, Clock, FileSpreadsheet, Webhook, RefreshCw, Globe } from "lucide-react";
+import { FeaturesPageContent } from "@/components/marketing/features-page-content";
 
-const features = [
-  {
-    icon: Send,
-    title: "Bulk SMS campaigns",
-    desc: "Send to thousands from contacts, CSV, or groups. Schedule and track every message.",
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://splitsms.com";
+
+export const metadata: Metadata = {
+  title: "Bulk SMS Features — Campaigns, OTP API, Webhooks & Ghana Pricing | SplitSMS",
+  description:
+    "Discover SplitSMS features: bulk SMS campaigns, contact management, OTP verification API, delivery webhooks, WooCommerce plugin, and affordable rates from GHS 0.029 in Ghana. Simpler than Infobip for Africa and 190+ countries.",
+  keywords: [
+    "bulk SMS Ghana",
+    "bulk SMS features",
+    "SMS marketing platform",
+    "SMS API Africa",
+    "OTP SMS API",
+    "transactional SMS",
+    "bulk messaging software",
+    "affordable SMS gateway",
+    "WooCommerce SMS notifications",
+    "SMS campaign scheduling",
+    "delivery reports SMS",
+    "SplitSMS",
+  ],
+  openGraph: {
+    title: "Why SplitSMS — Bulk SMS Features for Ghana & Global Reach",
+    description:
+      "Bulk campaigns, OTP API, webhooks, WordPress integration, and pay-as-you-go pricing. The modern SMS platform for marketers and developers.",
+    url: `${siteUrl}/features`,
+    siteName: "SplitSMS",
+    type: "website",
+    locale: "en_GH",
   },
-  {
-    icon: FileSpreadsheet,
-    title: "Contact management",
-    desc: "Import CSV, tag contacts, remove duplicates, and organize groups.",
+  twitter: {
+    card: "summary_large_image",
+    title: "SplitSMS Features — Bulk SMS Made Simple",
+    description:
+      "Campaigns, OTP, API, webhooks & Ghana-friendly pricing. Start with 5 free SMS credits.",
   },
-  {
-    icon: Globe,
-    title: "Global routing",
-    desc: "Infobip, Twilio, and mNotify with automatic failover per country.",
+  alternates: {
+    canonical: "/features",
   },
-  {
-    icon: Webhook,
-    title: "Delivery webhooks",
-    desc: "Real-time callbacks when messages are delivered or fail.",
-  },
-  {
-    icon: Clock,
-    title: "Schedule & retry",
-    desc: "Schedule campaigns ahead of time and retry failed deliveries.",
-  },
-  {
-    icon: RefreshCw,
-    title: "OTP API",
-    desc: "Verify users with SMS OTP through the same reliable infrastructure.",
-  },
-];
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": `${siteUrl}/features#webpage`,
+      url: `${siteUrl}/features`,
+      name: "SplitSMS Features — Bulk SMS Platform",
+      description:
+        "Bulk SMS campaigns, OTP API, contact management, webhooks, and affordable pricing for Ghana and 190+ countries.",
+      isPartOf: { "@id": `${siteUrl}/#website` },
+      about: { "@id": `${siteUrl}/#organization` },
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "SplitSMS",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      offers: {
+        "@type": "Offer",
+        price: "0.029",
+        priceCurrency: "GHS",
+        description: "Per SMS from, country-dependent rates",
+      },
+      featureList: [
+        "Bulk SMS campaigns",
+        "Contact CSV import and groups",
+        "SMS OTP send and verify API",
+        "Delivery webhooks",
+        "REST API and Postman collection",
+        "WordPress and WooCommerce plugin",
+        "Sender ID registration",
+        "Real-time delivery reports",
+        "Paystack wallet top-up",
+        "Multi-carrier routing with failover",
+      ],
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: [
+        {
+          "@type": "Question",
+          name: "What is bulk SMS and how is SplitSMS different?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Bulk SMS sends one message to many recipients. SplitSMS combines campaigns, Ghana-friendly pricing, APIs, and multi-carrier routing in one simple platform.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Can I send SMS in Ghana and other African countries?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Yes. SplitSMS routes through trusted providers with coverage in Ghana, Nigeria, and 190+ countries with approved Sender IDs.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "How much does bulk SMS cost on SplitSMS?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Country-based rates apply; Ghana starts around GHS 0.029 per segment. Pay-as-you-go wallet with free starter credits on signup.",
+          },
+        },
+      ],
+    },
+  ],
+};
 
 export default function FeaturesPage() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <SiteHeader />
       <main className="flex-1">
-        <PageHero
-          title="Why Split"
-          description="Enterprise-grade bulk SMS without the enterprise headache. Simpler than Infobip. Cleaner than legacy portals."
-        />
-        <div className="mx-auto max-w-6xl px-4 py-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {features.map(({ icon: Icon, title, desc }) => (
-            <Card key={title} className="hover:border-primary/50 transition-colors">
-              <CardHeader>
-                <Icon className="h-10 w-10 text-primary" />
-                <CardTitle>{title}</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">{desc}</CardContent>
-            </Card>
-          ))}
-        </div>
+        <FeaturesPageContent />
       </main>
       <SiteFooter />
     </div>

@@ -17,7 +17,7 @@ export function ReportsFilters({
   q = "",
 }: ReportsFiltersProps) {
   return (
-    <form className="grid gap-4 md:grid-cols-5 items-end" method="get">
+    <form className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-5 items-end" method="get">
       <div className="space-y-2 md:col-span-2">
         <Label htmlFor="q">Search phone or message</Label>
         <Input id="q" name="q" defaultValue={q} placeholder="233..." />
@@ -46,9 +46,11 @@ export function ReportsFilters({
         <Input id="campaign" name="campaign" defaultValue={campaignId} placeholder="Optional" />
       </div>
       <div className="flex gap-2 md:col-span-5">
-        <Button type="submit">Filter</Button>
-        <Link href="/dashboard/reports">
-          <Button type="button" variant="outline">
+        <Button type="submit" className="w-full sm:w-auto min-h-11">
+          Filter
+        </Button>
+        <Link href="/dashboard/reports" className="w-full sm:w-auto">
+          <Button type="button" variant="outline" className="w-full min-h-11">
             Reset
           </Button>
         </Link>

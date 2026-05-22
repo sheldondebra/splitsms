@@ -16,6 +16,8 @@ import {
   Puzzle,
 } from "lucide-react";
 import { CopyButton } from "@/components/developers/copy-button";
+import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
+import { Code2 } from "lucide-react";
 
 export default async function DevelopersPage() {
   const session = await getSession();
@@ -78,52 +80,55 @@ export default async function DevelopersPage() {
   ];
 
   return (
-    <div className="space-y-10">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">
-          Developer platform
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight">Build with SplitSMS</h1>
-        <p className="text-muted-foreground mt-2 max-w-xl">
-          REST API for SMS, wallet balance, contacts, campaigns, and OTP — with sandbox keys for safe testing.
-        </p>
-      </div>
+    <AppPage>
+      <PageHeader
+        title="Developers"
+        description="REST API for SMS, wallet, contacts, campaigns, and OTP — with sandbox keys for safe testing."
+        icon={Code2}
+        mobileDescription="API keys, docs, Postman, and integrations."
+      />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="rounded-2xl">
+      <div className="grid grid-cols-3 gap-2 md:gap-4">
+        <AppCard>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
               <Activity className="h-4 w-4" />
               Requests (30d)
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-3xl font-bold tabular-nums">{analytics.total}</CardContent>
-        </Card>
-        <Card className="rounded-2xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-              <Key className="h-4 w-4" />
-              Active keys
+          <CardContent className="text-xl md:text-3xl font-bold tabular-nums pb-4 md:pb-6">
+            {analytics.total}
+          </CardContent>
+        </AppCard>
+        <AppCard>
+          <CardHeader className="pb-1 md:pb-2">
+            <CardTitle className="text-[10px] md:text-xs font-medium text-muted-foreground flex items-center gap-1 md:gap-2">
+              <Key className="h-3.5 w-3.5 md:h-4 md:w-4" />
+              Keys
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-3xl font-bold tabular-nums">{analytics.activeKeys}</CardContent>
-        </Card>
-        <Card className="rounded-2xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              Success rate
+          <CardContent className="text-xl md:text-3xl font-bold tabular-nums pb-4 md:pb-6">
+            {analytics.activeKeys}
+          </CardContent>
+        </AppCard>
+        <AppCard>
+          <CardHeader className="pb-1 md:pb-2">
+            <CardTitle className="text-[10px] md:text-xs font-medium text-muted-foreground flex items-center gap-1 md:gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+              Success
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-3xl font-bold tabular-nums">{analytics.successRate}%</CardContent>
-        </Card>
+          <CardContent className="text-xl md:text-3xl font-bold tabular-nums pb-4 md:pb-6">
+            {analytics.successRate}%
+          </CardContent>
+        </AppCard>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {tiles.map(({ href, icon: Icon, title, desc, stat }) => (
-          <Link key={href} href={href} className="group">
-            <Card className="rounded-2xl h-full transition-all hover:border-primary/40 hover:shadow-md">
-              <CardContent className="pt-6">
+          <Link key={href} href={href} className="group active:scale-[0.98] transition-transform">
+            <AppCard className="h-full transition-all group-hover:border-primary/40">
+              <CardContent className="pt-5 pb-5 md:pt-6">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary mb-4">
                   <Icon className="h-5 w-5" />
                 </div>
@@ -131,12 +136,12 @@ export default async function DevelopersPage() {
                 <p className="text-sm text-muted-foreground mt-1">{desc}</p>
                 <p className="text-xs font-medium text-primary mt-3">{stat} →</p>
               </CardContent>
-            </Card>
+            </AppCard>
           </Link>
         ))}
       </div>
 
-      <Card className="rounded-2xl border-2 border-zinc-800/10 dark:border-zinc-700/50 overflow-hidden">
+      <AppCard className="border-2 border-zinc-800/10 dark:border-zinc-700/50">
         <CardHeader>
           <CardTitle className="text-lg">Quick start</CardTitle>
         </CardHeader>
@@ -182,7 +187,7 @@ export default async function DevelopersPage() {
   -d '{"sender":"MYBRAND","recipients":["233201234567"],"message":"Hello"}'`}</pre>
           </div>
         </CardContent>
-      </Card>
-    </div>
+      </AppCard>
+    </AppPage>
   );
 }
