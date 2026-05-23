@@ -6,7 +6,8 @@ type LogoProps = {
   className?: string;
   href?: string;
   size?: "sm" | "md" | "lg";
-  showText?: boolean;
+  /** true = always show wordmark; "desktop" = hide wordmark on small screens */
+  showText?: boolean | "desktop";
   /** White logo for dark backgrounds (sidebar, hero, footer) */
   variant?: "default" | "white";
 };
@@ -39,7 +40,13 @@ export function Logo({
   const content = showText ? (
     <span className="inline-flex items-center gap-2.5 shrink-0">
       {img}
-      <span className="font-semibold text-lg tracking-tight">
+      <span
+        className={cn(
+          "font-semibold text-lg tracking-tight",
+          showText === "desktop" && "hidden sm:inline",
+          variant === "white" ? "text-white" : "text-foreground",
+        )}
+      >
         Split<span className="text-primary">SMS</span>
       </span>
     </span>

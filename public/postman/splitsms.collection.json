@@ -5,12 +5,24 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3000" },
-    { "key": "apiKey", "value": "sk_live_your_key_here" }
+    {
+      "key": "baseUrl",
+      "value": "https://www.splitsms.com"
+    },
+    {
+      "key": "apiKey",
+      "value": "sk_live_your_key_here"
+    }
   ],
   "auth": {
     "type": "bearer",
-    "bearer": [{ "key": "token", "value": "{{apiKey}}", "type": "string" }]
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{apiKey}}",
+        "type": "string"
+      }
+    ]
   },
   "item": [
     {
@@ -49,7 +61,12 @@
           "name": "Send SMS",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"sender\": \"MYBRAND\",\n  \"recipients\": [\"233201234567\"],\n  \"message\": \"Hello from SplitSMS\",\n  \"countryCode\": \"GH\"\n}"
@@ -74,7 +91,12 @@
           "name": "Send OTP",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"phone\": \"233201234567\",\n  \"countryCode\": \"GH\"\n}"
@@ -86,7 +108,12 @@
           "name": "Verify OTP",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"phone\": \"233201234567\",\n  \"code\": \"123456\"\n}"
@@ -111,7 +138,12 @@
           "name": "Create contact",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"phone\": \"233201234567\",\n  \"name\": \"Jane Doe\",\n  \"countryCode\": \"GH\"\n}"

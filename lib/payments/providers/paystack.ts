@@ -4,7 +4,8 @@ export const paystackAdapter: PaymentProviderAdapter = {
   method: "PAYSTACK",
   async initializeTopUp({ paymentId, amount, currency, email }) {
     const secret = process.env.PAYSTACK_SECRET_KEY;
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const { getSiteUrl } = await import("@/lib/site-config");
+    const appUrl = getSiteUrl();
     if (!secret) {
       return {
         paymentId,

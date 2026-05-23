@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { headers } from "next/headers";
+import { getSiteUrl, wordpressPlugin } from "@/lib/site-config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -14,12 +14,9 @@ import {
 } from "lucide-react";
 import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
 
-export default async function DevelopersIntegrationsPage() {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? `${proto}://${host}`;
+export default function DevelopersIntegrationsPage() {
+  const baseUrl = getSiteUrl();
+  const downloadUrl = wordpressPlugin.downloadUrl;
 
   const features = [
     {
@@ -69,14 +66,15 @@ export default async function DevelopersIntegrationsPage() {
           <div className="flex-1 min-w-0">
             <h2 className="text-lg font-bold">SplitSMS for WordPress v1.0</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Plugin source lives in this repo at{" "}
-              <code className="text-xs bg-muted px-1.5 py-0.5 rounded">wordpress-plugin/splitsms</code>
-              . Zip that folder and upload to WordPress, or copy it into{" "}
-              <code className="text-xs bg-muted px-1.5 py-0.5 rounded">wp-content/plugins/</code>.
+              Download from{" "}
+              <a href="/integrations" className="text-primary font-medium hover:underline">
+                {baseUrl}/integrations
+              </a>
+              . WordPress checks {baseUrl} for plugin updates automatically.
             </p>
           </div>
           <a
-            href="/wordpress-plugin/splitsms.zip"
+            href={downloadUrl}
             className={cn(buttonVariants(), "shrink-0 gap-2")}
             download
           >

@@ -37,6 +37,11 @@ function hasResetCookie(request: NextRequest) {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (pathname === "/developers/sdk" || pathname.startsWith("/developers/sdk/")) {
+    return NextResponse.redirect(new URL("/sdk", request.url));
+  }
+
   const session = await readSession(request);
 
   const isMember = memberPaths.some((p) => pathname.startsWith(p));

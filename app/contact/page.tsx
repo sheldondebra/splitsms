@@ -1,11 +1,19 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Mail, Phone } from "lucide-react";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Phone } from "lucide-react";
-import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+export const metadata: Metadata = {
+  title: "Contact SplitSMS — Bulk SMS Sales & Support in Ghana",
+  description:
+    "Contact SplitSMS for bulk SMS pricing, Sender ID help, and SMS API integration. Email support@tecunitgh.com or call our Ghana team.",
+  alternates: { canonical: "/contact" },
+};
 
 export default function ContactPage() {
   return (

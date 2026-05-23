@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       SplitSMS
- * Plugin URI:        https://splitsms.com
+ * Plugin URI:        https://www.splitsms.com/integrations
  * Description:       Send transactional SMS from WordPress and WooCommerce using your SplitSMS API key.
  * Version:           1.0.0
  * Requires at least: 6.0
@@ -19,11 +19,13 @@ define('SPLITSMS_VERSION', '1.0.0');
 define('SPLITSMS_PLUGIN_FILE', __FILE__);
 define('SPLITSMS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
+require_once SPLITSMS_PLUGIN_DIR . 'includes/splitsms-config.php';
 require_once SPLITSMS_PLUGIN_DIR . 'includes/class-splitsms-settings.php';
 require_once SPLITSMS_PLUGIN_DIR . 'includes/class-splitsms-api.php';
 require_once SPLITSMS_PLUGIN_DIR . 'includes/class-splitsms-woocommerce.php';
 require_once SPLITSMS_PLUGIN_DIR . 'includes/class-splitsms-wordpress.php';
 require_once SPLITSMS_PLUGIN_DIR . 'admin/class-splitsms-admin.php';
+require_once SPLITSMS_PLUGIN_DIR . 'includes/class-splitsms-updater.php';
 
 /**
  * Bootstrap plugin services.
@@ -31,6 +33,7 @@ require_once SPLITSMS_PLUGIN_DIR . 'admin/class-splitsms-admin.php';
 function splitsms_init() {
     SplitSMS_Settings::instance();
     SplitSMS_Admin::instance();
+    SplitSMS_Updater::instance();
 
     if (SplitSMS_Settings::is_configured()) {
         SplitSMS_WooCommerce::instance();

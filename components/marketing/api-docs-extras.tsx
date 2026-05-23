@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Webhook, Gauge, FileCode2, Puzzle } from "lucide-react";
 import { CopyButton } from "@/components/developers/copy-button";
+import { getSiteUrl, wordpressPlugin } from "@/lib/site-config";
 
 const WEBHOOK_EVENTS = [
   "message.sent",
@@ -17,6 +18,7 @@ const RATE_TIERS = [
 ];
 
 export function ApiDocsExtras() {
+  const baseUrl = getSiteUrl();
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-12 pt-12 border-t border-border/60">
       <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm md:col-span-2 lg:col-span-1">
@@ -70,21 +72,33 @@ export function ApiDocsExtras() {
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 mb-4">
           <FileCode2 className="h-5 w-5" />
         </div>
-        <h2 className="text-lg font-semibold">Node.js SDK</h2>
-        <p className="text-sm text-muted-foreground mt-2">Starter client in the repo.</p>
+        <h2 className="text-lg font-semibold">JavaScript SDK</h2>
+        <p className="text-sm text-muted-foreground mt-2">
+          <code className="text-xs bg-muted px-1 rounded">npm install @splitsms/sdk</code>
+        </p>
         <pre className="mt-4 rounded-xl bg-zinc-950 text-zinc-300 p-3 text-[11px] font-mono overflow-x-auto leading-relaxed">
-{`import { SplitSMSClient } from './sdk/javascript';
-const client = new SplitSMSClient({
-  apiKey: process.env.SPLITSMS_KEY,
-  baseUrl: 'https://your-app.com'
+{`import { SplitSMS } from "@splitsms/sdk";
+
+const sms = new SplitSMS({
+  apiKey: process.env.SPLITSMS_API_KEY,
+  baseUrl: "${baseUrl}",
 });
-await client.sendSms({ ... });`}
+
+await sms.messages.send({
+  sender: "MYBRAND",
+  recipients: ["233201234567"],
+  message: "Hello",
+});`}
         </pre>
-        <CopyButton
-          value={`import { SplitSMSClient } from './sdk/javascript/index.js';\nconst client = new SplitSMSClient({ apiKey: process.env.SPLITSMS_KEY, baseUrl: 'https://your-app.com' });\nawait client.sendSms({ sender: 'SplitSMS', recipients: ['+233201234567'], message: 'Hi' });`}
-          label="Copy snippet"
-          className="mt-3"
-        />
+        <div className="mt-3 flex flex-wrap gap-2">
+          <CopyButton
+            value={`import { SplitSMS } from "@splitsms/sdk";\nconst sms = new SplitSMS({ apiKey: process.env.SPLITSMS_API_KEY, baseUrl: "${baseUrl}" });\nawait sms.messages.send({ sender: "MYBRAND", recipients: ["233201234567"], message: "Hello" });`}
+            label="Copy snippet"
+          />
+          <Link href="/sdk" className="text-sm font-medium text-primary hover:underline">
+            All SDKs →
+          </Link>
+        </div>
       </div>
 
       <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/8 to-card p-6 md:col-span-2 lg:col-span-3 flex flex-col sm:flex-row sm:items-center gap-6">
@@ -97,12 +111,21 @@ await client.sendSms({ ... });`}
             Official plugin with order notifications, form plugins, and per-event toggles — no custom code required.
           </p>
         </div>
-        <Link
-          href="/developers/integrations"
-          className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shrink-0 hover:bg-primary/90 transition-colors"
-        >
-          View integration →
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+          <Link
+            href="/integrations"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            WordPress plugin →
+          </Link>
+          <a
+            href={wordpressPlugin.downloadUrl}
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-border px-6 text-sm font-semibold hover:bg-muted/50 transition-colors"
+            download
+          >
+            Download zip
+          </a>
+        </div>
       </div>
     </div>
   );

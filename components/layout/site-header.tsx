@@ -7,31 +7,37 @@ import { Logo } from "@/components/brand/logo";
 import { buttonVariants } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ArrowRight } from "lucide-react";
 
 const nav = [
   { href: "/features", label: "Features" },
   { href: "/pricing", label: "Pricing" },
+  { href: "/blog", label: "Blog" },
+  { href: "/company", label: "Company" },
+  { href: "/sdk", label: "SDKs" },
   { href: "/api-docs", label: "API" },
   { href: "/contact", label: "Contact" },
 ];
 
+const DARK_HERO_PATHS = ["/"];
+
 export function SiteHeader() {
   const pathname = usePathname();
-  const isHome = pathname === "/";
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const hasDarkHero = DARK_HERO_PATHS.some((p) => pathname === p);
+  const overHero = hasDarkHero && !scrolled;
+  const isSolid = !overHero;
+
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    const onScroll = () => setScrolled(window.scrollY > 16);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
+  useEffect(() => setMenuOpen(false), [pathname]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -42,146 +48,175 @@ export function SiteHeader() {
     };
   }, [menuOpen]);
 
-  const overHero = isHome && !scrolled;
-  const logoVariant = overHero ? "white" : "default";
-
   return (
     <>
       <header
         className={cn(
-          "sticky top-0 z-50 transition-all duration-300",
-          overHero
-            ? "border-b border-transparent bg-transparent"
-            : "border-b border-border/60 bg-background/90 backdrop-blur-xl shadow-sm supports-[backdrop-filter]:bg-background/80",
+          "sticky top-0 z-50 w-full transition-[padding] duration-500",
+          isSolid && "pt-3 pb-1",
         )}
       >
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 lg:px-6">
-          <Logo href="/" size="md" variant={logoVariant} />
+        <div className="site-header-shell">
+          <div
+            className={cn(
+              "site-header-bar dark:shadow-black/30",
+              overHero && "site-header-bar--hero",
+            )}
+          >
+            <Logo href="/" size="md" variant={overHero ? "white" : "default"} />
 
-          <nav className="hidden items-center gap-1 md:flex" aria-label="Main">
-            {nav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
+            <nav
+              className={cn(
+                "hidden lg:flex items-center gap-0.5",
+                isSolid && "rounded-full border border-border/60 bg-muted/50 dark:bg-muted/30 p-1",
+              )}
+              aria-label="Main"
+            >
+              {nav.map((item) => {
+                const active =
+                  pathname === item.href || pathname.startsWith(item.href + "/");
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "relative rounded-full px-3.5 py-2 text-sm font-medium transition-all duration-200",
+                      overHero
+                        ? "text-white/85 hover:text-white hover:bg-white/10"
+                        : active
+                          ? "bg-background dark:bg-card text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="hidden lg:flex items-center gap-2">
+              <ThemeToggle
                 className={cn(
-                  "rounded-lg px-3.5 py-2 text-sm font-medium transition-colors",
-                  overHero
-                    ? "text-white/80 hover:text-white hover:bg-white/10"
-                    : pathname === item.href || pathname.startsWith(item.href + "/")
-                      ? "text-primary bg-primary/10"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60",
+                  "rounded-full",
+                  overHero && "text-white hover:bg-white/10 hover:text-white border-transparent",
+                )}
+              />
+              <div className={cn("h-6 w-px", overHero ? "bg-white/20" : "bg-border")} />
+              <Link
+                href="/login"
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "sm" }),
+                  "rounded-full font-medium",
+                  overHero && "text-white/90 hover:bg-white/10 hover:text-white",
                 )}
               >
-                {item.label}
+                Log in
               </Link>
-            ))}
-          </nav>
+              <Link
+                href="/signup"
+                className={cn(
+                  buttonVariants({ size: "sm" }),
+                  "rounded-full font-semibold px-5 gap-1.5 shadow-md shadow-primary/25",
+                  overHero && "orange-glow",
+                )}
+              >
+                Get started
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
 
-          <div className="hidden items-center gap-2 md:flex">
-            <ThemeToggle
-              className={cn(overHero && "text-white hover:bg-white/10 border-transparent")}
-            />
-            <Link
-              href="/login"
-              className={cn(
-                buttonVariants({ variant: "ghost", size: "sm" }),
-                overHero && "text-white/90 hover:bg-white/10 hover:text-white",
-              )}
-            >
-              Log in
-            </Link>
-            <Link
-              href="/signup"
-              className={cn(
-                buttonVariants({ size: "sm" }),
-                "font-semibold shadow-md shadow-primary/20",
-                overHero && "orange-glow",
-              )}
-            >
-              Get started
-            </Link>
-          </div>
-
-          <div className="flex items-center gap-1 md:hidden">
-            <ThemeToggle
-              className={cn(overHero && "text-white hover:bg-white/10")}
-            />
-            <button
-              type="button"
-              onClick={() => setMenuOpen((o) => !o)}
-              className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-xl transition-colors",
-                overHero
-                  ? "text-white hover:bg-white/10"
-                  : "text-foreground hover:bg-muted",
-              )}
-              aria-label={menuOpen ? "Close menu" : "Open menu"}
-              aria-expanded={menuOpen}
-            >
-              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
+            <div className="flex items-center gap-1 lg:hidden">
+              <ThemeToggle
+                className={cn("rounded-full", overHero && "text-white hover:bg-white/10")}
+              />
+              <button
+                type="button"
+                onClick={() => setMenuOpen((o) => !o)}
+                className={cn(
+                  "flex h-10 w-10 items-center justify-center rounded-full transition-colors",
+                  overHero
+                    ? "text-white hover:bg-white/10"
+                    : "text-foreground hover:bg-muted border border-border/60",
+                )}
+                aria-label={menuOpen ? "Close menu" : "Open menu"}
+                aria-expanded={menuOpen}
+              >
+                {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Mobile menu */}
       <div
         className={cn(
-          "fixed inset-0 z-40 md:hidden transition-opacity duration-300",
+          "fixed inset-0 z-[60] lg:hidden transition-opacity duration-300",
           menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
         )}
         aria-hidden={!menuOpen}
       >
         <div
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          className="absolute inset-0 bg-black/60 backdrop-blur-md"
           onClick={() => setMenuOpen(false)}
         />
-        <nav
+        <div
           className={cn(
-            "absolute top-16 left-0 right-0 border-b border-border/60 bg-background/98 backdrop-blur-xl px-4 py-5 shadow-xl transition-transform duration-300 ease-out safe-top",
-            menuOpen ? "translate-y-0" : "-translate-y-4 opacity-0",
+            "absolute top-0 right-0 h-full w-[min(100%,20rem)] bg-background border-l border-border shadow-2xl flex flex-col transition-transform duration-300 ease-out safe-top",
+            menuOpen ? "translate-x-0" : "translate-x-full",
           )}
-          aria-label="Mobile"
         >
-          <ul className="space-y-1">
-            {nav.map((item) => {
-              const active =
-                pathname === item.href || pathname.startsWith(item.href + "/");
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      "flex h-12 items-center rounded-xl px-4 text-base font-medium transition-colors",
-                      active
-                        ? "bg-primary/10 text-primary"
-                        : "text-foreground hover:bg-muted",
-                    )}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-          <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="flex items-center justify-between border-b border-border px-5 h-16 shrink-0">
+            <Logo href="/" size="sm" />
+            <button
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted"
+              aria-label="Close menu"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <nav className="flex-1 overflow-y-auto px-4 py-6" aria-label="Mobile">
+            <ul className="space-y-1">
+              {nav.map((item) => {
+                const active =
+                  pathname === item.href || pathname.startsWith(item.href + "/");
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "flex h-12 items-center rounded-xl px-4 text-[15px] font-medium transition-colors",
+                        active
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground hover:bg-muted",
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          <div className="shrink-0 border-t border-border p-4 space-y-2 safe-bottom">
+            <Link
+              href="/signup"
+              className={cn(buttonVariants({ size: "lg" }), "w-full rounded-xl font-semibold gap-2")}
+            >
+              Get started free
+              <ArrowRight className="h-4 w-4" />
+            </Link>
             <Link
               href="/login"
-              className={cn(
-                buttonVariants({ variant: "outline", size: "lg" }),
-                "w-full",
-              )}
+              className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full rounded-xl")}
             >
               Log in
             </Link>
-            <Link
-              href="/signup"
-              className={cn(buttonVariants({ size: "lg" }), "w-full font-semibold")}
-            >
-              Get started
-            </Link>
           </div>
-        </nav>
+        </div>
       </div>
     </>
   );

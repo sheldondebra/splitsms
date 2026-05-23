@@ -122,8 +122,16 @@ class SplitSMS_Admin {
                             <tr>
                                 <th scope="row"><label for="api_base_url"><?php esc_html_e('API base URL', 'splitsms'); ?></label></th>
                                 <td>
-                                    <input type="url" class="regular-text" id="api_base_url" name="splitsms[api_base_url]" value="<?php echo esc_attr($s['api_base_url']); ?>" placeholder="https://app.splitsms.com" required />
-                                    <p class="description"><?php esc_html_e('Your SplitSMS app URL (no trailing slash).', 'splitsms'); ?></p>
+                                    <input type="url" class="regular-text" id="api_base_url" name="splitsms[api_base_url]" value="<?php echo esc_attr($s['api_base_url']); ?>" placeholder="<?php echo esc_attr(defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL : 'https://www.splitsms.com'); ?>" required />
+                                    <p class="description">
+                                        <?php
+                                        printf(
+                                            /* translators: %s: docs URL */
+                                            esc_html__('Your SplitSMS site URL (no trailing slash). Docs: %s', 'splitsms'),
+                                            '<a href="' . esc_url(defined('SPLITSMS_API_DOCS_URL') ? SPLITSMS_API_DOCS_URL : '') . '" target="_blank" rel="noopener">' . esc_html__('API documentation', 'splitsms') . '</a>'
+                                        );
+                                        ?>
+                                    </p>
                                 </td>
                             </tr>
                             <tr>

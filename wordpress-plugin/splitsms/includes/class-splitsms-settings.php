@@ -29,8 +29,9 @@ class SplitSMS_Settings {
     }
 
     public static function defaults() {
+        $app_url = defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL : '';
         return array(
-            'api_base_url' => '',
+            'api_base_url' => $app_url,
             'api_key' => '',
             'sender_id' => 'SplitSMS',
             'country_code' => 'GH',

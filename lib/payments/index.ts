@@ -9,7 +9,8 @@ const adapters: Partial<Record<PaymentMethod, PaymentProviderAdapter>> = {
   FLUTTERWAVE: {
     method: "FLUTTERWAVE",
     async initializeTopUp({ paymentId, amount, currency }) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      const { getSiteUrl } = await import("@/lib/site-config");
+      const appUrl = getSiteUrl();
       if (!process.env.FLUTTERWAVE_SECRET_KEY) {
         return { paymentId, instructions: "Flutterwave not configured." };
       }

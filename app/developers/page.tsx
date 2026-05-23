@@ -14,10 +14,12 @@ import {
   CheckCircle2,
   Braces,
   Puzzle,
+  Package,
 } from "lucide-react";
 import { CopyButton } from "@/components/developers/copy-button";
 import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
 import { Code2 } from "lucide-react";
+import { getSiteUrl } from "@/lib/site-config";
 
 export default async function DevelopersPage() {
   const session = await getSession();
@@ -28,8 +30,7 @@ export default async function DevelopersPage() {
     prisma.apiKey.count({ where: { userId: session.userId, isActive: true } }),
   ]);
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
+  const baseUrl = getSiteUrl();
 
   const quickCurl = `curl -X GET '${baseUrl}/api/v1/balance' \\
   -H "Authorization: Bearer YOUR_API_KEY"`;
@@ -41,6 +42,13 @@ export default async function DevelopersPage() {
       title: "API Keys",
       desc: "Create, mask, copy, rotate keys",
       stat: `${keyCount} active`,
+    },
+    {
+      href: "/sdk",
+      icon: Package,
+      title: "SDKs",
+      desc: "JS, PHP, Flutter packages",
+      stat: "3 languages",
     },
     {
       href: "/developers/docs",

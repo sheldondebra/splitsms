@@ -19,10 +19,25 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SplitSMS — Bulk SMS in Ghana & 190+ Countries",
+  title: {
+    default: "SplitSMS — Bulk SMS Platform & SMS API | Ghana & Global",
+    template: "%s | SplitSMS",
+  },
   description:
-    "Send bulk SMS campaigns, OTPs, and notifications globally. Modern platform powered by Tecunit Ghana. From GHS 0.029 per message.",
+    "Send bulk SMS, OTP, and marketing campaigns in Ghana and 190+ countries. Affordable SMS gateway, REST SMS API, and pay-as-you-go pricing from GHS 0.029 per SMS.",
+  keywords: [
+    "SMS",
+    "bulk SMS",
+    "SMS Ghana",
+    "SMS API",
+    "SMS gateway",
+    "send SMS",
+    "SplitSMS",
+  ],
   icons: { icon: "/smslogo.png" },
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://www.splitsms.com",
+  ),
 };
 
 export default async function RootLayout({

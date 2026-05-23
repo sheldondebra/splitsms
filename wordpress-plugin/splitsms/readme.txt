@@ -21,7 +21,7 @@ Send transactional SMS from WordPress and WooCommerce using your SplitSMS API ke
 1. Upload the `splitsms` folder to `/wp-content/plugins/` or zip and install via Plugins → Add New.
 2. Activate the plugin.
 3. Go to Settings → SplitSMS.
-4. Enter your API base URL (your SplitSMS app URL) and API key from the Developers portal.
+4. Enter API base URL https://www.splitsms.com (pre-filled) and your API key from the SplitSMS dashboard.
 5. Enable the notifications you want and save.
 
 == Frequently Asked Questions ==

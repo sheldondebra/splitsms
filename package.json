@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "sync:site-config": "node scripts/sync-site-config.mjs",
+    "prebuild": "node scripts/sync-site-config.mjs",
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",

@@ -2,14 +2,10 @@ import Link from "next/link";
 import { ApiDocsView } from "@/components/developers/api-docs-view";
 import { BookOpen, Braces } from "lucide-react";
 import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
-import { headers } from "next/headers";
+import { getSiteUrl } from "@/lib/site-config";
 
-export default async function DevelopersDocsPage() {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? `${proto}://${host}`;
+export default function DevelopersDocsPage() {
+  const baseUrl = getSiteUrl();
 
   return (
     <AppPage>

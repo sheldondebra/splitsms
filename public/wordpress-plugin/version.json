@@ -1,0 +1,15 @@
+{
+  "name": "SplitSMS",
+  "slug": "splitsms",
+  "version": "1.0.0",
+  "homepage": "https://www.splitsms.com",
+  "download_url": "https://www.splitsms.com/wordpress-plugin/splitsms.zip",
+  "requires": "6.0",
+  "tested": "6.7",
+  "requires_php": "7.4",
+  "api_base_url": "https://www.splitsms.com",
+  "api_docs_url": "https://www.splitsms.com/api-docs",
+  "integrations_url": "https://www.splitsms.com/integrations",
+  "update_check_url": "https://www.splitsms.com/api/plugin/update",
+  "last_updated": "2026-05-23"
+}

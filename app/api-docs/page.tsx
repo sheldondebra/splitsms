@@ -1,5 +1,5 @@
-import { headers } from "next/headers";
 import Link from "next/link";
+import { getSiteUrl } from "@/lib/site-config";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { ApiDocsHero } from "@/components/marketing/api-docs-hero";
@@ -7,12 +7,8 @@ import { ApiDocsExtras } from "@/components/marketing/api-docs-extras";
 import { ApiDocsView } from "@/components/developers/api-docs-view";
 import { Braces, BookOpen } from "lucide-react";
 
-export default async function ApiDocsPage() {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? `${proto}://${host}`;
+export default function ApiDocsPage() {
+  const baseUrl = getSiteUrl();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

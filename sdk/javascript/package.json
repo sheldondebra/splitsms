@@ -1,9 +1,32 @@
 {
   "name": "@splitsms/sdk",
-  "version": "0.1.0",
-  "description": "Official SplitSMS JavaScript/Node.js SDK (starter)",
+  "version": "1.0.0",
+  "description": "Official SplitSMS SDK for Node.js and browsers — SMS, OTP, wallet, and campaigns",
   "type": "module",
-  "main": "index.js",
-  "types": "index.d.ts",
-  "files": ["index.js", "index.d.ts"]
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["splitsms", "sms", "otp", "ghana", "bulk-sms", "api"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/splitsms/splitsms"
+  },
+  "homepage": "https://www.splitsms.com/sdk",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
 }

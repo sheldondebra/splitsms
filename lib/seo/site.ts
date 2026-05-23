@@ -1,0 +1,51 @@
+import { getSiteUrl, siteName as configSiteName, supportEmail } from "@/lib/site-config";
+
+export const siteUrl = getSiteUrl();
+
+export const siteName = configSiteName;
+
+export const defaultKeywords = [
+  "SMS",
+  "bulk SMS",
+  "SMS Ghana",
+  "bulk SMS Ghana",
+  "SMS API",
+  "SMS gateway",
+  "send SMS",
+  "SMS marketing",
+  "transactional SMS",
+  "OTP SMS",
+  "SMS platform",
+  "affordable SMS",
+  "SplitSMS",
+  "bulk messaging",
+  "SMS platform Africa",
+  "WooCommerce SMS",
+];
+
+export const organizationJsonLd = {
+  "@type": "Organization",
+  "@id": `${siteUrl}/#organization`,
+  name: siteName,
+  url: siteUrl,
+  logo: `${siteUrl}/smslogo.png`,
+  email: supportEmail,
+  telephone: "+233538477596",
+  description:
+    "SplitSMS is a bulk SMS platform for Ghana and 190+ countries — campaigns, OTP API, webhooks, and pay-as-you-go pricing.",
+  areaServed: ["GH", "NG", "Worldwide"],
+  parentOrganization: {
+    "@type": "Organization",
+    name: "Tecunit Ghana",
+  },
+};
+
+export const websiteJsonLd = {
+  "@type": "WebSite",
+  "@id": `${siteUrl}/#website`,
+  url: siteUrl,
+  name: siteName,
+  description: "Bulk SMS platform — send SMS campaigns, OTP, and notifications globally.",
+  publisher: { "@id": `${siteUrl}/#organization` },
+  inLanguage: "en",
+};

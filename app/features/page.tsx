@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { FeaturesPageContent } from "@/components/marketing/features-page-content";
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://splitsms.com";
+import { organizationJsonLd, siteUrl, websiteJsonLd } from "@/lib/seo/site";
 
 export const metadata: Metadata = {
   title: "Bulk SMS Features — Campaigns, OTP API, Webhooks & Ghana Pricing | SplitSMS",
@@ -46,6 +46,8 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
+    websiteJsonLd,
+    organizationJsonLd,
     {
       "@type": "WebPage",
       "@id": `${siteUrl}/features#webpage`,
