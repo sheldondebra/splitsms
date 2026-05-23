@@ -6,7 +6,7 @@ import { getSiteUrl } from "@/lib/site-config";
 export const metadata: Metadata = {
   title: "WordPress & WooCommerce SMS Plugin",
   description:
-    "Download the official SplitSMS WordPress plugin. Connect WooCommerce order SMS, CF7, WPForms, and OTP to www.splitsms.com with auto-updates.",
+    "Download the official SplitSMS WordPress plugin. Connect WooCommerce order SMS, CF7, WPForms, and OTP to splitsms.com with auto-updates.",
   alternates: { canonical: "/integrations" },
   openGraph: {
     url: `${getSiteUrl()}/integrations`,

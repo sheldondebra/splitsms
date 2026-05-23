@@ -19,7 +19,7 @@ export type ApiDocSection = {
   endpoints: ApiEndpointDoc[];
 };
 
-export const API_BASE_HINT = "https://your-domain.com";
+export const API_BASE_HINT = "https://splitsms.com";
 
 export const apiDocSections: ApiDocSection[] = [
   {
@@ -254,6 +254,89 @@ export const apiDocSections: ApiDocSection[] = [
         permission: "sms.send",
         body: `{ "phone": "233201234567", "code": "123456" }`,
         response: `{ "success": true, "verified": true }`,
+      },
+    ],
+  },
+  {
+    id: "wordpress",
+    title: "WordPress",
+    icon: "puzzle",
+    description:
+      "Endpoints used by the official SplitSMS WordPress plugin — site registration, logs, and account status.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/api/v1/account/status",
+        title: "Account status",
+        description:
+          "SMS credits, wallet balance, API key prefix, and low-balance flag. Used by the plugin dashboard header.",
+        permission: "wallet.read",
+        response: `{
+  "success": true,
+  "account": {
+    "status": "active",
+    "sms_credits": 12450,
+    "wallet_balance": 620,
+    "wallet_currency": "GHS",
+    "api_key_prefix": "sk_live",
+    "low_balance": false,
+    "sandbox": false
+  }
+}`,
+      },
+      {
+        method: "POST",
+        path: "/api/v1/wordpress/connect",
+        title: "Register WordPress site",
+        description:
+          "Called when a site saves a valid API key. Links the WordPress URL to your SplitSMS account.",
+        permission: "sms.send",
+        body: `{
+  "site_url": "https://shop.example.com",
+  "site_name": "My Shop",
+  "wp_version": "6.7",
+  "plugin_version": "1.1.0",
+  "php_version": "8.2"
+}`,
+        response: `{
+  "success": true,
+  "site": {
+    "id": "...",
+    "site_url": "https://shop.example.com",
+    "status": "connected"
+  }
+}`,
+      },
+      {
+        method: "POST",
+        path: "/api/v1/wordpress/logs",
+        title: "Sync plugin log",
+        description: "Push an SMS event from WordPress to your SplitSMS dashboard.",
+        permission: "sms.read",
+        body: `{
+  "site_url": "https://shop.example.com",
+  "event": "wc_order_processing",
+  "recipient": "233201234567",
+  "status": "sent",
+  "source": "woocommerce",
+  "external_ref": "order-1042"
+}`,
+      },
+      {
+        method: "GET",
+        path: "/api/v1/messages/logs",
+        title: "List plugin logs",
+        description: "Recent WordPress/plugin events for your account.",
+        permission: "sms.read",
+        query: ["limit (max 100)", "status", "source", "q"],
+      },
+      {
+        method: "GET",
+        path: "/api/v1/wordpress/site-status",
+        title: "Site status",
+        description: "Health and recent activity for one connected site or all sites.",
+        permission: "sms.read",
+        query: ["site_url (optional)"],
       },
     ],
   },

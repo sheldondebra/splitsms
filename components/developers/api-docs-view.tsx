@@ -13,6 +13,8 @@ import {
   KeyRound,
 } from "lucide-react";
 
+import { Puzzle } from "lucide-react";
+
 const sectionIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   auth: Shield,
   wallet: Wallet,
@@ -20,6 +22,7 @@ const sectionIcons: Record<string, React.ComponentType<{ className?: string }>> 
   contacts: Users,
   campaigns: Megaphone,
   otp: KeyRound,
+  wordpress: Puzzle,
 };
 
 export function ApiDocsView({ baseUrl }: { baseUrl?: string }) {
@@ -58,7 +61,11 @@ export function ApiDocsView({ baseUrl }: { baseUrl?: string }) {
               </div>
               <div className="space-y-3">
                 {section.endpoints.map((ep) => (
-                  <EndpointCard key={`${ep.method}-${ep.path}`} endpoint={ep} />
+                  <EndpointCard
+                    key={`${ep.method}-${ep.path}`}
+                    endpoint={ep}
+                    baseUrl={baseUrl ?? API_BASE_HINT}
+                  />
                 ))}
               </div>
             </TabsContent>

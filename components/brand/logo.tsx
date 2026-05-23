@@ -29,8 +29,11 @@ export function Logo({
       width={Math.round(h * 3.2)}
       height={h}
       className={cn(
-        "h-auto w-auto object-contain",
+        "h-auto w-auto object-contain transition-[filter] duration-300",
+        /* Explicit white for dark hero / dark surfaces */
         variant === "white" && "brightness-0 invert",
+        /* Default: full-color on light backgrounds, inverted in dark mode */
+        variant === "default" && "dark:brightness-0 dark:invert",
         className,
       )}
       priority

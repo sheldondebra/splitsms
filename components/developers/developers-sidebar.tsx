@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/developers", label: "Overview", icon: LayoutDashboard, exact: true },
-  { href: "/developers/docs", label: "API Reference", icon: BookOpen },
+  { href: "/developers/docs", label: "Documentation", icon: BookOpen },
   { href: "/developers/api-keys", label: "API Keys", icon: Key },
   { href: "/developers/postman", label: "Postman", icon: Braces },
   { href: "/developers/webhooks", label: "Webhooks", icon: Webhook },

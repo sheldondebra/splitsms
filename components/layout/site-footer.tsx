@@ -151,7 +151,7 @@ export function SiteFooter() {
 
         <div className="grid gap-12 pb-14 md:grid-cols-2 lg:grid-cols-12 lg:gap-8 border-t border-border dark:border-white/10 pt-14">
           <div className="lg:col-span-3">
-            <Logo href="/" size="md" variant="default" className="dark:brightness-0 dark:invert" />
+            <Logo href="/" size="md" variant="default" />
             <p className="mt-5 text-sm leading-relaxed text-muted-foreground max-w-xs">
               Bulk SMS by{" "}
               <Link href="/company" className="text-foreground font-medium hover:text-primary">

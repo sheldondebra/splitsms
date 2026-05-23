@@ -16,6 +16,7 @@ import {
   Settings,
   LifeBuoy,
   Receipt,
+  Puzzle,
 } from "lucide-react";
 
 export type DashboardNavItem = {
@@ -66,6 +67,7 @@ export const dashboardNavCategories: DashboardNavCategory[] = [
     items: [
       { href: "/dashboard/automation", label: "Automation", icon: Workflow },
       { href: "/dashboard/api-keys", label: "App connections", icon: Key },
+      { href: "/dashboard/integrations/wordpress", label: "WordPress", icon: Puzzle },
       { href: "/developers", label: "Developers", icon: Code2 },
     ],
   },

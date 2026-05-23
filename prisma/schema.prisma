@@ -178,6 +178,8 @@ model User {
   reseller          Reseller?
   resellerMembership ResellerUser?
   enterpriseAccount EnterpriseAccount?
+  wordpressSites   WordPressSite[]
+  wordpressLogs    WordPressLog[]
 }
 
 model Reseller {
@@ -803,4 +805,47 @@ model SmppSubmitLog {
   createdAt     DateTime    @default(now())
 
   @@index([smppAccountId, createdAt])
+}
+
+model WordPressSite {
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKeyId      String?
+  siteUrl       String
+  siteName      String?
+  wpVersion     String?
+  pluginVersion String?
+  phpVersion    String?
+  status        String         @default("connected")
+  lastSyncAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  logs          WordPressLog[]
+
+  @@unique([userId, siteUrl])
+  @@index([userId, status])
+}
+
+model WordPressLog {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  siteId      String?
+  site        WordPressSite? @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  event       String
+  recipient   String?
+  messageType String?
+  status      String
+  source      String?
+  body        String?
+  cost        Decimal?       @db.Decimal(10, 4)
+  externalRef String?
+  messageId   String?
+  meta        Json?
+  createdAt   DateTime       @default(now())
+
+  @@index([userId, createdAt])
+  @@index([siteId, createdAt])
+  @@index([status])
 }

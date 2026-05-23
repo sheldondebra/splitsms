@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ExternalLink,
   RefreshCw,
+  Layers,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -42,6 +43,16 @@ const features = [
       "Contact Form 7 — after mail sent",
       "WPForms — after successful submit",
       "Configurable phone field name",
+    ],
+  },
+  {
+    icon: Layers,
+    title: "Crocoblock / JetEngine",
+    items: [
+      "JetEngine custom post types & status changes",
+      "JetFormBuilder form submissions",
+      "JetBooking & JetAppointment with reminders",
+      "Field mapping + conditional SMS rules",
     ],
   },
 ];
@@ -115,7 +126,7 @@ export function WordPressIntegrationContent() {
             </a>
           </div>
 
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {features.map(({ icon: Icon, title, items }) => (
               <div
                 key={title}
@@ -150,7 +161,7 @@ export function WordPressIntegrationContent() {
                 <code className="text-xs bg-muted px-1 rounded">{baseUrl}</code>
               </li>
               <li>Paste your API key and approved Sender ID.</li>
-              <li>Enable only the WooCommerce / WordPress / form events you need.</li>
+              <li>Enable WooCommerce, forms, or Crocoblock (JetEngine / JetBooking) events in the plugin.</li>
             </ol>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link href="/login" className={cn(buttonVariants({ variant: "outline" }), "gap-2")}>

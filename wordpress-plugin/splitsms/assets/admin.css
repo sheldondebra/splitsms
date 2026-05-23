@@ -1,38 +1,137 @@
-.splitsms-admin .splitsms-panels {
+.splitsms-admin {
+  max-width: 1100px;
+}
+
+.splitsms-status-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1rem 0 1.25rem;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+  color: #f8fafc;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
+}
+
+.splitsms-status-header__main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: center;
+  font-size: 13px;
+}
+
+.splitsms-status-header__main strong {
+  font-size: 15px;
+}
+
+.splitsms-status-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.splitsms-status-header__actions .button-primary {
+  background: #22c55e;
+  border-color: #16a34a;
+}
+
+.splitsms-grid {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.25rem;
-  max-width: 920px;
   margin-top: 1rem;
 }
 
+.splitsms-card,
 .splitsms-admin .splitsms-panel {
   background: #fff;
   border: 1px solid #c3c4c7;
   border-radius: 8px;
   padding: 1rem 1.25rem 1.25rem;
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+  margin-bottom: 1rem;
 }
 
+.splitsms-card h2,
 .splitsms-admin .splitsms-panel h2 {
   margin-top: 0;
   font-size: 1.1rem;
 }
 
-.splitsms-admin .splitsms-panel h3 {
-  margin: 1rem 0 0.5rem;
-  font-size: 0.95rem;
+.splitsms-steps {
+  margin: 0.5rem 0 1rem 1.25rem;
 }
 
-.splitsms-admin .splitsms-muted {
-  opacity: 0.85;
+.splitsms-list {
+  margin: 0.5rem 0 1rem;
+  padding-left: 0;
+  list-style: none;
 }
 
-.splitsms-admin fieldset label {
-  display: block;
-  margin: 0.35rem 0;
+.splitsms-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
 }
 
-.splitsms-admin #splitsms-test-result {
+.splitsms-badge--sent,
+.splitsms-badge--delivered {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.splitsms-badge--failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.splitsms-badge--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.splitsms-logs-table-wrap {
+  overflow-x: auto;
+}
+
+.splitsms-admin #splitsms-test-result,
+.splitsms-admin #splitsms-send-test-result {
   margin-left: 0.5rem;
   font-weight: 500;
+  font-size: 13px;
+}
+
+.splitsms-detect-list {
+  margin: 0.75rem 0 1rem;
+  padding-left: 0;
+  list-style: none;
+}
+
+.splitsms-detect-list li {
+  margin: 0.25rem 0;
+  font-size: 13px;
+}
+
+.splitsms-notice-warn {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.splitsms-automation-card {
+  border-left: 3px solid var(--splitsms-accent, #2563eb);
+}
+
+.splitsms-admin .form-table th {
+  width: 200px;
 }

@@ -95,7 +95,15 @@ class SplitSMS_WooCommerce {
 
         $vars = $this->order_vars($order);
         $message = SplitSMS_API::render_template($template, $vars);
-        $this->api->send_sms($phone, $message);
+        $this->api->send_sms(
+            $phone,
+            $message,
+            array(
+                'source' => 'woocommerce',
+                'event' => 'wc_order_' . $order->get_status(),
+                'external_ref' => 'order-' . $order_id,
+            )
+        );
     }
 
     /**

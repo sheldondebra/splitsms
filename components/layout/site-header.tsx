@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { buttonVariants } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 import { Menu, X, ArrowRight } from "lucide-react";
 
@@ -23,12 +24,20 @@ const DARK_HERO_PATHS = ["/"];
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const { resolvedTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const hasDarkHero = DARK_HERO_PATHS.some((p) => pathname === p);
   const overHero = hasDarkHero && !scrolled;
   const isSolid = !overHero;
+
+  /** White logo on dark hero; in dark theme keep white on solid bar too */
+  const logoVariant =
+    overHero || (mounted && resolvedTheme === "dark") ? "white" : "default";
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16);
@@ -59,11 +68,11 @@ export function SiteHeader() {
         <div className="site-header-shell">
           <div
             className={cn(
-              "site-header-bar dark:shadow-black/30",
+              "site-header-bar",
               overHero && "site-header-bar--hero",
             )}
           >
-            <Logo href="/" size="md" variant={overHero ? "white" : "default"} />
+            <Logo href="/" size="md" variant={logoVariant} />
 
             <nav
               className={cn(

@@ -8,9 +8,15 @@ import { MethodBadge } from "@/components/developers/method-badge";
 import { CopyButton } from "@/components/developers/copy-button";
 import { cn } from "@/lib/utils";
 
-export function EndpointCard({ endpoint }: { endpoint: ApiEndpointDoc }) {
+export function EndpointCard({
+  endpoint,
+  baseUrl,
+}: {
+  endpoint: ApiEndpointDoc;
+  baseUrl?: string;
+}) {
   const [open, setOpen] = useState(false);
-  const curl = curlExample(endpoint.method, endpoint.path, endpoint.body);
+  const curl = curlExample(endpoint.method, endpoint.path, endpoint.body, baseUrl);
 
   return (
     <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm transition-all hover:shadow-md hover:border-primary/25">

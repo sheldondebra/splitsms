@@ -1,10 +1,10 @@
 {
-  "siteUrl": "https://www.splitsms.com",
+  "siteUrl": "https://splitsms.com",
   "siteName": "SplitSMS",
   "supportEmail": "support@tecunitgh.com",
   "apiPathPrefix": "/api/v1",
   "wordpressPlugin": {
-    "version": "1.0.0",
+    "version": "1.2.0",
     "slug": "splitsms",
     "downloadPath": "/wordpress-plugin/splitsms.zip",
     "updateCheckPath": "/api/plugin/update"

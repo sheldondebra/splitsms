@@ -53,8 +53,8 @@ export default async function DevelopersPage() {
     {
       href: "/developers/docs",
       icon: BookOpen,
-      title: "API Reference",
-      desc: "GET, POST, PUT, DELETE docs",
+      title: "Documentation",
+      desc: "API guide + WordPress setup",
       stat: "All endpoints",
     },
     {

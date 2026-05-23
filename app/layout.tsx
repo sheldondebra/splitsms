@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   ],
   icons: { icon: "/smslogo.png" },
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://www.splitsms.com",
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://splitsms.com",
   ),
 };
 

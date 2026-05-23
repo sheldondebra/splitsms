@@ -84,8 +84,9 @@ const pluginDir = join(root, "wordpress-plugin/splitsms");
 const zipOut = join(publicWpDir, "splitsms.zip");
 try {
   if (process.platform === "win32") {
+    const staging = join(root, "wordpress-plugin");
     execSync(
-      `powershell -NoProfile -Command "Compress-Archive -Path '${pluginDir.replace(/'/g, "''")}\\*' -DestinationPath '${zipOut.replace(/'/g, "''")}' -Force"`,
+      `powershell -NoProfile -Command "Compress-Archive -Path '${join(staging, "splitsms").replace(/'/g, "''")}' -DestinationPath '${zipOut.replace(/'/g, "''")}' -Force"`,
       { stdio: "inherit", cwd: root },
     );
   } else {
