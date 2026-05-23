@@ -4,7 +4,6 @@ import { Logo } from "@/components/brand/logo";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
-  Mail,
   ArrowRight,
   Send,
   Code2,
@@ -14,7 +13,7 @@ import {
   Shield,
   MessageSquare,
   Building2,
-  Scale,
+  Puzzle,
 } from "lucide-react";
 
 const productLinks = [
@@ -25,16 +24,29 @@ const productLinks = [
 ];
 
 const developerLinks = [
+  { href: "/docs", label: "Documentation" },
+  { href: "/changelog", label: "Changelog" },
   { href: "/sdk", label: "SDKs" },
   { href: "/api-docs", label: "API docs" },
   { href: "/login", label: "API keys" },
-  { href: "/integrations", label: "WordPress plugin" },
+  { href: "/integrations", label: "Integrations hub" },
+];
+
+const wordpressIntegrationLinks = [
+  { href: "/integrations/wordpress", label: "WordPress" },
+  { href: "/integrations/crocoblock", label: "Crocoblock" },
+  { href: "/integrations/woocommerce", label: "WooCommerce" },
+  { href: "/integrations/paystack", label: "Paystack" },
+  { href: "/integrations/flutterwave", label: "Flutterwave" },
+  { href: "/integrations/stripe", label: "Stripe" },
+  { href: "/integrations/contact-form-7", label: "Contact Form 7" },
+  { href: "/integrations/wpforms", label: "WPForms" },
 ];
 
 const companyLinks = [
   { href: "/company", label: "About SplitSMS" },
   { href: "/company", label: "Tecunit Ghana" },
-  { href: "/contact", label: "Contact sales" },
+  { href: "/support", label: "Support" },
 ];
 
 const legalLinks = [
@@ -61,19 +73,19 @@ function FooterLinkGroup({
   links: { href: string; label: string }[];
 }) {
   return (
-    <div>
-      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground dark:text-white/40 mb-5">
-        <Icon className="h-3.5 w-3.5 text-primary" />
-        {title}
+    <div className="min-w-0">
+      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground dark:text-white/40 mb-4">
+        <Icon className="h-3.5 w-3.5 shrink-0 text-primary" />
+        <span className="truncate">{title}</span>
       </p>
-      <ul className="space-y-3">
+      <ul className="space-y-2.5">
         {links.map(({ href, label }) => (
           <li key={`${href}-${label}`}>
             <Link
               href={href}
               className="group inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground dark:text-white/65 dark:hover:text-white transition-colors"
             >
-              <span className="h-px w-0 bg-primary transition-all group-hover:w-3" />
+              <span className="h-px w-0 bg-primary transition-all group-hover:w-3 shrink-0" />
               {label}
             </Link>
           </li>
@@ -87,7 +99,7 @@ export function SiteFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="site-footer-surface relative overflow-hidden border-t border-border text-foreground">
+    <footer className="site-footer-surface relative overflow-hidden border-t border-border text-foreground w-full">
       <div
         className="pointer-events-none absolute inset-0 opacity-40 dark:opacity-60"
         aria-hidden
@@ -95,8 +107,8 @@ export function SiteFooter() {
         <div className="absolute -top-32 left-1/2 -translate-x-1/2 h-64 w-[min(100%,48rem)] rounded-full bg-primary/15 dark:bg-primary/20 blur-[100px]" />
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-4 lg:px-6">
-        <div className="pt-16 pb-12 md:pt-20 md:pb-14">
+      <div className="relative w-full px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
+        <div className="pt-16 pb-12 md:pt-20 md:pb-14 max-w-[1600px] mx-auto">
           <div className="site-footer-cta relative rounded-3xl border border-border dark:border-white/10 p-8 md:p-10 lg:p-12 overflow-hidden">
             <div
               className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,oklch(0.72_0.19_45/0.12),transparent_60%)] dark:bg-[radial-gradient(ellipse_at_top_right,oklch(0.72_0.19_45/0.18),transparent_60%)]"
@@ -149,67 +161,46 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="grid gap-12 pb-14 md:grid-cols-2 lg:grid-cols-12 lg:gap-8 border-t border-border dark:border-white/10 pt-14">
-          <div className="lg:col-span-3">
-            <Logo href="/" size="md" variant="default" />
-            <p className="mt-5 text-sm leading-relaxed text-muted-foreground max-w-xs">
-              Bulk SMS by{" "}
-              <Link href="/company" className="text-foreground font-medium hover:text-primary">
-                SplitSMS
-              </Link>{" "}
-              — operated by{" "}
-              <span className="text-foreground/90 font-medium">Tecunit Ghana</span>.
-            </p>
-            <div className="mt-5 flex items-start gap-2.5 text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
-              <span>Ghana · Africa & 190+ countries</span>
+        <div className="max-w-[1600px] mx-auto border-t border-border dark:border-white/10 pt-14 pb-14">
+          <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-6 xl:gap-8">
+            <div className="col-span-2 sm:col-span-2 lg:col-span-1 min-w-0">
+              <Logo href="/" size="md" variant="default" />
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                Bulk SMS by{" "}
+                <Link href="/company" className="text-foreground font-medium hover:text-primary">
+                  SplitSMS
+                </Link>{" "}
+                — operated by{" "}
+                <span className="text-foreground/90 font-medium">Tecunit Ghana</span>.
+              </p>
+              <div className="mt-4 flex items-start gap-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+                <span>Ghana · Africa & 190+ countries</span>
+              </div>
             </div>
-          </div>
 
-          <div className="lg:col-span-2">
             <FooterLinkGroup title="Product" icon={Send} links={productLinks} />
-          </div>
-
-          <div className="lg:col-span-2">
             <FooterLinkGroup title="Developers" icon={Code2} links={developerLinks} />
-          </div>
-
-          <div className="lg:col-span-2">
+            <FooterLinkGroup
+              title="WordPress integrations"
+              icon={Puzzle}
+              links={wordpressIntegrationLinks}
+            />
             <FooterLinkGroup title="Company" icon={Building2} links={companyLinks} />
-          </div>
-
-          <div className="lg:col-span-3">
-            <FooterLinkGroup title="Legal" icon={Scale} links={legalLinks} />
-            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground dark:text-white/40 mb-4 mt-8">
-              <Mail className="h-3.5 w-3.5 text-primary" />
-              Contact
-            </p>
-            <a
-              href="mailto:support@tecunitgh.com"
-              className="text-sm text-muted-foreground hover:text-primary transition-colors block"
-            >
-              support@tecunitgh.com
-            </a>
-            <a
-              href="tel:+233538477596"
-              className="text-sm text-muted-foreground hover:text-primary transition-colors block mt-1"
-            >
-              +233 53 847 7596
-            </a>
           </div>
         </div>
 
-        <div className="border-t border-border dark:border-white/10 py-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="max-w-[1600px] mx-auto border-t border-border dark:border-white/10 py-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">
             © {year} SplitSMS · Tecunit Ghana · All rights reserved
           </p>
-          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+          <nav className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground" aria-label="Legal">
             {legalLinks.map(({ href, label }) => (
               <Link key={href} href={href} className="hover:text-primary transition-colors">
                 {label}
               </Link>
             ))}
-          </div>
+          </nav>
         </div>
       </div>
     </footer>

@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { MobileCardItem, MobileCardList } from "@/components/dashboard/page-shell";
-import { Phone, Mail, Trash2 } from "lucide-react";
+import { EmptyState } from "@/components/dashboard/empty-state";
+import { Phone, Mail, Trash2, Users } from "lucide-react";
 
 type Contact = {
   id: string;
@@ -32,9 +33,13 @@ export function ContactsMobileList({
 }) {
   if (contacts.length === 0) {
     return (
-      <p className="md:hidden text-sm text-muted-foreground text-center py-8">
-        No contacts match your filters.
-      </p>
+      <div className="md:hidden">
+        <EmptyState
+          icon={Users}
+          title="No contacts here"
+          description="Try changing your filters, import a CSV, or add a contact manually."
+        />
+      </div>
     );
   }
 
@@ -44,27 +49,30 @@ export function ContactsMobileList({
         <MobileCardItem key={c.id}>
           <div className="space-y-3">
             <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="font-semibold truncate">{c.name || "No name"}</p>
-                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
+                <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
                   <Phone className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate font-mono">{c.phone}</span>
+                  <span className="truncate font-mono text-xs sm:text-sm">{c.phone}</span>
                 </p>
-                {c.email && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                    <Mail className="h-3 w-3" />
-                    {c.email}
+                {c.email ? (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1">
+                    <Mail className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{c.email}</span>
                   </p>
-                )}
+                ) : null}
+                {c.tags ? (
+                  <p className="text-xs text-muted-foreground mt-1.5">Tags: {c.tags}</p>
+                ) : null}
               </div>
-              {c.countryCode && (
-                <Badge variant="outline" className="shrink-0 text-[10px]">
+              {c.countryCode ? (
+                <Badge variant="outline" className="shrink-0 font-mono text-[10px]">
                   {c.countryCode}
                 </Badge>
-              )}
+              ) : null}
             </div>
 
-            {c.groups.length > 0 && (
+            {c.groups.length > 0 ? (
               <div className="flex flex-wrap gap-1">
                 {c.groups.map((g) => (
                   <Badge key={g.group.id} variant="secondary" className="text-[10px]">
@@ -72,24 +80,27 @@ export function ContactsMobileList({
                   </Badge>
                 ))}
               </div>
-            )}
+            ) : null}
 
-            <form action={updateContactAction} className="grid gap-2">
+            <form action={updateContactAction} className="grid gap-2 pt-1 border-t border-border/50">
               <input type="hidden" name="id" value={c.id} />
-              <Input name="name" defaultValue={c.name ?? ""} placeholder="Name" className="h-10" />
-              <Input name="tags" defaultValue={c.tags ?? ""} placeholder="Tags" className="h-10" />
+              <input type="hidden" name="email" value={c.email ?? ""} />
+              <div className="grid grid-cols-2 gap-2">
+                <Input name="name" defaultValue={c.name ?? ""} placeholder="Name" className="h-10" />
+                <Input name="tags" defaultValue={c.tags ?? ""} placeholder="Tags" className="h-10" />
+              </div>
               <Button type="submit" variant="outline" size="sm" className="h-10 w-full">
-                Save
+                Save changes
               </Button>
             </form>
 
             <div className="flex gap-2">
-              {groups.length > 0 && (
-                <form action={addContactToGroupAction} className="flex-1 flex gap-2">
+              {groups.length > 0 ? (
+                <form action={addContactToGroupAction} className="flex flex-1 gap-2 min-w-0">
                   <input type="hidden" name="contactId" value={c.id} />
                   <select
                     name="groupId"
-                    className="flex h-10 flex-1 rounded-lg border border-input bg-background px-2 text-sm min-w-0"
+                    className="flex h-10 flex-1 min-w-0 rounded-lg border border-input bg-background px-2 text-sm"
                     defaultValue=""
                   >
                     <option value="">Add to group…</option>
@@ -99,14 +110,20 @@ export function ContactsMobileList({
                       </option>
                     ))}
                   </select>
-                  <Button type="submit" size="sm" variant="secondary" className="h-10 shrink-0">
+                  <Button type="submit" size="sm" variant="secondary" className="h-10 shrink-0 px-4">
                     Add
                   </Button>
                 </form>
-              )}
-              <form action={deleteContactAction}>
+              ) : null}
+              <form action={deleteContactAction} className={groups.length > 0 ? "" : "flex-1"}>
                 <input type="hidden" name="id" value={c.id} />
-                <Button type="submit" size="sm" variant="ghost" className="h-10 text-destructive px-3">
+                <Button
+                  type="submit"
+                  size="sm"
+                  variant="ghost"
+                  className="h-10 text-destructive px-3 w-full"
+                  aria-label="Delete contact"
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </form>

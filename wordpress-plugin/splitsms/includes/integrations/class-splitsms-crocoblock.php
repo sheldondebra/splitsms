@@ -57,11 +57,14 @@ class SplitSMS_Crocoblock {
      * @param array<string,mixed> $args
      */
     public function send_event($args) {
-        if (!SplitSMS_Settings::is_configured() || !$this->settings->feature_enabled('cb_enabled')) {
+        if (!SplitSMS_Settings::is_configured()) {
             return array('ok' => false, 'error' => 'not_configured');
         }
 
         $integration = isset($args['integration']) ? sanitize_key($args['integration']) : 'crocoblock';
+        if (!$this->integration_enabled($integration)) {
+            return array('ok' => false, 'error' => 'integration_disabled');
+        }
         $event = isset($args['event']) ? sanitize_text_field($args['event']) : 'event';
         $source = isset($args['source']) ? sanitize_text_field($args['source']) : $integration;
         $template = isset($args['template']) ? $args['template'] : '';
@@ -220,6 +223,25 @@ class SplitSMS_Crocoblock {
     /**
      * @return int
      */
+    /**
+     * Crocoblock master toggle OR per-module toggle must be on.
+     *
+     * @param string $integration jetengine|jetformbuilder|jetbooking|jetappointment
+     */
+    public function integration_enabled($integration) {
+        if ($this->settings->feature_enabled('cb_enabled')) {
+            return true;
+        }
+        $map = array(
+            'jetengine' => 'cb_jetengine_enabled',
+            'jetformbuilder' => 'cb_jfb_enabled',
+            'jetbooking' => 'cb_jetbooking_enabled',
+            'jetappointment' => 'cb_jetappointment_enabled',
+        );
+        $key = isset($map[$integration]) ? $map[$integration] : '';
+        return '' !== $key && $this->settings->feature_enabled($key);
+    }
+
     public function reminder_offset_seconds() {
         $key = $this->settings->get('cb_reminder_offset', '86400');
         $map = array(

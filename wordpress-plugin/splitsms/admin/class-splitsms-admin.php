@@ -264,32 +264,84 @@ class SplitSMS_Admin {
 
     public function render_integrations() {
         $s = SplitSMS_Settings::instance()->all();
-        $wc_active = class_exists('WooCommerce');
-        $this->render_shell(__('Integrations', 'splitsms'), function () use ($s, $wc_active) {
+        $registry = SplitSMS_Integrations_Registry::all();
+        $updated = isset($_GET['updated']);
+        $this->render_shell(__('Integrations', 'splitsms'), function () use ($s, $registry, $updated) {
+            if ($updated) {
+                echo '<div class="notice notice-success"><p>' . esc_html__('Integrations saved.', 'splitsms') . '</p></div>';
+            }
             ?>
+            <div class="splitsms-card splitsms-detect-panel">
+                <h2><?php esc_html_e('Detected on this site', 'splitsms'); ?></h2>
+                <ul class="splitsms-detect-list splitsms-detect-list--grid">
+                    <?php foreach ($registry as $slug => $item) : ?>
+                        <li class="<?php echo $item['active'] ? 'is-active' : 'is-inactive'; ?>">
+                            <span class="splitsms-detect-dot" aria-hidden="true"></span>
+                            <strong><?php echo esc_html($item['label']); ?></strong>
+                            <span class="description"><?php echo esc_html($item['note']); ?></span>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+                <p class="description">
+                    <?php esc_html_e('Paystack, Flutterwave, and Stripe do not connect to SplitSMS directly — they run on your WooCommerce checkout. SplitSMS sends SMS when WooCommerce marks the order paid.', 'splitsms'); ?>
+                </p>
+            </div>
+
             <form method="post" action="<?php echo esc_url(admin_url('admin.php?page=splitsms-integrations')); ?>">
                 <?php wp_nonce_field('splitsms_settings'); ?>
                 <input type="hidden" name="splitsms_save" value="1" />
 
-                <?php if ($wc_active) : ?>
+                <?php if (!empty($registry['woocommerce']['active'])) : ?>
                 <section class="splitsms-card">
                     <h2>WooCommerce</h2>
-                    <fieldset>
-                        <label><input type="checkbox" name="splitsms[wc_enabled]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['wc_enabled'])); ?> /> <?php esc_html_e('Enable WooCommerce SMS', 'splitsms'); ?></label><br />
-                        <label><input type="checkbox" name="splitsms[wc_order_placed]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['wc_order_placed'])); ?> /> <?php esc_html_e('Order placed', 'splitsms'); ?></label><br />
-                        <label><input type="checkbox" name="splitsms[wc_payment_complete]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['wc_payment_complete'])); ?> /> <?php esc_html_e('Payment complete', 'splitsms'); ?></label><br />
-                        <label><input type="checkbox" name="splitsms[wc_order_processing]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['wc_order_processing'])); ?> /> <?php esc_html_e('Processing', 'splitsms'); ?></label><br />
-                        <label><input type="checkbox" name="splitsms[wc_order_completed]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['wc_order_completed'])); ?> /> <?php esc_html_e('Completed', 'splitsms'); ?></label><br />
+                    <p class="description"><?php esc_html_e('Variables: {customer_name}, {first_name}, {order_id}, {order_total}, {payment_method}, {payment_gateway}', 'splitsms'); ?></p>
+                    <fieldset class="splitsms-check-grid">
+                        <label><input type="checkbox" name="splitsms[wc_enabled]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['wc_enabled'])); ?> /> <?php esc_html_e('Enable WooCommerce SMS', 'splitsms'); ?></label>
+                        <label><input type="checkbox" name="splitsms[wc_order_placed]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['wc_order_placed'])); ?> /> <?php esc_html_e('Order placed', 'splitsms'); ?></label>
+                        <label><input type="checkbox" name="splitsms[wc_payment_complete]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['wc_payment_complete'])); ?> /> <?php esc_html_e('Payment complete', 'splitsms'); ?></label>
+                        <label><input type="checkbox" name="splitsms[wc_payment_on_processing]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['wc_payment_on_processing'])); ?> /> <?php esc_html_e('Paid → processing (Paystack / Flutterwave)', 'splitsms'); ?></label>
+                        <label><input type="checkbox" name="splitsms[wc_order_processing]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['wc_order_processing'])); ?> /> <?php esc_html_e('Processing status SMS', 'splitsms'); ?></label>
+                        <label><input type="checkbox" name="splitsms[wc_order_completed]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['wc_order_completed'])); ?> /> <?php esc_html_e('Completed', 'splitsms'); ?></label>
                         <label><input type="checkbox" name="splitsms[wc_order_cancelled]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['wc_order_cancelled'])); ?> /> <?php esc_html_e('Cancelled', 'splitsms'); ?></label>
                     </fieldset>
+                    <p><label><?php esc_html_e('Payment received template', 'splitsms'); ?><br />
+                        <textarea class="large-text" rows="2" name="splitsms[wc_tpl_payment]"><?php echo esc_textarea($s['wc_tpl_payment']); ?></textarea></label></p>
                 </section>
                 <?php endif; ?>
 
                 <section class="splitsms-card">
-                    <h2><?php esc_html_e('Forms', 'splitsms'); ?></h2>
-                    <label><input type="checkbox" name="splitsms[cf7_enabled]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cf7_enabled'])); ?> /> Contact Form 7</label><br />
-                    <label><input type="checkbox" name="splitsms[wpforms_enabled]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['wpforms_enabled'])); ?> /> WPForms</label>
+                    <h2><?php esc_html_e('Form plugins', 'splitsms'); ?></h2>
+                    <div class="splitsms-form-grid">
+                        <div>
+                            <h3>Contact Form 7 <?php echo !empty($registry['cf7']['active']) ? '✓' : '—'; ?></h3>
+                            <label><input type="checkbox" name="splitsms[cf7_enabled]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cf7_enabled'])); ?> /> <?php esc_html_e('Enable', 'splitsms'); ?></label>
+                            <p><label><?php esc_html_e('Phone field name', 'splitsms'); ?>
+                                <input type="text" class="regular-text" name="splitsms[cf7_phone_field]" value="<?php echo esc_attr($s['cf7_phone_field']); ?>" /></label></p>
+                            <p><label><?php esc_html_e('Message', 'splitsms'); ?><br />
+                                <textarea class="large-text" rows="2" name="splitsms[cf7_message]"><?php echo esc_textarea($s['cf7_message']); ?></textarea></label></p>
+                        </div>
+                        <div>
+                            <h3>WPForms <?php echo !empty($registry['wpforms']['active']) ? '✓' : '—'; ?></h3>
+                            <label><input type="checkbox" name="splitsms[wpforms_enabled]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['wpforms_enabled'])); ?> /> <?php esc_html_e('Enable', 'splitsms'); ?></label>
+                            <p><label><?php esc_html_e('Phone field (name or label slug)', 'splitsms'); ?>
+                                <input type="text" class="regular-text" name="splitsms[wpforms_phone_field]" value="<?php echo esc_attr($s['wpforms_phone_field']); ?>" /></label></p>
+                            <p><label><?php esc_html_e('Message', 'splitsms'); ?><br />
+                                <textarea class="large-text" rows="2" name="splitsms[wpforms_message]"><?php echo esc_textarea($s['wpforms_message']); ?></textarea></label></p>
+                        </div>
+                        <div>
+                            <h3>Elementor Pro <?php echo !empty($registry['elementor']['active']) ? '✓' : '—'; ?></h3>
+                            <label><input type="checkbox" name="splitsms[elementor_enabled]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['elementor_enabled'])); ?> /> <?php esc_html_e('Enable', 'splitsms'); ?></label>
+                            <p><label><?php esc_html_e('Phone field ID', 'splitsms'); ?>
+                                <input type="text" class="regular-text" name="splitsms[elementor_phone_field]" value="<?php echo esc_attr($s['elementor_phone_field']); ?>" /></label></p>
+                            <p><label><?php esc_html_e('Message', 'splitsms'); ?><br />
+                                <textarea class="large-text" rows="2" name="splitsms[elementor_message]"><?php echo esc_textarea($s['elementor_message']); ?></textarea></label></p>
+                        </div>
+                    </div>
                 </section>
+
+                <p class="description">
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=splitsms-crocoblock')); ?>"><?php esc_html_e('Configure Crocoblock (JetEngine, JetFormBuilder, JetBooking, JetAppointment) →', 'splitsms'); ?></a>
+                </p>
 
                 <?php submit_button(__('Save integrations', 'splitsms')); ?>
             </form>

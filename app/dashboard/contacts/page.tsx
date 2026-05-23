@@ -1,23 +1,21 @@
 import Link from "next/link";
-import {
-  createContactAction,
-  createGroupAction,
-  renameGroupAction,
-  deleteGroupAction,
-} from "@/lib/actions/contacts";
 import { getContactsForUser } from "@/lib/contacts/queries";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { CsvImportPanel } from "@/components/contacts/csv-import-panel";
 import { ContactsTable } from "@/components/contacts/contacts-table";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { ContactsFilters } from "@/components/contacts/contacts-filters";
+import { ContactsGroupsPanel } from "@/components/contacts/contacts-groups-panel";
+import { ContactsAddForm } from "@/components/contacts/contacts-add-form";
+import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
+import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
+import { CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Download, Users } from "lucide-react";
-import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
+import { buttonVariants } from "@/components/ui/button";
+import { Download, Users, Upload, UserPlus, UsersRound } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { buildContactsQueryString } from "@/components/contacts/contacts-pagination";
 
 export default async function ContactsPage({
   searchParams,
@@ -26,6 +24,7 @@ export default async function ContactsPage({
     imported?: string;
     invalid?: string;
     dup?: string;
+    error?: string;
     q?: string;
     country?: string;
     tag?: string;
@@ -39,7 +38,7 @@ export default async function ContactsPage({
   const params = await searchParams;
   const page = Number(params.page ?? 1);
 
-  const [{ contacts, total, countryBreakdown }, groups] = await Promise.all([
+  const [{ contacts, total, countryBreakdown, perPage }, groups] = await Promise.all([
     getContactsForUser(session.userId, {
       q: params.q,
       country: params.country,
@@ -60,17 +59,31 @@ export default async function ContactsPage({
   if (params.tag) exportQs.set("tag", params.tag);
   if (params.groupId) exportQs.set("groupId", params.groupId);
 
+  const filterQuery = {
+    q: params.q,
+    country: params.country,
+    tag: params.tag,
+    groupId: params.groupId,
+  };
+
+  const importSuccessMessage = params.imported
+    ? `Imported ${params.imported} contacts${params.invalid ? ` · ${params.invalid} invalid skipped` : ""}${params.dup ? ` · ${params.dup} duplicates skipped` : ""}`
+    : undefined;
+
   return (
     <AppPage>
       <PageHeader
         title="Contacts"
-        description={`${total} contacts · import, segment, and group audiences`}
+        description={`${total.toLocaleString()} contact${total === 1 ? "" : "s"} · import, filter, and group for campaigns`}
         icon={Users}
-        mobileDescription={`${total} contacts — search, import, and manage groups.`}
+        mobileDescription={`${total} contacts — search, import CSV, or add manually.`}
         actions={
           <a
             href={`/api/dashboard/contacts/export?${exportQs.toString()}`}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-medium md:h-10"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "gap-2 h-10 rounded-xl font-medium",
+            )}
           >
             <Download className="h-4 w-4" />
             Export CSV
@@ -78,190 +91,98 @@ export default async function ContactsPage({
         }
       />
 
-      {params.imported && (
-        <p className="text-sm text-green-600 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-2">
-          Imported {params.imported} contacts
-          {params.invalid ? ` · ${params.invalid} invalid skipped` : ""}
-          {params.dup ? ` · ${params.dup} duplicates skipped` : ""}
-        </p>
+      {importSuccessMessage ? (
+        <FriendlyAlert success="1" successMessage={importSuccessMessage} />
+      ) : (
+        <FriendlyAlert error={params.error} />
       )}
 
-      <form method="get" className="grid gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:gap-2">
-        <Input
-          name="q"
-          placeholder="Search name, phone, tag…"
-          defaultValue={params.q}
-          className="w-full sm:col-span-2 lg:max-w-xs"
-        />
-        <Input name="country" placeholder="Country GH" defaultValue={params.country} className="w-full" />
-        <Input name="tag" placeholder="Tag" defaultValue={params.tag} className="w-full" />
-        <select
-          name="groupId"
-          defaultValue={params.groupId ?? ""}
-          className="h-11 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
-        >
-          <option value="">All groups</option>
-          {groups.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.name}
-            </option>
-          ))}
-        </select>
-        <Button type="submit" variant="secondary" className="w-full sm:col-span-2 lg:w-auto min-h-11">
-          Filter
-        </Button>
-      </form>
+      <ContactsFilters
+        q={params.q}
+        country={params.country}
+        tag={params.tag}
+        groupId={params.groupId}
+        groups={groups}
+      />
 
       {countryBreakdown.length > 0 && (
         <div className="flex flex-wrap gap-2">
+          <span className="text-xs text-muted-foreground self-center mr-1">By country:</span>
           {countryBreakdown.map((c) => (
-            <Badge key={c.countryCode ?? "unk"} variant="outline">
-              {c.countryCode ?? "?"}: {c._count.id}
-            </Badge>
+            <Link
+              key={c.countryCode ?? "unk"}
+              href={`/dashboard/contacts${buildContactsQueryString({
+                ...filterQuery,
+                country: c.countryCode ?? undefined,
+              })}`}
+            >
+              <Badge variant="outline" className="hover:bg-muted/50 cursor-pointer font-mono">
+                {c.countryCode ?? "?"}: {c._count.id}
+              </Badge>
+            </Link>
           ))}
         </div>
       )}
 
-      <Tabs defaultValue="list">
-        <TabsList className="tabs-list-mobile w-full h-auto flex-wrap md:flex-nowrap justify-start gap-1 p-1">
-          <TabsTrigger value="list" className="text-xs sm:text-sm">
+      <Tabs defaultValue="list" className="w-full">
+        <TabsList className="tabs-list-mobile w-full h-auto p-1 grid grid-cols-4 gap-1 bg-muted/50 rounded-xl">
+          <TabsTrigger value="list" className="rounded-lg text-xs sm:text-sm gap-1.5 data-[state=active]:shadow-sm">
+            <Users className="h-3.5 w-3.5 hidden sm:inline" />
             All
           </TabsTrigger>
-          <TabsTrigger value="import" className="text-xs sm:text-sm">
+          <TabsTrigger value="import" className="rounded-lg text-xs sm:text-sm gap-1.5 data-[state=active]:shadow-sm">
+            <Upload className="h-3.5 w-3.5 hidden sm:inline" />
             Import
           </TabsTrigger>
-          <TabsTrigger value="groups" className="text-xs sm:text-sm">
+          <TabsTrigger value="groups" className="rounded-lg text-xs sm:text-sm gap-1.5 data-[state=active]:shadow-sm">
+            <UsersRound className="h-3.5 w-3.5 hidden sm:inline" />
             Groups
           </TabsTrigger>
-          <TabsTrigger value="add" className="text-xs sm:text-sm">
+          <TabsTrigger value="add" className="rounded-lg text-xs sm:text-sm gap-1.5 data-[state=active]:shadow-sm">
+            <UserPlus className="h-3.5 w-3.5 hidden sm:inline" />
             Add
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="list" className="mt-6">
-          <ContactsTable contacts={contacts} groups={groups} />
-          {total > 50 && (
-            <div className="flex gap-2 mt-4">
-              {page > 1 && (
-                <Link
-                  href={`?${(() => {
-                    const qp = new URLSearchParams();
-                    if (params.q) qp.set("q", params.q);
-                    if (params.country) qp.set("country", params.country);
-                    if (params.tag) qp.set("tag", params.tag);
-                    if (params.groupId) qp.set("groupId", params.groupId);
-                    qp.set("page", String(page - 1));
-                    return qp.toString();
-                  })()}`}
-                  className="text-sm text-primary"
-                >
-                  Previous
-                </Link>
-              )}
-              {page * 50 < total && (
-                <Link
-                  href={`?${(() => {
-                    const qp = new URLSearchParams();
-                    if (params.q) qp.set("q", params.q);
-                    if (params.country) qp.set("country", params.country);
-                    if (params.tag) qp.set("tag", params.tag);
-                    if (params.groupId) qp.set("groupId", params.groupId);
-                    qp.set("page", String(page + 1));
-                    return qp.toString();
-                  })()}`}
-                  className="text-sm text-primary"
-                >
-                  Next
-                </Link>
-              )}
-            </div>
-          )}
+          <AppCard className="overflow-visible">
+            <CardContent className="p-4 sm:p-6">
+              <ContactsTable
+                contacts={contacts}
+                groups={groups}
+                total={total}
+                page={page}
+                perPage={perPage}
+                query={filterQuery}
+              />
+            </CardContent>
+          </AppCard>
         </TabsContent>
 
         <TabsContent value="import" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Import CSV</CardTitle>
-              <CardDescription>
-                Drag content or paste CSV. Preview validates numbers and removes duplicates.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <AppCard>
+            <CardContent className="p-4 sm:p-6 pt-5 sm:pt-6">
+              <div className="mb-5">
+                <h2 className="text-lg font-semibold">Import from CSV</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Paste or upload contact data. Preview validates numbers before saving.
+                </p>
+              </div>
               <CsvImportPanel />
             </CardContent>
-          </Card>
+          </AppCard>
         </TabsContent>
 
         <TabsContent value="groups" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Contact groups</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <form action={createGroupAction} className="flex flex-wrap gap-2">
-                <Input name="name" placeholder="Group name" required />
-                <Input name="description" placeholder="Description (optional)" />
-                <Button type="submit">Create</Button>
-              </form>
-              <div className="space-y-3">
-                {groups.map((g) => (
-                  <div
-                    key={g.id}
-                    className="flex flex-wrap items-center justify-between gap-4 border-b py-3 last:border-0"
-                  >
-                    <div>
-                      <p className="font-medium">{g.name}</p>
-                      <p className="text-xs text-muted-foreground">{g._count.members} members</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <form action={renameGroupAction} className="flex gap-1">
-                        <input type="hidden" name="id" value={g.id} />
-                        <Input name="name" placeholder="Rename" className="h-8 w-32" />
-                        <Button type="submit" size="sm" variant="outline">
-                          Rename
-                        </Button>
-                      </form>
-                      <form action={deleteGroupAction}>
-                        <input type="hidden" name="id" value={g.id} />
-                        <Button type="submit" size="sm" variant="ghost" className="text-destructive">
-                          Delete
-                        </Button>
-                      </form>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <AppCard>
+            <CardContent className="p-4 sm:p-6 pt-5 sm:pt-6">
+              <ContactsGroupsPanel groups={groups} />
             </CardContent>
-          </Card>
+          </AppCard>
         </TabsContent>
 
         <TabsContent value="add" className="mt-6">
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>Add contact</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form action={createContactAction} className="space-y-4">
-                <div>
-                  <Label>Name</Label>
-                  <Input name="name" />
-                </div>
-                <div>
-                  <Label>Phone</Label>
-                  <Input name="phone" placeholder="+233..." required />
-                </div>
-                <div>
-                  <Label>Email</Label>
-                  <Input name="email" type="email" />
-                </div>
-                <div>
-                  <Label>Tags</Label>
-                  <Input name="tags" placeholder="vip, newsletter" />
-                </div>
-                <Button type="submit">Save</Button>
-              </form>
-            </CardContent>
-          </Card>
+          <ContactsAddForm />
         </TabsContent>
       </Tabs>
     </AppPage>

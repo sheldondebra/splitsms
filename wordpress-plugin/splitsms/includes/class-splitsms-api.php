@@ -196,7 +196,7 @@ class SplitSMS_API {
             $args['body'] = wp_json_encode($body);
         }
 
-        $response = 'GET' === $method ? wp_remote_get($url, $args) : wp_remote_post($url, $args);
+        $response = wp_remote_request($url, $args);
 
         if (is_wp_error($response)) {
             $this->debug_log('HTTP error: ' . $response->get_error_message());

@@ -44,6 +44,7 @@ class SplitSMS_WordPress {
         if ($this->settings->feature_enabled('wpforms_enabled') && function_exists('wpforms')) {
             add_action('wpforms_process_complete', array($this, 'on_wpforms_complete'), 20, 4);
         }
+
     }
 
     public function on_user_register($user_id) {
@@ -104,45 +105,123 @@ class SplitSMS_WordPress {
         $posted = $submission->get_posted_data();
         $field = $this->settings->get('cf7_phone_field', 'your-phone');
         $phone = isset($posted[$field]) ? $posted[$field] : '';
+        if ('' === trim($phone)) {
+            foreach (array('your-phone', 'phone', 'tel', 'mobile', 'billing_phone') as $fallback) {
+                if (!empty($posted[$fallback])) {
+                    $phone = $posted[$fallback];
+                    break;
+                }
+            }
+        }
 
         if ('' === trim($phone)) {
             return;
         }
 
-        $vars = array('site_name' => get_bloginfo('name'));
+        $vars = array(
+            'site_name' => get_bloginfo('name'),
+            'name' => isset($posted['your-name']) ? $posted['your-name'] : (isset($posted['name']) ? $posted['name'] : ''),
+            'phone' => $phone,
+            'phone_number' => $phone,
+            'email' => isset($posted['your-email']) ? $posted['your-email'] : (isset($posted['email']) ? $posted['email'] : ''),
+        );
         $message = SplitSMS_API::render_template($this->settings->get('cf7_message'), $vars);
         $this->api->send_sms($phone, $message);
     }
 
     public function on_wpforms_complete($fields, $entry, $form_data, $entry_id) {
         unset($entry_id);
-        $field_id = $this->settings->get('wpforms_phone_field', 'phone');
-        $phone = '';
-
-        if (is_array($fields)) {
-            foreach ($fields as $field) {
-                if (!empty($field['name']) && $field['name'] === $field_id) {
-                    $phone = isset($field['value']) ? $field['value'] : '';
-                    break;
-                }
-            }
-        }
-
-        if ('' === trim($phone) && !empty($form_data['fields'])) {
-            foreach ($form_data['fields'] as $field) {
-                if (!empty($field['label']) && sanitize_title($field['label']) === sanitize_title($field_id)) {
-                    $phone = isset($fields[$field['id']]['value']) ? $fields[$field['id']]['value'] : '';
-                    break;
-                }
-            }
-        }
+        $field_key = strtolower($this->settings->get('wpforms_phone_field', 'phone'));
+        $phone = $this->extract_wpforms_phone($fields, $form_data, $field_key);
 
         if ('' === trim($phone)) {
             return;
         }
 
-        $vars = array('site_name' => get_bloginfo('name'));
+        $vars = array(
+            'site_name' => get_bloginfo('name'),
+            'phone' => $phone,
+            'phone_number' => $phone,
+            'form_name' => isset($form_data['settings']['form_title']) ? $form_data['settings']['form_title'] : '',
+        );
+
+        if (is_array($fields)) {
+            foreach ($fields as $field) {
+                if (!is_array($field)) {
+                    continue;
+                }
+                $name = isset($field['name']) ? strtolower((string) $field['name']) : '';
+                $value = isset($field['value']) ? (string) $field['value'] : '';
+                if (in_array($name, array('name', 'your-name', 'full_name'), true)) {
+                    $vars['name'] = $value;
+                }
+                if (in_array($name, array('first_name', 'first name', 'firstname'), true)) {
+                    $vars['first_name'] = $value;
+                }
+                if (in_array($name, array('last_name', 'last name', 'lastname'), true)) {
+                    $vars['last_name'] = $value;
+                }
+                if (in_array($name, array('email', 'your-email'), true)) {
+                    $vars['email'] = $value;
+                }
+            }
+        }
+
+        if (empty($vars['name']) && (!empty($vars['first_name']) || !empty($vars['last_name']))) {
+            $vars['name'] = trim(($vars['first_name'] ?? '') . ' ' . ($vars['last_name'] ?? ''));
+        }
+
         $message = SplitSMS_API::render_template($this->settings->get('wpforms_message'), $vars);
-        $this->api->send_sms($phone, $message);
+        $this->api->send_sms(
+            $phone,
+            $message,
+            array(
+                'source' => 'wpforms',
+                'event' => 'form_submitted',
+                'external_ref' => 'wpforms-' . (isset($form_data['id']) ? $form_data['id'] : '0'),
+            )
+        );
+    }
+
+    /**
+     * @param array<int, array<string,mixed>>|mixed $fields
+     * @param array<string,mixed>                 $form_data
+     * @param string                                $field_key
+     */
+    private function extract_wpforms_phone($fields, $form_data, $field_key) {
+        if (!is_array($fields)) {
+            return '';
+        }
+
+        foreach ($fields as $field) {
+            if (!is_array($field)) {
+                continue;
+            }
+            $type = isset($field['type']) ? strtolower((string) $field['type']) : '';
+            $name = isset($field['name']) ? strtolower((string) $field['name']) : '';
+            $value = isset($field['value']) ? (string) $field['value'] : '';
+            if ('phone' === $type || $name === $field_key || false !== strpos($name, 'phone')) {
+                if ('' !== trim($value)) {
+                    return preg_replace('/\s+/', '', $value);
+                }
+            }
+        }
+
+        if (!empty($form_data['fields']) && is_array($form_data['fields'])) {
+            foreach ($form_data['fields'] as $fid => $meta) {
+                if (!is_array($meta)) {
+                    continue;
+                }
+                $label = isset($meta['label']) ? strtolower(sanitize_title($meta['label'])) : '';
+                $type = isset($meta['type']) ? strtolower((string) $meta['type']) : '';
+                if ('phone' === $type || $label === $field_key || false !== strpos($label, 'phone')) {
+                    if (isset($fields[$fid]['value']) && '' !== trim((string) $fields[$fid]['value'])) {
+                        return preg_replace('/\s+/', '', (string) $fields[$fid]['value']);
+                    }
+                }
+            }
+        }
+
+        return '';
     }
 }

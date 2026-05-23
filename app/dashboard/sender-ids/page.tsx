@@ -80,7 +80,7 @@ export default async function SenderIdsPage({
   const alert = alertKey ? ALERTS[alertKey] : null;
 
   return (
-    <AppPage medium>
+    <AppPage>
       <PageHeader
         title="Sender ID"
         description="The name recipients see on their phone. Each registration is reviewed as pending, then approved or denied."

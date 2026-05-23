@@ -1,24 +1,47 @@
-import { buyCreditsAction, applyPromoAction } from "@/lib/actions/wallet";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
-import { WalletTopupClient } from "@/components/billing/wallet-topup";
+import { WalletTopupClient, type PaymentMethodOption } from "@/components/billing/wallet-topup";
+import { WalletBalanceCards } from "@/components/billing/wallet-balance-cards";
+import { WalletCreditsPanel } from "@/components/billing/wallet-credits-panel";
+import { WalletRecentActivity } from "@/components/billing/wallet-recent-activity";
 import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
-import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
-import { Button } from "@/components/ui/button";
-import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import Link from "next/link";
-import { Wallet, Plus } from "lucide-react";
+import { AppPage, PageHeader, AppCard, AppCardBody, AppCardTitle } from "@/components/dashboard/page-shell";
+import { Wallet, Plus, Coins } from "lucide-react";
 
-const TX_LABELS: Record<string, string> = {
-  WALLET_TOPUP: "Added money",
-  CREDIT_PURCHASE: "Bought message credits",
-  SMS_DEBIT: "Balance used for messages",
-  REFUND: "Refund",
-  ADMIN_ADJUSTMENT: "Balance adjustment",
-  PROMO_CREDIT: "Promo bonus",
-};
+function getPaymentMethods(): PaymentMethodOption[] {
+  return [
+    {
+      value: "PAYSTACK",
+      label: "Paystack",
+      description: "Card, bank transfer & mobile money",
+      available: Boolean(process.env.PAYSTACK_SECRET_KEY),
+    },
+    {
+      value: "FLUTTERWAVE",
+      label: "Flutterwave",
+      description: "Pan-African card & bank payments",
+      available: Boolean(process.env.FLUTTERWAVE_SECRET_KEY),
+    },
+    {
+      value: "MTN_MOMO",
+      label: "MTN MoMo",
+      description: "Approve payment on your phone",
+      available: Boolean(process.env.MTN_MOMO_SUBSCRIPTION_KEY),
+    },
+    {
+      value: "MANUAL",
+      label: "Bank transfer",
+      description: "Manual approval by our team",
+      available: true,
+    },
+    {
+      value: "STRIPE",
+      label: "Stripe",
+      description: "International cards (USD/EUR)",
+      available: Boolean(process.env.STRIPE_SECRET_KEY),
+    },
+  ];
+}
 
 export default async function WalletPage({
   searchParams,
@@ -29,6 +52,7 @@ export default async function WalletPage({
     error?: string;
     msg?: string;
     payment?: string;
+    submitted?: string;
   }>;
 }) {
   const session = await getSession();
@@ -41,118 +65,82 @@ export default async function WalletPage({
     prisma.transaction.findMany({
       where: { userId: session.userId },
       orderBy: { createdAt: "desc" },
-      take: 8,
+      take: 10,
     }),
   ]);
 
-  const paystackPublic = process.env.PAYSTACK_PUBLIC_KEY;
+  const currency = wallet?.currency ?? "GHS";
+  const walletBalance = wallet?.balance.toNumber() ?? 0;
+  const smsCredits = credit?.balance ?? 0;
+  const lowBalance = smsCredits <= 10;
 
   return (
-    <AppPage narrow>
+    <AppPage>
       <PageHeader
         title="Wallet"
-        description="Add money and see your recent activity."
+        description="Add money, buy SMS credits, and track your balance."
         icon={Wallet}
-        mobileDescription="Top up funds and buy SMS credits."
+        mobileDescription="Top up, buy credits, and view recent activity."
       />
 
-      {params.funded && (
+      {params.funded ? (
         <FriendlyAlert
           success="1"
-          successMessage="Payment successful — your balance has been updated."
+          successMessage="Payment successful — your wallet balance has been updated."
         />
-      )}
-      {params.promo === "ok" && (
+      ) : params.promo === "ok" ? (
         <FriendlyAlert success="1" successMessage="Promo code applied successfully." />
+      ) : params.submitted === "manual" ? (
+        <FriendlyAlert
+          success="1"
+          successMessage="Transfer submitted. We will credit your wallet after verification."
+        />
+      ) : (
+        <FriendlyAlert error={params.error} />
       )}
-      <FriendlyAlert error={params.error} success={undefined} />
 
-      <AppCard className="border-primary/20 bg-primary/5 text-center">
-        <CardContent className="pt-8 pb-8">
-          <p className="text-sm font-medium text-muted-foreground">Current balance</p>
-          <p className="text-3xl sm:text-4xl font-bold mt-2 tabular-nums">
-            {wallet?.currency ?? "GHS"} {wallet?.balance.toString() ?? "0"}
-          </p>
-          <p className="text-sm text-muted-foreground mt-3">
-            {credit?.balance ?? 0} message credits ready to use
-          </p>
-        </CardContent>
-      </AppCard>
+      <WalletBalanceCards
+        currency={currency}
+        walletBalance={walletBalance}
+        smsCredits={smsCredits}
+        lowBalance={lowBalance}
+      />
 
-      <AppCard>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Plus className="h-5 w-5 text-primary" />
-            Add money
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <WalletTopupClient publicKey={paystackPublic} />
-        </CardContent>
-      </AppCard>
-
-      <details className="app-card rounded-2xl px-4 py-3">
-        <summary className="cursor-pointer text-sm font-medium touch-target-lg flex items-center min-h-11">
-          Buy credits from wallet
-        </summary>
-        <div className="mt-4 pt-4 border-t space-y-4">
-          <form action={buyCreditsAction} className="space-y-4">
-            <div>
-              <Label>Number of SMS credits</Label>
-              <Input name="credits" type="number" min={1} defaultValue={100} className="mt-1.5" />
+      <div className="grid gap-6 lg:gap-8 lg:grid-cols-2 lg:items-stretch">
+        <AppCard className="h-full flex flex-col overflow-visible">
+          <AppCardBody fill>
+            <AppCardTitle
+              icon={Plus}
+              title="Add money"
+              description="Secure checkout via your preferred method"
+            />
+            <div className="flex-1 min-h-0">
+              <WalletTopupClient currency={currency} paymentMethods={getPaymentMethods()} />
             </div>
-            <Button type="submit" className="w-full min-h-11">
-              Buy credits
-            </Button>
-          </form>
-          <form action={applyPromoAction} className="flex flex-col sm:flex-row gap-2">
-            <Input name="code" placeholder="Promo code" className="flex-1" />
-            <Button type="submit" variant="secondary" className="min-h-11 shrink-0">
-              Apply
-            </Button>
-          </form>
-        </div>
-      </details>
+          </AppCardBody>
+        </AppCard>
+
+        <AppCard className="h-full flex flex-col">
+          <AppCardBody fill>
+            <AppCardTitle
+              icon={Coins}
+              title="SMS credits"
+              description="Credits are used when you send messages from the dashboard or API."
+            />
+            <WalletCreditsPanel currency={currency} walletBalance={walletBalance} />
+          </AppCardBody>
+        </AppCard>
+      </div>
 
       <AppCard>
-        <CardHeader>
-          <CardTitle className="text-base">Recent activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {transactions.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">No transactions yet.</p>
-          ) : (
-            <ul className="divide-y divide-border/60">
-              {transactions.map((t) => (
-                <li key={t.id} className="flex justify-between gap-3 py-3.5 first:pt-0 text-sm">
-                  <div className="min-w-0">
-                    <p className="font-medium truncate">
-                      {TX_LABELS[t.type] ?? t.type}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {t.createdAt.toLocaleString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  </div>
-                  <p className="font-semibold tabular-nums shrink-0">
-                    {t.type === "SMS_DEBIT" ? "−" : "+"}
-                    {t.currency} {Math.abs(t.amount.toNumber()).toFixed(2)}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-          <Link
-            href="/dashboard/transactions"
-            className="block text-center text-sm font-medium text-primary mt-4 hover:underline"
-          >
-            View all transactions →
-          </Link>
-        </CardContent>
+        <AppCardBody>
+          <AppCardTitle
+            title="Recent activity"
+            description="Your latest wallet and credit movements"
+            className="mb-6"
+          />
+          <WalletRecentActivity transactions={transactions} />
+        </AppCardBody>
       </AppCard>
     </AppPage>
   );

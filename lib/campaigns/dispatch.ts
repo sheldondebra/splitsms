@@ -93,6 +93,7 @@ export async function dispatchCampaign(campaignId: string) {
     const body = personalizeMessage(campaign.message, {
       name: r.name,
       phone: r.phone,
+      phoneNumber: r.phone,
       country: r.countryCode,
       email: r.email,
     });

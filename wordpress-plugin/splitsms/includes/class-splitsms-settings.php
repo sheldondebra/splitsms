@@ -46,6 +46,7 @@ class SplitSMS_Settings {
             'wc_order_completed' => '1',
             'wc_order_cancelled' => '0',
             'wc_payment_complete' => '1',
+            'wc_payment_on_processing' => '1',
             'wc_tpl_placed' => 'Hi {customer_name}, we received order #{order_id} at {site_name}. Total: {order_total}. Thank you!',
             'wc_tpl_processing' => 'Hi {customer_name}, order #{order_id} is now being processed at {site_name}.',
             'wc_tpl_completed' => 'Hi {customer_name}, order #{order_id} is complete. Thank you for shopping at {site_name}!',
@@ -62,6 +63,9 @@ class SplitSMS_Settings {
             'wpforms_enabled' => '0',
             'wpforms_phone_field' => 'phone',
             'wpforms_message' => 'Thanks for your submission at {site_name}. We will be in touch shortly.',
+            'elementor_enabled' => '0',
+            'elementor_phone_field' => 'phone',
+            'elementor_message' => 'Hi {name}, thanks for contacting {site_name}. We received your form and will reply soon.',
             'otp_login_enabled' => '0',
             // Crocoblock / JetEngine
             'cb_enabled' => '0',
@@ -162,7 +166,11 @@ class SplitSMS_Settings {
         if ('' === $host) {
             return false;
         }
-        return in_array($host, array('www.splitsms.com', 'splitsms.com'), true);
+        $allowed = apply_filters(
+            'splitsms_allowed_api_hosts',
+            array('www.splitsms.com', 'splitsms.com', 'localhost', '127.0.0.1')
+        );
+        return in_array($host, $allowed, true);
     }
 
     public function all() {
@@ -185,11 +193,13 @@ class SplitSMS_Settings {
             'wc_order_completed',
             'wc_order_cancelled',
             'wc_payment_complete',
+            'wc_payment_on_processing',
             'wp_enabled',
             'wp_user_register',
             'wp_password_reset',
             'cf7_enabled',
             'wpforms_enabled',
+            'elementor_enabled',
             'otp_login_enabled',
             'cb_enabled',
             'cb_jetengine_enabled',
@@ -241,7 +251,7 @@ class SplitSMS_Settings {
                     $clean[$key] = $value;
                     $clean['api_key_suffix'] = strlen($value) >= 4 ? substr($value, -4) : '';
                 }
-            } elseif (strpos($key, '_tpl') !== false || strpos($key, 'tpl_') !== false || 'cb_rules' === $key || in_array($key, array('cf7_message', 'wpforms_message'), true)) {
+            } elseif (strpos($key, '_tpl') !== false || strpos($key, 'tpl_') !== false || 'cb_rules' === $key || in_array($key, array('cf7_message', 'wpforms_message', 'elementor_message'), true)) {
                 $clean[$key] = sanitize_textarea_field($value);
             } elseif (in_array($key, $checkboxes, true)) {
                 $clean[$key] = self::is_yes($value) ? '1' : '0';

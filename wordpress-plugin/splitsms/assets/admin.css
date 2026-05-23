@@ -120,6 +120,56 @@
   font-size: 13px;
 }
 
+.splitsms-detect-list--grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.splitsms-detect-list--grid li {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.splitsms-detect-list--grid li.is-active {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.splitsms-detect-list--grid li.is-inactive {
+  opacity: 0.75;
+}
+
+.splitsms-detect-list--grid .description {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.splitsms-check-grid {
+  display: grid;
+  gap: 0.35rem 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  margin: 0.75rem 0 1rem;
+}
+
+.splitsms-form-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.splitsms-form-grid h3 {
+  margin: 0 0 0.5rem;
+  font-size: 14px;
+}
+
 .splitsms-notice-warn {
   padding: 0.75rem 1rem;
   border-radius: 8px;

@@ -30,7 +30,6 @@ export const organizationJsonLd = {
   url: siteUrl,
   logo: `${siteUrl}/smslogo.png`,
   email: supportEmail,
-  telephone: "+233538477596",
   description:
     "SplitSMS is a bulk SMS platform for Ghana and 190+ countries — campaigns, OTP API, webhooks, and pay-as-you-go pricing.",
   areaServed: ["GH", "NG", "Worldwide"],

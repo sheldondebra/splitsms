@@ -32,7 +32,7 @@ export default async function AutomationPage() {
   });
 
   return (
-    <AppPage medium>
+    <AppPage>
       <PageHeader
         title="Automation"
         icon={Workflow}

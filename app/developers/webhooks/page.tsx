@@ -37,7 +37,7 @@ export default async function DevelopersWebhooksPage({
   ]);
 
   return (
-    <AppPage medium>
+    <AppPage>
       <PageHeader
         title="Webhooks"
         description="Receive signed POST callbacks for delivery and platform events."

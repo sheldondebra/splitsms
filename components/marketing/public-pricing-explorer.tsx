@@ -49,10 +49,14 @@ export function PublicPricingExplorer({
     return (
       <div className="rounded-2xl border border-dashed bg-muted/30 px-6 py-12 text-center">
         <p className="text-muted-foreground text-sm">
-          Pricing is being configured. Please check back soon or contact sales.
+          Pricing is being configured. Please check back soon or{" "}
+          <Link href="/support" className="text-primary hover:underline">
+            contact support
+          </Link>
+          .
         </p>
-        <Link href="/contact" className={cn(buttonVariants({ className: "mt-4" }))}>
-          Contact us
+        <Link href="/support" className={cn(buttonVariants({ className: "mt-4" }))}>
+          Get support
         </Link>
       </div>
     );

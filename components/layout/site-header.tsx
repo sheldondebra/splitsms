@@ -16,8 +16,9 @@ const nav = [
   { href: "/blog", label: "Blog" },
   { href: "/company", label: "Company" },
   { href: "/sdk", label: "SDKs" },
+  { href: "/docs", label: "Docs" },
   { href: "/api-docs", label: "API" },
-  { href: "/contact", label: "Contact" },
+  { href: "/support", label: "Support" },
 ];
 
 const DARK_HERO_PATHS = ["/"];

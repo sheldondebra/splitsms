@@ -7,7 +7,7 @@ export default function DevelopersPostmanPage() {
   const baseUrl = getSiteUrl();
 
   return (
-    <AppPage medium>
+    <AppPage>
       <PageHeader
         title="Postman"
         description="Import our collection, set your API key, and run requests without writing curl."

@@ -59,7 +59,12 @@ export default async function ResellerDashboardPage({
     return (
       <div className="max-w-lg">
         <h1 className="text-2xl font-bold">Account {reseller.status.toLowerCase()}</h1>
-        <p className="text-muted-foreground mt-2">Contact support@tecunitgh.com</p>
+        <p className="text-muted-foreground mt-2">
+          <Link href="/support" className="text-primary hover:underline">
+            Submit a support request
+          </Link>{" "}
+          for help with your reseller account.
+        </p>
       </div>
     );
   }

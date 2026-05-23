@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { siteUrl } from "@/lib/seo/site";
 import { getAllBlogSlugs } from "@/lib/marketing/blog-posts";
+import { getAllIntegrationSlugs } from "@/lib/marketing/integrations-catalog";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
@@ -13,7 +14,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/api-docs",
     "/sdk",
     "/integrations",
-    "/contact",
+    "/docs",
+    "/changelog",
+    "/support",
     "/privacy",
     "/terms",
     "/data-protection",
@@ -23,8 +26,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
 
   const blogRoutes = getAllBlogSlugs().map((slug) => `/blog/${slug}`);
+  const integrationRoutes = getAllIntegrationSlugs().map(
+    (slug) => `/integrations/${slug}`,
+  );
 
-  return [...staticRoutes, ...blogRoutes].map((path) => ({
+  return [...staticRoutes, ...integrationRoutes, ...blogRoutes].map((path) => ({
     url: `${siteUrl}${path}`,
     lastModified,
     changeFrequency: path.startsWith("/blog/") ? "monthly" : path === "" || path === "/blog" ? "weekly" : "monthly",

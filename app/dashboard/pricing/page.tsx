@@ -35,7 +35,7 @@ export default async function DashboardPricingPage({
   }));
 
   return (
-    <AppPage medium>
+    <AppPage>
       <PageHeader
         title="SMS pricing"
         description="Per-segment rates by country. Unicode messages may use multiple segments."

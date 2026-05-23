@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import bcrypt from "bcryptjs";
 import { PrismaClient, SmsProviderType } from "../lib/generated/prisma/client";
 import { COUNTRIES_DATA } from "../lib/countries-data";
+import { seedSampleTemplatesForUser } from "../lib/sms/seed-templates";
 
 const ADMIN = {
   fullName: "TecUnit Admin",
@@ -101,7 +102,7 @@ async function main() {
   });
 
   const passwordHash = await bcrypt.hash(ADMIN.password, 12);
-  await prisma.user.upsert({
+  const adminUser = await prisma.user.upsert({
     where: { phone: ADMIN.phone },
     update: {
       fullName: ADMIN.fullName,
@@ -124,7 +125,12 @@ async function main() {
     },
   });
 
+  const templatesSeeded = await seedSampleTemplatesForUser(adminUser.id);
+
   console.log(`Seed completed. ${COUNTRIES_DATA.length} countries with SMS routes.`);
+  if (templatesSeeded > 0) {
+    console.log(`Seeded ${templatesSeeded} sample SMS templates for admin.`);
+  }
   console.log(`Admin: ${ADMIN.email} / phone ${ADMIN.phone} (SUPER_ADMIN)`);
 }
 

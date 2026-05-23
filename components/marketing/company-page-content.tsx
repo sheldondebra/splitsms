@@ -106,16 +106,13 @@ export function CompanyPageContent() {
             ))}
           </div>
           <div className="mt-10 rounded-2xl border border-border/60 bg-card p-6 md:p-8">
-            <h3 className="font-semibold text-lg">Contact Tecunit Ghana</h3>
+            <h3 className="font-semibold text-lg">Get in touch</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Email{" "}
-              <a href="mailto:support@tecunitgh.com" className="text-primary hover:underline">
-                support@tecunitgh.com
-              </a>{" "}
-              · Phone{" "}
-              <a href="tel:+233538477596" className="text-primary hover:underline">
-                +233 53 847 7596
-              </a>
+              Questions about SplitSMS or Tecunit Ghana?{" "}
+              <Link href="/support" className="text-primary font-medium hover:underline">
+                Submit a support request
+              </Link>{" "}
+              and our team will respond by email.
             </p>
           </div>
         </div>
@@ -135,8 +132,8 @@ export function CompanyPageContent() {
               Start free
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="/contact" className={cn(buttonVariants({ size: "lg", variant: "outline" }))}>
-              Contact sales
+            <Link href="/support" className={cn(buttonVariants({ size: "lg", variant: "outline" }))}>
+              Get support
             </Link>
           </div>
         </div>

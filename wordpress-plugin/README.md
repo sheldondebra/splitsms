@@ -26,6 +26,29 @@ This regenerates:
 - `public/wordpress-plugin/splitsms.zip`
 - Postman collection `baseUrl`
 
+## Install / upgrade troubleshooting
+
+**Error: “Plugin file does not exist”** (URL like `splitsms-1/splitsms/splitsms.php`):
+
+1. Deactivate any SplitSMS entries under **Plugins**.
+2. Delete **all** of these folders if present: `wp-content/plugins/splitsms`, `splitsms-1`, `splitsms-2`.
+3. Download a fresh [splitsms.zip](https://www.splitsms.com/wordpress-plugin/splitsms.zip) — keep the filename `splitsms.zip`.
+4. **Plugins → Add New → Upload** and activate.
+
+This happens when an older zip (with a nested `splitsms/` folder) was uploaded while a previous copy already existed. v1.3.0+ ships a flat zip to avoid that.
+
+## Integrations (v1.3.0)
+
+| Integration | How SplitSMS hooks in |
+|-------------|------------------------|
+| **Paystack / Flutterwave / Stripe** | WooCommerce order events — enable **Paid → processing** and **Payment complete** under Integrations. Configure gateway webhooks in WooCommerce so orders reach `processing` or `completed`. |
+| **WPForms** | `wpforms_process_complete` — set phone field name (e.g. `phone`) in Integrations. |
+| **Contact Form 7** | `wpcf7_mail_sent` — default phone field `your-phone`. |
+| **Elementor Pro** | `elementor_pro/forms/new_record` — enable under Integrations. |
+| **Crocoblock** | JetEngine, JetFormBuilder, JetBooking, JetAppointment — **SplitSMS → Crocoblock**. Per-module toggle works without the master Crocoblock switch. |
+
+**Local dev:** API base URL may be `http://127.0.0.1:3000` when `WP_DEBUG` is on (allowed hosts filter).
+
 ## Configure in WordPress
 
 1. Install plugin (upload zip).

@@ -2,7 +2,8 @@
 
 import { useMemo } from "react";
 import { getMessagePreview, estimateCampaignCost } from "@/lib/sms/message-preview";
-import { PERSONALIZATION_HINT } from "@/lib/sms/personalize";
+import { personalizeMessage, SMS_PREVIEW_SAMPLE } from "@/lib/sms/personalize";
+import { SmsPreview } from "@/components/sms/sms-preview";
 import { Badge } from "@/components/ui/badge";
 
 export function CampaignMessagePreview({
@@ -14,15 +15,18 @@ export function CampaignMessagePreview({
   recipientCount: number;
   costPerUnit?: number;
 }) {
-  const preview = useMemo(() => getMessagePreview(message), [message]);
+  const resolved = useMemo(
+    () => personalizeMessage(message, SMS_PREVIEW_SAMPLE),
+    [message],
+  );
+  const preview = useMemo(() => getMessagePreview(resolved), [resolved]);
   const cost = useMemo(
-    () => estimateCampaignCost(message, recipientCount, costPerUnit),
-    [message, recipientCount, costPerUnit],
+    () => estimateCampaignCost(resolved, recipientCount, costPerUnit),
+    [resolved, recipientCount, costPerUnit],
   );
 
   return (
-    <div className="rounded-lg border bg-muted/20 p-4 space-y-3 text-sm">
-      <p className="text-muted-foreground">{PERSONALIZATION_HINT}</p>
+    <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         <Badge variant="secondary">{preview.characters} chars</Badge>
         <Badge variant="outline">{preview.segments} segment(s)</Badge>
@@ -30,17 +34,13 @@ export function CampaignMessagePreview({
         {preview.isUnicode && <Badge variant="destructive">Unicode</Badge>}
       </div>
       {recipientCount > 0 && (
-        <p>
+        <p className="text-sm">
           <strong>{recipientCount}</strong> recipients ·{" "}
           <strong>{cost.totalUnits}</strong> total units · est.{" "}
           <strong>{cost.estimatedCost.toFixed(2)}</strong> credits cost
         </p>
       )}
-      {message && (
-        <div className="rounded border bg-background p-3 text-sm whitespace-pre-wrap">
-          {message.replace(/\{name\}/gi, "Alex").replace(/\{phone\}/gi, "+233201234567")}
-        </div>
-      )}
+      <SmsPreview message={message} showMeta={false} showVariableHints />
     </div>
   );
 }

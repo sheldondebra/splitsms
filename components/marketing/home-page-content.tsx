@@ -545,13 +545,13 @@ Authorization: Bearer sk_...
               Create free SMS account
             </Link>
             <Link
-              href="/contact"
+              href="/support"
               className={cn(
                 buttonVariants({ size: "lg", variant: "outline" }),
                 "border-white/30 text-white hover:bg-white/10 hover:text-white",
               )}
             >
-              Contact sales
+              Get support
             </Link>
           </div>
         </div>

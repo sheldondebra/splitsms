@@ -1,15 +1,18 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
+import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
 import { SendSmsForm } from "@/components/sms/send-sms-form";
 import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
-import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
-import { CardContent } from "@/components/ui/card";
-import { Send } from "lucide-react";
+import { AppPage, PageHeader, AppCard, AppCardBody } from "@/components/dashboard/page-shell";
+import Link from "next/link";
+import { Send, Wallet } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 
 export default async function SendSmsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; sent?: string }>;
+  searchParams: Promise<{ error?: string; sent?: string; template?: string }>;
 }) {
   const session = await getSession();
   const params = await searchParams;
@@ -18,30 +21,53 @@ export default async function SendSmsPage({
     process.env.MNOTIFY_SENDER_ID ??
     "SplitSMS";
 
-  const senderIds = session
-    ? await prisma.senderId.findMany({
-        where: { userId: session.userId, status: "APPROVED" },
-      })
-    : [];
+  const [senderIds, balance, templates] = session
+    ? await Promise.all([
+        prisma.senderId.findMany({
+          where: { userId: session.userId, status: "APPROVED" },
+          orderBy: { createdAt: "desc" },
+        }),
+        getBalanceSnapshot(session.userId),
+        prisma.smsTemplate.findMany({
+          where: { userId: session.userId },
+          orderBy: [{ isFavorite: "desc" }, { name: "asc" }],
+          select: { id: true, name: true, content: true },
+        }),
+      ])
+    : [[], null, []];
 
   return (
-    <AppPage narrow>
+    <AppPage>
       <PageHeader
         title="Send SMS"
-        description="Enter numbers, write your message, and tap send."
+        description="Pick a template or write your own — preview how it looks before you send."
         icon={Send}
-        mobileDescription="Enter numbers, write your message, and tap send."
+        mobileDescription="Template, message preview, cost estimate, then send."
+        actions={
+          <Link
+            href="/dashboard/wallet"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "gap-2 h-10 rounded-xl font-medium",
+            )}
+          >
+            <Wallet className="h-4 w-4" />
+            {balance?.creditBalance ?? 0} credits
+          </Link>
+        }
       />
 
       <FriendlyAlert error={params.error} success={params.sent} />
 
-      <AppCard>
-        <CardContent className="pt-6 pb-6">
+      <AppCard className="overflow-visible">
+        <AppCardBody>
           <SendSmsForm
             defaultSender={defaultSender}
             senderOptions={senderIds.map((s) => ({ value: s.value }))}
+            templates={templates}
+            initialTemplateId={params.template}
           />
-        </CardContent>
+        </AppCardBody>
       </AppCard>
     </AppPage>
   );

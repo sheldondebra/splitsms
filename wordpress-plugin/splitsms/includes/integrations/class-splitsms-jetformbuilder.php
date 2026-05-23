@@ -58,8 +58,12 @@ class SplitSMS_JetFormBuilder {
 
             if (method_exists($handler, 'get_request_data')) {
                 $fields = (array) $handler->get_request_data();
+            } elseif (method_exists($handler, 'get_fields')) {
+                $fields = (array) $handler->get_fields();
             } elseif (isset($handler->request_data) && is_array($handler->request_data)) {
                 $fields = $handler->request_data;
+            } elseif (isset($handler->fields) && is_array($handler->fields)) {
+                $fields = $handler->fields;
             }
         }
 

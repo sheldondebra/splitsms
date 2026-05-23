@@ -1,23 +1,23 @@
 import type { Metadata } from "next";
 import { MarketingPageShell } from "@/components/marketing/marketing-page-shell";
-import { WordPressIntegrationContent } from "@/components/marketing/wordpress-integration-content";
+import { IntegrationsHubContent } from "@/components/marketing/integrations-hub-content";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const metadata: Metadata = {
-  title: "WordPress & WooCommerce SMS Plugin",
+  title: "Integrations — WordPress, Paystack, Flutterwave & more",
   description:
-    "Download the official SplitSMS WordPress plugin. Connect WooCommerce order SMS, CF7, WPForms, and OTP to splitsms.com with auto-updates.",
+    "Connect SplitSMS to WordPress, Crocoblock, WooCommerce, Paystack, Flutterwave, and form plugins. Setup guides and how SMS billing works.",
   alternates: { canonical: "/integrations" },
   openGraph: {
     url: `${getSiteUrl()}/integrations`,
-    title: "SplitSMS WordPress Plugin",
+    title: "SplitSMS Integrations",
   },
 };
 
 export default function IntegrationsPage() {
   return (
     <MarketingPageShell>
-      <WordPressIntegrationContent />
+      <IntegrationsHubContent />
     </MarketingPageShell>
   );
 }

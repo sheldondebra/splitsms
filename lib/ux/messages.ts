@@ -8,6 +8,8 @@ export const UX_ERRORS: Record<string, string> = {
   wallet: "We could not find your wallet. Please contact support.",
   balance: "Your balance is too low for this purchase.",
   payment: "Payment could not be completed. Please try again.",
+  tag: "Please enter a tag name.",
+  group: "Please select or name a group.",
   promo: "That promo code did not work. Check the code and try again.",
 };
 

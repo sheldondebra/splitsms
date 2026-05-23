@@ -79,22 +79,43 @@ if (existsSync(postmanPath)) {
   writeFileSync(postmanPath, JSON.stringify(collection, null, 2) + "\n");
 }
 
-// Zip plugin for download
+// Zip plugin for download — files at archive root (no "splitsms/" wrapper).
+// If the zip contained a splitsms/ folder and wp-content/plugins/splitsms already exists,
+// WordPress extracts to splitsms-1/splitsms/splitsms.php (two levels) and activation fails.
 const pluginDir = join(root, "wordpress-plugin/splitsms");
 const zipOut = join(publicWpDir, "splitsms.zip");
 try {
   if (process.platform === "win32") {
-    const staging = join(root, "wordpress-plugin");
-    execSync(
-      `powershell -NoProfile -Command "Compress-Archive -Path '${join(staging, "splitsms").replace(/'/g, "''")}' -DestinationPath '${zipOut.replace(/'/g, "''")}' -Force"`,
-      { stdio: "inherit", cwd: root },
-    );
+    const psZip = [
+      `$src = '${pluginDir.replace(/'/g, "''")}'`,
+      `$out = '${zipOut.replace(/'/g, "''")}'`,
+      "if (Test-Path $out) { Remove-Item $out -Force }",
+      "Push-Location $src",
+      "Compress-Archive -Path * -DestinationPath $out -Force",
+      "Pop-Location",
+    ].join("; ");
+    execSync(`powershell -NoProfile -Command "${psZip}"`, { stdio: "inherit", cwd: root });
   } else {
-    execSync(`cd "${join(root, "wordpress-plugin")}" && zip -r "${zipOut}" splitsms -x "*.DS_Store"`, {
-      stdio: "inherit",
-    });
+    execSync(`cd "${pluginDir}" && zip -r "${zipOut}" . -x "*.DS_Store"`, { stdio: "inherit" });
   }
-  console.log("Wrote", zipOut);
+
+  // Validate: main plugin file must be at zip root, not nested splitsms/splitsms.php
+  if (process.platform === "win32") {
+    const check = execSync(
+      `powershell -NoProfile -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::OpenRead('${zipOut.replace(/'/g, "''")}'); $root=($z.Entries | Where-Object { $_.FullName -eq 'splitsms.php' }).Count -gt 0; $nested=($z.Entries | Where-Object { $_.FullName -like 'splitsms/splitsms.php' }).Count -gt 0; $z.Dispose(); if (-not $root -or $nested) { exit 1 }"`,
+      { encoding: "utf8" },
+    );
+    void check;
+  } else {
+    const listing = execSync(`unzip -l "${zipOut}"`, { encoding: "utf8" });
+    if (!listing.includes(" splitsms.php")) {
+      throw new Error("Zip missing splitsms.php at archive root");
+    }
+    if (listing.includes(" splitsms/splitsms.php")) {
+      throw new Error("Zip has nested splitsms/ folder — fix zip command");
+    }
+  }
+  console.log("Wrote", zipOut, "(flat layout: splitsms.php at archive root)");
 } catch (e) {
   console.warn("Zip skipped (install zip or run on Windows with Compress-Archive):", e.message);
 }

@@ -436,13 +436,13 @@ export function FeaturesPageContent() {
                   Create free account
                 </Link>
                 <Link
-                  href="/contact"
+                  href="/support"
                   className={cn(
                     buttonVariants({ size: "lg", variant: "outline" }),
                     "border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white",
                   )}
                 >
-                  Talk to sales
+                  Get support
                 </Link>
               </div>
             </div>

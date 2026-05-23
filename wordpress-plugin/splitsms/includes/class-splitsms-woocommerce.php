@@ -6,6 +6,7 @@ if (!defined('ABSPATH')) {
 
 /**
  * WooCommerce order and payment SMS notifications.
+ * Works with Paystack, Flutterwave, Stripe, and other gateways via WooCommerce order status hooks.
  */
 class SplitSMS_WooCommerce {
     /** @var self|null */
@@ -39,20 +40,44 @@ class SplitSMS_WooCommerce {
         add_action('woocommerce_checkout_order_processed', array($this, 'on_order_placed'), 20, 1);
         add_action('woocommerce_order_status_changed', array($this, 'on_status_changed'), 20, 4);
         add_action('woocommerce_payment_complete', array($this, 'on_payment_complete'), 20, 1);
+
+        // Paystack / Flutterwave often set processing before payment_complete fires.
+        add_action('woocommerce_order_status_pending_to_processing', array($this, 'on_paid_processing'), 20, 2);
+        add_action('woocommerce_order_status_on-hold_to_processing', array($this, 'on_paid_processing'), 20, 2);
+        add_action('woocommerce_order_status_failed_to_processing', array($this, 'on_paid_processing'), 20, 2);
     }
 
     public function on_order_placed($order_id) {
         if (!$this->settings->feature_enabled('wc_order_placed')) {
             return;
         }
-        $this->send_for_order($order_id, $this->settings->get('wc_tpl_placed'));
+        $this->send_for_order($order_id, $this->settings->get('wc_tpl_placed'), 'wc_order_placed');
     }
 
     public function on_payment_complete($order_id) {
         if (!$this->settings->feature_enabled('wc_payment_complete')) {
             return;
         }
-        $this->send_for_order($order_id, $this->settings->get('wc_tpl_payment'));
+        $this->send_for_order($order_id, $this->settings->get('wc_tpl_payment'), 'wc_payment_complete', true);
+    }
+
+    /**
+     * Fires when gateways (Paystack, Flutterwave, etc.) move order to processing.
+     *
+     * @param int      $order_id
+     * @param WC_Order $order
+     */
+    public function on_paid_processing($order_id, $order = null) {
+        if (!$this->settings->feature_enabled('wc_payment_on_processing')) {
+            return;
+        }
+        if (!$order) {
+            $order = wc_get_order($order_id);
+        }
+        if (!$order || !$order->is_paid()) {
+            return;
+        }
+        $this->send_for_order($order_id, $this->settings->get('wc_tpl_payment'), 'wc_payment_processing', true);
     }
 
     /**
@@ -79,12 +104,22 @@ class SplitSMS_WooCommerce {
             return;
         }
 
-        $this->send_for_order($order_id, $this->settings->get($template_key));
+        $this->send_for_order($order_id, $this->settings->get($template_key), 'wc_order_' . $new_status);
     }
 
-    private function send_for_order($order_id, $template) {
+    /**
+     * @param int    $order_id
+     * @param string $template
+     * @param string $event
+     * @param bool   $dedupe_payment
+     */
+    private function send_for_order($order_id, $template, $event, $dedupe_payment = false) {
         $order = wc_get_order($order_id);
         if (!$order) {
+            return;
+        }
+
+        if ($dedupe_payment && $this->payment_sms_already_sent($order_id)) {
             return;
         }
 
@@ -95,15 +130,31 @@ class SplitSMS_WooCommerce {
 
         $vars = $this->order_vars($order);
         $message = SplitSMS_API::render_template($template, $vars);
-        $this->api->send_sms(
+        $result = $this->api->send_sms(
             $phone,
             $message,
             array(
                 'source' => 'woocommerce',
-                'event' => 'wc_order_' . $order->get_status(),
+                'event' => $event,
                 'external_ref' => 'order-' . $order_id,
             )
         );
+
+        if ($dedupe_payment && !empty($result['ok'])) {
+            $order->update_meta_data('_splitsms_payment_sms_sent', '1');
+            $order->save();
+        }
+    }
+
+    /**
+     * @param int $order_id
+     */
+    private function payment_sms_already_sent($order_id) {
+        $order = wc_get_order($order_id);
+        if (!$order) {
+            return false;
+        }
+        return '1' === $order->get_meta('_splitsms_payment_sms_sent');
     }
 
     /**
@@ -111,13 +162,19 @@ class SplitSMS_WooCommerce {
      * @return array<string, string>
      */
     private function order_vars($order) {
+        $gateway = $order->get_payment_method();
+        $gateway_title = $order->get_payment_method_title();
+
         return array(
             'site_name' => get_bloginfo('name'),
             'customer_name' => trim($order->get_billing_first_name() . ' ' . $order->get_billing_last_name()),
+            'first_name' => $order->get_billing_first_name(),
+            'last_name' => $order->get_billing_last_name(),
             'order_id' => (string) $order->get_order_number(),
             'order_total' => wp_strip_all_tags($order->get_formatted_order_total()),
             'order_status' => wc_get_order_status_name($order->get_status()),
-            'payment_method' => $order->get_payment_method_title(),
+            'payment_method' => $gateway_title ? $gateway_title : $gateway,
+            'payment_gateway' => $gateway,
             'tracking_number' => (string) $order->get_meta('_tracking_number'),
         );
     }

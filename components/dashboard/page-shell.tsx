@@ -8,18 +8,24 @@ export function AppPage({
   className,
   narrow,
   medium,
+  wide,
 }: {
   children: ReactNode;
   className?: string;
+  /** Forms / settings — ~576px */
   narrow?: boolean;
+  /** Focused flows — ~896px */
   medium?: boolean;
+  /** Default for data-heavy pages — full main column width */
+  wide?: boolean;
 }) {
   return (
     <div
       className={cn(
         "app-page w-full min-w-0",
         narrow && "app-page-narrow",
-        medium && "app-page-medium",
+        medium && !wide && "app-page-medium",
+        (wide || (!narrow && !medium)) && "app-page-wide",
         className,
       )}
     >
@@ -82,8 +88,65 @@ export function AppCard({
   className?: string;
 }) {
   return (
-    <div className={cn("app-card rounded-2xl border border-border/60 bg-card shadow-sm", className)}>
+    <div
+      className={cn(
+        "app-card rounded-2xl border border-border/60 bg-card shadow-sm",
+        className,
+      )}
+    >
       {children}
+    </div>
+  );
+}
+
+/** Consistent inner padding for dashboard cards — use on every AppCard */
+export function AppCardBody({
+  children,
+  className,
+  fill,
+}: {
+  children: ReactNode;
+  className?: string;
+  /** Stretch to fill parent AppCard (pair with h-full flex flex-col on AppCard) */
+  fill?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "p-6 sm:p-8",
+        fill && "flex flex-1 flex-col min-h-0",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function AppCardTitle({
+  title,
+  description,
+  icon: Icon,
+  className,
+}: {
+  title: string;
+  description?: string;
+  icon?: LucideIcon;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex items-start gap-3 mb-6 sm:mb-8", className)}>
+      {Icon ? (
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+          <Icon className="h-5 w-5" />
+        </div>
+      ) : null}
+      <div className="min-w-0 space-y-1">
+        <h2 className="text-lg font-semibold tracking-tight sm:text-xl">{title}</h2>
+        {description ? (
+          <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+        ) : null}
+      </div>
     </div>
   );
 }

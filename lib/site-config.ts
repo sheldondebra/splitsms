@@ -33,7 +33,7 @@ export const wordpressPlugin = {
     return `${getSiteUrl()}${config.wordpressPlugin.updateCheckPath}`;
   },
   get docsUrl() {
-    return `${getSiteUrl()}/integrations`;
+    return `${getSiteUrl()}/integrations/wordpress`;
   },
   get apiDocsUrl() {
     return `${getSiteUrl()}/api-docs`;

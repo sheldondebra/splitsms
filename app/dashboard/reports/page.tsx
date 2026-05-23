@@ -44,7 +44,7 @@ export default async function ReportsPage({
   const failedInView = items.filter((m) => m.status === "FAILED").length;
 
   return (
-    <AppPage medium>
+    <AppPage>
       <PageHeader
         title="Message results"
         description="See which messages were delivered, failed, or still on the way."
