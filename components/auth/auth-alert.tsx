@@ -2,7 +2,7 @@ import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const messages: Record<string, { text: string; variant: "error" | "success" | "info" }> = {
-  invalid: { text: "Invalid phone/email or password.", variant: "error" },
+  invalid: { text: "Invalid email/phone or password.", variant: "error" },
   locked: { text: "Account temporarily locked. Try again in 30 minutes or reset your password.", variant: "error" },
   rate_limit: { text: "Too many attempts. Please wait before trying again.", variant: "error" },
   exists: { text: "An account with this phone number already exists.", variant: "error" },

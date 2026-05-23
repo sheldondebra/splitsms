@@ -118,15 +118,13 @@ const CROCO_SOURCES = {
 } as const;
 
 export async function getCrocoblockStats(userId: string, since: Date) {
-  const entries = await Promise.all(
-    Object.entries(CROCO_SOURCES).map(async ([key, source]) => {
-      const count = await prisma.wordPressLog.count({
-        where: { userId, source, createdAt: { gte: since } },
-      });
-      return [key, count] as const;
-    }),
-  );
-  const failed = await prisma.wordPressLog.count({
+  const counts: Record<string, number> = {};
+  for (const [key, source] of Object.entries(CROCO_SOURCES)) {
+    counts[key] = await prisma.wordPressLog.count({
+      where: { userId, source, createdAt: { gte: since } },
+    });
+  }
+  counts.failed = await prisma.wordPressLog.count({
     where: {
       userId,
       createdAt: { gte: since },
@@ -134,5 +132,5 @@ export async function getCrocoblockStats(userId: string, since: Date) {
       status: { in: ["failed", "FAILED"] },
     },
   });
-  return { ...Object.fromEntries(entries), failed };
+  return counts as typeof counts & { failed: number };
 }

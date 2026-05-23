@@ -12,6 +12,12 @@ export async function findUserByIdentifier(identifier: string) {
   return prisma.user.findUnique({ where: { phone } });
 }
 
+/** Resolve login input to the user's registered phone (for OTP delivery). */
+export async function resolvePhoneForIdentifier(identifier: string) {
+  const user = await findUserByIdentifier(identifier);
+  return user?.phone ?? null;
+}
+
 export function isAccountLocked(lockedUntil: Date | null) {
   return lockedUntil !== null && lockedUntil.getTime() > Date.now();
 }

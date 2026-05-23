@@ -33,11 +33,13 @@ export default async function LoginPage({
           <TabsContent value="password">
             <form action={loginPasswordAction} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone or email</Label>
+                <Label htmlFor="identifier-password">Email / phone number</Label>
                 <Input
-                  id="phone"
-                  name="phone"
-                  placeholder="+233... or you@email.com"
+                  id="identifier-password"
+                  name="identifier"
+                  type="text"
+                  inputMode="email"
+                  placeholder="you@email.com or +233 20 000 0001"
                   required
                   autoComplete="username"
                 />
@@ -66,17 +68,20 @@ export default async function LoginPage({
           <TabsContent value="otp">
             <form action={loginOtpRequestAction} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="phone-otp">Phone number</Label>
+                <Label htmlFor="identifier-otp">Email / phone number</Label>
                 <Input
-                  id="phone-otp"
-                  name="phone"
-                  placeholder="+233 20 000 0001"
+                  id="identifier-otp"
+                  name="identifier"
+                  type="text"
+                  inputMode="email"
+                  placeholder="you@email.com or +233 20 000 0001"
                   required
-                  autoComplete="tel"
+                  autoComplete="username"
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                We&apos;ll text you a one-time code. No password needed.
+                We&apos;ll send a one-time code to the phone number on your account. No password
+                needed.
               </p>
               <Button type="submit" className="w-full font-semibold">
                 Send verification code

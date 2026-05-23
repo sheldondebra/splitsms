@@ -227,7 +227,7 @@ export async function verifyOtpAction(formData: FormData) {
 
 export async function loginPasswordAction(formData: FormData) {
   const parsed = loginSchema.safeParse({
-    identifier: formData.get("phone"),
+    identifier: formData.get("identifier") ?? formData.get("phone"),
     password: formData.get("password"),
   });
 
@@ -276,17 +276,18 @@ export async function loginPasswordAction(formData: FormData) {
 }
 
 export async function loginOtpRequestAction(formData: FormData) {
-  const phone = normalizePhone(String(formData.get("phone") ?? ""));
-  if (phone.length < 10) authRedirect("/login", { error: "invalid_phone" });
+  const identifier = String(formData.get("identifier") ?? formData.get("phone") ?? "").trim();
+  if (identifier.length < 3) authRedirect("/login", { error: "required" });
 
-  const limit = await checkRateLimit(rateLimitKey("otp_request", phone));
+  const limit = await checkRateLimit(rateLimitKey("otp_request", identifier));
   if (!limit.allowed) authRedirect("/login", { error: "rate_limit" });
 
-  const user = await prisma.user.findUnique({ where: { phone } });
+  const user = await findUserByIdentifier(identifier);
   if (!user) {
     authRedirect("/login", { error: "invalid" });
   }
 
+  const phone = user!.phone;
   const otp = await createAndSendOtp(phone, "LOGIN", user!.countryCode, user!.id);
   if (!otp.ok) {
     authRedirect("/login", { error: "otp_cooldown", cooldown: String(otp.cooldownSec) });
