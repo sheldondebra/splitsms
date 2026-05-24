@@ -1,15 +1,14 @@
 import { getSession } from "@/lib/auth/session";
-import { getMessageLogs, getDashboardOverview } from "@/lib/analytics/dashboard";
-import { retryFailedMessagesAction } from "@/lib/actions/messages";
-import { ReportSummary } from "@/components/dashboard/report-summary";
-import { ReportsFilters } from "@/components/dashboard/reports-filters";
-import { EmptyState } from "@/components/dashboard/empty-state";
+import { prisma } from "@/lib/db";
+import {
+  getDashboardOverview,
+  getMessageLogs,
+  getCampaignAnalytics,
+} from "@/lib/analytics/dashboard";
 import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
-import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
-import { Button } from "@/components/ui/button";
-import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Send, BarChart3 } from "lucide-react";
-import { STATUS_LABELS } from "@/lib/ux/messages";
+import { ReportsDashboard } from "@/components/dashboard/reports-dashboard";
+import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
+import { BarChart3 } from "lucide-react";
 
 export default async function ReportsPage({
   searchParams,
@@ -22,6 +21,7 @@ export default async function ReportsPage({
     page?: string;
     retried?: string;
     sent?: string;
+    error?: string;
   }>;
 }) {
   const session = await getSession();
@@ -29,27 +29,77 @@ export default async function ReportsPage({
   const params = await searchParams;
   const page = parseInt(params.page ?? "1", 10) || 1;
 
-  const [overview, { items, total, totalPages }] = await Promise.all([
-    getDashboardOverview(session.userId),
-    getMessageLogs(session.userId, {
-      campaignId: params.campaign,
-      status: params.status,
-      countryCode: params.country,
-      search: params.q,
-      page,
-      pageSize: 30,
-    }),
-  ]);
+  const [overview, { items, total, totalPages }, campaigns, campaignAnalytics] =
+    await Promise.all([
+      getDashboardOverview(session.userId),
+      getMessageLogs(session.userId, {
+        campaignId: params.campaign,
+        status: params.status,
+        countryCode: params.country,
+        search: params.q,
+        page,
+        pageSize: 30,
+      }),
+      prisma.campaign.findMany({
+        where: { userId: session.userId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        select: { id: true, name: true, status: true },
+      }),
+      params.campaign ? getCampaignAnalytics(session.userId, params.campaign) : null,
+    ]);
 
-  const failedInView = items.filter((m) => m.status === "FAILED").length;
+  const messages = items.map((m) => ({
+    id: m.id,
+    recipient: m.recipient,
+    body: m.body,
+    status: m.status,
+    countryCode: m.countryCode,
+    senderId: m.senderId,
+    smsUnits: m.smsUnits,
+    cost: m.cost?.toNumber() ?? null,
+    failureReason: m.failureReason,
+    sentAt: m.sentAt?.toISOString() ?? null,
+    deliveredAt: m.deliveredAt?.toISOString() ?? null,
+    failedAt: m.failedAt?.toISOString() ?? null,
+    createdAt: m.createdAt.toISOString(),
+    campaignId: m.campaignId,
+    campaignName: m.campaign?.name ?? null,
+  }));
+
+  const campaignReport = campaignAnalytics
+    ? {
+        id: campaignAnalytics.campaign.id,
+        name: campaignAnalytics.campaign.name,
+        status: campaignAnalytics.campaign.status,
+        message: campaignAnalytics.campaign.message,
+        recipientCount: campaignAnalytics.recipientCount,
+        delivered: campaignAnalytics.delivered,
+        failed: campaignAnalytics.failed,
+        pending: campaignAnalytics.pending,
+        sent: campaignAnalytics.sent,
+        total: campaignAnalytics.total,
+        deliveryPct: campaignAnalytics.deliveryPct,
+        cost: campaignAnalytics.cost,
+      }
+    : null;
+
+  const exportUrl = `/api/dashboard/reports/export?${new URLSearchParams({
+    ...(params.q ? { q: params.q } : {}),
+    ...(params.status && params.status !== "all" ? { status: params.status } : {}),
+    ...(params.country && params.country !== "all" ? { country: params.country } : {}),
+    ...(params.campaign ? { campaign: params.campaign } : {}),
+  }).toString()}`;
+
+  const failedInView = messages.filter((m) => m.status === "FAILED").length;
 
   return (
-    <AppPage>
+    <AppPage wide>
       <PageHeader
-        title="Message results"
-        description="See which messages were delivered, failed, or still on the way."
+        title="Delivery reports"
+        description="Detailed delivery analytics, filters, and per-message logs for every SMS you send."
         icon={BarChart3}
-        mobileDescription="Delivery status for your recent messages."
+        mobileDescription="Charts, filters, and message-level delivery details."
       />
 
       {params.sent && (
@@ -61,108 +111,36 @@ export default async function ReportsPage({
           successMessage={`We are resending ${params.retried} failed message(s).`}
         />
       )}
-
-      <ReportSummary
-        delivered={overview.delivered}
-        failed={overview.failed}
-        pending={overview.pending}
-      />
-
-      {failedInView > 0 && (
-        <form action={retryFailedMessagesAction}>
-          {params.campaign && (
-            <input type="hidden" name="campaignId" value={params.campaign} />
-          )}
-          <Button type="submit" variant="outline" className="w-full md:w-auto min-h-11">
-            Try sending failed messages again
-          </Button>
-        </form>
+      {params.error && (
+        <FriendlyAlert error={params.error} />
       )}
 
-      <details className="app-card rounded-2xl px-4 py-3">
-        <summary className="cursor-pointer text-sm font-medium min-h-11 flex items-center touch-target-lg">
-          Advanced filters
-        </summary>
-        <div className="mt-4 pt-4 border-t">
-          <ReportsFilters
-            campaignId={params.campaign}
-            status={params.status ?? "all"}
-            country={params.country ?? "all"}
-            q={params.q}
-          />
-        </div>
-      </details>
-
-      <AppCard>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Recent messages</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {total} message{total === 1 ? "" : "s"}
-            {totalPages > 1 ? ` · page ${page} of ${totalPages}` : ""}
-          </p>
-        </CardHeader>
-        <CardContent>
-          {items.length === 0 ? (
-            <EmptyState
-              icon={Send}
-              title="No messages to show yet"
-              description="When you send SMS, your delivery results will appear here."
-              actionLabel="Send SMS"
-              actionHref="/dashboard/send"
-            />
-          ) : (
-            <ul className="divide-y divide-border/60">
-              {items.map((m) => (
-                <li key={m.id} className="flex justify-between gap-3 py-4 first:pt-0">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm">{m.recipient}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{m.body}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p
-                      className={`text-sm font-semibold ${
-                        m.status === "DELIVERED"
-                          ? "text-emerald-600"
-                          : m.status === "FAILED"
-                            ? "text-destructive"
-                            : "text-muted-foreground"
-                      }`}
-                    >
-                      {STATUS_LABELS[m.status] ?? m.status}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {m.createdAt.toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-          {totalPages > 1 && (
-            <div className="flex gap-6 mt-6 justify-center text-sm font-medium">
-              {page > 1 && (
-                <a
-                  href={`?${new URLSearchParams({ ...params, page: String(page - 1) } as Record<string, string>).toString()}`}
-                  className="text-primary hover:underline min-h-11 flex items-center"
-                >
-                  Previous
-                </a>
-              )}
-              {page < totalPages && (
-                <a
-                  href={`?${new URLSearchParams({ ...params, page: String(page + 1) } as Record<string, string>).toString()}`}
-                  className="text-primary hover:underline min-h-11 flex items-center"
-                >
-                  Next
-                </a>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </AppCard>
+      <ReportsDashboard
+        messages={messages}
+        total={total}
+        page={page}
+        totalPages={totalPages}
+        filters={{
+          campaign: params.campaign,
+          status: params.status,
+          country: params.country,
+          q: params.q,
+        }}
+        overview={{
+          totalMessages: overview.totalMessages,
+          messagesToday: overview.messagesToday,
+          deliveryRate: overview.deliveryRate,
+          delivered: overview.delivered,
+          failed: overview.failed,
+          pending: overview.pending,
+          sent: overview.sent,
+          charts: overview.charts,
+        }}
+        campaigns={campaigns}
+        campaignReport={campaignReport}
+        failedInView={failedInView}
+        exportUrl={exportUrl}
+      />
     </AppPage>
   );
 }

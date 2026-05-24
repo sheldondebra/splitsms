@@ -602,16 +602,18 @@ model Message {
 }
 
 model SenderId {
-  id          String         @id @default(cuid())
-  userId      String
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  value       String
-  countryCode String
-  status      SenderIdStatus @default(PENDING)
-  isDefault   Boolean        @default(false)
-  adminNote   String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id                  String         @id @default(cuid())
+  userId              String
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value               String
+  countryCode         String
+  status              SenderIdStatus @default(PENDING)
+  isDefault           Boolean        @default(false)
+  adminNote           String?
+  providerStatus      String?
+  providerSubmittedAt DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 
   @@index([userId, status])
 }

@@ -18,9 +18,10 @@ export type ChatMessage = {
 type SupportChatPanelProps = {
   messages: ChatMessage[];
   sent?: boolean;
+  draftMessage?: string;
 };
 
-export function SupportChatPanel({ messages, sent }: SupportChatPanelProps) {
+export function SupportChatPanel({ messages, sent, draftMessage = "" }: SupportChatPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -90,6 +91,7 @@ export function SupportChatPanel({ messages, sent }: SupportChatPanelProps) {
             rows={2}
             placeholder="Ask about billing, delivery, Sender ID…"
             required
+            defaultValue={draftMessage}
             className="min-h-[44px] max-h-28 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 text-sm"
           />
           <Button type="submit" size="icon" className="h-10 w-10 shrink-0 rounded-lg">

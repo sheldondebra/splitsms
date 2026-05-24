@@ -194,3 +194,105 @@ export async function getMnotifyStatus() {
     hasApiKey: Boolean(s.apiKey),
   };
 }
+
+export type MnotifySenderIdSummary = {
+  sender_name?: string;
+  purpose?: string;
+  status?: string;
+  "sender name"?: string;
+};
+
+export type MnotifySenderIdResponse = {
+  status?: string;
+  code?: string;
+  message?: string;
+  summary?: MnotifySenderIdSummary;
+};
+
+/** Register a sender ID with mNotify (Ghana / primary route). */
+export async function registerMnotifySenderId(senderName: string, purpose: string) {
+  const config = await getMnotifyConfig();
+  if (!config.enabled || !config.apiKey) {
+    return { ok: false as const, error: "mNotify is not configured" };
+  }
+
+  const url = `${config.baseUrl}/api/senderid/register?key=${encodeURIComponent(config.apiKey)}`;
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        sender_name: senderName,
+        purpose,
+      }),
+    });
+
+    const data = (await res.json()) as MnotifySenderIdResponse;
+    const providerStatus = data.summary?.status;
+
+    if (!res.ok) {
+      return {
+        ok: false as const,
+        error: data.message ?? data.status ?? `mNotify HTTP ${res.status}`,
+        providerStatus,
+        raw: data,
+      };
+    }
+
+    return {
+      ok: true as const,
+      providerStatus: providerStatus ?? "Pending",
+      message: data.message,
+      raw: data,
+    };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "mNotify sender ID registration failed",
+    };
+  }
+}
+
+/** Check sender ID approval status at mNotify. */
+export async function checkMnotifySenderIdStatus(senderName: string) {
+  const config = await getMnotifyConfig();
+  if (!config.enabled || !config.apiKey) {
+    return { ok: false as const, error: "mNotify is not configured" };
+  }
+
+  const url = `${config.baseUrl}/api/senderid/status?key=${encodeURIComponent(config.apiKey)}`;
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ sender_name: senderName }),
+    });
+
+    const data = (await res.json()) as MnotifySenderIdResponse;
+    const providerStatus =
+      data.summary?.status ??
+      (data.summary as { status?: string; "sender name"?: string } | undefined)?.status;
+
+    if (!res.ok) {
+      return {
+        ok: false as const,
+        error: data.message ?? data.status ?? `mNotify HTTP ${res.status}`,
+        providerStatus,
+        raw: data,
+      };
+    }
+
+    return {
+      ok: true as const,
+      providerStatus: providerStatus ?? "Pending",
+      raw: data,
+    };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "mNotify sender ID status check failed",
+    };
+  }
+}

@@ -12,9 +12,9 @@ export function AppPage({
 }: {
   children: ReactNode;
   className?: string;
-  /** Forms / settings — ~576px */
+  /** Forms / settings — ~768px */
   narrow?: boolean;
-  /** Focused flows — ~896px */
+  /** Focused flows — ~1152px */
   medium?: boolean;
   /** Default for data-heavy pages — full main column width */
   wide?: boolean;
@@ -62,7 +62,7 @@ export function PageHeader({
           <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{title}</h1>
             {description && (
-              <p className="text-muted-foreground mt-1 text-sm max-w-xl">{description}</p>
+              <p className="text-muted-foreground mt-1 text-sm max-w-2xl leading-relaxed">{description}</p>
             )}
           </div>
         </div>
@@ -113,7 +113,7 @@ export function AppCardBody({
   return (
     <div
       className={cn(
-        "p-6 sm:p-8",
+        "px-6 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-9",
         fill && "flex flex-1 flex-col min-h-0",
         className,
       )}
@@ -165,7 +165,7 @@ export function MobileCardItem({
   return (
     <li
       className={cn(
-        "rounded-xl border border-border/60 bg-card p-4 shadow-sm active:scale-[0.99] transition-transform",
+        "rounded-xl border border-border/60 bg-card p-5 shadow-sm active:scale-[0.99] transition-transform sm:p-6",
         className,
       )}
     >

@@ -10,7 +10,7 @@ import type { BalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
 
 type DashboardBalanceProps = {
   snapshot: BalanceSnapshot;
-  variant?: "header" | "hero" | "compact";
+  variant?: "header" | "hero" | "compact" | "bar";
 };
 
 function BalancePill({
@@ -154,6 +154,67 @@ export function DashboardBalance({
 
   if (variant === "compact") {
     return <BalancePill snapshot={snapshot} />;
+  }
+
+  if (variant === "bar") {
+    return (
+      <div className="flex w-full items-center justify-between gap-3">
+        <Link
+          href="/dashboard/wallet"
+          className={cn(
+            "flex flex-1 items-center justify-between gap-3 rounded-xl border px-4 py-2.5 text-sm transition-colors hover:bg-muted/50",
+            lowBalance ? "border-amber-500/35 bg-amber-500/5" : "border-border/60 bg-muted/25",
+          )}
+        >
+          <span className="inline-flex items-center gap-2 min-w-0">
+            <Wallet className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="font-semibold tabular-nums text-foreground">
+              {walletCurrency} {walletBalance.toFixed(2)}
+            </span>
+          </span>
+          <span className="inline-flex items-center gap-2 shrink-0">
+            <MessageSquare
+              className={cn(
+                "h-4 w-4",
+                lowBalance ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
+              )}
+            />
+            <span
+              className={cn(
+                "font-semibold tabular-nums",
+                lowBalance ? "text-amber-700 dark:text-amber-400" : "text-foreground",
+              )}
+            >
+              {creditBalance.toLocaleString()} SMS
+            </span>
+          </span>
+        </Link>
+        <div className="flex shrink-0 items-center gap-0.5">
+          <Link
+            href="/dashboard/wallet"
+            className={cn(
+              buttonVariants({ size: "sm", variant: "ghost" }),
+              "h-9 w-9 p-0 text-primary hover:bg-primary/10",
+            )}
+            title="Top up"
+            aria-label="Top up wallet"
+          >
+            <Plus className="h-4 w-4" />
+          </Link>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 text-muted-foreground"
+            onClick={reload}
+            disabled={pending}
+            aria-label="Reload balance"
+          >
+            <RefreshCw className={cn("h-4 w-4", (spinning || pending) && "animate-spin")} />
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (

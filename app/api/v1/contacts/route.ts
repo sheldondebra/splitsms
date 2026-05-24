@@ -44,13 +44,18 @@ export const POST = withApi(
     const phone = normalizePhones(body.data.phone)[0];
     if (!phone) return apiError("INVALID_REQUEST", "Invalid phone number", 400);
 
+    const existing = await prisma.contact.findUnique({
+      where: { userId_phone: { userId: ctx.user.id, phone } },
+    });
+    const countryCode = body.data.countryCode ?? detectCountryCode(phone);
+
     const contact = await prisma.contact.upsert({
       where: { userId_phone: { userId: ctx.user.id, phone } },
       update: {
         name: body.data.name,
         email: body.data.email,
         tags: body.data.tags,
-        countryCode: body.data.countryCode ?? detectCountryCode(phone),
+        countryCode,
       },
       create: {
         userId: ctx.user.id,
@@ -58,9 +63,19 @@ export const POST = withApi(
         name: body.data.name,
         email: body.data.email,
         tags: body.data.tags,
-        countryCode: body.data.countryCode ?? detectCountryCode(phone),
+        countryCode,
       },
     });
+
+    if (!existing) {
+      const { runContactSignupAutomations } = await import("@/lib/automation/dispatch");
+      void runContactSignupAutomations(ctx.user.id, {
+        phone,
+        name: body.data.name,
+        email: body.data.email,
+        countryCode,
+      });
+    }
 
     return apiSuccess({ data: contact }, 201);
   },

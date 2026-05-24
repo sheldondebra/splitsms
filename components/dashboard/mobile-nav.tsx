@@ -15,7 +15,7 @@ export function MobileNav({ onMenuOpen }: MobileNavProps) {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/80 bg-background/95 backdrop-blur-xl md:hidden safe-bottom shadow-[0_-4px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.35)]">
-      <div className="flex items-stretch justify-around px-1 pt-1 pb-1 max-w-lg mx-auto">
+      <div className="flex w-full items-stretch justify-around px-2 pt-1 pb-1 sm:px-3">
         {mobileNavItems.map(({ href, label, icon: Icon }) => {
           const active = isNavActive(pathname, href);
           const short =

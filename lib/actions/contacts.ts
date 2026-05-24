@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth/session";
 import { normalizePhones } from "@/lib/sms/units";
 import { parseContactsCsv } from "@/lib/contacts/csv-import";
 import { detectCountryCode } from "@/lib/contacts/country-from-phone";
+import { runContactSignupAutomations } from "@/lib/automation/dispatch";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -22,13 +23,17 @@ export async function importContactsCsvAction(formData: FormData) {
   let imported = 0;
   for (const row of preview.valid) {
     try {
+      const existing = await prisma.contact.findUnique({
+        where: { userId_phone: { userId, phone: row.phone } },
+      });
+      const countryCode = row.countryCode ?? detectCountryCode(row.phone);
       await prisma.contact.upsert({
         where: { userId_phone: { userId, phone: row.phone } },
         update: {
           name: row.name,
           email: row.email,
           tags: row.tags,
-          countryCode: row.countryCode ?? detectCountryCode(row.phone),
+          countryCode,
         },
         create: {
           userId,
@@ -36,9 +41,17 @@ export async function importContactsCsvAction(formData: FormData) {
           name: row.name,
           email: row.email,
           tags: row.tags,
-          countryCode: row.countryCode ?? detectCountryCode(row.phone),
+          countryCode,
         },
       });
+      if (!existing) {
+        void runContactSignupAutomations(userId, {
+          phone: row.phone,
+          name: row.name,
+          email: row.email,
+          countryCode,
+        });
+      }
       imported++;
     } catch {
       /* skip */
@@ -55,23 +68,23 @@ export async function createContactAction(formData: FormData) {
   const phone = normalizePhones(String(formData.get("phone") ?? ""))[0];
   if (!phone) redirect("/dashboard/contacts?error=phone");
 
+  const existing = await prisma.contact.findUnique({
+    where: { userId_phone: { userId, phone } },
+  });
+  const countryCode = detectCountryCode(phone);
+  const name = String(formData.get("name") ?? "") || undefined;
+  const email = String(formData.get("email") ?? "") || undefined;
+  const tags = String(formData.get("tags") ?? "") || undefined;
+
   await prisma.contact.upsert({
     where: { userId_phone: { userId, phone } },
-    update: {
-      name: String(formData.get("name") ?? "") || undefined,
-      email: String(formData.get("email") ?? "") || undefined,
-      tags: String(formData.get("tags") ?? "") || undefined,
-      countryCode: detectCountryCode(phone),
-    },
-    create: {
-      userId,
-      phone,
-      name: String(formData.get("name") ?? "") || undefined,
-      email: String(formData.get("email") ?? "") || undefined,
-      tags: String(formData.get("tags") ?? "") || undefined,
-      countryCode: detectCountryCode(phone),
-    },
+    update: { name, email, tags, countryCode },
+    create: { userId, phone, name, email, tags, countryCode },
   });
+
+  if (!existing) {
+    void runContactSignupAutomations(userId, { phone, name, email, countryCode });
+  }
 
   redirect("/dashboard/contacts");
 }

@@ -2,9 +2,8 @@ import { Suspense } from "react";
 import { listPublicPricing, pickPricingRow, toPublicPricingRows } from "@/lib/billing/pricing";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
-import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
-import { MemberPricingView } from "@/components/dashboard/member-pricing-view";
-import { CardContent } from "@/components/ui/card";
+import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
+import { MemberPricingDashboard } from "@/components/dashboard/member-pricing-dashboard";
 import { DollarSign } from "lucide-react";
 
 export default async function DashboardPricingPage({
@@ -17,16 +16,18 @@ export default async function DashboardPricingPage({
 
   const { country: countryParam } = await searchParams;
 
-  const [dbRows, custom] = await Promise.all([
+  const [dbRows, custom, credit, wallet] = await Promise.all([
     listPublicPricing(),
     prisma.userSmsPricing.findMany({
       where: { userId: session.userId, isActive: true },
     }),
+    prisma.smsCredit.findUnique({ where: { userId: session.userId } }),
+    prisma.wallet.findUnique({ where: { userId: session.userId } }),
   ]);
 
   const rows = toPublicPricingRows(dbRows);
   const selected = pickPricingRow(rows, countryParam);
-  const selectedCode = selected?.countryCode ?? "GH";
+  const selectedCode = selected?.countryCode ?? rows[0]?.countryCode ?? "GH";
 
   const customRates = custom.map((c) => ({
     countryCode: c.countryCode,
@@ -34,30 +35,30 @@ export default async function DashboardPricingPage({
     currency: c.currency,
   }));
 
+  const smsCredits = credit?.balance ?? 0;
+  const walletCurrency = wallet?.currency ?? "GHS";
+
   return (
-    <AppPage>
+    <AppPage wide>
       <PageHeader
         title="SMS pricing"
-        description="Per-segment rates by country. Unicode messages may use multiple segments."
+        description="Compare rates by country, estimate campaign costs, and export your rate card."
         icon={DollarSign}
-        mobileDescription="Select a country to see your rate."
+        mobileDescription="Rates, calculator, and saved estimates."
       />
 
-      <AppCard>
-        <CardContent className="pt-6 pb-6">
-          <Suspense fallback={<div className="h-40 rounded-xl bg-muted/40 animate-pulse" />}>
-            <MemberPricingView
-              rows={rows}
-              selectedCode={selectedCode}
-              customRates={customRates}
-            />
-          </Suspense>
-        </CardContent>
-      </AppCard>
+      <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-muted/40" />}>
+        <MemberPricingDashboard
+          rows={rows}
+          selectedCode={selectedCode}
+          customRates={customRates}
+          smsCredits={smsCredits}
+          walletCurrency={walletCurrency}
+        />
+      </Suspense>
 
-      <p className="text-xs text-muted-foreground text-center px-4">
-        Rates are set by SplitSMS administrators. Contact support if you need a custom enterprise
-        quote.
+      <p className="px-4 text-center text-xs text-muted-foreground">
+        Platform rates are managed by SplitSMS. Contact support for enterprise or volume pricing.
       </p>
     </AppPage>
   );

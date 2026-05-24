@@ -22,14 +22,14 @@ export function WalletBalanceCards({
 }: WalletBalanceCardsProps) {
   return (
     <div className="grid gap-5 sm:grid-cols-2 sm:auto-rows-fr">
-      <div className="rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/12 via-card to-card p-6 sm:p-8 shadow-sm sm:col-span-2">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
+      <div className="rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/12 via-card to-card p-6 shadow-sm sm:col-span-2 sm:p-8 lg:p-10">
+        <div className="flex flex-col gap-6">
           <div className="min-w-0">
             <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Wallet className="h-4 w-4 text-primary" />
               Wallet balance
             </p>
-            <p className="text-3xl sm:text-4xl font-bold mt-3 tabular-nums tracking-tight">
+            <p className="mt-3 text-3xl font-bold tabular-nums tracking-tight sm:text-4xl lg:text-5xl">
               {formatMoney(walletBalance, currency)}
             </p>
             {lowBalance ? (
@@ -42,11 +42,11 @@ export function WalletBalanceCards({
               </p>
             )}
           </div>
-          <div className="rounded-xl border border-border/60 bg-background/80 px-5 py-4 text-right shrink-0 self-start">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+          <div className="rounded-xl border border-border/60 bg-background/80 px-5 py-4 sm:self-start">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               SMS credits
             </p>
-            <p className="text-2xl sm:text-3xl font-bold tabular-nums flex items-center justify-end gap-2 mt-1">
+            <p className="mt-1 flex items-center gap-2 text-2xl font-bold tabular-nums sm:text-3xl">
               <MessageSquare className="h-5 w-5 text-primary" />
               {smsCredits.toLocaleString()}
             </p>

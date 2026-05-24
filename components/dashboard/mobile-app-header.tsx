@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
@@ -70,7 +69,7 @@ export function MobileAppHeader({
 
   return (
     <header className="sticky top-0 z-20 shrink-0 border-b border-border/60 bg-background/95 backdrop-blur-lg safe-top md:hidden">
-      <div className="flex h-12 items-center gap-2 px-3 max-w-lg mx-auto w-full">
+      <div className="flex h-12 items-center gap-2.5 px-5">
         <button
           type="button"
           onClick={onMenuOpen}
@@ -86,17 +85,19 @@ export function MobileAppHeader({
           </div>
         ) : (
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold truncate leading-tight">{title}</p>
+            <p className="text-sm font-semibold leading-tight truncate">{title}</p>
           </div>
         )}
-
-        <div className="shrink-0 min-w-0">
-          <DashboardBalance snapshot={balance} variant="compact" />
-        </div>
 
         <ThemeToggle className="h-8 w-8 shrink-0 rounded-lg" />
         <NotificationBell notifications={notifications} unreadCount={unreadCount} />
       </div>
+
+      {!isHome && (
+        <div className="border-t border-border/50 px-5 py-2.5">
+          <DashboardBalance snapshot={balance} variant="bar" />
+        </div>
+      )}
     </header>
   );
 }

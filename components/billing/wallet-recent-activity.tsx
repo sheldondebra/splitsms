@@ -1,19 +1,6 @@
 import Link from "next/link";
-import { ArrowDownLeft, ArrowUpRight, Gift, RefreshCw, Settings2, ShoppingCart } from "lucide-react";
+import { getTransactionMeta, formatTxAmount } from "@/lib/billing/transaction-meta";
 import { cn } from "@/lib/utils";
-import type { LucideIcon } from "lucide-react";
-
-const TX_META: Record<
-  string,
-  { label: string; icon: LucideIcon; credit: boolean }
-> = {
-  WALLET_TOPUP: { label: "Added money", icon: ArrowDownLeft, credit: true },
-  CREDIT_PURCHASE: { label: "Bought SMS credits", icon: ShoppingCart, credit: false },
-  SMS_DEBIT: { label: "SMS sent", icon: ArrowUpRight, credit: false },
-  REFUND: { label: "Refund", icon: RefreshCw, credit: true },
-  ADMIN_ADJUSTMENT: { label: "Balance adjustment", icon: Settings2, credit: true },
-  PROMO_CREDIT: { label: "Promo bonus", icon: Gift, credit: true },
-};
 
 type Transaction = {
   id: string;
@@ -36,14 +23,9 @@ export function WalletRecentActivity({ transactions }: { transactions: Transacti
     <>
       <ul className="space-y-2">
         {transactions.map((t) => {
-          const meta = TX_META[t.type] ?? {
-            label: t.type.replace(/_/g, " ").toLowerCase(),
-            icon: ArrowUpRight,
-            credit: false,
-          };
+          const meta = getTransactionMeta(t.type);
           const Icon = meta.icon;
           const amount = Math.abs(t.amount.toNumber());
-          const isCredit = meta.credit;
 
           return (
             <li
@@ -53,7 +35,9 @@ export function WalletRecentActivity({ transactions }: { transactions: Transacti
               <div
                 className={cn(
                   "flex h-11 w-11 shrink-0 items-center justify-center rounded-full",
-                  isCredit ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground",
+                  meta.credit
+                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                    : "bg-muted text-muted-foreground",
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -72,11 +56,10 @@ export function WalletRecentActivity({ transactions }: { transactions: Transacti
               <p
                 className={cn(
                   "text-sm font-semibold tabular-nums shrink-0",
-                  isCredit ? "text-emerald-600 dark:text-emerald-400" : "text-foreground",
+                  meta.credit ? "text-emerald-600 dark:text-emerald-400" : "text-foreground",
                 )}
               >
-                {isCredit ? "+" : "−"}
-                {t.currency} {amount.toFixed(2)}
+                {formatTxAmount(amount, t.currency, meta.credit)}
               </p>
             </li>
           );

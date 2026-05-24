@@ -75,7 +75,7 @@ export default async function WalletPage({
   const lowBalance = smsCredits <= 10;
 
   return (
-    <AppPage>
+    <AppPage wide>
       <PageHeader
         title="Wallet"
         description="Add money, buy SMS credits, and track your balance."
@@ -106,7 +106,7 @@ export default async function WalletPage({
         lowBalance={lowBalance}
       />
 
-      <div className="grid gap-6 lg:gap-8 lg:grid-cols-2 lg:items-stretch">
+      <div className="grid gap-6 xl:grid-cols-2 xl:gap-10 xl:items-stretch">
         <AppCard className="h-full flex flex-col overflow-visible">
           <AppCardBody fill>
             <AppCardTitle

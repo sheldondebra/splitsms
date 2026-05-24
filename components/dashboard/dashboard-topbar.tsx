@@ -27,8 +27,8 @@ export function DashboardTopbar({
           </p>
         </div>
 
-        <div className="flex flex-1 items-center justify-end gap-2 min-w-0">
-          <DashboardBalance snapshot={balance} variant="header" />
+        <div className="flex flex-1 items-center justify-end gap-3 min-w-0 max-w-xl lg:max-w-2xl">
+          <DashboardBalance snapshot={balance} variant="bar" />
         </div>
 
         <div className="hidden sm:block h-8 w-px bg-border/60 shrink-0" aria-hidden />
