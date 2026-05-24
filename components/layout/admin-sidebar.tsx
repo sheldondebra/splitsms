@@ -22,7 +22,7 @@ export function AdminSidebar({ badges, onNavigate, className }: AdminSidebarProp
   return (
     <aside
       className={cn(
-        "flex w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground",
+        "flex w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-[100dvh]",
         className,
       )}
     >
@@ -30,7 +30,7 @@ export function AdminSidebar({ badges, onNavigate, className }: AdminSidebarProp
         <Logo href="/admin" size="md" variant="white" />
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+      <nav className="sidebar-scroll flex-1 overflow-y-auto overscroll-contain px-3 py-4 space-y-6 min-h-0">
         {adminNavSections.map((section) => (
           <div key={section.id}>
             <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
@@ -76,7 +76,7 @@ export function AdminSidebar({ badges, onNavigate, className }: AdminSidebarProp
         ))}
       </nav>
 
-      <div className="border-t border-sidebar-border p-4 space-y-2">
+      <div className="sidebar-footer p-4 space-y-2 safe-bottom">
         <Link
           href="/dashboard"
           onClick={onNavigate}

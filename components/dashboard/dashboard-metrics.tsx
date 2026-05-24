@@ -43,7 +43,7 @@ export function DashboardAlert({
         "rounded-xl px-4 py-2.5 text-sm flex flex-wrap items-center justify-between gap-2",
         variant === "warning"
           ? "border border-amber-500/25 bg-amber-500/8 text-amber-950 dark:text-amber-100"
-          : "border border-primary/20 bg-primary/5",
+          : "border border-primary/20 bg-primary/5 text-foreground",
       )}
     >
       {children}

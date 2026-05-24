@@ -10,8 +10,57 @@ import type { BalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
 
 type DashboardBalanceProps = {
   snapshot: BalanceSnapshot;
-  variant?: "header" | "hero";
+  variant?: "header" | "hero" | "compact";
 };
+
+function BalancePill({
+  snapshot,
+  className,
+}: {
+  snapshot: BalanceSnapshot;
+  className?: string;
+}) {
+  const { walletBalance, walletCurrency, creditBalance, lowBalance } = snapshot;
+
+  return (
+    <Link
+      href="/dashboard/wallet"
+      className={cn(
+        "inline-flex items-center rounded-lg border bg-muted/30 text-xs transition-colors hover:bg-muted/60",
+        lowBalance ? "border-amber-500/30 bg-amber-500/5" : "border-border/60",
+        className,
+      )}
+      title="Wallet & SMS credits"
+    >
+      <span className="inline-flex items-center gap-1 px-2 py-1.5 border-r border-border/50">
+        <Wallet className="h-3 w-3 text-muted-foreground shrink-0" aria-hidden />
+        <span className="font-semibold tabular-nums text-foreground whitespace-nowrap">
+          {walletCurrency} {walletBalance.toFixed(2)}
+        </span>
+      </span>
+      <span className="inline-flex items-center gap-1 px-2 py-1.5">
+        <MessageSquare
+          className={cn(
+            "h-3 w-3 shrink-0",
+            lowBalance ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
+          )}
+          aria-hidden
+        />
+        <span
+          className={cn(
+            "font-semibold tabular-nums whitespace-nowrap",
+            lowBalance ? "text-amber-700 dark:text-amber-400" : "text-foreground",
+          )}
+        >
+          {creditBalance.toLocaleString()}
+          <span className="text-muted-foreground font-normal ml-0.5 hidden min-[380px]:inline">
+            SMS
+          </span>
+        </span>
+      </span>
+    </Link>
+  );
+}
 
 export function DashboardBalance({
   snapshot,
@@ -48,7 +97,7 @@ export function DashboardBalance({
                 <Wallet className="h-3.5 w-3.5" />
                 Wallet funds
               </p>
-              <p className="mt-1.5 text-2xl sm:text-3xl font-bold tabular-nums tracking-tight">
+              <p className="mt-1.5 text-xl sm:text-2xl font-bold tabular-nums tracking-tight">
                 {walletCurrency} {walletBalance.toFixed(2)}
               </p>
             </div>
@@ -59,14 +108,12 @@ export function DashboardBalance({
               </p>
               <p
                 className={cn(
-                  "mt-1.5 text-2xl sm:text-3xl font-bold tabular-nums tracking-tight",
+                  "mt-1.5 text-xl sm:text-2xl font-bold tabular-nums tracking-tight",
                   lowBalance && "text-amber-600 dark:text-amber-400",
                 )}
               >
                 {creditBalance.toLocaleString()}
-                <span className="text-base font-semibold text-muted-foreground ml-1.5">
-                  credits
-                </span>
+                <span className="text-sm font-semibold text-muted-foreground ml-1.5">credits</span>
               </p>
             </div>
           </div>
@@ -75,12 +122,12 @@ export function DashboardBalance({
               type="button"
               variant="outline"
               size="sm"
-              className="h-10 gap-2"
+              className="h-9 gap-2"
               onClick={reload}
               disabled={pending}
             >
               <RefreshCw
-                className={cn("h-4 w-4", (spinning || pending) && "animate-spin")}
+                className={cn("h-3.5 w-3.5", (spinning || pending) && "animate-spin")}
               />
               Reload
             </Button>
@@ -88,10 +135,10 @@ export function DashboardBalance({
               href="/dashboard/wallet"
               className={cn(
                 buttonVariants({ size: "sm" }),
-                "h-10 gap-2 font-semibold shadow-md shadow-primary/20 inline-flex items-center",
+                "h-9 gap-2 font-semibold inline-flex items-center",
               )}
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" />
               Top up
             </Link>
           </div>
@@ -105,99 +152,37 @@ export function DashboardBalance({
     );
   }
 
+  if (variant === "compact") {
+    return <BalancePill snapshot={snapshot} />;
+  }
+
   return (
-    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-      {/* Mobile: single combined balance chip */}
-      <Link
-        href="/dashboard/wallet"
-        className={cn(
-          "flex md:hidden items-center gap-2 rounded-lg border bg-muted/50 px-2.5 py-1.5 min-w-0 max-w-[11rem] transition-colors hover:bg-muted",
-          lowBalance && "border-amber-500/35 bg-amber-500/10",
-        )}
-      >
-        <Wallet className="h-3.5 w-3.5 text-primary shrink-0" />
-        <span className="text-xs font-semibold tabular-nums truncate">
-          {walletCurrency} {walletBalance.toFixed(0)}
-          <span className="text-muted-foreground font-normal mx-1">·</span>
-          <span className={cn(lowBalance && "text-amber-600 dark:text-amber-400")}>
-            {creditBalance.toLocaleString()} SMS
-          </span>
-        </span>
-      </Link>
-
-      {/* Desktop: separate chips */}
-      <Link
-        href="/dashboard/wallet"
-        className={cn(
-          "hidden md:flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 transition-colors hover:bg-muted/70",
-          lowBalance && "border-amber-500/35 bg-amber-500/10",
-        )}
-        title="Wallet balance"
-      >
-        <Wallet className="h-4 w-4 text-primary shrink-0" />
-        <div className="text-left leading-none">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-            Wallet
-          </p>
-          <p className="text-sm font-bold tabular-nums mt-0.5">
-            {walletCurrency} {walletBalance.toFixed(2)}
-          </p>
-        </div>
-      </Link>
+    <div className="flex items-center gap-1 min-w-0">
+      <BalancePill snapshot={snapshot} className="min-w-0 max-w-full" />
 
       <Link
         href="/dashboard/wallet"
         className={cn(
-          "hidden md:flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 transition-colors hover:bg-muted/70",
-          lowBalance && "border-amber-500/35 bg-amber-500/10",
+          buttonVariants({ size: "sm", variant: "ghost" }),
+          "h-8 w-8 p-0 shrink-0 text-primary hover:text-primary hover:bg-primary/10",
         )}
-        title="SMS credits"
+        title="Top up wallet"
+        aria-label="Top up wallet"
       >
-        <MessageSquare
-          className={cn(
-            "h-4 w-4 shrink-0",
-            lowBalance ? "text-amber-600" : "text-primary",
-          )}
-        />
-        <div className="text-left leading-none">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-            SMS
-          </p>
-          <p
-            className={cn(
-              "text-sm font-bold tabular-nums mt-0.5",
-              lowBalance && "text-amber-700 dark:text-amber-400",
-            )}
-          >
-            {creditBalance.toLocaleString()}
-          </p>
-        </div>
-      </Link>
-
-      <Link
-        href="/dashboard/wallet"
-        className={cn(
-          buttonVariants({ size: "sm" }),
-          "h-8 px-2.5 sm:h-9 sm:px-3 gap-1 font-semibold text-xs shrink-0 inline-flex items-center",
-        )}
-      >
-        <Plus className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">Top up</span>
+        <Plus className="h-4 w-4" />
       </Link>
 
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="h-8 w-8 sm:h-9 sm:w-9 shrink-0"
+        className="h-8 w-8 shrink-0 text-muted-foreground"
         onClick={reload}
         disabled={pending}
         aria-label="Reload balance"
         title="Reload balance"
       >
-        <RefreshCw
-          className={cn("h-4 w-4", (spinning || pending) && "animate-spin")}
-        />
+        <RefreshCw className={cn("h-3.5 w-3.5", (spinning || pending) && "animate-spin")} />
       </Button>
     </div>
   );

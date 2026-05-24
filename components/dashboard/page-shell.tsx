@@ -60,7 +60,7 @@ export function PageHeader({
             </div>
           )}
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{title}</h1>
             {description && (
               <p className="text-muted-foreground mt-1 text-sm max-w-xl">{description}</p>
             )}

@@ -14,6 +14,10 @@ $nav = array(
     'splitsms-settings' => array(__('Settings', 'splitsms'), 'dashicons-admin-settings'),
     'splitsms-help' => array(__('Help', 'splitsms'), 'dashicons-editor-help'),
 );
+
+$wallet_url = defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/wallet' : '#';
+$docs_url = defined('SPLITSMS_INTEGRATIONS_URL') ? SPLITSMS_INTEGRATIONS_URL : '#';
+$update_url = admin_url('admin.php?page=splitsms-help');
 ?>
 <aside class="splitsms-sidebar" aria-label="<?php esc_attr_e('SplitSMS navigation', 'splitsms'); ?>">
     <div class="splitsms-sidebar__brand">
@@ -35,8 +39,17 @@ $nav = array(
         <?php endforeach; ?>
     </nav>
     <div class="splitsms-sidebar__footer">
-        <a href="<?php echo esc_url(defined('SPLITSMS_INTEGRATIONS_URL') ? SPLITSMS_INTEGRATIONS_URL : '#'); ?>" target="_blank" rel="noopener">
-            <?php esc_html_e('Documentation', 'splitsms'); ?>
+        <a class="splitsms-sidebar__upgrade" href="<?php echo esc_url($wallet_url); ?>" target="_blank" rel="noopener">
+            <strong><?php esc_html_e('Add SMS credits', 'splitsms'); ?></strong>
+            <span><?php esc_html_e('Top up your SplitSMS wallet', 'splitsms'); ?></span>
         </a>
+        <div class="splitsms-sidebar__footer-links">
+            <a class="is-update" href="<?php echo esc_url($update_url); ?>">
+                <?php esc_html_e('Check for plugin updates', 'splitsms'); ?>
+            </a>
+            <a href="<?php echo esc_url($docs_url); ?>" target="_blank" rel="noopener">
+                <?php esc_html_e('Documentation', 'splitsms'); ?>
+            </a>
+        </div>
     </div>
 </aside>

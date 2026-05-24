@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { SidebarNavContent } from "@/components/dashboard/sidebar-nav-content";
 import { useTheme } from "@/components/theme-provider";
@@ -59,7 +58,9 @@ export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
           </button>
         </div>
 
-        <SidebarNavContent onNavigate={onClose} />
+        <div className="flex min-h-0 flex-1 flex-col">
+          <SidebarNavContent onNavigate={onClose} />
+        </div>
       </aside>
     </>
   );

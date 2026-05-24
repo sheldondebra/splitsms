@@ -6,7 +6,7 @@ import { getSiteUrl } from "@/lib/site-config";
 export const metadata: Metadata = {
   title: "Documentation — SplitSMS guides & tutorials",
   description:
-    "Full SplitSMS documentation: getting started, dashboard, campaigns, REST API, WordPress plugin, Crocoblock, SDKs, and troubleshooting.",
+    "Professional SplitSMS documentation: getting started, dashboard, messaging standards, REST API, WordPress plugin, security, SDKs, and troubleshooting.",
   alternates: { canonical: "/docs" },
   openGraph: {
     url: `${getSiteUrl()}/docs`,

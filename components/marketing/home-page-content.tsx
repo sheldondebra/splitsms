@@ -304,7 +304,7 @@ export function HomePageContent() {
                   "Real-time SMS delivery reports & webhooks",
                   "Paystack, MoMo, Stripe wallet top-ups",
                 ].map((item) => (
-                  <li key={item} className="flex items-start gap-2">
+                  <li key={item} className="flex items-start gap-2 text-foreground/90">
                     <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                     {item}
                   </li>
@@ -357,7 +357,7 @@ export function HomePageContent() {
                 <div className="bg-card py-3 px-3 text-left font-medium text-muted-foreground">
                   {label}
                 </div>
-                <div className="bg-primary/5 py-3 px-3 font-semibold text-center">
+                <div className="bg-primary/5 py-3 px-3 font-semibold text-center text-foreground">
                   {split}
                 </div>
                 <div className="bg-card py-3 px-3 text-center text-muted-foreground">

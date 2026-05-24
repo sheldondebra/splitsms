@@ -3,7 +3,9 @@ export type DocBlock =
   | { type: "ul"; items: string[] }
   | { type: "ol"; items: string[] }
   | { type: "code"; code: string; language?: string }
-  | { type: "note"; title?: string; text: string };
+  | { type: "note"; title?: string; text: string }
+  | { type: "warning"; title?: string; text: string }
+  | { type: "table"; headers: string[]; rows: string[][] };
 
 export type DocSubsection = {
   id: string;
@@ -18,6 +20,12 @@ export type DocChapter = {
   subsections: DocSubsection[];
 };
 
+export const docsMeta = {
+  version: "2.0",
+  lastUpdated: "2026-05-23",
+  maintainer: "Tecunit Ghana",
+};
+
 export const platformDocsChapters: DocChapter[] = [
   {
     id: "getting-started",
@@ -30,17 +38,23 @@ export const platformDocsChapters: DocChapter[] = [
         blocks: [
           {
             type: "p",
-            text: "SplitSMS is a bulk and transactional SMS platform operated by Tecunit Ghana. You sign up with a phone number, fund a prepaid wallet, register sender IDs, and send SMS through the dashboard, REST API, or WordPress plugin to Ghana and 190+ countries.",
+            text: "SplitSMS is an enterprise-grade bulk and transactional SMS platform operated by Tecunit Ghana. Businesses use it for marketing campaigns, OTP verification, order notifications, and API-driven messaging across Ghana, Nigeria, and 190+ countries — with transparent pay-as-you-go pricing and no annual contracts.",
           },
           {
-            type: "ul",
-            items: [
-              "Dashboard for campaigns, contacts, and delivery reports",
-              "REST API v1 for developers and integrations",
-              "Official WordPress plugin for WooCommerce and forms",
-              "Pay-as-you-go pricing from GHS 0.029 per segment in Ghana",
-              "5 free SMS credits on signup",
+            type: "table",
+            headers: ["Capability", "Description"],
+            rows: [
+              ["Dashboard", "Campaigns, contacts, sender IDs, wallet, reports, and support"],
+              ["REST API v1", "Send SMS, OTP, contacts, campaigns, webhooks, WordPress sync"],
+              ["WordPress plugin", "WooCommerce, CF7, WPForms, Crocoblock / JetEngine"],
+              ["Routing", "Infobip, Twilio, and mNotify with automatic failover"],
+              ["Billing", "Prepaid wallet — Paystack, Flutterwave, MoMo, Stripe where enabled"],
             ],
+          },
+          {
+            type: "note",
+            title: "Who this documentation is for",
+            text: "Account owners and marketers should start with Getting started and Dashboard guide. Developers should read REST API and SDKs. WordPress site owners should read the WordPress plugin chapter.",
           },
         ],
       },
@@ -62,6 +76,30 @@ export const platformDocsChapters: DocChapter[] = [
             title: "Login options",
             text: "You can log in with your email or phone number. Password login uses either identifier; OTP login accepts email or phone but always sends the code to your registered phone.",
           },
+          {
+            type: "warning",
+            title: "Keep your phone number verified",
+            text: "OTP login and security alerts are sent to your registered mobile number. Update it under Dashboard → Settings if you change phones.",
+          },
+        ],
+      },
+      {
+        id: "pricing-model",
+        title: "Pricing & credits",
+        blocks: [
+          {
+            type: "p",
+            text: "SplitSMS bills per SMS segment based on destination country and encoding (GSM-7 vs Unicode). Ghana rates start around GHS 0.029 per segment. View live rates on the [Pricing page](/pricing) or Dashboard → Pricing.",
+          },
+          {
+            type: "ul",
+            items: [
+              "Wallet holds funds in your account currency (typically GHS)",
+              "SMS credits are purchased from wallet balance at country-specific rates",
+              "Each send deducts credits before the message is queued",
+              "New accounts receive 5 free SMS credits for testing delivery",
+            ],
+          },
         ],
       },
       {
@@ -80,7 +118,7 @@ export const platformDocsChapters: DocChapter[] = [
           },
           {
             type: "p",
-            text: "Delivery status appears in Dashboard → Transactions and Reports. Failed messages show the provider reason so you can fix balance, sender ID, or number format issues.",
+            text: "Delivery status appears in Dashboard → Message results and Transactions. Failed messages show the provider reason so you can fix balance, sender ID, or number format issues.",
           },
         ],
       },
@@ -209,9 +247,69 @@ export const platformDocsChapters: DocChapter[] = [
     ],
   },
   {
+    id: "messaging",
+    title: "Messaging standards",
+    description: "Phone formats, encoding, segments, and delivery lifecycle.",
+    subsections: [
+      {
+        id: "phone-format",
+        title: "Phone number format",
+        blocks: [
+          {
+            type: "p",
+            text: "Always use international format without the plus sign. Ghana numbers start with 233 followed by 9 digits (e.g. 233201234567). Nigeria uses 234. The platform validates and normalizes numbers before routing.",
+          },
+          {
+            type: "table",
+            headers: ["Country", "Example", "Notes"],
+            rows: [
+              ["Ghana", "233201234567", "Drop leading 0 from local 020… numbers"],
+              ["Nigeria", "2348012345678", "Include full national number after 234"],
+              ["International", "441234567890", "Use country code + subscriber number"],
+            ],
+          },
+        ],
+      },
+      {
+        id: "encoding",
+        title: "Encoding & segments",
+        blocks: [
+          {
+            type: "table",
+            headers: ["Encoding", "Chars / segment", "When used"],
+            rows: [
+              ["GSM-7", "160 (153 for multi-part)", "Standard Latin letters and basic symbols"],
+              ["Unicode (UCS-2)", "70 (67 for multi-part)", "Emojis, Arabic, extended accents"],
+            ],
+          },
+          {
+            type: "p",
+            text: "Long messages are split into multiple billable segments. The Send SMS screen and API responses show segment count before you confirm. Unicode in a single word switches the entire message to UCS-2.",
+          },
+        ],
+      },
+      {
+        id: "delivery-states",
+        title: "Delivery lifecycle",
+        blocks: [
+          {
+            type: "ul",
+            items: [
+              "Queued — accepted by SplitSMS, awaiting worker dispatch",
+              "Sent — handed to upstream carrier",
+              "Delivered — handset or carrier confirmed delivery (where supported)",
+              "Failed — rejected or expired; reason shown in reports",
+              "Pending — in transit; may update via webhook or polling",
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: "api",
     title: "REST API",
-    description: "Integrate SplitSMS into your application.",
+    description: "Production HTTPS JSON API for developers and integrations.",
     subsections: [
       {
         id: "api-overview",
@@ -219,11 +317,16 @@ export const platformDocsChapters: DocChapter[] = [
         blocks: [
           {
             type: "p",
-            text: "All API requests use HTTPS and JSON. Authenticate with Authorization: Bearer YOUR_API_KEY. The production base URL is https://splitsms.com and the API prefix is /api/v1.",
+            text: "All requests use HTTPS and JSON. Authenticate with Authorization: Bearer YOUR_API_KEY. Production base URL: https://splitsms.com — API prefix: /api/v1. See the full [API reference](/api-docs) for every endpoint, schema, and cURL example.",
           },
           {
-            type: "note",
-            text: "See the full interactive API reference at /api-docs including every endpoint, request body, and cURL example.",
+            type: "table",
+            headers: ["Header", "Value"],
+            rows: [
+              ["Authorization", "Bearer sk_live_… or sk_test_…"],
+              ["Content-Type", "application/json"],
+              ["Accept", "application/json"],
+            ],
           },
         ],
       },
@@ -232,26 +335,27 @@ export const platformDocsChapters: DocChapter[] = [
         title: "API keys & permissions",
         blocks: [
           {
-            type: "ul",
-            items: [
-              "sk_live_… — production keys that send real SMS and charge credits",
-              "sk_test_… — sandbox keys that validate requests without sending or billing",
-              "sms.send — send SMS and OTP",
-              "sms.read — read messages and delivery logs",
-              "wallet.read — read balance and transactions",
-              "contacts.read / contacts.write — manage contacts",
-              "campaigns.read — read campaign status",
+            type: "table",
+            headers: ["Permission", "Allows"],
+            rows: [
+              ["sms.send", "POST /sms/send, OTP send/verify"],
+              ["sms.read", "GET messages, reports, logs"],
+              ["wallet.read", "GET balance and transactions"],
+              ["contacts.read", "List and search contacts"],
+              ["contacts.write", "Create, update, import contacts"],
+              ["campaigns.read", "Read campaign status and stats"],
             ],
           },
           {
-            type: "p",
-            text: "Keys are shown only once at creation. Store them in environment variables, never in client-side code or public repositories.",
+            type: "warning",
+            title: "Key security",
+            text: "API keys are shown only once at creation (~56 characters). Store in server-side environment variables. Never commit keys to Git, expose in browser JavaScript, or paste into WordPress page content.",
           },
         ],
       },
       {
         id: "api-send",
-        title: "Send SMS via API",
+        title: "Send SMS",
         blocks: [
           {
             type: "code",
@@ -267,7 +371,22 @@ export const platformDocsChapters: DocChapter[] = [
           },
           {
             type: "p",
-            text: "Responses include message IDs and status. Use GET /api/v1/messages or webhooks for delivery updates.",
+            text: "Successful responses include message IDs and initial status. Poll GET /api/v1/messages or configure webhooks for delivery updates.",
+          },
+        ],
+      },
+      {
+        id: "api-otp",
+        title: "OTP verification",
+        blocks: [
+          {
+            type: "ol",
+            items: [
+              "POST /api/v1/otp/send — sends a one-time code to the recipient",
+              "Store the returned reference server-side",
+              "POST /api/v1/otp/verify — submit the code the user entered",
+              "Use sk_test_ keys in development to validate without billing",
+            ],
           },
         ],
       },
@@ -277,15 +396,18 @@ export const platformDocsChapters: DocChapter[] = [
         blocks: [
           {
             type: "p",
-            text: "Register HTTPS endpoints in the developer portal to receive events when messages are sent, delivered, or fail. Payloads are signed with HMAC-SHA256 using your webhook secret — verify the signature before trusting the body.",
+            text: "Register HTTPS endpoints under [Developers → Webhooks](/developers/webhooks). Payloads include event type, message ID, status, and timestamp. Each request is signed with HMAC-SHA256 using your webhook secret.",
           },
           {
-            type: "ul",
-            items: [
-              "Configure retry behaviour for failed webhook deliveries",
-              "Use sandbox mode to test handlers without live SMS",
-              "See /developers/webhooks in the dashboard for endpoint management",
-            ],
+            type: "code",
+            language: "javascript",
+            code: `// Verify X-SplitSMS-Signature (pseudocode)
+const crypto = require("crypto");
+const expected = crypto
+  .createHmac("sha256", WEBHOOK_SECRET)
+  .update(rawBody)
+  .digest("hex");
+if (expected !== signature) throw new Error("Invalid signature");`,
           },
         ],
       },
@@ -294,7 +416,7 @@ export const platformDocsChapters: DocChapter[] = [
   {
     id: "wordpress",
     title: "WordPress plugin",
-    description: "Connect WooCommerce and forms to SplitSMS.",
+    description: "Official plugin for WooCommerce, forms, and Crocoblock.",
     subsections: [
       {
         id: "wp-install",
@@ -303,17 +425,36 @@ export const platformDocsChapters: DocChapter[] = [
           {
             type: "ol",
             items: [
-              "Download splitsms.zip from splitsms.com/integrations/wordpress.",
-              "If upgrading, deactivate and delete all splitsms / splitsms-1 folders under wp-content/plugins/ first.",
-              "Plugins → Add New → Upload Plugin → choose splitsms.zip (keep the filename).",
-              "Activate and open SplitSMS → Settings.",
-              "Paste your API key, set Sender ID and admin phone, send a test SMS.",
+              "Download splitsms.zip from [Integrations → WordPress](/integrations/wordpress).",
+              "If upgrading, deactivate and remove old splitsms* folders under wp-content/plugins/ first.",
+              "Plugins → Add New → Upload Plugin → choose the zip → Activate.",
+              "Open SplitSMS → Settings — paste your full API key (~56 chars), Sender ID, and admin phone.",
+              "Click Test connection, then Save. Send a test SMS to confirm delivery.",
             ],
           },
           {
-            type: "note",
+            type: "warning",
             title: "Plugin file not found?",
-            text: "This error means WordPress extracted the zip into splitsms-1/splitsms/ because an old folder existed. Delete every splitsms* plugin folder and reinstall with a fresh zip from splitsms.com.",
+            text: "WordPress extracted the zip into a nested folder because an old version existed. Delete every splitsms* folder under wp-content/plugins/, then upload a fresh zip from splitsms.com.",
+          },
+        ],
+      },
+      {
+        id: "wp-api-key",
+        title: "API key & connection",
+        blocks: [
+          {
+            type: "p",
+            text: "Create a live API key under Dashboard → App connections. Copy the entire key at creation — the dashboard only shows a prefix afterward. Partial keys (e.g. sk_test_99a064) will fail with not_configured errors.",
+          },
+          {
+            type: "ul",
+            items: [
+              "Test connection before save — invalid keys are rejected",
+              "Settings merge on plugin update — keys are preserved",
+              "Connected sites appear in Dashboard → WordPress integration",
+              "Local dev: use http://127.0.0.1 or your Local WP URL in API settings",
+            ],
           },
         ],
       },
@@ -323,39 +464,97 @@ export const platformDocsChapters: DocChapter[] = [
         blocks: [
           {
             type: "p",
-            text: "Enable events under SplitSMS → Integrations: order placed, payment complete, processing, completed, cancelled. SMS goes to the order billing phone.",
+            text: "Enable events under SplitSMS → Integrations. SMS is sent to the order billing phone, then shipping phone, then common meta keys if billing is empty.",
           },
           {
-            type: "p",
-            text: "Templates support {customer_name}, {order_id}, {order_total}, {order_status}, {payment_method}, and {site_name}. Works with Paystack, Flutterwave, Stripe, and other WooCommerce gateways — SplitSMS listens to WooCommerce hooks, not the gateway directly.",
+            type: "table",
+            headers: ["Placeholder", "Replaced with"],
+            rows: [
+              ["{customer_name}", "Billing first + last name"],
+              ["{order_id}", "WooCommerce order number"],
+              ["{order_total}", "Formatted order total"],
+              ["{order_status}", "Current order status"],
+              ["{payment_method}", "Gateway title"],
+              ["{site_name}", "WordPress site name"],
+            ],
+          },
+          {
+            type: "note",
+            title: "No SMS on order?",
+            text: "Check SplitSMS → Logs for skip reasons (e.g. no_billing_phone). Ensure checkout collects a phone number or set a custom phone meta key under Integrations.",
           },
         ],
       },
       {
         id: "wp-crocoblock",
-        title: "Crocoblock (v1.2+)",
+        title: "Crocoblock",
         blocks: [
           {
             type: "p",
-            text: "JetEngine, JetFormBuilder, JetBooking, and JetAppointment each have a module under SplitSMS → Crocoblock. Map phone fields, write templates, and optionally set conditional JSON rules for status-based SMS.",
+            text: "JetEngine, JetFormBuilder, JetBooking, and JetAppointment modules live under SplitSMS → Crocoblock. Map phone fields, write templates, and use conditional rules for status-based SMS.",
           },
           {
             type: "ul",
             items: [
-              "JetBooking / JetAppointment reminders via WP-Cron",
-              "Logs tagged by source in WordPress and your SplitSMS dashboard",
-              "Requires SplitSMS plugin v1.2.0 or newer",
+              "JetBooking / JetAppointment — reminder SMS via WP-Cron",
+              "Activity tagged by source in WordPress logs and your dashboard",
+              "Requires plugin v1.2.0+; latest features in v1.4.x",
             ],
           },
         ],
       },
       {
         id: "wp-updates",
-        title: "Updates",
+        title: "Plugin updates",
+        blocks: [
+          {
+            type: "ol",
+            items: [
+              "WordPress Admin → Dashboard → Updates → Update SplitSMS",
+              "Or Plugins → Installed Plugins → Check for updates",
+              "Manifest: https://splitsms.com/api/plugin/update",
+              "Manual fallback: download splitsms.zip from splitsms.com/wordpress-plugin/splitsms.zip",
+            ],
+          },
+          {
+            type: "p",
+            text: "API keys, templates, and toggles are preserved when you update. See [Dashboard → WordPress](/dashboard/integrations/wordpress) for connected site stats.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "security",
+    title: "Security & compliance",
+    description: "Protect credentials, respect recipients, and meet regulatory expectations.",
+    subsections: [
+      {
+        id: "credentials",
+        title: "Credential hygiene",
+        blocks: [
+          {
+            type: "ul",
+            items: [
+              "Rotate API keys immediately if exposed — revoke old keys in App connections",
+              "Use separate keys per environment (production vs staging)",
+              "Restrict key permissions to the minimum required scope",
+              "Enable webhook signature verification on every endpoint",
+            ],
+          },
+        ],
+      },
+      {
+        id: "compliance",
+        title: "Responsible messaging",
         blocks: [
           {
             type: "p",
-            text: "The plugin checks splitsms.com/api/plugin/update for new versions. When a release is available, WordPress shows it under Plugins → Updates like any other plugin.",
+            text: "Obtain consent before promotional SMS. Include opt-out instructions where required by local law. Transactional messages (OTP, order updates) should clearly identify your brand via an approved Sender ID.",
+          },
+          {
+            type: "p",
+            text: "Read our [Privacy Policy](/privacy), [Terms](/terms), and [Data Protection](/data-protection) pages for how Tecunit Ghana processes account and message metadata.",
           },
         ],
       },
@@ -364,7 +563,7 @@ export const platformDocsChapters: DocChapter[] = [
   {
     id: "sdks",
     title: "SDKs",
-    description: "Official client libraries.",
+    description: "Official client libraries for popular languages.",
     subsections: [
       {
         id: "sdk-js",
@@ -372,33 +571,37 @@ export const platformDocsChapters: DocChapter[] = [
         blocks: [
           {
             type: "code",
+            language: "typescript",
             code: `npm install @splitsms/sdk
 
 import { SplitSMS } from "@splitsms/sdk";
 
 const client = new SplitSMS({
-  apiKey: process.env.SPLITSMS_API_KEY,
+  apiKey: process.env.SPLITSMS_API_KEY!,
   baseUrl: "https://splitsms.com",
 });
 
-await client.messages.send({
+const result = await client.messages.send({
   sender: "MYBRAND",
   recipients: ["233201234567"],
-  message: "Hello",
-});`,
+  message: "Hello from SplitSMS",
+});
+
+console.log(result.messageIds);`,
           },
         ],
       },
       {
         id: "sdk-other",
-        title: "PHP & Flutter",
+        title: "PHP, Flutter & Postman",
         blocks: [
           {
             type: "ul",
             items: [
-              "PHP: composer require splitsms/sdk — see /sdk for examples",
-              "Flutter: splitsms_flutter package for mobile apps",
-              "All SDKs accept a custom baseUrl for staging or self-hosted testing",
+              "PHP: composer require splitsms/sdk — see [SDK page](/sdk)",
+              "Flutter: splitsms_flutter for mobile OTP and notifications",
+              "Postman: import the collection from Developers → Postman",
+              "All SDKs accept baseUrl override for staging",
             ],
           },
         ],
@@ -408,20 +611,21 @@ await client.messages.send({
   {
     id: "troubleshooting",
     title: "Troubleshooting",
-    description: "Common issues and how to resolve them.",
+    description: "Diagnose delivery, API, and WordPress issues quickly.",
     subsections: [
       {
         id: "delivery",
         title: "SMS not delivered",
         blocks: [
           {
-            type: "ul",
-            items: [
-              "Check wallet balance — insufficient credits block sends",
-              "Confirm Sender ID is approved for the destination country",
-              "Use international format without + (e.g. 233201234567)",
-              "Review Reports for provider failure codes",
-              "Sandbox keys never deliver live SMS — switch to sk_live_ for production",
+            type: "table",
+            headers: ["Symptom", "Likely cause", "Action"],
+            rows: [
+              ["Immediate failure", "Insufficient SMS credits", "Top up wallet → buy credits"],
+              ["Invalid number", "Wrong format", "Use 233… not 020… or +233…"],
+              ["Sender rejected", "ID not approved", "Wait for approval or use approved ID"],
+              ["Sandbox key", "sk_test_ used in production", "Switch to sk_live_ key"],
+              ["Pending forever", "Carrier delay", "Check reports; retry if failed"],
             ],
           },
         ],
@@ -431,13 +635,30 @@ await client.messages.send({
         title: "API error codes",
         blocks: [
           {
+            type: "table",
+            headers: ["HTTP", "Code", "Meaning"],
+            rows: [
+              ["401", "UNAUTHORIZED", "Missing, truncated, or revoked API key"],
+              ["403", "FORBIDDEN", "Key lacks permission (e.g. sms.send)"],
+              ["402", "PAYMENT_REQUIRED", "Wallet or SMS credits too low"],
+              ["400", "INVALID_REQUEST", "Validation failed — check JSON schema"],
+              ["429", "TOO_MANY_REQUESTS", "Rate limit — exponential backoff"],
+              ["500", "INTERNAL_ERROR", "Retry once; contact support if persistent"],
+            ],
+          },
+        ],
+      },
+      {
+        id: "wp-troubleshoot",
+        title: "WordPress plugin",
+        blocks: [
+          {
             type: "ul",
             items: [
-              "401 UNAUTHORIZED — missing or invalid API key",
-              "403 FORBIDDEN — key lacks required permission (e.g. sms.send)",
-              "402 PAYMENT_REQUIRED — wallet balance too low",
-              "400 INVALID_REQUEST — validation failed; check JSON body",
-              "429 TOO_MANY_REQUESTS — rate limit exceeded; backoff and retry",
+              "not_configured — paste full API key, not prefix only",
+              "no_billing_phone — add phone to checkout or custom meta key",
+              "wc_*_skipped in logs — event disabled or phone missing",
+              "Connection test fails — check SSL, firewall, and splitsms.com reachability",
             ],
           },
         ],
@@ -448,7 +669,7 @@ await client.messages.send({
         blocks: [
           {
             type: "p",
-            text: "Submit bugs, errors, billing questions, or integration issues at /support. Logged-in users can also open tickets under Dashboard → Help & support.",
+            text: "Report bugs, billing issues, or integration problems at [Support](/support). Logged-in users can open tickets under Dashboard → Help & support. Include message IDs, API request IDs, and WordPress log entries when possible.",
           },
         ],
       },
@@ -457,9 +678,10 @@ await client.messages.send({
 ];
 
 export const docsQuickLinks = [
-  { href: "/api-docs", label: "API reference", desc: "Endpoints & cURL examples" },
+  { href: "/api-docs", label: "API reference", desc: "Interactive endpoints & cURL" },
+  { href: "/developers/docs", label: "Developer portal", desc: "Keys, webhooks, logs" },
+  { href: "/integrations/wordpress", label: "WordPress", desc: "Plugin setup & WooCommerce" },
   { href: "/sdk", label: "SDKs", desc: "JavaScript, PHP, Flutter" },
-  { href: "/integrations", label: "Integrations", desc: "WordPress & payment gateways" },
-  { href: "/changelog", label: "Changelog", desc: "Release history" },
-  { href: "/support", label: "Support", desc: "Report bugs & get help" },
+  { href: "/changelog", label: "Changelog", desc: "Platform & plugin releases" },
+  { href: "/support", label: "Support", desc: "Contact Tecunit Ghana" },
 ];
