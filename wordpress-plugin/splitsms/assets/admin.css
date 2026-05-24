@@ -1,5 +1,136 @@
+/* SplitSMS admin — v1.4+ layout */
 .splitsms-admin {
-  max-width: 1100px;
+  --splitsms-accent: #2563eb;
+  --splitsms-accent-soft: #eff6ff;
+  --splitsms-sidebar: #0f172a;
+  --splitsms-sidebar-text: #e2e8f0;
+  --splitsms-border: #e2e8f0;
+  --splitsms-muted: #64748b;
+  max-width: 1280px;
+  margin-top: 12px;
+}
+
+.splitsms-admin > h1 {
+  display: none;
+}
+
+.splitsms-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 0;
+  align-items: start;
+  background: #fff;
+  border: 1px solid var(--splitsms-border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+}
+
+.splitsms-sidebar {
+  background: var(--splitsms-sidebar);
+  color: var(--splitsms-sidebar-text);
+  min-height: 520px;
+  padding: 1.25rem 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.splitsms-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 0.75rem;
+}
+
+.splitsms-sidebar__logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #22c55e, #2563eb);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: -0.02em;
+}
+
+.splitsms-sidebar__brand strong {
+  display: block;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.splitsms-sidebar__version {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.splitsms-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 0.5rem;
+  flex: 1;
+}
+
+.splitsms-sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+
+.splitsms-sidebar__link .dashicons {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  opacity: 0.85;
+}
+
+.splitsms-sidebar__link:hover,
+.splitsms-sidebar__link:focus {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.splitsms-sidebar__link.is-active {
+  background: rgba(37, 99, 235, 0.35);
+  color: #fff;
+}
+
+.splitsms-sidebar__footer {
+  padding: 1rem 1.25rem 0;
+  font-size: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: auto;
+}
+
+.splitsms-sidebar__footer a {
+  color: #93c5fd;
+}
+
+.splitsms-main {
+  padding: 1.25rem 1.5rem 1.75rem;
+  min-width: 0;
+}
+
+.splitsms-page-title {
+  margin: 0 0 1rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #0f172a;
 }
 
 .splitsms-status-header {
@@ -8,24 +139,52 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin: 1rem 0 1.25rem;
+  margin: 0 0 1.25rem;
   padding: 1rem 1.25rem;
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
-  color: #f8fafc;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #0f172a;
+  border: 1px solid #bfdbfe;
   border-radius: 10px;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.splitsms-status-header__main,
+.splitsms-status-header__main strong,
+.splitsms-status-header__main span {
+  color: inherit;
 }
 
 .splitsms-status-header__main {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem 1.5rem;
+  gap: 0.75rem 1.25rem;
   align-items: center;
   font-size: 13px;
 }
 
 .splitsms-status-header__main strong {
   font-size: 15px;
+}
+
+.splitsms-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+  font-size: 12px;
+}
+
+.splitsms-status-pill--ok {
+  background: rgba(34, 197, 94, 0.18);
+  color: #166534;
+}
+
+.splitsms-status-pill--warn {
+  background: rgba(251, 191, 36, 0.22);
+  color: #92400e;
 }
 
 .splitsms-status-header__actions {
@@ -35,49 +194,168 @@
   gap: 0.5rem;
 }
 
+.splitsms-status-header__actions .button {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.splitsms-status-header__actions .button:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
 .splitsms-status-header__actions .button-primary {
-  background: #22c55e;
-  border-color: #16a34a;
+  background: #16a34a;
+  border-color: #15803d;
+  color: #fff;
+}
+
+.splitsms-status-header__actions .button-primary:hover {
+  background: #15803d;
+  border-color: #166534;
+  color: #fff;
+}
+
+.splitsms-admin #splitsms-send-test-result,
+.splitsms-admin #splitsms-test-result {
+  color: #166534;
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  .splitsms-status-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+    color: #f8fafc;
+    border-color: transparent;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
+  }
+
+  .splitsms-status-pill {
+    background: rgba(255, 255, 255, 0.12);
+    color: #f8fafc;
+  }
+
+  .splitsms-status-pill--ok {
+    background: rgba(34, 197, 94, 0.25);
+    color: #f8fafc;
+  }
+
+  .splitsms-status-pill--warn {
+    background: rgba(251, 191, 36, 0.25);
+    color: #f8fafc;
+  }
+
+  .splitsms-status-header__actions .button {
+    background: #f6f7f7;
+    border-color: #c3c4c7;
+    color: #1d2327;
+  }
+
+  .splitsms-status-header__actions .button-primary {
+    background: #22c55e;
+    border-color: #16a34a;
+    color: #fff;
+  }
+}
+
+.splitsms-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.splitsms-stat {
+  background: var(--splitsms-accent-soft);
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+}
+
+.splitsms-stat__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--splitsms-muted);
+  margin: 0 0 0.25rem;
+}
+
+.splitsms-stat__value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
 }
 
 .splitsms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.25rem;
-  margin-top: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
 }
 
-.splitsms-card,
-.splitsms-admin .splitsms-panel {
+.splitsms-card {
   background: #fff;
-  border: 1px solid #c3c4c7;
-  border-radius: 8px;
+  border: 1px solid var(--splitsms-border);
+  border-radius: 10px;
   padding: 1rem 1.25rem 1.25rem;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
   margin-bottom: 1rem;
 }
 
 .splitsms-card h2,
-.splitsms-admin .splitsms-panel h2 {
+.splitsms-card h3 {
   margin-top: 0;
-  font-size: 1.1rem;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.splitsms-card--accent {
+  border-left: 3px solid var(--splitsms-accent);
+}
+
+.splitsms-section-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--splitsms-muted);
+  margin: 1.25rem 0 0.5rem;
+  font-weight: 600;
+}
+
+.splitsms-section-title:first-child {
+  margin-top: 0;
 }
 
 .splitsms-steps {
   margin: 0.5rem 0 1rem 1.25rem;
+  line-height: 1.6;
+}
+
+.splitsms-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
 }
 
 .splitsms-list {
-  margin: 0.5rem 0 1rem;
+  margin: 0.5rem 0 0;
   padding-left: 0;
   list-style: none;
+}
+
+.splitsms-list li {
+  padding: 0.35rem 0;
+  font-size: 13px;
 }
 
 .splitsms-badge {
   display: inline-block;
   padding: 2px 8px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: capitalize;
 }
@@ -102,6 +380,13 @@
   overflow-x: auto;
 }
 
+.splitsms-log-detail {
+  max-width: 320px;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.45;
+}
+
 .splitsms-admin #splitsms-test-result,
 .splitsms-admin #splitsms-send-test-result {
   margin-left: 0.5rem;
@@ -110,31 +395,27 @@
 }
 
 .splitsms-detect-list {
-  margin: 0.75rem 0 1rem;
+  margin: 0.75rem 0 0;
   padding-left: 0;
   list-style: none;
-}
-
-.splitsms-detect-list li {
-  margin: 0.25rem 0;
-  font-size: 13px;
 }
 
 .splitsms-detect-list--grid {
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 }
 
 .splitsms-detect-list--grid li {
   margin: 0;
   padding: 0.75rem 1rem;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--splitsms-border);
   background: #f8fafc;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  font-size: 13px;
 }
 
 .splitsms-detect-list--grid li.is-active {
@@ -142,27 +423,23 @@
   background: #f0fdf4;
 }
 
-.splitsms-detect-list--grid li.is-inactive {
-  opacity: 0.75;
-}
-
 .splitsms-detect-list--grid .description {
   font-size: 12px;
-  color: #64748b;
+  color: var(--splitsms-muted);
   line-height: 1.45;
 }
 
 .splitsms-check-grid {
   display: grid;
   gap: 0.35rem 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   margin: 0.75rem 0 1rem;
 }
 
 .splitsms-form-grid {
   display: grid;
   gap: 1.25rem;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 }
 
 .splitsms-form-grid h3 {
@@ -170,18 +447,59 @@
   font-size: 14px;
 }
 
-.splitsms-notice-warn {
-  padding: 0.75rem 1rem;
+.splitsms-settings-card .form-table th {
+  width: 180px;
+  padding-top: 1rem;
+}
+
+.splitsms-settings-card .form-table td {
+  padding-top: 1rem;
+}
+
+.splitsms-api-key-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 520px;
+}
+
+.splitsms-api-key-row .splitsms-api-key-input {
+  flex: 1 1 280px;
+  min-width: 200px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 13px;
+}
+
+.splitsms-api-key-toggle {
+  flex-shrink: 0;
+}
+
+.splitsms-notice-inline {
+  padding: 0.65rem 0.85rem;
   border-radius: 8px;
-  background: #fef3c7;
-  color: #92400e;
-  border: 1px solid #fcd34d;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+  font-size: 13px;
+  margin-bottom: 1rem;
 }
 
-.splitsms-automation-card {
-  border-left: 3px solid var(--splitsms-accent, #2563eb);
-}
+@media (max-width: 782px) {
+  .splitsms-layout {
+    grid-template-columns: 1fr;
+  }
 
-.splitsms-admin .form-table th {
-  width: 200px;
+  .splitsms-sidebar {
+    min-height: 0;
+  }
+
+  .splitsms-sidebar__nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .splitsms-sidebar__link span.dashicons {
+    display: none;
+  }
 }

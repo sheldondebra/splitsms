@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "sync:site-config": "node scripts/sync-site-config.mjs",
+    "release:wp-plugin": "node scripts/sync-site-config.mjs && node scripts/verify-wp-plugin-release.mjs",
+    "sync:wp-local": "node scripts/sync-wp-local.mjs",
+    "watch:wp-local": "node scripts/sync-wp-local.mjs --watch",
     "prebuild": "node scripts/sync-site-config.mjs",
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",

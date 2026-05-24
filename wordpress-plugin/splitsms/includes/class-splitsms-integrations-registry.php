@@ -16,7 +16,7 @@ class SplitSMS_Integrations_Registry {
         $items = array(
             'woocommerce' => array(
                 'label' => 'WooCommerce',
-                'active' => class_exists('WooCommerce'),
+                'active' => class_exists('WooCommerce', false),
                 'group' => 'store',
                 'note' => __('Order placed, processing, completed, cancelled, and payment complete events.', 'splitsms'),
             ),
@@ -40,31 +40,31 @@ class SplitSMS_Integrations_Registry {
             ),
             'cf7' => array(
                 'label' => 'Contact Form 7',
-                'active' => class_exists('WPCF7_ContactForm'),
+                'active' => defined('WPCF7_VERSION'),
                 'group' => 'forms',
                 'note' => __('SMS after successful form submit (wpcf7_mail_sent).', 'splitsms'),
             ),
             'wpforms' => array(
                 'label' => 'WPForms',
-                'active' => function_exists('wpforms'),
+                'active' => defined('WPFORMS_VERSION') || function_exists('wpforms'),
                 'group' => 'forms',
                 'note' => __('SMS after form submission (wpforms_process_complete).', 'splitsms'),
             ),
             'elementor' => array(
                 'label' => 'Elementor Pro Forms',
-                'active' => defined('ELEMENTOR_PRO_VERSION') && class_exists('\ElementorPro\Plugin'),
+                'active' => defined('ELEMENTOR_PRO_VERSION'),
                 'group' => 'forms',
                 'note' => __('SMS on Elementor Pro form submit (new_record).', 'splitsms'),
             ),
             'jetengine' => array(
                 'label' => 'JetEngine',
-                'active' => defined('JET_ENGINE_VERSION') || class_exists('Jet_Engine'),
+                'active' => defined('JET_ENGINE_VERSION'),
                 'group' => 'crocoblock',
                 'note' => __('CPT create / status — enable under SplitSMS → Crocoblock.', 'splitsms'),
             ),
             'jetformbuilder' => array(
                 'label' => 'JetFormBuilder',
-                'active' => defined('JET_FORM_BUILDER_VERSION') || class_exists('Jet_Form_Builder\\Plugin'),
+                'active' => defined('JET_FORM_BUILDER_VERSION'),
                 'group' => 'crocoblock',
                 'note' => __('Form submit SMS — enable JetFormBuilder under Crocoblock.', 'splitsms'),
             ),
@@ -76,7 +76,7 @@ class SplitSMS_Integrations_Registry {
             ),
             'jetappointment' => array(
                 'label' => 'JetAppointment',
-                'active' => defined('JET_APB_VERSION') || class_exists('Jet_Appointment'),
+                'active' => defined('JET_APB_VERSION'),
                 'group' => 'crocoblock',
                 'note' => __('Appointment booked / status / reminders.', 'splitsms'),
             ),
@@ -89,14 +89,26 @@ class SplitSMS_Integrations_Registry {
      * @param string $needle Gateway id fragment.
      */
     public static function has_payment_gateway($needle) {
-        if (!class_exists('WooCommerce') || !function_exists('WC')) {
+        if (!class_exists('WooCommerce', false) || !function_exists('WC')) {
             return false;
         }
-        $gateways = WC()->payment_gateways();
-        if (!$gateways || !method_exists($gateways, 'get_available_payment_gateways')) {
+
+        $wc = WC();
+        if (!is_object($wc) || !isset($wc->payment_gateways) || !is_object($wc->payment_gateways)) {
             return false;
         }
-        foreach (array_keys($gateways->get_available_payment_gateways()) as $id) {
+
+        $gateways = $wc->payment_gateways;
+        if (!method_exists($gateways, 'get_available_payment_gateways')) {
+            return false;
+        }
+
+        $available = $gateways->get_available_payment_gateways();
+        if (!is_array($available)) {
+            return false;
+        }
+
+        foreach (array_keys($available) as $id) {
             if (false !== stripos($id, $needle)) {
                 return true;
             }

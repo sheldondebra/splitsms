@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { ArrowRight, Clock, Tag } from "lucide-react";
-import { blogPosts } from "@/lib/marketing/blog-posts";
+import { getBlogCategories, getSortedBlogPosts } from "@/lib/marketing/blog-posts";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function BlogListContent() {
-  const sorted = [...blogPosts].sort(
-    (a, b) => new Date(b.published).getTime() - new Date(a.published).getTime(),
-  );
+  const sorted = getSortedBlogPosts();
+  const categories = getBlogCategories();
 
   return (
     <>
@@ -25,6 +24,20 @@ export function BlogListContent() {
             Learn why bulk SMS matters, how to choose a gateway, and how SplitSMS helps you
             reach customers — without the enterprise headache.
           </p>
+          <p className="mt-4 text-sm text-muted-foreground">
+            <strong className="text-foreground">{sorted.length}</strong> articles · SMS marketing,
+            guides, integrations & business stories
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <span
+                key={cat}
+                className="rounded-full border border-border/60 bg-card px-3 py-1 text-xs font-medium text-muted-foreground"
+              >
+                {cat}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 

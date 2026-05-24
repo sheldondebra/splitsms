@@ -5,11 +5,22 @@ Official plugin for [www.splitsms.com](https://www.splitsms.com).
 ## Download
 
 - **Live site:** [https://www.splitsms.com/integrations](https://www.splitsms.com/integrations)
-- **Direct zip:** [https://www.splitsms.com/wordpress-plugin/splitsms.zip](https://www.splitsms.com/wordpress-plugin/splitsms.zip)
+- **Latest zip:** [https://www.splitsms.com/wordpress-plugin/splitsms.zip](https://www.splitsms.com/wordpress-plugin/splitsms.zip)
+- **Versioned zip:** `https://www.splitsms.com/wordpress-plugin/splitsms-{version}.zip` (e.g. splitsms-1.4.0.zip)
 
 ## Updates
 
 WordPress checks `https://www.splitsms.com/api/plugin/update` for new versions. When you bump the version in `config/site.json` and run `npm run sync:site-config`, all connected sites see the update in **Plugins → Updates**.
+
+## Versioning
+
+See **[VERSIONING.md](./VERSIONING.md)**. Summary:
+
+- **Patch** (1.4.0 → 1.4.1): bug fixes only
+- **Minor** (1.4.0 → 1.5.0): new features / UI / option keys
+- Bump `config/site.json` → `npm run sync:site-config`
+
+Builds produce **`splitsms-{version}.zip`** (canonical) and **`splitsms.zip`** (latest alias).
 
 ## Developer sync
 
@@ -23,7 +34,7 @@ This regenerates:
 
 - `wordpress-plugin/splitsms/includes/splitsms-config.php`
 - `public/wordpress-plugin/version.json`
-- `public/wordpress-plugin/splitsms.zip`
+- `public/wordpress-plugin/splitsms-{version}.zip` and `splitsms.zip`
 - Postman collection `baseUrl`
 
 ## Install / upgrade troubleshooting
@@ -35,7 +46,14 @@ This regenerates:
 3. Download a fresh [splitsms.zip](https://www.splitsms.com/wordpress-plugin/splitsms.zip) — keep the filename `splitsms.zip`.
 4. **Plugins → Add New → Upload** and activate.
 
-This happens when an older zip (with a nested `splitsms/` folder) was uploaded while a previous copy already existed. v1.3.0+ ships a flat zip to avoid that.
+This happens when an older zip (with a nested `splitsms/` folder) was uploaded while a previous copy already existed. v1.3.1+ ships a flat zip to avoid that.
+
+**Error: “Plugin could not be activated because it triggered a fatal error”**
+
+1. Delete all `splitsms`, `splitsms-1`, `splitsms-2` folders under `wp-content/plugins/`.
+2. Download fresh [splitsms.zip](https://www.splitsms.com/wordpress-plugin/splitsms.zip) (v1.3.1+).
+3. Upload and activate. If it still fails, enable `WP_DEBUG` in `wp-config.php` and check `wp-content/debug.log` for the exact PHP error line.
+4. Requires **PHP 7.4+** and **WordPress 6.0+**.
 
 ## Integrations (v1.3.0)
 

@@ -37,7 +37,7 @@ class SplitSMS_WordPress {
             }
         }
 
-        if ($this->settings->feature_enabled('cf7_enabled') && class_exists('WPCF7_ContactForm')) {
+        if ($this->settings->feature_enabled('cf7_enabled') && defined('WPCF7_VERSION')) {
             add_action('wpcf7_mail_sent', array($this, 'on_cf7_sent'), 20, 1);
         }
 
@@ -168,7 +168,9 @@ class SplitSMS_WordPress {
         }
 
         if (empty($vars['name']) && (!empty($vars['first_name']) || !empty($vars['last_name']))) {
-            $vars['name'] = trim(($vars['first_name'] ?? '') . ' ' . ($vars['last_name'] ?? ''));
+            $first = isset($vars['first_name']) ? $vars['first_name'] : '';
+            $last = isset($vars['last_name']) ? $vars['last_name'] : '';
+            $vars['name'] = trim($first . ' ' . $last);
         }
 
         $message = SplitSMS_API::render_template($this->settings->get('wpforms_message'), $vars);

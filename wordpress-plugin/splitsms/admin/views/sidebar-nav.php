@@ -1,0 +1,42 @@
+<?php
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+$current = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : 'splitsms';
+$nav = array(
+    'splitsms' => array(__('Dashboard', 'splitsms'), 'dashicons-dashboard'),
+    'splitsms-send' => array(__('Send SMS', 'splitsms'), 'dashicons-email'),
+    'splitsms-integrations' => array(__('Integrations', 'splitsms'), 'dashicons-admin-plugins'),
+    'splitsms-crocoblock' => array(__('Crocoblock', 'splitsms'), 'dashicons-calendar-alt'),
+    'splitsms-automations' => array(__('Automations', 'splitsms'), 'dashicons-controls-repeat'),
+    'splitsms-logs' => array(__('Logs', 'splitsms'), 'dashicons-list-view'),
+    'splitsms-settings' => array(__('Settings', 'splitsms'), 'dashicons-admin-settings'),
+    'splitsms-help' => array(__('Help', 'splitsms'), 'dashicons-editor-help'),
+);
+?>
+<aside class="splitsms-sidebar" aria-label="<?php esc_attr_e('SplitSMS navigation', 'splitsms'); ?>">
+    <div class="splitsms-sidebar__brand">
+        <span class="splitsms-sidebar__logo" aria-hidden="true">SMS</span>
+        <div>
+            <strong>SplitSMS</strong>
+            <span class="splitsms-sidebar__version">v<?php echo esc_html(SPLITSMS_VERSION); ?></span>
+        </div>
+    </div>
+    <nav class="splitsms-sidebar__nav">
+        <?php foreach ($nav as $slug => $item) : ?>
+            <a
+                class="splitsms-sidebar__link <?php echo $current === $slug ? 'is-active' : ''; ?>"
+                href="<?php echo esc_url(admin_url('admin.php?page=' . $slug)); ?>"
+            >
+                <span class="dashicons <?php echo esc_attr($item[1]); ?>" aria-hidden="true"></span>
+                <?php echo esc_html($item[0]); ?>
+            </a>
+        <?php endforeach; ?>
+    </nav>
+    <div class="splitsms-sidebar__footer">
+        <a href="<?php echo esc_url(defined('SPLITSMS_INTEGRATIONS_URL') ? SPLITSMS_INTEGRATIONS_URL : '#'); ?>" target="_blank" rel="noopener">
+            <?php esc_html_e('Documentation', 'splitsms'); ?>
+        </a>
+    </div>
+</aside>

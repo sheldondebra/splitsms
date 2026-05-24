@@ -23,7 +23,7 @@ class SplitSMS_API {
      */
     public function send_sms($to, $message, $extra = array()) {
         if (!SplitSMS_Settings::is_configured()) {
-            return array('ok' => false, 'error' => 'not_configured');
+            return array('ok' => false, 'error' => SplitSMS_Settings::configuration_error());
         }
 
         $to = preg_replace('/\s+/', '', $to);
@@ -75,7 +75,7 @@ class SplitSMS_API {
      */
     public function get_account_status() {
         if (!SplitSMS_Settings::is_configured()) {
-            return array('ok' => false, 'error' => 'not_configured');
+            return array('ok' => false, 'error' => SplitSMS_Settings::configuration_error());
         }
 
         $response = $this->request('GET', $this->endpoint('/api/v1/account/status'));
@@ -196,6 +196,11 @@ class SplitSMS_API {
             $args['body'] = wp_json_encode($body);
         }
 
+        if (SplitSMS_Settings::is_local_api_url($url)) {
+            $args['sslverify'] = false;
+            $args['reject_unsafe_urls'] = false;
+        }
+
         $response = wp_remote_request($url, $args);
 
         if (is_wp_error($response)) {
@@ -211,11 +216,21 @@ class SplitSMS_API {
             return array('ok' => true, 'data' => $data);
         }
 
-        $message_err = is_array($data) && isset($data['error']['message'])
-            ? $data['error']['message']
-            : 'API request failed (' . $code . ')';
+        if (is_array($data) && isset($data['error']['message'])) {
+            $message_err = $data['error']['message'];
+            if (isset($data['error']['code']) && 'FORBIDDEN' === $data['error']['code']) {
+                $message_err .= ' ' . __('Add wallet.read permission to your API key.', 'splitsms');
+            }
+        } else {
+            $message_err = sprintf(
+                /* translators: 1: HTTP status code 2: request URL */
+                __('API request failed (%1$s) — %2$s', 'splitsms'),
+                (string) $code,
+                $url
+            );
+        }
 
-        $this->debug_log($message_err);
+        $this->debug_log($message_err . ' [' . $code . '] ' . $url);
         return array('ok' => false, 'error' => $message_err, 'data' => is_array($data) ? $data : null);
     }
 

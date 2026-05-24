@@ -118,7 +118,30 @@ class SplitSMS_Reminders {
         }
     }
 
+    /**
+     * Register cron schedule + handler (safe to call on plugins_loaded).
+     */
+    public static function register_cron_hooks() {
+        add_filter('cron_schedules', array(__CLASS__, 'add_cron_schedule'));
+        add_action(self::CRON_HOOK, array(__CLASS__, 'process_due'));
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $schedules
+     * @return array<string, array<string, mixed>>
+     */
+    public static function add_cron_schedule($schedules) {
+        if (!isset($schedules['splitsms_quarter_hour'])) {
+            $schedules['splitsms_quarter_hour'] = array(
+                'interval' => 15 * MINUTE_IN_SECONDS,
+                'display' => __('Every 15 minutes (SplitSMS)', 'splitsms'),
+            );
+        }
+        return $schedules;
+    }
+
     public static function register_cron() {
+        self::register_cron_hooks();
         if (!wp_next_scheduled(self::CRON_HOOK)) {
             wp_schedule_event(time() + 300, 'splitsms_quarter_hour', self::CRON_HOOK);
         }
@@ -129,17 +152,3 @@ class SplitSMS_Reminders {
     }
 }
 
-add_filter(
-    'cron_schedules',
-    function ($schedules) {
-        if (!isset($schedules['splitsms_quarter_hour'])) {
-            $schedules['splitsms_quarter_hour'] = array(
-                'interval' => 15 * MINUTE_IN_SECONDS,
-                'display' => __('Every 15 minutes (SplitSMS)', 'splitsms'),
-            );
-        }
-        return $schedules;
-    }
-);
-
-add_action('splitsms_process_reminders', array('SplitSMS_Reminders', 'process_due'));

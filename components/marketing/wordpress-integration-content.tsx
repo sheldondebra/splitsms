@@ -59,7 +59,8 @@ const features = [
 
 export function WordPressIntegrationContent() {
   const baseUrl = getSiteUrl();
-  const downloadUrl = wordpressPlugin.downloadUrl;
+  const downloadUrl = wordpressPlugin.versionedDownloadUrl;
+  const downloadLabel = wordpressPlugin.versionedDownloadFilename;
 
   return (
     <>
@@ -122,7 +123,7 @@ export function WordPressIntegrationContent() {
             </div>
             <a href={downloadUrl} className={cn(buttonVariants(), "shrink-0 gap-2")} download>
               <Download className="h-4 w-4" />
-              splitsms.zip
+              {downloadLabel}
             </a>
           </div>
 

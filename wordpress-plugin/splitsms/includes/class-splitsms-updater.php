@@ -82,11 +82,13 @@ class SplitSMS_Updater {
         $info->download_link = isset($remote['download_url']) ? $remote['download_url'] : SPLITSMS_PLUGIN_DOWNLOAD_URL;
         $info->sections = array(
             'description' => __('Send transactional SMS from WordPress and WooCommerce using your SplitSMS API key.', 'splitsms'),
-            'changelog' => sprintf(
-                /* translators: %s: site URL */
-                __('Updates are distributed from %s. Configure your API key under Settings → SplitSMS.', 'splitsms'),
-                SPLITSMS_APP_URL
-            ),
+            'changelog' => !empty($remote['changelog'])
+                ? wp_kses_post($remote['changelog'])
+                : sprintf(
+                    /* translators: %s: site URL */
+                    __('Updates are distributed from %s. Go to Dashboard → Updates to install the latest version.', 'splitsms'),
+                    SPLITSMS_APP_URL
+                ),
         );
 
         return $info;

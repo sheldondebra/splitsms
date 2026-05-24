@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Clock, Tag } from "lucide-react";
 import type { BlogPost } from "@/lib/marketing/blog-posts";
-import { blogPosts } from "@/lib/marketing/blog-posts";
+import { getSortedBlogPosts } from "@/lib/marketing/blog-posts";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function BlogPostContent({ post }: { post: BlogPost }) {
-  const others = blogPosts.filter((p) => p.slug !== post.slug).slice(0, 2);
+  const others = getSortedBlogPosts()
+    .filter((p) => p.slug !== post.slug)
+    .slice(0, 3);
 
   return (
     <article className="bg-background">
@@ -75,18 +77,29 @@ export function BlogPostContent({ post }: { post: BlogPost }) {
             <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
               More articles
             </h2>
-            <ul className="mt-4 space-y-3">
+            <ul className="mt-4 grid gap-4 sm:grid-cols-3">
               {others.map((p) => (
-                <li key={p.slug}>
+                <li
+                  key={p.slug}
+                  className="rounded-xl border border-border/60 bg-card p-4 hover:border-primary/30 transition-colors"
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+                    {p.category}
+                  </p>
                   <Link
                     href={`/blog/${p.slug}`}
-                    className="text-foreground font-medium hover:text-primary transition-colors"
+                    className="mt-2 block text-sm font-semibold text-foreground hover:text-primary transition-colors leading-snug"
                   >
                     {p.title}
                   </Link>
                 </li>
               ))}
             </ul>
+            <p className="mt-6 text-center">
+              <Link href="/blog" className="text-sm font-semibold text-primary hover:underline">
+                View all articles →
+              </Link>
+            </p>
           </div>
         </aside>
       )}

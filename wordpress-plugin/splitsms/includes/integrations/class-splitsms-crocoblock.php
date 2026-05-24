@@ -35,10 +35,10 @@ class SplitSMS_Crocoblock {
      */
     public static function detect_plugins() {
         return array(
-            'jetengine' => defined('JET_ENGINE_VERSION') || class_exists('Jet_Engine'),
-            'jetformbuilder' => defined('JET_FORM_BUILDER_VERSION') || class_exists('Jet_Form_Builder\\Plugin'),
+            'jetengine' => defined('JET_ENGINE_VERSION'),
+            'jetformbuilder' => defined('JET_FORM_BUILDER_VERSION'),
             'jetbooking' => function_exists('jet_abaf') || defined('JET_ABAF_VERSION'),
-            'jetappointment' => defined('JET_APB_VERSION') || class_exists('Jet_Appointment'),
+            'jetappointment' => defined('JET_APB_VERSION'),
             'jetwoobuilder' => defined('JET_WOO_BUILDER_VERSION'),
             'jetsmartfilters' => defined('JET_SMART_FILTERS_VERSION'),
         );

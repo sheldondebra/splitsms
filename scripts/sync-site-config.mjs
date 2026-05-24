@@ -3,7 +3,7 @@
  * Run: node scripts/sync-site-config.mjs
  * Also runs before build via package.json.
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, readdirSync, unlinkSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { execSync } from "child_process";
@@ -13,6 +13,36 @@ const root = join(__dirname, "..");
 const config = JSON.parse(readFileSync(join(root, "config/site.json"), "utf8"));
 const siteUrl = config.siteUrl.replace(/\/$/, "");
 const wp = config.wordpressPlugin;
+
+const versionedPath =
+  (wp.versionedDownloadPath || "/wordpress-plugin/splitsms-{version}.zip").replace(
+    "{version}",
+    wp.version,
+  );
+const versionedDownloadUrl = `${siteUrl}${versionedPath}`;
+const latestDownloadUrl = `${siteUrl}${wp.downloadPath}`;
+
+function extractChangelog(readmePath, targetVersion) {
+  if (!existsSync(readmePath)) {
+    return "";
+  }
+  const readme = readFileSync(readmePath, "utf8");
+  const marker = `= ${targetVersion} =`;
+  const start = readme.indexOf(marker);
+  if (start === -1) {
+    return "";
+  }
+  const after = readme.slice(start + marker.length);
+  const next = after.search(/\r?\n= \d+\.\d+/);
+  const block = (next === -1 ? after : after.slice(0, next)).trim();
+  return block
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\*\s*/, "• "))
+    .join("\n");
+}
+
+const readmePath = join(root, "wordpress-plugin/splitsms/readme.txt");
+const changelogText = extractChangelog(readmePath, wp.version);
 
 // WordPress PHP config (single source for plugin defaults)
 const phpConfig = `<?php
@@ -27,7 +57,8 @@ if (!defined('ABSPATH')) {
 define('SPLITSMS_APP_URL', '${siteUrl}');
 define('SPLITSMS_API_DOCS_URL', '${siteUrl}/api-docs');
 define('SPLITSMS_INTEGRATIONS_URL', '${siteUrl}/integrations');
-define('SPLITSMS_PLUGIN_DOWNLOAD_URL', '${siteUrl}${wp.downloadPath}');
+define('SPLITSMS_PLUGIN_DOWNLOAD_URL', '${versionedDownloadUrl}');
+define('SPLITSMS_PLUGIN_DOWNLOAD_LATEST_URL', '${latestDownloadUrl}');
 define('SPLITSMS_UPDATE_CHECK_URL', '${siteUrl}${wp.updateCheckPath}');
 define('SPLITSMS_PLUGIN_VERSION', '${wp.version}');
 `;
@@ -57,7 +88,9 @@ const versionManifest = {
   slug: wp.slug,
   version: wp.version,
   homepage: siteUrl,
-  download_url: `${siteUrl}${wp.downloadPath}`,
+  download_url: versionedDownloadUrl,
+  download_url_latest: latestDownloadUrl,
+  download_filename: `splitsms-${wp.version}.zip`,
   requires: "6.0",
   tested: "6.7",
   requires_php: "7.4",
@@ -66,6 +99,7 @@ const versionManifest = {
   integrations_url: `${siteUrl}/integrations`,
   update_check_url: `${siteUrl}${wp.updateCheckPath}`,
   last_updated: new Date().toISOString().slice(0, 10),
+  changelog: changelogText,
 };
 
 writeFileSync(join(publicWpDir, "version.json"), JSON.stringify(versionManifest, null, 2) + "\n");
@@ -79,16 +113,16 @@ if (existsSync(postmanPath)) {
   writeFileSync(postmanPath, JSON.stringify(collection, null, 2) + "\n");
 }
 
-// Zip plugin for download — files at archive root (no "splitsms/" wrapper).
-// If the zip contained a splitsms/ folder and wp-content/plugins/splitsms already exists,
-// WordPress extracts to splitsms-1/splitsms/splitsms.php (two levels) and activation fails.
+// Zip plugin — versioned name + latest alias (splitsms.zip)
 const pluginDir = join(root, "wordpress-plugin/splitsms");
-const zipOut = join(publicWpDir, "splitsms.zip");
-try {
+const versionedZip = join(publicWpDir, `splitsms-${wp.version}.zip`);
+const latestZip = join(publicWpDir, "splitsms.zip");
+
+function buildZip(outPath) {
   if (process.platform === "win32") {
     const psZip = [
       `$src = '${pluginDir.replace(/'/g, "''")}'`,
-      `$out = '${zipOut.replace(/'/g, "''")}'`,
+      `$out = '${outPath.replace(/'/g, "''")}'`,
       "if (Test-Path $out) { Remove-Item $out -Force }",
       "Push-Location $src",
       "Compress-Archive -Path * -DestinationPath $out -Force",
@@ -96,16 +130,16 @@ try {
     ].join("; ");
     execSync(`powershell -NoProfile -Command "${psZip}"`, { stdio: "inherit", cwd: root });
   } else {
-    execSync(`cd "${pluginDir}" && zip -r "${zipOut}" . -x "*.DS_Store"`, { stdio: "inherit" });
+    execSync(`cd "${pluginDir}" && zip -r "${outPath}" . -x "*.DS_Store"`, { stdio: "inherit" });
   }
+}
 
-  // Validate: main plugin file must be at zip root, not nested splitsms/splitsms.php
+function validateZip(zipOut) {
   if (process.platform === "win32") {
-    const check = execSync(
+    execSync(
       `powershell -NoProfile -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::OpenRead('${zipOut.replace(/'/g, "''")}'); $root=($z.Entries | Where-Object { $_.FullName -eq 'splitsms.php' }).Count -gt 0; $nested=($z.Entries | Where-Object { $_.FullName -like 'splitsms/splitsms.php' }).Count -gt 0; $z.Dispose(); if (-not $root -or $nested) { exit 1 }"`,
       { encoding: "utf8" },
     );
-    void check;
   } else {
     const listing = execSync(`unzip -l "${zipOut}"`, { encoding: "utf8" });
     if (!listing.includes(" splitsms.php")) {
@@ -115,10 +149,31 @@ try {
       throw new Error("Zip has nested splitsms/ folder — fix zip command");
     }
   }
-  console.log("Wrote", zipOut, "(flat layout: splitsms.php at archive root)");
+}
+
+try {
+  buildZip(versionedZip);
+  validateZip(versionedZip);
+  copyFileSync(versionedZip, latestZip);
+
+  for (const file of readdirSync(publicWpDir)) {
+    if (
+      file.startsWith("splitsms-") &&
+      file.endsWith(".zip") &&
+      file !== `splitsms-${wp.version}.zip`
+    ) {
+      unlinkSync(join(publicWpDir, file));
+      console.log("Removed stale zip:", file);
+    }
+  }
+
+  console.log("Wrote", versionedZip);
+  console.log("Wrote", latestZip, "(latest alias)");
 } catch (e) {
-  console.warn("Zip skipped (install zip or run on Windows with Compress-Archive):", e.message);
+  console.warn("Zip skipped:", e.message);
 }
 
 console.log("Synced site config → WordPress plugin, public/wordpress-plugin/, Postman");
 console.log("Site URL:", siteUrl);
+console.log("Plugin version:", wp.version);
+console.log("Versioned download:", versionedDownloadUrl);

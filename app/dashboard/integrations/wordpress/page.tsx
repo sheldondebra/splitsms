@@ -114,12 +114,18 @@ export default async function WordPressIntegrationsPage() {
             .
           </p>
           <a
-            href={wordpressPlugin.downloadUrl}
+            href={wordpressPlugin.versionedDownloadUrl}
             className="inline-flex items-center gap-1 text-primary font-medium hover:underline"
           >
-            Download splitsms.zip
+            Download {wordpressPlugin.versionedDownloadFilename}
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
+          <p className="text-xs">
+            Latest alias:{" "}
+            <a href={wordpressPlugin.downloadUrl} className="text-primary hover:underline">
+              splitsms.zip
+            </a>
+          </p>
           <p>
             <a href={`${baseUrl}/integrations`} className="text-primary hover:underline">
               Setup guide

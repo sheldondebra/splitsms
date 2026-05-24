@@ -29,6 +29,16 @@ export const wordpressPlugin = {
   get downloadUrl() {
     return `${getSiteUrl()}${config.wordpressPlugin.downloadPath}`;
   },
+  get versionedDownloadUrl() {
+    const pattern =
+      config.wordpressPlugin.versionedDownloadPath ??
+      "/wordpress-plugin/splitsms-{version}.zip";
+    const path = pattern.replace("{version}", config.wordpressPlugin.version);
+    return `${getSiteUrl()}${path}`;
+  },
+  get versionedDownloadFilename() {
+    return `splitsms-${config.wordpressPlugin.version}.zip`;
+  },
   get updateCheckUrl() {
     return `${getSiteUrl()}${config.wordpressPlugin.updateCheckPath}`;
   },

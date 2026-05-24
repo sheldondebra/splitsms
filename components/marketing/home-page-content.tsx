@@ -22,6 +22,7 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react";
+import { HomeBlogSection } from "@/components/marketing/home-blog-section";
 
 const stats = [
   { value: "190+", label: "Countries for SMS delivery" },
@@ -472,6 +473,8 @@ Authorization: Bearer sk_...
           </div>
         </div>
       </section>
+
+      <HomeBlogSection />
 
       {/* Testimonials */}
       <section className="py-20 border-t bg-muted/30" aria-labelledby="reviews">

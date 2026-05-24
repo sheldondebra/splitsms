@@ -96,6 +96,7 @@ export function ApiKeysManager({
             <p className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
               Keys are stored hashed — we cannot show this key again after you leave this page.
+              For WordPress, paste this <strong>full</strong> key (not the short prefix from the keys list).
             </p>
           </CardContent>
         </Card>
@@ -169,7 +170,10 @@ export function ApiKeysManager({
       <Card className="rounded-2xl">
         <CardHeader>
           <CardTitle className="text-lg">Your API keys ({keys.length})</CardTitle>
-          <CardDescription>Masked keys — use rotate to issue a new secret.</CardDescription>
+          <CardDescription>
+            Only the prefix is stored here. Use Rotate to generate a new full secret, or copy the
+            complete key from the banner above when you first create a key.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {keys.length === 0 ? (
@@ -187,9 +191,11 @@ export function ApiKeysManager({
                     <p className="font-semibold">{k.label}</p>
                     <div className="mt-2 flex items-center gap-2">
                       <code className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">
-                        {maskSecret(k.keyPrefix + "x".repeat(20))}
+                        {k.keyPrefix}…
                       </code>
-                      <CopyButton value={k.keyPrefix} label="Copy prefix" size="sm" />
+                      <span className="text-[11px] text-muted-foreground">
+                        Prefix only — not valid for WordPress or API calls
+                      </span>
                     </div>
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {k.isSandbox ? (
