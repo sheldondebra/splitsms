@@ -17,10 +17,10 @@ import type { SenderIdItem } from "@/components/dashboard/sender-id-list";
 const ALERT_MESSAGES: Record<string, { success?: string; error?: string }> = {
   requested: {
     success:
-      "Sender ID submitted to mNotify. Status is pending until the provider approves it.",
+      "Sender ID submitted to your SMS provider. Status is pending until approved.",
   },
   approved: {
-    success: "Sender ID approved by mNotify — you can use it to send SMS now.",
+    success: "Sender ID approved — you can use it to send SMS now.",
   },
   default: {
     success: "Default Sender ID updated for new messages.",

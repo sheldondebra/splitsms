@@ -73,6 +73,8 @@ export const adminNavSections: AdminNavSection[] = [
 ];
 
 export function getAdminPageTitle(pathname: string): string {
+  if (/^\/admin\/members\/[^/]+$/.test(pathname)) return "Member detail";
+  if (/^\/admin\/resellers\/[^/]+$/.test(pathname)) return "Reseller detail";
   for (const section of adminNavSections) {
     for (const item of section.items) {
       if (pathname === item.href) return item.label;

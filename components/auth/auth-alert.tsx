@@ -22,6 +22,18 @@ const messages: Record<string, { text: string; variant: "error" | "success" | "i
   sent: { text: "If an account exists for that number or email, we sent a verification code.", variant: "success" },
   resent: { text: "A new verification code has been sent.", variant: "success" },
   reset: { text: "Password updated successfully. You can sign in now.", variant: "success" },
+  tenant: {
+    text: "This account cannot sign in on this domain. Use the portal your provider gave you.",
+    variant: "error",
+  },
+  tenant_signup: {
+    text: "Public signup is disabled on this domain. Ask your SMS provider to create your account.",
+    variant: "info",
+  },
+  tenant_owner: {
+    text: "Reseller owners should use the main SplitSMS site for the reseller portal.",
+    variant: "info",
+  },
 };
 
 export function AuthAlert({

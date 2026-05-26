@@ -6,9 +6,8 @@ import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { buttonVariants } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
-import { Menu, X, ArrowRight } from "lucide-react";
+import { Menu, X } from "lucide-react";
 
 const navItems = [
   { href: "/features", label: "Features" },
@@ -26,19 +25,7 @@ function isActive(pathname: string, href: string) {
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const { resolvedTheme } = useTheme();
-  const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-
-  const onHomeHero = pathname === "/" && !scrolled;
-  const transparent = onHomeHero;
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   useEffect(() => setMenuOpen(false), [pathname]);
 
@@ -51,57 +38,37 @@ export function SiteHeader() {
     };
   }, [menuOpen]);
 
-  const logoVariant = transparent || resolvedTheme === "dark" ? "white" : "default";
-
-  function linkClass(href: string) {
-    const active = isActive(pathname, href);
-    return cn(
-      "site-header-link",
-      transparent ? "site-header-link--hero" : "site-header-link--solid",
-      active && (transparent ? "site-header-link--active-hero" : "site-header-link--active-solid"),
-    );
-  }
-
   return (
     <>
-      <header
-        className={cn(
-          "site-header",
-          transparent ? "site-header--hero" : "site-header--solid",
-        )}
-      >
-        {!transparent && <div className="site-header-accent" aria-hidden />}
-
+      <header className="site-header site-header--solid">
         <div className="site-header-inner">
-          <Logo href="/" size="md" variant={logoVariant} />
+          <Logo href="/" size="md" />
 
           <nav className="site-header-nav" aria-label="Main">
-            {navItems.map((item) => (
-              <Link key={item.href} href={item.href} className={linkClass(item.href)}>
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const active = isActive(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "site-header-link site-header-link--solid",
+                    active && "site-header-link--active-solid",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
-          <div className="hidden md:flex items-center gap-2 shrink-0">
-            <ThemeToggle
-              className={cn(
-                "rounded-lg",
-                transparent
-                  ? "text-white hover:bg-white/12 hover:text-white"
-                  : "text-foreground hover:bg-muted",
-              )}
-            />
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
+            <ThemeToggle className="rounded-lg text-foreground hover:bg-muted" />
             <Link
               href="/login"
               className={cn(
-                buttonVariants({
-                  variant: transparent ? "ghost" : "outline",
-                  size: "sm",
-                }),
-                "rounded-lg font-semibold",
-                transparent &&
-                  "text-white hover:bg-white/12 hover:text-white border-transparent",
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "rounded-lg font-medium text-foreground/80",
               )}
             >
               Log in
@@ -110,33 +77,19 @@ export function SiteHeader() {
               href="/signup"
               className={cn(
                 buttonVariants({ size: "sm" }),
-                "rounded-lg font-semibold gap-1.5 px-4",
-                transparent && "orange-glow",
+                "rounded-lg font-semibold px-4",
               )}
             >
               Get started
-              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
 
-          <div className="flex items-center gap-1 md:hidden shrink-0">
-            <ThemeToggle
-              className={cn(
-                "rounded-lg",
-                transparent
-                  ? "text-white hover:bg-white/12"
-                  : "text-foreground hover:bg-muted",
-              )}
-            />
+          <div className="flex items-center gap-1 lg:hidden shrink-0">
+            <ThemeToggle className="rounded-lg text-foreground hover:bg-muted" />
             <button
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
-              className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
-                transparent
-                  ? "text-white border border-white/25 bg-white/10 hover:bg-white/18"
-                  : "text-foreground border border-border bg-muted/60 hover:bg-muted",
-              )}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-background text-foreground hover:bg-muted"
               aria-label={menuOpen ? "Close menu" : "Open menu"}
               aria-expanded={menuOpen}
             >
@@ -148,35 +101,35 @@ export function SiteHeader() {
 
       <div
         className={cn(
-          "fixed inset-0 z-[60] md:hidden transition-opacity duration-300",
+          "fixed inset-0 z-[60] lg:hidden transition-opacity duration-200",
           menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
         )}
         aria-hidden={!menuOpen}
       >
         <div
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          className="absolute inset-0 bg-black/40"
           onClick={() => setMenuOpen(false)}
         />
         <div
           className={cn(
-            "absolute top-0 right-0 flex h-full w-[min(100%,20rem)] flex-col border-l border-border bg-background shadow-2xl transition-transform duration-300 ease-out safe-top",
+            "absolute top-0 right-0 flex h-full w-[min(100%,18rem)] flex-col border-l border-border bg-background shadow-xl transition-transform duration-200 ease-out safe-top",
             menuOpen ? "translate-x-0" : "translate-x-full",
           )}
         >
-          <div className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-5">
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
             <Logo href="/" size="sm" />
             <button
               type="button"
               onClick={() => setMenuOpen(false)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground hover:bg-muted"
+              className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-muted"
               aria-label="Close menu"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
 
-          <nav className="flex-1 overflow-y-auto sidebar-scroll px-3 py-4" aria-label="Mobile">
-            <ul className="space-y-0.5">
+          <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Mobile">
+            <ul className="space-y-1">
               {navItems.map((item) => {
                 const active = isActive(pathname, item.href);
                 return (
@@ -184,9 +137,9 @@ export function SiteHeader() {
                     <Link
                       href={item.href}
                       className={cn(
-                        "flex h-11 items-center rounded-lg px-3 text-[15px] font-semibold transition-colors",
+                        "flex h-11 items-center rounded-lg px-3 text-[15px] font-medium transition-colors",
                         active
-                          ? "bg-primary text-primary-foreground"
+                          ? "bg-primary/10 text-primary"
                           : "text-foreground hover:bg-muted",
                       )}
                     >
@@ -198,19 +151,18 @@ export function SiteHeader() {
             </ul>
           </nav>
 
-          <div className="shrink-0 space-y-2 border-t border-border bg-card p-4 safe-bottom">
+          <div className="shrink-0 space-y-2 border-t border-border p-4 safe-bottom">
             <Link
               href="/signup"
-              className={cn(buttonVariants({ size: "lg" }), "w-full rounded-xl font-semibold gap-2")}
+              className={cn(buttonVariants({ size: "lg" }), "w-full rounded-xl font-semibold")}
             >
               Get started free
-              <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/login"
               className={cn(
                 buttonVariants({ variant: "outline", size: "lg" }),
-                "w-full rounded-xl font-semibold",
+                "w-full rounded-xl font-medium",
               )}
             >
               Log in

@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AuthLayout, AuthCard } from "@/components/auth/auth-layout";
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { SignupForm } from "@/components/auth/signup-form";
 import { getSignupCountryOptions } from "@/lib/signup-countries";
+import { getRequestTenant } from "@/lib/reseller/request-tenant";
 
 export default async function SignupPage({
   searchParams,
@@ -10,6 +12,10 @@ export default async function SignupPage({
   searchParams: Promise<{ error?: string; method?: string }>;
 }) {
   const { error, method } = await searchParams;
+  const tenant = await getRequestTenant();
+  if (tenant) {
+    redirect("/login?error=tenant_signup");
+  }
   const countries = await getSignupCountryOptions();
   const defaultMethod = method === "email" ? "email" : "phone";
 

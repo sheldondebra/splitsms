@@ -20,18 +20,18 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "SplitSMS — Bulk SMS Platform & SMS API | Ghana & Global",
+    default: "SplitSMS — Bulk SMS Platform & SMS API | Worldwide",
     template: "%s | SplitSMS",
   },
   description:
-    "Send bulk SMS, OTP, and marketing campaigns in Ghana and 190+ countries. Affordable SMS gateway, REST SMS API, and pay-as-you-go pricing from GHS 0.029 per SMS.",
+    "Send bulk SMS, OTP, and marketing campaigns in 190+ countries. Affordable SMS gateway, REST SMS API, and pay-as-you-go pricing.",
   keywords: [
     "SMS",
     "bulk SMS",
-    "SMS Ghana",
     "SMS API",
     "SMS gateway",
     "send SMS",
+    "global SMS",
     "SplitSMS",
   ],
   icons: { icon: "/smslogo.png" },

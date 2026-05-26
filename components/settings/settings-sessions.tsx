@@ -23,18 +23,11 @@ export type SessionRow = {
   lastActiveAt: Date;
 };
 
+import { parseUserAgent } from "@/lib/user-agent";
+
 function parseDevice(userAgent: string | null) {
-  if (!userAgent) return { label: "Unknown device", mobile: false };
-  const mobile = /iPhone|iPad|Android|Mobile/i.test(userAgent);
-  if (/Chrome/i.test(userAgent)) return { label: mobile ? "Chrome · Mobile" : "Chrome · Desktop", mobile };
-  if (/Safari/i.test(userAgent) && !/Chrome/i.test(userAgent)) {
-    return { label: mobile ? "Safari · Mobile" : "Safari · Desktop", mobile };
-  }
-  if (/Firefox/i.test(userAgent)) return { label: mobile ? "Firefox · Mobile" : "Firefox · Desktop", mobile };
-  if (/Windows/i.test(userAgent)) return { label: "Windows", mobile: false };
-  if (/Mac/i.test(userAgent)) return { label: "Mac", mobile: false };
-  const short = userAgent.length > 36 ? `${userAgent.slice(0, 36)}…` : userAgent;
-  return { label: short, mobile };
+  const p = parseUserAgent(userAgent);
+  return { label: p.label, mobile: p.mobile };
 }
 
 function SessionIcon({ mobile }: { mobile: boolean }) {

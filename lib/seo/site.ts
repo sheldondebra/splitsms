@@ -7,8 +7,7 @@ export const siteName = configSiteName;
 export const defaultKeywords = [
   "SMS",
   "bulk SMS",
-  "SMS Ghana",
-  "bulk SMS Ghana",
+  "global bulk SMS",
   "SMS API",
   "SMS gateway",
   "send SMS",
@@ -19,7 +18,7 @@ export const defaultKeywords = [
   "affordable SMS",
   "SplitSMS",
   "bulk messaging",
-  "SMS platform Africa",
+  "international SMS",
   "WooCommerce SMS",
 ];
 
@@ -31,7 +30,7 @@ export const organizationJsonLd = {
   logo: `${siteUrl}/smslogo.png`,
   email: supportEmail,
   description:
-    "SplitSMS is a bulk SMS platform for Ghana and 190+ countries — campaigns, OTP API, webhooks, and pay-as-you-go pricing.",
+    "SplitSMS is a bulk SMS platform for 190+ countries — campaigns, OTP API, webhooks, and pay-as-you-go pricing.",
   areaServed: ["GH", "NG", "Worldwide"],
   parentOrganization: {
     "@type": "Organization",

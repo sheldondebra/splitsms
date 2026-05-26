@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { resolveSmsPriceForUser } from "@/lib/reseller/pricing";
 import { recordSmsCommission } from "@/lib/reseller/commission";
+import { assertUserCanSendSms } from "@/lib/reseller/access";
 
 /** Deduct SMS credits before send. Records provider cost in metadata for profit analytics. */
 export async function deductSmsCredits(
@@ -10,7 +11,10 @@ export async function deductSmsCredits(
   currency: string,
   description: string,
   countryCode = "GH",
+  messageId?: string,
 ) {
+  await assertUserCanSendSms(userId, units);
+
   const credit = await prisma.smsCredit.findUnique({ where: { userId } });
   if (!credit || credit.balance < units) {
     throw new Error("INSUFFICIENT_CREDITS");
@@ -46,7 +50,7 @@ export async function deductSmsCredits(
     }),
   ]);
 
-  await recordSmsCommission(userId, units, countryCode);
+  await recordSmsCommission(userId, units, countryCode, messageId);
 }
 
 export async function refundSmsCredits(

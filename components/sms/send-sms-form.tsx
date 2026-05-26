@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { sendSmsAction } from "@/lib/actions/sms";
@@ -34,6 +35,7 @@ type SendSmsFormProps = {
   senderOptions: { value: string }[];
   templates: SendTemplateOption[];
   initialTemplateId?: string;
+  defaultCountryCode?: string;
 };
 
 function countRecipients(raw: string) {
@@ -48,13 +50,14 @@ export function SendSmsForm({
   senderOptions,
   templates,
   initialTemplateId,
+  defaultCountryCode = DEFAULT_COUNTRY_CODE,
 }: SendSmsFormProps) {
   const [pending, setPending] = useState(false);
   const [recipients, setRecipients] = useState("");
   const [body, setBody] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplateId ?? "");
   const [senderId, setSenderId] = useState(senderOptions[0]?.value ?? defaultSender);
-  const [countryCode, setCountryCode] = useState("GH");
+  const [countryCode, setCountryCode] = useState(defaultCountryCode);
 
   const selectedTemplate = useMemo(
     () => templates.find((t) => t.id === selectedTemplateId),
@@ -293,11 +296,11 @@ export function SendSmsForm({
                 value={countryCode}
                 onChange={(e) => setCountryCode(e.target.value.toUpperCase())}
                 className="mt-1.5 h-11 text-base font-mono uppercase"
-                placeholder="GH"
-                maxLength={2}
+                placeholder="US"
+                maxLength={10}
               />
               <p className="text-xs text-muted-foreground mt-1.5">
-                Used for pricing (default: Ghana — GH).
+                Used for per-country pricing (e.g. US, NG, GLOBAL).
               </p>
             </div>
           </div>

@@ -2,7 +2,9 @@
 
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
+import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import { registerSenderIdWithProvider } from "@/lib/sender-ids/provider-sync";
+import { getOrCreateMemberAccount } from "@/lib/admin/member-account";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -14,12 +16,22 @@ export async function requestSenderIdAction(formData: FormData) {
     .trim()
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "");
-  const countryCode = String(formData.get("countryCode") ?? "GH")
+  const countryCode = String(formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE)
     .trim()
     .toUpperCase();
 
   if (!value || value.length > 11) {
     redirect("/dashboard/sender-ids?error=invalid");
+  }
+
+  const account = await getOrCreateMemberAccount(session.userId);
+  if (account.senderIdsBlocked) {
+    redirect("/dashboard/sender-ids?error=blocked");
+  }
+
+  const senderCount = await prisma.senderId.count({ where: { userId: session.userId } });
+  if (senderCount >= account.maxSenderIds) {
+    redirect("/dashboard/sender-ids?error=limit");
   }
 
   const duplicate = await prisma.senderId.findFirst({

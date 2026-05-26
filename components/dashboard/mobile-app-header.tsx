@@ -1,54 +1,19 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { Menu } from "lucide-react";
-import { Logo } from "@/components/brand/logo";
+import { NotificationBell, type NotificationItem } from "@/components/dashboard/notification-panel";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DashboardBalance } from "@/components/dashboard/dashboard-balance";
-import { NotificationBell, type NotificationItem } from "@/components/dashboard/notification-panel";
+import { PortalSwitch } from "@/components/dashboard/portal-switch";
+import { getMemberPageTitle } from "@/lib/navigation/member-page-title";
+import {
+  developersNavItems,
+  isDevelopersNavActive,
+} from "@/lib/navigation/developers-nav";
+import { cn } from "@/lib/utils";
 import type { BalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
-import { dashboardNavCategories } from "@/lib/navigation/dashboard-nav";
-
-const PAGE_TITLES: Record<string, string> = {
-  "/dashboard": "Home",
-  "/dashboard/send": "Send SMS",
-  "/dashboard/sender-ids": "Sender ID",
-  "/dashboard/contacts": "Contacts",
-  "/dashboard/campaigns": "Campaigns",
-  "/dashboard/templates": "Templates",
-  "/dashboard/wallet": "Wallet",
-  "/dashboard/reports": "Results",
-  "/dashboard/pricing": "Pricing",
-  "/dashboard/transactions": "Transactions",
-  "/dashboard/invoices": "Invoices",
-  "/dashboard/automation": "Automation",
-  "/dashboard/api-keys": "Connections",
-  "/dashboard/api-logs": "API Logs",
-  "/dashboard/campaigns/new": "New campaign",
-  "/dashboard/settings": "Settings",
-  "/dashboard/support": "Support",
-  "/developers": "Developers",
-  "/developers/docs": "API Docs",
-  "/developers/api-keys": "API Keys",
-  "/developers/postman": "Postman",
-  "/developers/webhooks": "Webhooks",
-  "/developers/logs": "Logs",
-  "/developers/integrations": "Integrations",
-};
-
-function getPageTitle(pathname: string) {
-  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
-  for (const cat of dashboardNavCategories) {
-    for (const item of cat.items) {
-      if (pathname.startsWith(item.href) && item.href !== "/dashboard") {
-        return item.label;
-      }
-    }
-  }
-  if (pathname.startsWith("/developers")) return "Developers";
-  if (pathname.startsWith("/dashboard/campaigns")) return "Campaigns";
-  return "SplitSMS";
-}
 
 type MobileAppHeaderProps = {
   onMenuOpen: () => void;
@@ -64,12 +29,12 @@ export function MobileAppHeader({
   balance,
 }: MobileAppHeaderProps) {
   const pathname = usePathname();
-  const title = getPageTitle(pathname);
-  const isHome = pathname === "/dashboard";
+  const pageTitle = getMemberPageTitle(pathname);
+  const isDevelopers = pathname.startsWith("/developers");
 
   return (
-    <header className="sticky top-0 z-20 shrink-0 border-b border-border/60 bg-background/95 backdrop-blur-lg safe-top md:hidden">
-      <div className="flex h-12 items-center gap-2.5 px-5">
+    <header className="dashboard-mobile-header sticky top-0 z-30 shrink-0 border-b border-border/70 bg-background/95 backdrop-blur-lg safe-top md:hidden">
+      <div className="flex h-12 items-center gap-2 px-4">
         <button
           type="button"
           onClick={onMenuOpen}
@@ -79,23 +44,46 @@ export function MobileAppHeader({
           <Menu className="h-5 w-5" />
         </button>
 
-        {isHome ? (
-          <div className="min-w-0 flex-1 flex justify-center">
-            <Logo href="/dashboard" size="sm" />
-          </div>
-        ) : (
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold leading-tight truncate">{title}</p>
-          </div>
-        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold leading-tight truncate">{pageTitle}</p>
+        </div>
 
-        <ThemeToggle className="h-8 w-8 shrink-0 rounded-lg" />
-        <NotificationBell notifications={notifications} unreadCount={unreadCount} />
+        <div className="flex items-center gap-1 shrink-0">
+          <div className="max-w-[10rem] min-w-0 hidden min-[400px]:block">
+            <DashboardBalance snapshot={balance} variant="compact" />
+          </div>
+          <ThemeToggle className="h-8 w-8 shrink-0 rounded-lg" />
+          <NotificationBell notifications={notifications} unreadCount={unreadCount} />
+        </div>
       </div>
 
-      {!isHome && (
-        <div className="border-t border-border/50 px-5 py-2.5">
-          <DashboardBalance snapshot={balance} variant="bar" />
+      {isDevelopers && (
+        <div className="border-t border-border/50 px-4 py-2 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <PortalSwitch />
+            <div className="min-w-0 min-[400px]:hidden">
+              <DashboardBalance snapshot={balance} variant="compact" />
+            </div>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-0.5 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {developersNavItems.map(({ href, label, exact }) => {
+              const active = isDevelopersNavActive(pathname, href, exact);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "snap-start shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-colors whitespace-nowrap",
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted/70 text-muted-foreground",
+                  )}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
         </div>
       )}
     </header>

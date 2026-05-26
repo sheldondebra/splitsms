@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 const stats = [
   { value: "190+", label: "Countries supported" },
   { value: "99.2%", label: "Typical delivery rate" },
-  { value: "GHS 0.029", label: "From per SMS in Ghana" },
+  { value: "From $0.01", label: "Per SMS segment" },
   { value: "< 5 min", label: "To send your first bulk" },
 ];
 
@@ -42,7 +42,7 @@ const sellingPoints = [
   {
     icon: Globe,
     title: "Smart global routing",
-    desc: "Infobip, Twilio, and mNotify with automatic failover so your messages reach Ghana, Nigeria, and 190+ markets.",
+    desc: "Infobip, Twilio, and regional gateways with automatic failover across 190+ countries.",
   },
   {
     icon: Code2,
@@ -68,7 +68,7 @@ const coreFeatures = [
     icon: BadgeCheck,
     title: "Sender ID registration",
     desc: "Register your brand name (e.g. MYSTORE) so recipients trust your SMS. Pending → approved workflow built in.",
-    tags: ["Brand trust", "Ghana-ready"],
+    tags: ["Brand trust", "Global routes"],
   },
   {
     icon: KeyRound,
@@ -115,7 +115,7 @@ const useCases = [
   },
   {
     title: "Banks & fintech",
-    desc: "OTP verification, transaction alerts, and balance notifications with high deliverability in Ghana and West Africa.",
+    desc: "OTP verification, transaction alerts, and balance notifications with high deliverability worldwide.",
   },
   {
     title: "Healthcare & clinics",
@@ -138,7 +138,7 @@ const useCases = [
 const comparisons = [
   { label: "Setup time", split: "Minutes", other: "Days to weeks" },
   { label: "Bulk campaigns UI", split: "Built-in", other: "Often add-on" },
-  { label: "Ghana pricing", split: "From GHS 0.029", other: "Variable / opaque" },
+  { label: "Transparent pricing", split: "Per country", other: "Variable / opaque" },
   { label: "Wallet + Paystack", split: "Yes", other: "Often invoice-only" },
   { label: "WordPress plugin", split: "Included", other: "Custom dev" },
 ];
@@ -146,11 +146,11 @@ const comparisons = [
 const faqs = [
   {
     q: "What is bulk SMS and how is SplitSMS different?",
-    a: "Bulk SMS lets you send the same (or personalized) message to many phone numbers at once. SplitSMS combines a simple campaign UI, affordable Ghana rates, developer APIs, and multi-carrier routing in one platform — without the complexity of legacy enterprise portals.",
+    a: "Bulk SMS lets you send the same (or personalized) message to many phone numbers at once. SplitSMS combines a simple campaign UI, transparent per-country rates, developer APIs, and multi-carrier routing in one platform.",
   },
   {
-    q: "Can I send SMS in Ghana and other African countries?",
-    a: "Yes. SplitSMS routes through trusted providers including mNotify for Ghana, with coverage across Nigeria and 190+ countries. Register an approved Sender ID for best deliverability.",
+    q: "Can I send SMS internationally?",
+    a: "Yes. SplitSMS routes through trusted global providers with coverage in 190+ countries. Register an approved Sender ID for best deliverability.",
   },
   {
     q: "Do you offer an SMS API for developers?",
@@ -158,7 +158,7 @@ const faqs = [
   },
   {
     q: "How much does bulk SMS cost on SplitSMS?",
-    a: "Rates are per country — Ghana starts around GHS 0.029 per message segment. Top up your wallet, buy credits, and only pay for what you send. New accounts receive free starter credits.",
+    a: "Rates are per destination country. Top up your wallet, buy credits, and only pay for what you send. New accounts receive free starter credits.",
   },
   {
     q: "Is there a free trial?",
@@ -175,7 +175,7 @@ export function FeaturesPageContent() {
         <div className="relative mx-auto max-w-6xl px-4 pt-14 pb-16 md:pt-20 md:pb-20">
           <p className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
             <Sparkles className="h-3.5 w-3.5" />
-            Bulk SMS platform · Ghana & global
+            Bulk SMS platform · 190+ countries
           </p>
           <h1 className="mt-5 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl lg:max-w-4xl lg:leading-[1.08]">
             Everything you need to{" "}
@@ -184,7 +184,7 @@ export function FeaturesPageContent() {
           </h1>
           <p className="mt-5 text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed">
             SplitSMS is the modern bulk SMS platform for marketers, developers, and growing
-            businesses in Ghana and worldwide. Send campaigns, verify users with OTP, automate
+            businesses worldwide. Send campaigns, verify users with OTP, automate
             WooCommerce notifications, and track every delivery — from one affordable dashboard.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row flex-wrap gap-3">
@@ -303,7 +303,7 @@ export function FeaturesPageContent() {
                   "Transparent per-country pricing",
                   "Instant wallet top-up via Paystack",
                   "Human-readable delivery reports",
-                  "Dedicated Ghana & West Africa routes",
+                  "Dedicated regional routes worldwide",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2 text-sm">
                     <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
@@ -363,7 +363,7 @@ export function FeaturesPageContent() {
       <section className="py-16 md:py-20" aria-labelledby="about-bulk-sms">
         <div className="mx-auto max-w-3xl px-4">
           <h2 id="about-bulk-sms" className="text-2xl font-bold not-prose">
-            Affordable bulk SMS in Ghana and across Africa
+            Affordable bulk SMS worldwide
           </h2>
           <div className="mt-6 space-y-4 text-muted-foreground text-sm md:text-base leading-relaxed not-prose">
             <p>
@@ -383,10 +383,10 @@ export function FeaturesPageContent() {
               per month.
             </p>
             <p>
-              Based in Ghana and operated by Tecunit Ghana, SplitSMS understands local Sender ID
-              rules, mobile money culture, and the need for fair pricing. Sign up in minutes, get
-              free starter credits, and send your first bulk campaign today — or integrate our API
-              and ship OTP login in your app this week.
+              Operated by Tecunit Ghana, SplitSMS supports Sender ID registration, local payment
+              methods, and fair pricing across 190+ countries. Sign up in minutes, get free starter
+              credits, and send your first bulk campaign today — or integrate our API and ship OTP
+              login in your app this week.
             </p>
           </div>
         </div>

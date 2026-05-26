@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getSubUserIds } from "@/lib/reseller/context";
+import { getUnpaidCommissionTotal } from "@/lib/reseller/payout";
 
 export async function getResellerAnalytics(resellerId: string, days = 30) {
   const since = new Date();
@@ -38,12 +39,15 @@ export async function getResellerAnalytics(resellerId: string, days = 30) {
       })
     : { _sum: { balance: null } };
 
+  const unpaid = await getUnpaidCommissionTotal(resellerId);
+
   return {
     walletBalance: reseller?.user.wallet?.balance.toNumber() ?? 0,
     currency: reseller?.user.wallet?.currency ?? "GHS",
     totalSubUsers: subCount,
     activeSubUsers: subUserIds.length,
     totalCommissions: commissions._sum.amount?.toNumber() ?? 0,
+    unpaidCommissions: unpaid,
     commissionCount: commissions._count.id,
     smsSent: totalSms,
     deliveryRate: totalSms > 0 ? Math.round((delivered / totalSms) * 100) : 0,

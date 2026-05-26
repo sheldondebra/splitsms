@@ -3,6 +3,11 @@ import { prisma } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import type { ApiContext } from "@/lib/api/context";
 import { DEFAULT_API_PERMISSIONS } from "@/lib/api/permissions";
+import {
+  getMemberAccountForUser,
+  isMemberSuspended,
+  memberHasFeature,
+} from "@/lib/admin/member-account";
 
 export type ApiUser = Prisma.UserGetPayload<{
   include: { wallet: true; smsCredit: true };
@@ -21,6 +26,13 @@ export async function authenticateApiKey(
     include: { user: { include: { wallet: true, smsCredit: true } } },
   });
   if (!key) return null;
+
+  if (key.user.role === "MEMBER") {
+    const account = await getMemberAccountForUser(key.user.id);
+    if (isMemberSuspended(account) || !memberHasFeature(account, "featureApi")) {
+      return null;
+    }
+  }
 
   await prisma.apiKey.update({
     where: { id: key.id },

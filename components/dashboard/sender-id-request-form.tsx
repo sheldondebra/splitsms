@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import { requestSenderIdAction } from "@/lib/actions/sender-ids";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +36,7 @@ export function SenderIdRequestForm() {
         <Input
           id="countryCode"
           name="countryCode"
-          defaultValue="GH"
+          defaultValue={DEFAULT_COUNTRY_CODE}
           maxLength={10}
           className="mt-1.5 h-11 font-mono uppercase"
         />

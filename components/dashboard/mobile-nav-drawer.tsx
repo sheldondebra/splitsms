@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
+import { TenantLogo } from "@/components/tenant/tenant-theme";
+import type { TenantBranding } from "@/lib/reseller/tenant";
 import { SidebarNavContent } from "@/components/dashboard/sidebar-nav-content";
+import { DevelopersNavContent } from "@/components/developers/developers-nav-content";
 import { useTheme } from "@/components/theme-provider";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -10,10 +15,13 @@ import { cn } from "@/lib/utils";
 type MobileNavDrawerProps = {
   open: boolean;
   onClose: () => void;
+  tenant?: TenantBranding | null;
 };
 
-export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
+export function MobileNavDrawer({ open, onClose, tenant }: MobileNavDrawerProps) {
   const { resolvedTheme } = useTheme();
+  const pathname = usePathname();
+  const isDevelopers = pathname.startsWith("/developers");
 
   useEffect(() => {
     if (!open) return;
@@ -37,17 +45,35 @@ export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-[70] flex w-[min(100vw,320px)] flex-col bg-sidebar text-sidebar-foreground shadow-2xl transition-transform duration-300 ease-out md:hidden safe-top",
+          "fixed inset-y-0 left-0 z-[70] flex w-[min(100vw,320px)] flex-col text-sidebar-foreground shadow-2xl transition-transform duration-300 ease-out md:hidden safe-top",
+          !tenant && "bg-sidebar",
           open ? "translate-x-0" : "-translate-x-full",
         )}
+        style={
+          tenant
+            ? {
+                backgroundColor: "var(--tenant-sidebar, #0f0f0f)",
+                borderRight: `1px solid ${tenant.primaryColor}33`,
+              }
+            : undefined
+        }
         aria-hidden={!open}
       >
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-sidebar-border/80 px-4">
-          <Logo
-            href="/dashboard"
-            size="sm"
-            variant={resolvedTheme === "dark" ? "white" : "default"}
-          />
+        <div
+          className="flex h-14 shrink-0 items-center justify-between border-b px-4"
+          style={tenant ? { borderColor: `${tenant.primaryColor}33` } : undefined}
+        >
+          {tenant ? (
+            <Link href={isDevelopers ? "/developers" : "/dashboard"} onClick={onClose}>
+              <TenantLogo tenant={tenant} />
+            </Link>
+          ) : (
+            <Logo
+              href={isDevelopers ? "/developers" : "/dashboard"}
+              size="sm"
+              variant={resolvedTheme === "dark" ? "white" : "default"}
+            />
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -59,7 +85,11 @@ export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col">
-          <SidebarNavContent onNavigate={onClose} />
+          {isDevelopers ? (
+            <DevelopersNavContent onNavigate={onClose} />
+          ) : (
+            <SidebarNavContent onNavigate={onClose} />
+          )}
         </div>
       </aside>
     </>

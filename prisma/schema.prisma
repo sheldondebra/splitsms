@@ -124,6 +124,12 @@ enum SenderIdStatus {
   REJECTED
 }
 
+enum MemberAccountStatus {
+  ACTIVE
+  SUSPENDED
+  BLOCKED
+}
+
 enum OtpPurpose {
   SIGNUP_VERIFY
   LOGIN
@@ -180,6 +186,28 @@ model User {
   enterpriseAccount EnterpriseAccount?
   wordpressSites   WordPressSite[]
   wordpressLogs    WordPressLog[]
+  memberAccount    MemberAccount?
+}
+
+model MemberAccount {
+  userId           String              @id
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status           MemberAccountStatus @default(ACTIVE)
+  suspendedReason  String?
+  suspendedAt      DateTime?
+  maxSenderIds     Int                 @default(5)
+  senderIdsBlocked Boolean             @default(false)
+  assignedProvider SmsProviderType?
+  featureApi       Boolean             @default(true)
+  featureCampaigns Boolean             @default(true)
+  featureWebhooks  Boolean             @default(true)
+  featureBulkSms   Boolean             @default(true)
+  featureWordPress Boolean             @default(true)
+  adminNote        String?
+  updatedAt        DateTime            @updatedAt
+  updatedById      String?
+
+  @@index([status])
 }
 
 model Reseller {
@@ -231,17 +259,19 @@ model ResellerCountryPricing {
 }
 
 model ResellerCommission {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   resellerId  String
-  reseller    Reseller @relation(fields: [resellerId], references: [id], onDelete: Cascade)
-  amount      Decimal  @db.Decimal(14, 4)
-  currency    String   @default("GHS")
+  reseller    Reseller  @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  amount      Decimal   @db.Decimal(14, 4)
+  currency    String    @default("GHS")
   source      String
   referenceId String?
   metadata    Json?
-  createdAt   DateTime @default(now())
+  paidAt      DateTime?
+  createdAt   DateTime  @default(now())
 
   @@index([resellerId, createdAt])
+  @@index([resellerId, paidAt])
 }
 
 model WhiteLabelBrand {

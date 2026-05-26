@@ -9,6 +9,7 @@ import { PasswordField } from "@/components/auth/password-field";
 import { CountrySelect } from "@/components/auth/country-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { SignupCountryOption } from "@/lib/signup-countries";
+import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import { detectCountryFromLocale } from "@/lib/country-detect";
 import { Mail, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,8 +21,8 @@ type SignupFormProps = {
 
 export function SignupForm({ countries, defaultMethod = "phone" }: SignupFormProps) {
   const [method, setMethod] = useState<"phone" | "email">(defaultMethod);
-  const [countryCode, setCountryCode] = useState("GH");
-  const [dialCode, setDialCode] = useState("+233");
+  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
+  const [dialCode, setDialCode] = useState("+");
   const [phoneLocal, setPhoneLocal] = useState("");
 
   useEffect(() => {

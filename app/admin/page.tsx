@@ -75,7 +75,6 @@ export default async function AdminDashboardPage() {
           label="SMS today"
           value={stats.messagesToday.toLocaleString()}
           hint={`${stats.messages.toLocaleString()} all-time`}
-          trend="up"
         />
         <AdminStatCard
           label="Revenue"
@@ -87,7 +86,6 @@ export default async function AdminDashboardPage() {
           value={stats.failedMessages.toLocaleString()}
           hint={`${stats.failureRate}% failure rate`}
           variant={stats.failureRate > 5 ? "danger" : "default"}
-          trend={stats.failureRate > 5 ? "down" : "neutral"}
         />
       </div>
 

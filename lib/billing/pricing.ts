@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 
 export type ResolvedPrice = {
   countryCode: string;
@@ -97,5 +98,5 @@ export function pickPricingRow(
     const match = rows.find((r) => r.countryCode === code);
     if (match) return match;
   }
-  return rows.find((r) => r.countryCode === "GH") ?? rows[0];
+  return rows.find((r) => r.countryCode === DEFAULT_COUNTRY_CODE) ?? rows[0];
 }

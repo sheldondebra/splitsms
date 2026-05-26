@@ -124,8 +124,8 @@ export function SiteFooter() {
                   Send your first bulk SMS today
                 </h2>
                 <p className="mt-3 text-sm md:text-base text-muted-foreground leading-relaxed">
-                  5 free SMS credits · Ghana & 190+ countries · Dashboard + REST API ·
-                  Pay-as-you-go from GHS 0.029
+                  5 free SMS credits · 190+ countries · Dashboard + REST API ·
+                  Pay-as-you-go pricing
                 </p>
                 <div className="mt-6 flex flex-wrap gap-2">
                   {trustItems.map(({ icon: Icon, label }) => (
@@ -175,7 +175,7 @@ export function SiteFooter() {
               </p>
               <div className="mt-4 flex items-start gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
-                <span>Ghana · Africa & 190+ countries</span>
+                <span>Worldwide · 190+ countries</span>
               </div>
             </div>
 

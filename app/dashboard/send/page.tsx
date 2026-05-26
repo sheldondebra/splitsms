@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
+import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
 import { SendSmsForm } from "@/components/sms/send-sms-form";
 import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
@@ -20,6 +21,13 @@ export default async function SendSmsPage({
     process.env.MNOTIFY_DEFAULT_SENDER_ID ??
     process.env.MNOTIFY_SENDER_ID ??
     "SplitSMS";
+
+  const user = session
+    ? await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { countryCode: true },
+      })
+    : null;
 
   const [senderIds, balance, templates] = session
     ? await Promise.all([
@@ -66,6 +74,7 @@ export default async function SendSmsPage({
             senderOptions={senderIds.map((s) => ({ value: s.value }))}
             templates={templates}
             initialTemplateId={params.template}
+            defaultCountryCode={user?.countryCode ?? DEFAULT_COUNTRY_CODE}
           />
         </AppCardBody>
       </AppCard>

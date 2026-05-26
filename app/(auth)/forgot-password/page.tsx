@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { forgotPasswordAction } from "@/lib/actions/auth";
 import { AuthLayout, AuthCard } from "@/components/auth/auth-layout";
+import { getRequestTenant } from "@/lib/reseller/request-tenant";
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,9 +14,11 @@ export default async function ForgotPasswordPage({
   searchParams: Promise<{ error?: string; sent?: string; cooldown?: string }>;
 }) {
   const { error, sent, cooldown } = await searchParams;
+  const tenant = await getRequestTenant();
 
   return (
     <AuthLayout
+      tenant={tenant}
       title="Forgot password?"
       subtitle="We'll send a secure code to your registered phone"
       sideTitle={

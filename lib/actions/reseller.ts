@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { normalizeResellerDomain } from "@/lib/reseller/tenant";
 import { getSession } from "@/lib/auth/session";
 import { requireApprovedReseller } from "@/lib/reseller/context";
 import { fundSubUserWallet, fundSubUserCredits } from "@/lib/reseller/fund";
@@ -127,11 +128,12 @@ export async function saveBrandingAction(formData: FormData) {
     create: { resellerId: reseller.id, ...data },
   });
 
+  const rawDomain = String(formData.get("domain") ?? "").trim();
   await prisma.reseller.update({
     where: { id: reseller.id },
     data: {
       brandName: String(formData.get("brandName") ?? "") || reseller.brandName,
-      domain: String(formData.get("domain") ?? "") || undefined,
+      domain: rawDomain ? normalizeResellerDomain(rawDomain) : null,
     },
   });
 
@@ -178,11 +180,6 @@ export async function applyForResellerAction(formData: FormData) {
       brandName: businessName,
       status: "PENDING",
     },
-  });
-
-  await prisma.user.update({
-    where: { id: session.userId },
-    data: { role: "RESELLER" },
   });
 
   redirect("/reseller?pending=1");

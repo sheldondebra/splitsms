@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { PublicPricingExplorer } from "@/components/marketing/public-pricing-explorer";
+import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import {
   listPublicPricing,
   pickPricingRow,
@@ -16,7 +17,7 @@ import { DollarSign, ArrowRight } from "lucide-react";
 export const metadata: Metadata = {
   title: "SMS Pricing by Country — Transparent Bulk SMS Rates | SplitSMS",
   description:
-    "View SplitSMS bulk SMS pricing per country. Select your destination, see per-segment rates, credits, and provider. Rates from GHS 0.029 in Ghana. Pay-as-you-go with no hidden fees.",
+    "View SplitSMS bulk SMS pricing per country. Select your destination, see per-segment rates, credits, and provider. Pay-as-you-go with no hidden fees.",
   alternates: { canonical: "/pricing" },
 };
 
@@ -30,7 +31,7 @@ export default async function PricingPage({
   const rows = toPublicPricingRows(dbRows);
 
   const selected = pickPricingRow(rows, countryParam);
-  const selectedCode = selected?.countryCode ?? "GH";
+  const selectedCode = selected?.countryCode ?? DEFAULT_COUNTRY_CODE;
 
   const lowest =
     rows.length > 0

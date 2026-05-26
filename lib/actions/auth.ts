@@ -1,5 +1,6 @@
 "use server";
 
+import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import { prisma } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { createAndSendOtp, verifyOtp } from "@/lib/auth/otp";
@@ -30,6 +31,8 @@ import {
   clearPasswordResetSession,
 } from "@/lib/auth/reset-session";
 import { logAuthEvent } from "@/lib/auth/audit";
+import { getMemberAccountForUser, isMemberSuspended } from "@/lib/admin/member-account";
+import { assertTenantLoginAllowed } from "@/lib/auth/tenant-login";
 import { redirect } from "next/navigation";
 import type { OtpPurpose, UserRole } from "@/lib/generated/prisma/client";
 
@@ -43,6 +46,8 @@ async function finishLogin(user: {
   role: UserRole;
   phone: string;
 }) {
+  await assertTenantLoginAllowed(user.id, user.role);
+
   await prisma.user.update({
     where: { id: user.id },
     data: { failedLoginCount: 0, lockedUntil: null },
@@ -70,7 +75,7 @@ async function finishLogin(user: {
 export async function signupAction(formData: FormData) {
   const signupMethod = String(formData.get("signupMethod") ?? "phone");
   const dialCode = String(formData.get("dialCode") ?? "+233");
-  const countryCode = String(formData.get("countryCode") ?? "GH").toUpperCase();
+  const countryCode = String(formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE).toUpperCase();
 
   const parsed = signupSchema.safeParse({
     signupMethod,
@@ -131,6 +136,7 @@ export async function signupAction(formData: FormData) {
       email: email || undefined,
       wallet: { create: { currency: countryCode === "GH" ? "GHS" : "USD" } },
       smsCredit: { create: { balance: 5 } },
+      memberAccount: { create: {} },
     },
   });
 
@@ -259,6 +265,13 @@ export async function loginPasswordAction(formData: FormData) {
     authRedirect("/login", { error: "locked" });
   }
 
+  if (user.role === "MEMBER") {
+    const account = await getMemberAccountForUser(user.id);
+    if (isMemberSuspended(account)) {
+      authRedirect("/login", { error: "suspended" });
+    }
+  }
+
   if (!user.isVerified) {
     const otp = await createAndSendOtp(
       user.phone,
@@ -372,7 +385,7 @@ export async function resendOtpAction(formData: FormData) {
   };
   const purpose = purposeMap[purposeRaw] ?? "SIGNUP_VERIFY";
 
-  const countryCode = String(formData.get("countryCode") ?? "GH").toUpperCase();
+  const countryCode = String(formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE).toUpperCase();
   const user = await prisma.user.findUnique({ where: { phone } });
   const otp = await createAndSendOtp(
     phone,

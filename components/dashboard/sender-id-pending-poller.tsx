@@ -19,7 +19,7 @@ export function SenderIdPendingPoller({ enabled }: { enabled: boolean }) {
   return (
     <p className="text-xs text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
       <Clock className="h-3.5 w-3.5 shrink-0" />
-      Checking with mNotify for approval every 30 seconds…
+      Checking with your SMS provider for approval every 30 seconds…
     </p>
   );
 }

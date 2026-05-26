@@ -1,7 +1,14 @@
 "use server";
 
+import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
+import {
+  getMemberAccountForUser,
+  isMemberSuspended,
+  memberHasFeature,
+} from "@/lib/admin/member-account";
+import { ResellerAccessError } from "@/lib/reseller/access";
 import { countSmsUnits, normalizePhones, isGsm7 } from "@/lib/sms/units";
 import { deductSmsCredits } from "@/lib/sms/billing";
 import { enqueueSmsJob } from "@/lib/queue/enqueue-sms";
@@ -12,10 +19,15 @@ export async function sendSmsAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/login");
 
+  const account = await getMemberAccountForUser(session.userId);
+  if (isMemberSuspended(account) || !memberHasFeature(account, "featureBulkSms")) {
+    redirect("/dashboard/send?error=access");
+  }
+
   const senderId = String(formData.get("senderId") ?? "");
   const body = String(formData.get("body") ?? "");
   const recipientsRaw = String(formData.get("recipients") ?? "");
-  const countryCode = String(formData.get("countryCode") ?? "GH");
+  const countryCode = String(formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE);
 
   const recipients = normalizePhones(recipientsRaw);
   if (!senderId || !body || recipients.length === 0) {
@@ -41,8 +53,12 @@ export async function sendSmsAction(formData: FormData) {
       totalCost,
       currency,
       `Bulk send ${recipients.length} recipients`,
+      countryCode,
     );
-  } catch {
+  } catch (e) {
+    if (e instanceof ResellerAccessError) {
+      redirect(`/dashboard/send?error=${e.code.toLowerCase()}`);
+    }
     redirect("/dashboard/send?error=credits");
   }
 

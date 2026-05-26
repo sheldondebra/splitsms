@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import {
+  attachTenantHeaders,
+  fetchTenantForMiddleware,
+} from "@/lib/reseller/middleware-tenant";
+import { isPlatformHost, normalizeHost } from "@/lib/reseller/tenant-host";
 
 const COOKIE_NAME = "splitsms_session";
 const RESET_COOKIE = "splitsms_reset";
@@ -15,8 +20,6 @@ const authPaths = [
   "/verify-otp",
   "/forgot-password",
 ];
-
-const publicAuthWhenLoggedOut = [...authPaths, "/reset-password"];
 
 async function readSession(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
@@ -35,11 +38,57 @@ function hasResetCookie(request: NextRequest) {
   return Boolean(request.cookies.get(RESET_COOKIE)?.value);
 }
 
+function loginDestination(session: { role: string }) {
+  if (session.role === "ADMIN" || session.role === "SUPER_ADMIN") {
+    return "/admin";
+  }
+  if (session.role === "RESELLER") {
+    return "/reseller";
+  }
+  if (session.role === "ENTERPRISE") {
+    return "/enterprise";
+  }
+  return "/dashboard";
+}
+
+function externalResellerPortal(session: { userId: string; role: string }, tenant: { ownerUserId: string } | null) {
+  if (!tenant || session.role !== "RESELLER" || session.userId !== tenant.ownerUserId) {
+    return null;
+  }
+  const base = process.env.NEXT_PUBLIC_APP_URL;
+  if (!base) return null;
+  try {
+    return new URL("/reseller", base).toString();
+  } catch {
+    return null;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname === "/developers/sdk" || pathname.startsWith("/developers/sdk/")) {
     return NextResponse.redirect(new URL("/sdk", request.url));
+  }
+
+  const rawHost = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";
+  const host = normalizeHost(rawHost);
+  const onPlatform = isPlatformHost(host);
+  const tenant = onPlatform ? null : await fetchTenantForMiddleware(request, rawHost);
+
+  if (tenant) {
+    if (pathname === "/") {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    if (
+      pathname.startsWith("/admin") ||
+      pathname.startsWith("/reseller") ||
+      pathname.startsWith("/enterprise") ||
+      pathname.startsWith("/signup")
+    ) {
+      const dest = pathname.startsWith("/signup") ? "/login?error=tenant_signup" : "/login";
+      return NextResponse.redirect(new URL(dest, request.url));
+    }
   }
 
   const session = await readSession(request);
@@ -51,15 +100,15 @@ export async function middleware(request: NextRequest) {
   const isAuth = authPaths.some((p) => pathname.startsWith(p));
   const isResetPassword = pathname.startsWith("/reset-password");
 
+  if (tenant && (isAdmin || isReseller || isEnterprise) && session) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
   if ((isMember || isReseller || isEnterprise || isAdmin) && !session) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
   if (isAdmin && session && !["ADMIN", "SUPER_ADMIN"].includes(session.role)) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  if (isReseller && session && session.role !== "RESELLER" && !["ADMIN", "SUPER_ADMIN"].includes(session.role)) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
@@ -72,7 +121,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  if (isMember && session?.role === "RESELLER") {
+  if (isMember && session?.role === "RESELLER" && !tenant) {
     return NextResponse.redirect(new URL("/reseller", request.url));
   }
 
@@ -85,15 +134,17 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuth && session) {
-    const dest =
-      session.role === "ADMIN" || session.role === "SUPER_ADMIN"
-        ? "/admin"
-        : session.role === "RESELLER"
-          ? "/reseller"
-          : session.role === "ENTERPRISE"
-            ? "/enterprise"
-            : "/dashboard";
+    const external = externalResellerPortal(session, tenant);
+    if (external) {
+      return NextResponse.redirect(external);
+    }
+    const dest = loginDestination(session);
     return NextResponse.redirect(new URL(dest, request.url));
+  }
+
+  if (tenant) {
+    const requestHeaders = attachTenantHeaders(request, tenant);
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   return NextResponse.next();
@@ -101,6 +152,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/",
     "/dashboard/:path*",
     "/developers/:path*",
     "/reseller/:path*",

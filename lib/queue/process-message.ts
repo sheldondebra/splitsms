@@ -23,10 +23,15 @@ export async function processMessageJob(messageId: string, countryCode: string) 
     where: { userId: message.userId },
     include: { dedicatedRoute: true, credit: true },
   });
+  const memberAccount = await prisma.memberAccount.findUnique({
+    where: { userId: message.userId },
+    select: { assignedProvider: true },
+  });
+
   const lockedProvider =
     enterprise?.dedicatedRoute?.countryCode === countryCode
       ? (enterprise.dedicatedRoute.lockedProvider as SmsProviderType | null)
-      : null;
+      : (memberAccount?.assignedProvider ?? null);
 
   const result = await sendSmsWithFailover(
     countryCode,

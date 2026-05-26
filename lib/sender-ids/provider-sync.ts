@@ -81,8 +81,7 @@ export async function registerSenderIdWithProvider(params: {
   purpose: string;
   countryCode: string;
 }) {
-  const useMnotify =
-    params.countryCode === "GH" || (await isMnotifyConfigured());
+  const useMnotify = await isMnotifyConfigured();
 
   if (!useMnotify) {
     return { submitted: false as const, localStatus: "PENDING" as const };

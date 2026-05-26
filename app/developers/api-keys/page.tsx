@@ -3,6 +3,10 @@ import { getSession } from "@/lib/auth/session";
 import { ApiKeysManager } from "@/components/developers/api-keys-manager";
 import { Key } from "lucide-react";
 import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { BookOpen } from "lucide-react";
 
 export default async function DevelopersApiKeysPage({
   searchParams,
@@ -31,12 +35,21 @@ export default async function DevelopersApiKeysPage({
   }));
 
   return (
-    <AppPage>
+    <AppPage wide>
       <PageHeader
         title="API Keys"
-        description="Manage production and sandbox keys. Copy once on create — rotate anytime."
+        description="Create, rotate, and revoke keys. Filter active or revoked keys below."
         icon={Key}
-        mobileDescription="Create, copy, and rotate API keys."
+        mobileDescription="Manage keys — view active and revoked."
+        actions={
+          <Link
+            href="/developers/docs"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-10 rounded-xl gap-2")}
+          >
+            <BookOpen className="h-4 w-4" />
+            API docs
+          </Link>
+        }
       />
       <ApiKeysManager keys={rows} createdFromUrl={created} />
     </AppPage>

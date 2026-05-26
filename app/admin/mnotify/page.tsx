@@ -11,6 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import {
+  AdminPage,
+  AdminPageHeader,
+  AdminAlert,
+  AdminStatCard,
+} from "@/components/admin/admin-page-shell";
+import { Radio } from "lucide-react";
 
 export default async function AdminMnotifyPage({
   searchParams,
@@ -26,71 +33,52 @@ export default async function AdminMnotifyPage({
   ]);
 
   return (
-    <div className="space-y-8 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-bold">mNotify Provider Setup</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Configure your mNotify BMS API here. These settings power bulk SMS, OTP, and
-          campaigns platform-wide.{" "}
-          <a
-            href="https://readthedocs.mnotify.com/"
-            className="text-primary hover:underline"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Documentation
-          </a>
-        </p>
-      </div>
+    <AdminPage narrow>
+      <AdminPageHeader
+        title="mNotify setup"
+        description={
+          <>
+            Configure your mNotify BMS API for bulk SMS, OTP, and campaigns.{" "}
+            <a
+              href="https://readthedocs.mnotify.com/"
+              className="text-primary hover:underline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Documentation
+            </a>
+          </>
+        }
+        icon={Radio}
+      />
 
-      {saved && (
-        <div className="rounded-lg border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
-          mNotify settings saved successfully.
-        </div>
-      )}
+      {saved && <AdminAlert variant="success">mNotify settings saved successfully.</AdminAlert>}
       {test && (
-        <div
-          className={
-            test === "ok"
-              ? "rounded-lg border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400"
-              : "rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-          }
-        >
+        <AdminAlert variant={test === "ok" ? "success" : "warning"}>
           Test SMS {test === "ok" ? "sent successfully" : "failed"}. See result below.
-        </div>
+        </AdminAlert>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Badge variant={status.configured ? "default" : "secondary"}>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <AdminStatCard
+          label="Status"
+          value={
+            <Badge variant={status.configured ? "default" : "secondary"} className="mt-0">
               {status.configured ? "Active" : "Not ready"}
             </Badge>
-            <p className="text-xs text-muted-foreground mt-2">
-              Source: {status.source === "admin" ? "Admin dashboard" : "Environment"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Routing</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm space-y-1">
-            <p>mNotify first: {settings.mnotifyFirst ? "Yes" : "No"}</p>
-            <p className="text-muted-foreground">
-              Failover: {settings.allowFailover ? "On" : "Off"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Messages sent</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-bold">{mnotifyMessages}</CardContent>
-        </Card>
+          }
+          hint={`Source: ${status.source === "admin" ? "Admin dashboard" : "Environment"}`}
+        />
+        <AdminStatCard
+          label="Routing"
+          value={settings.mnotifyFirst ? "mNotify first" : "Standard"}
+          hint={`Failover: ${settings.allowFailover ? "On" : "Off"}`}
+        />
+        <AdminStatCard
+          label="Messages sent"
+          value={mnotifyMessages.toLocaleString()}
+          variant="primary"
+        />
       </div>
 
       <Card className="border-primary/30">
@@ -271,6 +259,6 @@ export default async function AdminMnotifyPage({
           )}
         </CardContent>
       </Card>
-    </div>
+    </AdminPage>
   );
 }

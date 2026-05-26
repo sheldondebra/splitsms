@@ -1,91 +1,84 @@
 import { prisma } from "@/lib/db";
+import {
+  approveSenderIdAction,
+  rejectSenderIdAction,
+} from "@/lib/actions/admin-sender-ids";
+import {
+  AdminPage,
+  AdminPageHeader,
+  AdminCard,
+  AdminEmpty,
+  AdminListRow,
+} from "@/components/admin/admin-page-shell";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-async function approveSenderId(formData: FormData) {
-  "use server";
-  const { prisma } = await import("@/lib/db");
-  const { revalidatePath } = await import("next/cache");
-  const id = String(formData.get("id"));
-  const isDefault = formData.get("setDefault") === "1";
-  const userId = (
-    await prisma.senderId.findUnique({ where: { id }, select: { userId: true } })
-  )?.userId;
-
-  if (userId && isDefault) {
-    await prisma.senderId.updateMany({
-      where: { userId },
-      data: { isDefault: false },
-    });
-  }
-
-  await prisma.senderId.update({
-    where: { id },
-    data: {
-      status: "APPROVED",
-      ...(isDefault ? { isDefault: true } : {}),
-    },
-  });
-  revalidatePath("/admin/sender-ids");
-}
-
-async function rejectSenderId(formData: FormData) {
-  "use server";
-  const { prisma } = await import("@/lib/db");
-  const { revalidatePath } = await import("next/cache");
-  await prisma.senderId.update({
-    where: { id: String(formData.get("id")) },
-    data: {
-      status: "REJECTED",
-      adminNote: String(formData.get("note") ?? "Does not meet naming requirements").trim(),
-      isDefault: false,
-    },
-  });
-  revalidatePath("/admin/sender-ids");
-}
+import { Input } from "@/components/ui/input";
+import { BadgeCheck } from "lucide-react";
 
 export default async function AdminSenderIdsPage() {
   const requests = await prisma.senderId.findMany({
     where: { status: "PENDING" },
     include: { user: true },
+    orderBy: { createdAt: "desc" },
   });
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Sender ID requests</h1>
-      <Card>
-        <CardHeader><CardTitle>Pending</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          {requests.map((s) => (
-            <div key={s.id} className="flex justify-between items-center border-b py-3">
-              <div>
-                <p className="font-medium">{s.value}</p>
-                <p className="text-sm text-muted-foreground">{s.user.fullName}</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <form action={approveSenderId}>
-                  <input type="hidden" name="id" value={s.id} />
-                  <input type="hidden" name="setDefault" value="1" />
-                  <Button size="sm" type="submit">Approve</Button>
-                </form>
-                <form action={rejectSenderId} className="flex gap-1 items-center">
-                  <input type="hidden" name="id" value={s.id} />
-                  <input
-                    type="text"
-                    name="note"
-                    placeholder="Deny reason"
-                    className="h-8 w-32 rounded-md border px-2 text-xs"
-                  />
-                  <Button size="sm" type="submit" variant="destructive">
-                    Deny
-                  </Button>
-                </form>
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    </div>
+    <AdminPage>
+      <AdminPageHeader
+        title="Sender IDs"
+        description="Review and approve member sender ID requests before they can send SMS."
+        icon={BadgeCheck}
+      />
+
+      <AdminCard
+        title="Pending requests"
+        description={
+          requests.length === 0
+            ? "No requests awaiting review"
+            : `${requests.length} request${requests.length !== 1 ? "s" : ""}`
+        }
+      >
+        {requests.length === 0 ? (
+          <AdminEmpty>All sender ID requests are processed.</AdminEmpty>
+        ) : (
+          <div className="-my-1">
+            {requests.map((s) => (
+              <AdminListRow key={s.id}>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold font-mono text-sm">{s.value}</p>
+                    <Badge variant="outline" className="text-[10px]">
+                      {s.countryCode}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-0.5">{s.user.fullName}</p>
+                  <p className="text-xs text-muted-foreground">{s.user.phone}</p>
+                </div>
+                <div className="flex flex-wrap gap-2 sm:justify-end">
+                  <form action={approveSenderIdAction}>
+                    <input type="hidden" name="id" value={s.id} />
+                    <input type="hidden" name="setDefault" value="1" />
+                    <Button size="sm" type="submit">
+                      Approve
+                    </Button>
+                  </form>
+                  <form action={rejectSenderIdAction} className="flex gap-2 items-center">
+                    <input type="hidden" name="id" value={s.id} />
+                    <Input
+                      name="note"
+                      placeholder="Deny reason"
+                      className="h-8 w-36 text-xs"
+                    />
+                    <Button size="sm" type="submit" variant="destructive">
+                      Deny
+                    </Button>
+                  </form>
+                </div>
+              </AdminListRow>
+            ))}
+          </div>
+        )}
+      </AdminCard>
+    </AdminPage>
   );
 }

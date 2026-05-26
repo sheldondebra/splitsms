@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AuthLayout, AuthCard } from "@/components/auth/auth-layout";
 import { OtpForm } from "@/components/auth/otp-form";
 import { getOtpResendCooldownSec } from "@/lib/auth/otp";
+import { getRequestTenant } from "@/lib/reseller/request-tenant";
 import type { OtpPurpose } from "@/lib/generated/prisma/client";
 
 const purposeMap: Record<string, OtpPurpose> = {
@@ -43,6 +44,7 @@ export default async function VerifyOtpPage({
     );
   }
 
+  const tenant = await getRequestTenant();
   const otpPurpose = purposeMap[purpose] ?? "SIGNUP_VERIFY";
   const cooldownFromDb = await getOtpResendCooldownSec(phone, otpPurpose);
   const cooldown = Math.max(
@@ -58,9 +60,14 @@ export default async function VerifyOtpPage({
 
   return (
     <AuthLayout
+      tenant={tenant}
       title={titles[purpose] ?? "Enter verification code"}
       subtitle="Secure one-time password via SMS"
-      sideDescription="Never share your code. SplitSMS staff will never ask for it."
+      sideDescription={
+        tenant
+          ? `Never share your code. ${tenant.brandName} support will never ask for it.`
+          : "Never share your code. SplitSMS staff will never ask for it."
+      }
     >
       <AuthCard>
         <OtpForm

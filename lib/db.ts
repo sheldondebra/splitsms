@@ -25,6 +25,7 @@ const REQUIRED_MODELS = [
   "invoice",
   "enterpriseAccount",
   "apiLog",
+  "memberAccount",
 ] as const;
 
 function clientHasRequiredModels(client: PrismaClient): boolean {

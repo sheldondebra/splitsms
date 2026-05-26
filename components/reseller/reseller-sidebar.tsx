@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -25,10 +26,14 @@ const links = [
 
 export function ResellerSidebar({
   brandName,
+  logoUrl,
   primaryColor,
+  hideNav,
 }: {
   brandName?: string | null;
+  logoUrl?: string | null;
   primaryColor?: string | null;
+  hideNav?: boolean;
 }) {
   const pathname = usePathname();
   const accent = primaryColor ?? "#f97316";
@@ -42,11 +47,22 @@ export function ResellerSidebar({
       }}
     >
       <div
-        className="flex h-16 items-center border-b px-5 font-bold tracking-tight"
+        className="flex h-16 items-center gap-3 border-b px-5 font-bold tracking-tight min-w-0"
         style={{ borderColor: `${accent}33`, color: accent }}
       >
-        {brandName ?? "Reseller Portal"}
+        {logoUrl ? (
+          <Image
+            src={logoUrl}
+            alt=""
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded-lg object-contain bg-white/10"
+            unoptimized
+          />
+        ) : null}
+        <span className="truncate">{brandName ?? "Reseller Portal"}</span>
       </div>
+      {!hideNav && (
       <nav className="flex-1 space-y-0.5 p-3 overflow-y-auto">
         {links.map(({ href, label, icon: Icon }) => {
           const active =
@@ -67,8 +83,9 @@ export function ResellerSidebar({
           );
         })}
       </nav>
+      )}
       <div className="p-4 border-t border-white/10 text-xs text-white/40">
-        Powered by SplitSMS
+        {hideNav ? "Application in review" : "Powered by SplitSMS"}
       </div>
     </aside>
   );

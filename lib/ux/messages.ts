@@ -17,7 +17,7 @@ export const UX_ERRORS: Record<string, string> = {
   duplicate_sender_id: "You already registered this Sender ID.",
   sender_not_found: "Sender ID not found or not approved yet.",
   sender_provider_failed:
-    "We could not register your Sender ID with mNotify. Try again or contact support.",
+    "We could not register your Sender ID with the SMS provider. Try again or contact support.",
   support_empty: "Please enter a message before sending.",
   support_invalid: "Please add a subject and message for your ticket.",
 };

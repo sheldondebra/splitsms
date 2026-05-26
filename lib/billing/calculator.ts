@@ -1,6 +1,7 @@
 import { countSmsUnits, isGsm7, normalizePhones } from "@/lib/sms/units";
 import { resolveSmsPriceForUser } from "@/lib/reseller/pricing";
 import { prisma } from "@/lib/db";
+import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 
 export type SmsCostEstimate = {
   message: string;
@@ -30,7 +31,7 @@ export async function calculateSmsCost(
     countryCode?: string;
   },
 ): Promise<SmsCostEstimate> {
-  const countryCode = params.countryCode ?? "GH";
+  const countryCode = params.countryCode ?? DEFAULT_COUNTRY_CODE;
   const phones = Array.isArray(params.recipients)
     ? params.recipients
     : normalizePhones(params.recipients);

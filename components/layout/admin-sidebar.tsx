@@ -9,6 +9,7 @@ import {
   type AdminNavItem,
 } from "@/lib/navigation/admin-nav";
 import { cn } from "@/lib/utils";
+import { Shield } from "lucide-react";
 
 type AdminSidebarProps = {
   badges?: Partial<Record<NonNullable<AdminNavItem["badge"]>, number>>;
@@ -22,15 +23,19 @@ export function AdminSidebar({ badges, onNavigate, className }: AdminSidebarProp
   return (
     <aside
       className={cn(
-        "flex w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-[100dvh]",
+        "flex w-[260px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-[100dvh]",
         className,
       )}
     >
-      <div className="flex h-16 items-center border-b border-sidebar-border px-5">
-        <Logo href="/admin" size="md" variant="white" />
+      <div className="flex h-14 items-center justify-between border-b border-sidebar-border/80 px-4">
+        <Logo href="/admin" size="sm" variant="white" />
+        <span className="inline-flex items-center gap-1 rounded-md bg-sidebar-primary/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sidebar-primary">
+          <Shield className="h-3 w-3" />
+          Admin
+        </span>
       </div>
 
-      <nav className="sidebar-scroll flex-1 overflow-y-auto overscroll-contain px-3 py-4 space-y-6 min-h-0">
+      <nav className="sidebar-scroll flex-1 overflow-y-auto overscroll-contain px-3 py-4 space-y-5 min-h-0">
         {adminNavSections.map((section) => (
           <div key={section.id}>
             <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
@@ -47,21 +52,21 @@ export function AdminSidebar({ badges, onNavigate, className }: AdminSidebarProp
                       href={item.href}
                       onClick={onNavigate}
                       className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                         active
                           ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                          : "text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
                       )}
                     >
-                      <Icon className="h-4 w-4 shrink-0" />
+                      <Icon className="h-[18px] w-[18px] shrink-0" />
                       <span className="flex-1 truncate">{item.label}</span>
                       {badgeCount != null && badgeCount > 0 && (
                         <span
                           className={cn(
                             "min-w-[1.25rem] rounded-full px-1.5 py-0.5 text-[10px] font-bold text-center tabular-nums",
                             active
-                              ? "bg-sidebar-primary-foreground/20 text-sidebar-primary-foreground"
-                              : "bg-amber-500/20 text-amber-200",
+                              ? "bg-sidebar-primary-foreground/20"
+                              : "bg-amber-500/25 text-amber-100",
                           )}
                         >
                           {badgeCount > 99 ? "99+" : badgeCount}
@@ -76,11 +81,11 @@ export function AdminSidebar({ badges, onNavigate, className }: AdminSidebarProp
         ))}
       </nav>
 
-      <div className="sidebar-footer p-4 space-y-2 safe-bottom">
+      <div className="sidebar-footer border-t border-sidebar-border/80 p-3 space-y-1 safe-bottom">
         <Link
           href="/dashboard"
           onClick={onNavigate}
-          className="block text-xs text-sidebar-foreground/55 hover:text-primary transition-colors"
+          className="block rounded-lg px-3 py-2 text-xs font-medium text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
         >
           ← Member dashboard
         </Link>
@@ -88,9 +93,9 @@ export function AdminSidebar({ badges, onNavigate, className }: AdminSidebarProp
           href="/pricing"
           target="_blank"
           onClick={onNavigate}
-          className="block text-xs text-sidebar-foreground/55 hover:text-primary transition-colors"
+          className="block rounded-lg px-3 py-2 text-xs font-medium text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
         >
-          View public pricing ↗
+          Public pricing ↗
         </Link>
       </div>
     </aside>

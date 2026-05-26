@@ -52,30 +52,24 @@ export function PageHeader({
 
   return (
     <div className="page-header-block">
-      <div className="hidden md:flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3 min-w-0">
-          {Icon && (
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-              <Icon className="h-5 w-5" />
-            </div>
-          )}
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{title}</h1>
-            {description && (
-              <p className="text-muted-foreground mt-1 text-sm max-w-2xl leading-relaxed">{description}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        {(Icon || description || mobileDesc) && (
+          <div className="flex items-start gap-3 min-w-0">
+            {Icon && (
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                <Icon className="h-5 w-5" />
+              </div>
+            )}
+            {(description || mobileDesc) && (
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl pt-0.5">
+                <span className="sr-only">{title}</span>
+                {mobileDesc ?? description}
+              </p>
             )}
           </div>
-        </div>
+        )}
         {actions && <div className="flex flex-wrap gap-2 shrink-0">{actions}</div>}
       </div>
-
-      {mobileDesc && (
-        <p className="md:hidden text-sm text-muted-foreground leading-snug">{mobileDesc}</p>
-      )}
-
-      {actions && (
-        <div className="md:hidden flex flex-col gap-2 sm:flex-row sm:flex-wrap">{actions}</div>
-      )}
     </div>
   );
 }

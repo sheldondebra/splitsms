@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +31,7 @@ function countRecipients(raw: string) {
 export function SendCostPreview({
   message,
   recipientsRaw,
-  countryCode = "GH",
+  countryCode = DEFAULT_COUNTRY_CODE,
 }: {
   message: string;
   recipientsRaw: string;

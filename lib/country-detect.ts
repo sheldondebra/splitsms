@@ -25,6 +25,6 @@ export function detectCountryFromPhone(phone: string): string | null {
 }
 
 export function detectCountryFromLocale(locale?: string): string {
-  if (!locale) return "GH";
-  return LOCALE_TO_COUNTRY[locale] ?? locale.split("-")[1]?.toUpperCase() ?? "GH";
+  if (!locale) return "GLOBAL";
+  return LOCALE_TO_COUNTRY[locale] ?? locale.split("-")[1]?.toUpperCase() ?? "GLOBAL";
 }

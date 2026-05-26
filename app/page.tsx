@@ -11,25 +11,25 @@ import {
 } from "@/lib/seo/site";
 
 export const metadata: Metadata = {
-  title: "SplitSMS — Bulk SMS Platform & SMS API | Ghana & 190+ Countries",
+  title: "SplitSMS — Bulk SMS Platform & SMS API | 190+ Countries",
   description:
-    "Send bulk SMS, OTP, and marketing campaigns in Ghana and worldwide. Affordable SMS gateway from GHS 0.029/msg, REST SMS API, Paystack wallet, and 5 free SMS credits. Simpler than Infobip for Africa.",
+    "Send bulk SMS, OTP, and marketing campaigns worldwide. Affordable SMS gateway, REST API, pay-as-you-go pricing, and 5 free SMS credits on signup.",
   keywords: defaultKeywords,
   metadataBase: new URL(siteUrl),
   openGraph: {
-    title: "SplitSMS — Send SMS at Scale | Bulk SMS Ghana & Global",
+    title: "SplitSMS — Send SMS at Scale | Bulk SMS Worldwide",
     description:
-      "Bulk SMS campaigns, OTP API, webhooks, and transparent pricing. The modern SMS platform for Ghana, Nigeria, and 190+ countries.",
+      "Bulk SMS campaigns, OTP API, webhooks, and transparent pricing. The modern SMS platform for 190+ countries.",
     url: siteUrl,
     siteName,
     type: "website",
-    locale: "en_GH",
+    locale: "en",
   },
   twitter: {
     card: "summary_large_image",
     title: "SplitSMS — Bulk SMS & SMS API Made Simple",
     description:
-      "Affordable SMS in Ghana from GHS 0.029. Campaigns, OTP, API & 5 free credits.",
+      "Affordable bulk SMS worldwide. Campaigns, OTP, API & 5 free credits.",
   },
   alternates: {
     canonical: "/",
@@ -91,10 +91,10 @@ const jsonLd = {
         },
         {
           "@type": "Question",
-          name: "How much does SMS cost in Ghana?",
+          name: "How much does SMS cost?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Ghana SMS rates start around GHS 0.029 per segment on SplitSMS with transparent per-country pricing.",
+            text: "SMS rates vary by destination country on SplitSMS with transparent per-country pricing on the pricing page.",
           },
         },
         {

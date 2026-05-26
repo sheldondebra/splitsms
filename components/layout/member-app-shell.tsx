@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
+import { TenantDashboardSidebar } from "@/components/tenant/tenant-sidebar";
 import { DevelopersSidebar } from "@/components/developers/developers-sidebar";
+import type { TenantBranding } from "@/lib/reseller/tenant";
 import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { MobileNavDrawer } from "@/components/dashboard/mobile-nav-drawer";
@@ -17,6 +19,7 @@ type MemberAppShellProps = {
   notifications: NotificationItem[];
   unreadCount: number;
   balance: BalanceSnapshot;
+  tenant?: TenantBranding | null;
 };
 
 export function MemberAppShell({
@@ -25,6 +28,7 @@ export function MemberAppShell({
   notifications,
   unreadCount,
   balance,
+  tenant,
 }: MemberAppShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -34,7 +38,7 @@ export function MemberAppShell({
     <div className="flex min-h-[100dvh] bg-background">
       {!isDevelopers && <DashboardSidebar />}
       {isDevelopers && (
-        <div className="hidden md:flex">
+        <div className="hidden md:flex shrink-0">
           <DevelopersSidebar />
         </div>
       )}
@@ -61,7 +65,7 @@ export function MemberAppShell({
         </main>
 
         <MobileNav onMenuOpen={() => setMenuOpen(true)} />
-        <MobileNavDrawer open={menuOpen} onClose={() => setMenuOpen(false)} />
+        <MobileNavDrawer open={menuOpen} onClose={() => setMenuOpen(false)} tenant={tenant} />
       </div>
     </div>
   );

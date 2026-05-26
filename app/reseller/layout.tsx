@@ -10,11 +10,11 @@ export default async function ResellerLayout({
 }) {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (session.role !== "RESELLER" && !["ADMIN", "SUPER_ADMIN"].includes(session.role)) {
+  const reseller = await getResellerByUserId(session.userId);
+
+  if (!["ADMIN", "SUPER_ADMIN", "RESELLER"].includes(session.role) && !reseller) {
     redirect("/dashboard");
   }
-
-  const reseller = await getResellerByUserId(session.userId);
 
   const primary = reseller?.branding?.primaryColor ?? "#f97316";
   const secondary = reseller?.branding?.secondaryColor ?? "#0f0f0f";
@@ -31,7 +31,9 @@ export default async function ResellerLayout({
     >
       <ResellerSidebar
         brandName={reseller?.brandName ?? reseller?.businessName}
+        logoUrl={reseller?.branding?.logoUrl}
         primaryColor={primary}
+        hideNav={reseller?.status !== "APPROVED"}
       />
       <main className="flex-1 p-6 md:p-10 overflow-auto">{children}</main>
     </div>

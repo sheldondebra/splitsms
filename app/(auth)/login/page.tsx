@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { loginPasswordAction, loginOtpRequestAction } from "@/lib/actions/auth";
 import { AuthLayout, AuthCard } from "@/components/auth/auth-layout";
+import { getRequestTenant } from "@/lib/reseller/request-tenant";
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { PasswordField } from "@/components/auth/password-field";
 import { Button } from "@/components/ui/button";
@@ -14,12 +15,22 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string; reset?: string; rate_limit?: string }>;
 }) {
   const { error, reset } = await searchParams;
+  const tenant = await getRequestTenant();
 
   return (
     <AuthLayout
-      title="Welcome back"
-      subtitle="Sign in to your SplitSMS account"
-      sideDescription="Send campaigns to thousands. Track delivery. Pay with MoMo, Paystack, and more."
+      tenant={tenant}
+      title={tenant ? `Sign in to ${tenant.brandName}` : "Welcome back"}
+      subtitle={
+        tenant
+          ? "Use the account your provider created for you"
+          : "Sign in to your SplitSMS account"
+      }
+      sideDescription={
+        tenant
+          ? "Send SMS campaigns, check delivery, and manage your wallet on your provider's branded portal."
+          : "Send campaigns to thousands. Track delivery. Pay with MoMo, Paystack, and more."
+      }
     >
       <AuthCard>
         <AuthAlert code={reset === "success" ? "reset" : error} />
@@ -90,12 +101,22 @@ export default async function LoginPage({
           </TabsContent>
         </Tabs>
 
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          No account?{" "}
-          <Link href="/signup" className="text-primary font-medium hover:underline">
-            Create one free
-          </Link>
-        </p>
+        {!tenant && (
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            No account?{" "}
+            <Link href="/signup" className="text-primary font-medium hover:underline">
+              Create one free
+            </Link>
+          </p>
+        )}
+        {tenant?.supportEmail && (
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            Need an account? Contact{" "}
+            <a href={`mailto:${tenant.supportEmail}`} className="text-primary font-medium hover:underline">
+              {tenant.supportEmail}
+            </a>
+          </p>
+        )}
       </AuthCard>
     </AuthLayout>
   );

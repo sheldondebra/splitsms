@@ -5,117 +5,79 @@ import { cn } from "@/lib/utils";
 import {
   Send,
   Shield,
-  Zap,
   Globe,
   BarChart3,
   Code2,
   Users,
   Bell,
-  Star,
   Wallet,
   Webhook,
   KeyRound,
-  FileSpreadsheet,
   BadgeCheck,
-  Puzzle,
   CheckCircle2,
   ArrowRight,
+  Star,
   Sparkles,
 } from "lucide-react";
 import { HomeBlogSection } from "@/components/marketing/home-blog-section";
+import {
+  DashboardPreview,
+  DashboardPreviewStrip,
+} from "@/components/marketing/dashboard-preview";
 
 const stats = [
-  { value: "190+", label: "Countries for SMS delivery" },
-  { value: "99.2%", label: "Typical SMS delivery rate" },
-  { value: "GHS 0.029", label: "SMS from in Ghana" },
-  { value: "5 free", label: "SMS credits on signup" },
+  { value: "190+", label: "Countries" },
+  { value: "99.2%", label: "Delivery rate" },
+  { value: "From $0.01", label: "Per SMS segment" },
+  { value: "5 free", label: "SMS on signup" },
 ];
 
 const useCases = [
   {
     icon: Bell,
-    title: "Customer SMS alerts",
-    desc: "Send time-critical SMS reminders, shipping updates, and account notifications at scale.",
+    title: "Alerts & reminders",
+    desc: "Shipping updates, appointments, and account notifications.",
   },
   {
     icon: Shield,
-    title: "OTP & transactional SMS",
-    desc: "Verify logins, confirm payments, and deliver receipts with fast, reliable SMS delivery.",
+    title: "OTP & transactional",
+    desc: "Verify logins, confirm payments, and send receipts fast.",
   },
   {
     icon: Users,
-    title: "SMS marketing campaigns",
-    desc: "Promotional bulk SMS to thousands — personalize names, schedule sends, and track opens via delivery reports.",
+    title: "Marketing campaigns",
+    desc: "Bulk SMS with personalization, scheduling, and delivery reports.",
   },
 ];
 
-const coreFeatures = [
-  {
-    icon: Send,
-    title: "Bulk SMS campaigns",
-    desc: "Upload contacts or CSV, personalize messages, schedule blasts, and retry failed SMS automatically.",
-  },
-  {
-    icon: FileSpreadsheet,
-    title: "Contact management",
-    desc: "Import spreadsheets, deduplicate numbers, tag audiences, and segment by country before you send SMS.",
-  },
-  {
-    icon: BadgeCheck,
-    title: "Sender ID for SMS",
-    desc: "Register your brand name so recipients trust every SMS. Built-in approval workflow for Ghana and beyond.",
-  },
-  {
-    icon: KeyRound,
-    title: "OTP SMS API",
-    desc: "Send and verify one-time passwords via REST API — ideal for apps, checkout, and account security.",
-  },
-  {
-    icon: Webhook,
-    title: "SMS delivery webhooks",
-    desc: "Instant callbacks when SMS is sent, delivered, or fails — HMAC-signed for secure integrations.",
-  },
-  {
-    icon: BarChart3,
-    title: "SMS reports & analytics",
-    desc: "Live dashboards, per-message logs, CSV export, and campaign-level delivery stats.",
-  },
-  {
-    icon: Wallet,
-    title: "Pay-as-you-go SMS wallet",
-    desc: "Top up with Paystack, buy SMS credits, and see every charge. No annual contracts or hidden fees.",
-  },
-  {
-    icon: Puzzle,
-    title: "WooCommerce SMS plugin",
-    desc: "Order confirmations, form alerts, and e-commerce notifications — no custom development required.",
-  },
+const features = [
+  { icon: Send, title: "Bulk SMS", desc: "CSV import, scheduling, retries." },
+  { icon: BadgeCheck, title: "Sender IDs", desc: "Register your brand with carriers worldwide." },
+  { icon: KeyRound, title: "OTP API", desc: "Send and verify one-time passwords." },
+  { icon: Webhook, title: "Webhooks", desc: "Real-time delivery callbacks." },
+  { icon: BarChart3, title: "Reports", desc: "Dashboards, logs, and CSV export." },
+  { icon: Wallet, title: "Pay-as-you-go", desc: "Paystack wallet — no contracts." },
 ];
 
-const comparisons = [
-  { label: "Time to first SMS", split: "Under 5 minutes", other: "Days to weeks" },
-  { label: "Bulk SMS dashboard", split: "Included", other: "Often extra cost" },
-  { label: "Ghana SMS pricing", split: "From GHS 0.029", other: "Opaque / variable" },
-  { label: "Paystack wallet", split: "Built-in", other: "Invoice-only" },
-  { label: "SMS API + portal", split: "One account", other: "Separate products" },
+const steps = [
+  { n: "1", title: "Create account", desc: "Sign up and get 5 free SMS credits." },
+  { n: "2", title: "Register Sender ID", desc: "Submit your brand for carrier approval." },
+  { n: "3", title: "Send SMS", desc: "Use the dashboard or REST API." },
 ];
 
 const testimonials = [
   {
-    quote:
-      "SplitSMS transformed our SMS marketing. We reach thousands instantly with personalized bulk messages at a fair price.",
+    quote: "We reach thousands instantly with personalized bulk messages at a fair price.",
     author: "Sarah",
     role: "Marketing Manager",
   },
   {
-    quote:
-      "Perfect for events — SMS reminders and exclusive offers boosted attendance dramatically.",
+    quote: "SMS reminders boosted event attendance dramatically.",
     author: "Mr. Nyako Osie",
     role: "Event Organizer",
   },
   {
-    quote:
-      "Cost-effective bulk SMS for our nonprofit. Donations and engagement improved with every campaign.",
+    quote: "Cost-effective bulk SMS for our nonprofit — donations improved every campaign.",
     author: "Mrs. Alberta Owusu",
     role: "Nonprofit Coordinator",
   },
@@ -123,372 +85,256 @@ const testimonials = [
 
 const faqs = [
   {
-    q: "What is SplitSMS and how do I send SMS?",
-    a: "SplitSMS is a bulk SMS platform for businesses in Ghana and worldwide. Sign up, top up your wallet, register a Sender ID, then send SMS from the dashboard or our REST API. New accounts receive free SMS credits to test delivery.",
+    q: "What is SplitSMS?",
+    a: "A bulk SMS platform for 190+ countries. Sign up, top up, register a Sender ID, then send from the dashboard or REST API.",
   },
   {
-    q: "How much does SMS cost in Ghana?",
-    a: "Ghana SMS rates start around GHS 0.029 per message segment on SplitSMS. Pricing is transparent per country — view live rates on our pricing page and pay only for what you send.",
+    q: "How much does SMS cost?",
+    a: "Rates vary by country — see transparent per-destination pricing on our pricing page. Pay only for what you send.",
   },
   {
-    q: "Do you provide an SMS API for developers?",
-    a: "Yes. Our REST API covers send SMS, OTP verification, wallet balance, contacts, campaigns, and webhooks. Use sandbox keys to test without charges. Full documentation and a Postman collection are available.",
+    q: "Do you provide an SMS API?",
+    a: "Yes — send SMS, OTP, wallet, contacts, campaigns, and webhooks. Sandbox keys included.",
   },
   {
-    q: "Can I send bulk SMS to Nigeria and other countries?",
-    a: "Yes. SplitSMS delivers SMS to 190+ countries with smart routing through Infobip, Twilio, and mNotify — including Ghana, Nigeria, and across Africa.",
-  },
-  {
-    q: "Is SplitSMS better than Infobip or Twilio for bulk SMS?",
-    a: "For teams that need affordable bulk SMS, OTP, and a simple campaign UI without enterprise contracts, SplitSMS is the modern alternative — same carrier-grade routing with startup-friendly pricing and local Paystack payments.",
+    q: "Can I send to Nigeria and other countries?",
+    a: "Yes. Smart routing via Infobip, Twilio, and regional gateways with automatic failover worldwide.",
   },
 ];
 
 export function HomePageContent() {
   return (
     <>
-      {/* Hero — always dark brand strip for contrast in both themes */}
-      <section
-        className="hero-gradient relative overflow-hidden text-white"
-        aria-labelledby="hero-heading"
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,oklch(0.72_0.19_45/0.15),transparent_50%)]" />
-        <div className="relative mx-auto max-w-6xl px-4 py-24 md:py-32 lg:py-36">
-          <p className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-6">
-            <Sparkles className="h-4 w-4" aria-hidden />
-            #1 bulk SMS platform · Ghana & 190+ countries
-          </p>
-          <h1
-            id="hero-heading"
-            className="max-w-4xl text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl lg:leading-[1.08]"
-          >
-            Send{" "}
-            <span className="text-gradient-orange">SMS</span> at scale — bulk
-            campaigns, OTP & API in one platform
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg text-white/75 leading-relaxed">
-            SplitSMS is the affordable SMS gateway for Ghana, Nigeria, and global
-            reach. Marketing teams get a simple bulk SMS dashboard; developers get
-            a production-ready SMS API — from GHS 0.029 per message, with 5 free SMS
-            credits to start.
-          </p>
-          <div className="mt-10 flex flex-wrap gap-4">
-            <Link
-              href="/signup"
-              className={cn(
-                buttonVariants({ size: "lg" }),
-                "orange-glow font-semibold px-8 gap-2",
-              )}
-            >
-              Start free — 5 SMS credits
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/pricing"
-              className={cn(
-                buttonVariants({ size: "lg", variant: "outline" }),
-                "border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white",
-              )}
-            >
-              View SMS pricing
-            </Link>
-          </div>
-          <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl">
-            {stats.map((s) => (
-              <div
-                key={s.label}
-                className="rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm"
+      {/* Hero */}
+      <section className="relative overflow-hidden border-b bg-background" aria-labelledby="hero-heading">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,oklch(0.72_0.19_45/0.08),transparent)]" />
+        <div className="relative mx-auto max-w-6xl px-4 pt-12 pb-16 md:pt-16 md:pb-20">
+          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+            <div>
+              <p className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary mb-4">
+                <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                #1 bulk SMS platform · 190+ countries
+              </p>
+              <h1
+                id="hero-heading"
+                className="text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:leading-[1.1]"
               >
-                <p className="text-xl md:text-2xl font-bold text-primary tabular-nums">
-                  {s.value}
-                </p>
-                <p className="text-xs text-white/55 mt-1 leading-snug">{s.label}</p>
+                Send SMS at scale — simple dashboard, powerful API
+              </h1>
+              <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-lg">
+                Campaigns, OTP, and delivery reports in one platform. Transparent
+                per-country pricing and 5 free credits to start.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  href="/signup"
+                  className={cn(buttonVariants({ size: "lg" }), "rounded-xl font-semibold px-6")}
+                >
+                  Start free
+                </Link>
+                <Link
+                  href="/pricing"
+                  className={cn(
+                    buttonVariants({ size: "lg", variant: "outline" }),
+                    "rounded-xl font-medium",
+                  )}
+                >
+                  View pricing
+                </Link>
               </div>
-            ))}
+              <dl className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                {stats.map((s) => (
+                  <div key={s.label}>
+                    <dt className="text-xs text-muted-foreground">{s.label}</dt>
+                    <dd className="text-lg font-bold tabular-nums mt-0.5">{s.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+
+            <DashboardPreview
+              variant="overview"
+              className="w-full max-w-lg mx-auto lg:max-w-none lg:mx-0 lg:translate-y-2"
+              label="SplitSMS dashboard"
+            />
           </div>
+        </div>
+      </section>
+
+      {/* Dashboard screenshots */}
+      <section className="py-20 bg-muted/30" aria-labelledby="product-preview">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="max-w-2xl mx-auto text-center mb-12">
+            <h2 id="product-preview" className="text-2xl md:text-3xl font-bold tracking-tight">
+              Everything you need in one dashboard
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              Send messages, run campaigns, and track delivery — no clutter, no complexity.
+            </p>
+          </div>
+          <DashboardPreviewStrip />
         </div>
       </section>
 
       {/* Use cases */}
-      <section className="py-20 bg-background" aria-labelledby="sms-use-cases">
+      <section className="py-20 bg-background" aria-labelledby="use-cases">
         <div className="mx-auto max-w-6xl px-4">
-          <div className="max-w-2xl mx-auto text-center mb-12">
-            <h2 id="sms-use-cases" className="text-3xl font-bold tracking-tight">
-              Every SMS your business needs
+          <div className="max-w-xl mb-10">
+            <h2 id="use-cases" className="text-2xl md:text-3xl font-bold tracking-tight">
+              Built for every SMS use case
             </h2>
-            <p className="mt-3 text-muted-foreground leading-relaxed">
-              From promotional bulk SMS to OTP verification — one SMS platform for
-              marketing, operations, and product teams.
+            <p className="mt-3 text-muted-foreground">
+              Marketing, operations, and product teams — one platform.
             </p>
           </div>
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-3">
             {useCases.map(({ icon: Icon, title, desc }) => (
-              <Card
-                key={title}
-                className="border-border/80 hover:border-primary/40 transition-colors shadow-sm"
-              >
-                <CardContent className="pt-8">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-4">
-                    <Icon className="h-6 w-6" aria-hidden />
+              <Card key={title} className="border-border/60 shadow-none">
+                <CardContent className="pt-6">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary mb-4">
+                    <Icon className="h-5 w-5" />
                   </div>
-                  <h3 className="text-lg font-semibold">{title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                    {desc}
-                  </p>
+                  <h3 className="font-semibold">{title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{desc}</p>
                 </CardContent>
               </Card>
             ))}
           </div>
-          <p className="mt-10 text-center">
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="py-20 border-y bg-muted/20" aria-labelledby="how-it-works">
+        <div className="mx-auto max-w-6xl px-4">
+          <h2 id="how-it-works" className="text-2xl md:text-3xl font-bold tracking-tight text-center mb-12">
+            Up and running in minutes
+          </h2>
+          <div className="grid gap-8 md:grid-cols-3 max-w-4xl mx-auto">
+            {steps.map(({ n, title, desc }) => (
+              <div key={n} className="text-center">
+                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                  {n}
+                </div>
+                <h3 className="mt-4 font-semibold">{title}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-20 bg-background" aria-labelledby="features">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
+            <div>
+              <h2 id="features" className="text-2xl md:text-3xl font-bold tracking-tight">
+                Core features
+              </h2>
+              <p className="mt-2 text-muted-foreground">Everything to send and track SMS.</p>
+            </div>
             <Link
               href="/features"
-              className="text-sm font-semibold text-primary hover:underline inline-flex items-center gap-1"
+              className="text-sm font-semibold text-primary hover:underline inline-flex items-center gap-1 shrink-0"
             >
-              Explore all SMS features
+              All features
               <ArrowRight className="h-4 w-4" />
             </Link>
-          </p>
-        </div>
-      </section>
-
-      {/* Features grid */}
-      <section
-        className="py-20 border-t bg-muted/30 dark:bg-muted/20"
-        aria-labelledby="sms-features"
-      >
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <h2 id="sms-features" className="text-3xl font-bold tracking-tight">
-              Powerful SMS features — built for bulk
-            </h2>
-            <p className="mt-3 text-muted-foreground">
-              Everything to send SMS campaigns, verify users, and track delivery —
-              without enterprise complexity.
-            </p>
           </div>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {coreFeatures.map(({ icon: Icon, title, desc }) => (
-              <article
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {features.map(({ icon: Icon, title, desc }) => (
+              <div
                 key={title}
-                className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm hover:border-primary/30 transition-colors"
+                className="rounded-xl border border-border/60 bg-card p-5"
               >
-                <Icon className="h-8 w-8 text-primary" aria-hidden />
+                <Icon className="h-5 w-5 text-primary" />
                 <h3 className="mt-3 font-semibold text-sm">{title}</h3>
-                <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                  {desc}
-                </p>
-              </article>
+                <p className="mt-1 text-xs text-muted-foreground">{desc}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* vs competitors */}
-      <section className="py-20 bg-background" aria-labelledby="why-sms">
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="grid md:grid-cols-2 gap-12 items-start">
-            <div>
-              <h2 id="why-sms" className="text-3xl font-bold tracking-tight">
-                Enterprise SMS routing.{" "}
-                <span className="text-primary">Startup-simple pricing.</span>
-              </h2>
-              <p className="mt-4 text-muted-foreground leading-relaxed">
-                Route SMS through Infobip, Twilio, and mNotify with automatic
-                failover — while your team uses a dashboard as clean as modern SaaS.
-                The smarter SMS alternative for Ghana and Africa.
-              </p>
-              <ul className="mt-6 space-y-3 text-sm">
-                {[
-                  "Upload contacts & CSV — send bulk SMS in one click",
-                  "Schedule SMS campaigns & retry failed messages",
-                  "Real-time SMS delivery reports & webhooks",
-                  "Paystack, MoMo, Stripe wallet top-ups",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-2 text-foreground/90">
-                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+      {/* API */}
+      <section className="py-20 bg-muted/30 border-t" aria-labelledby="api">
+        <div className="mx-auto max-w-6xl px-4 grid gap-10 lg:grid-cols-2 lg:items-center">
+          <div>
+            <h2 id="api" className="text-2xl md:text-3xl font-bold tracking-tight">
+              SMS API for developers
+            </h2>
+            <p className="mt-4 text-muted-foreground leading-relaxed">
+              REST endpoints for send, OTP, wallet, and webhooks. Full docs and Postman
+              collection included.
+            </p>
+            <ul className="mt-6 space-y-2 text-sm">
+              {["Sandbox keys for testing", "HMAC-signed webhooks", "190+ country routes"].map(
+                (item) => (
+                  <li key={item} className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     {item}
                   </li>
-                ))}
-              </ul>
-            </div>
-            <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-lg">
-              <div className="flex items-center gap-2 mb-4">
-                <BarChart3 className="h-5 w-5 text-primary" />
-                <span className="font-semibold">SMS campaign dashboard</span>
-              </div>
-              <div className="space-y-3">
-                {["Delivered", "Pending", "Failed"].map((label, i) => (
-                  <div key={label}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span>{label}</span>
-                      <span className="text-muted-foreground">
-                        {[84, 12, 4][i]}%
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: `${[84, 12, 4][i]}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-4 text-xs text-muted-foreground">
-                Live SMS analytics · API logs · Sender ID management
-              </p>
-            </div>
-          </div>
-
-          {/* Comparison table */}
-          <div className="mt-16 rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm">
-            <div className="grid grid-cols-3 gap-px bg-border text-center text-xs font-semibold">
-              <div className="bg-muted/50 py-3 px-2" />
-              <div className="bg-primary/10 text-primary py-3 px-2">SplitSMS</div>
-              <div className="bg-muted/50 text-muted-foreground py-3 px-2">
-                Typical enterprise SMS
-              </div>
-            </div>
-            {comparisons.map(({ label, split, other }) => (
-              <div
-                key={label}
-                className="grid grid-cols-3 gap-px bg-border border-t text-sm"
+                ),
+              )}
+            </ul>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/api-docs" className={cn(buttonVariants(), "rounded-xl font-semibold")}>
+                API docs
+              </Link>
+              <Link
+                href="/signup"
+                className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
               >
-                <div className="bg-card py-3 px-3 text-left font-medium text-muted-foreground">
-                  {label}
-                </div>
-                <div className="bg-primary/5 py-3 px-3 font-semibold text-center text-foreground">
-                  {split}
-                </div>
-                <div className="bg-card py-3 px-3 text-center text-muted-foreground">
-                  {other}
-                </div>
-              </div>
-            ))}
+                Get API keys
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
-
-      {/* Global + API highlights */}
-      <section className="py-16 bg-muted/30 border-y border-border/40">
-        <div className="mx-auto max-w-6xl px-4 grid gap-6 md:grid-cols-4">
-          {[
-            {
-              icon: Globe,
-              title: "Global SMS routes",
-              desc: "Smart routing across top SMS gateways with failover.",
-            },
-            {
-              icon: Code2,
-              title: "REST SMS API",
-              desc: "OTP, bulk send, balance, contacts, and webhooks.",
-            },
-            {
-              icon: Zap,
-              title: "High-throughput queue",
-              desc: "Background SMS engine for millions of sends.",
-            },
-            {
-              icon: Shield,
-              title: "Secure SMS platform",
-              desc: "Rate limits, audit logs, and encrypted API keys.",
-            },
-          ].map(({ icon: Icon, title, desc }) => (
-            <Card key={title} className="border-border/60">
-              <CardContent className="pt-6">
-                <Icon className="h-8 w-8 text-primary mb-3" aria-hidden />
-                <h3 className="font-semibold">{title}</h3>
-                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                  {desc}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* API — dark marketing band */}
-      <section
-        className="marketing-dark-band py-20 text-white"
-        aria-labelledby="sms-api"
-      >
-        <div className="mx-auto max-w-4xl px-4 text-center">
-          <h2 id="sms-api" className="text-3xl font-bold tracking-tight">
-            SMS API for developers
-          </h2>
-          <p className="mt-4 text-white/65 max-w-xl mx-auto leading-relaxed">
-            Ship bulk SMS, OTP verification, and delivery webhooks in minutes. Full
-            docs, sandbox keys, and Postman collection included.
-          </p>
-          <pre className="mt-8 text-left rounded-xl border border-white/10 bg-white/5 p-6 text-sm overflow-x-auto text-primary/90 font-mono">{`POST /api/v1/sms/send
+          <pre className="rounded-xl border border-border/60 bg-card p-5 text-xs overflow-x-auto font-mono text-muted-foreground">{`POST /api/v1/sms/send
 Authorization: Bearer sk_...
 
-{ "to": "+233...", "from": "MYBRAND", "message": "Your SMS campaign" }`}</pre>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link href="/api-docs" className={cn(buttonVariants({ size: "lg" }), "orange-glow")}>
-              SMS API documentation
-            </Link>
-            <Link
-              href="/signup"
-              className={cn(
-                buttonVariants({ size: "lg", variant: "outline" }),
-                "border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white",
-              )}
-            >
-              Get API keys free
-            </Link>
-          </div>
+{
+  "to": "+233...",
+  "from": "MYBRAND",
+  "message": "Your SMS campaign"
+}`}</pre>
         </div>
       </section>
 
-      {/* SEO prose */}
-      <section className="py-16 bg-background" aria-labelledby="about-sms">
-        <div className="mx-auto max-w-3xl px-4">
-          <h2 id="about-sms" className="text-2xl font-bold tracking-tight">
-            Affordable bulk SMS in Ghana — SMS gateway you can trust
-          </h2>
-          <div className="mt-6 space-y-4 text-muted-foreground text-sm md:text-base leading-relaxed">
-            <p>
-              <strong className="text-foreground">SplitSMS</strong> helps businesses
-              send mass text messages for SMS marketing, alerts, and authentication.
-              Whether you need an <strong className="text-foreground">SMS API</strong>,
-              a self-serve bulk SMS dashboard, or a{" "}
-              <strong className="text-foreground">WooCommerce SMS plugin</strong>, you
-              get one account, one wallet, and clear SMS delivery reporting.
-            </p>
-            <p>
-              Our SMS platform supports{" "}
-              <strong className="text-foreground">transactional SMS</strong> (OTP,
-              receipts, shipping updates) and{" "}
-              <strong className="text-foreground">promotional bulk SMS</strong> (sales,
-              events, re-engagement). Messages route through leading carriers with
-              automatic failover — maintain high SMS deliverability from hundreds to
-              millions of sends per month.
-            </p>
-            <p>
-              Based in Ghana and operated by Tecunit Ghana, SplitSMS understands local
-              Sender ID rules, mobile money culture, and fair SMS pricing. Sign up in
-              minutes, get free starter SMS credits, and send your first bulk SMS today.
-            </p>
-          </div>
+      {/* Global */}
+      <section className="py-14 border-t bg-background">
+        <div className="mx-auto max-w-6xl px-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { icon: Globe, title: "Global routes", desc: "Failover across top gateways." },
+            { icon: Code2, title: "REST API", desc: "OTP, bulk send, and webhooks." },
+            { icon: Shield, title: "Secure", desc: "Rate limits and encrypted keys." },
+            { icon: BarChart3, title: "Analytics", desc: "Live delivery reporting." },
+          ].map(({ icon: Icon, title, desc }) => (
+            <div key={title} className="flex gap-3">
+              <Icon className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-sm">{title}</h3>
+                <p className="text-xs text-muted-foreground mt-1">{desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
       <HomeBlogSection />
 
       {/* Testimonials */}
-      <section className="py-20 border-t bg-muted/30" aria-labelledby="reviews">
+      <section className="py-20 border-t bg-muted/20" aria-labelledby="reviews">
         <div className="mx-auto max-w-6xl px-4">
-          <h2 id="reviews" className="text-3xl font-bold text-center mb-12">
-            Trusted for bulk SMS in Ghana
+          <h2 id="reviews" className="text-2xl md:text-3xl font-bold text-center mb-10">
+            Trusted worldwide
           </h2>
           <div className="grid gap-6 md:grid-cols-3">
             {testimonials.map((t) => (
-              <Card key={t.author} className="bg-card border-border/60">
+              <Card key={t.author} className="border-border/60 shadow-none bg-card">
                 <CardContent className="pt-6">
-                  <div className="flex gap-1 text-primary mb-3" aria-hidden>
+                  <div className="flex gap-0.5 text-primary mb-3">
                     {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-current" />
+                      <Star key={i} className="h-3.5 w-3.5 fill-current" />
                     ))}
                   </div>
                   <p className="text-sm leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
@@ -503,25 +349,23 @@ Authorization: Bearer sk_...
 
       {/* FAQ */}
       <section className="py-16 bg-background border-t" aria-labelledby="faq">
-        <div className="mx-auto max-w-3xl px-4">
-          <h2 id="faq" className="text-2xl md:text-3xl font-bold text-center mb-10">
-            SMS platform FAQ
+        <div className="mx-auto max-w-2xl px-4">
+          <h2 id="faq" className="text-2xl font-bold text-center mb-8">
+            FAQ
           </h2>
           <div className="space-y-3">
             {faqs.map(({ q, a }) => (
               <details
                 key={q}
-                className="group rounded-xl border border-border/60 bg-card px-5 py-4 open:shadow-sm"
+                className="group rounded-xl border border-border/60 bg-card px-4 py-3"
               >
-                <summary className="cursor-pointer font-semibold text-sm md:text-base list-none flex items-center justify-between gap-4">
+                <summary className="cursor-pointer font-medium text-sm list-none flex items-center justify-between gap-4">
                   {q}
                   <span className="text-primary text-lg shrink-0 group-open:rotate-45 transition-transform">
                     +
                   </span>
                 </summary>
-                <p className="mt-3 text-sm text-muted-foreground leading-relaxed pb-1">
-                  {a}
-                </p>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed pb-1">{a}</p>
               </details>
             ))}
           </div>
@@ -529,32 +373,29 @@ Authorization: Bearer sk_...
       </section>
 
       {/* CTA */}
-      <section
-        className="hero-gradient py-24 text-center text-white"
-        aria-labelledby="cta-heading"
-      >
-        <div className="mx-auto max-w-3xl px-4">
-          <h2 id="cta-heading" className="text-3xl md:text-4xl font-bold tracking-tight">
-            Start sending SMS with SplitSMS today
+      <section className="py-20 border-t bg-primary/5" aria-labelledby="cta-heading">
+        <div className="mx-auto max-w-2xl px-4 text-center">
+          <h2 id="cta-heading" className="text-2xl md:text-3xl font-bold tracking-tight">
+            Start sending SMS today
           </h2>
-          <p className="mt-4 text-white/70 leading-relaxed">
-            Bulk SMS · OTP API · 190+ countries · 5 free SMS credits on signup
+          <p className="mt-3 text-muted-foreground">
+            5 free credits · No contract · Global delivery
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
               href="/signup"
-              className={cn(buttonVariants({ size: "lg" }), "orange-glow font-semibold")}
+              className={cn(buttonVariants({ size: "lg" }), "rounded-xl font-semibold px-8")}
             >
-              Create free SMS account
+              Create free account
             </Link>
             <Link
               href="/support"
               className={cn(
                 buttonVariants({ size: "lg", variant: "outline" }),
-                "border-white/30 text-white hover:bg-white/10 hover:text-white",
+                "rounded-xl",
               )}
             >
-              Get support
+              Contact support
             </Link>
           </div>
         </div>

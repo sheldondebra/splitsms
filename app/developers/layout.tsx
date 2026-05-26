@@ -1,6 +1,9 @@
-import { getSession } from "@/lib/auth/session";
-import { redirect } from "next/navigation";
+import { requireActiveMemberSession } from "@/lib/auth/require-active-member";
 import { MemberAppShell } from "@/components/layout/member-app-shell";
+import { TenantThemeWrap } from "@/components/tenant/tenant-theme";
+import { enforceTenantMemberAccess } from "@/lib/reseller/require-tenant-member";
+import { resolveTenantForMemberUser } from "@/lib/reseller/tenant";
+import { getRequestTenant } from "@/lib/reseller/request-tenant";
 import {
   getUserNotifications,
   getUnreadCount,
@@ -22,8 +25,12 @@ export default async function DevelopersLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireActiveMemberSession();
+  await enforceTenantMemberAccess(session.userId, session.role);
+
+  const hostTenant = await getRequestTenant();
+  const memberTenant =
+    hostTenant ?? (await resolveTenantForMemberUser(session.userId));
 
   const [user, balance, notifications, unreadCount] = await Promise.all([
     prisma.user.findUnique({
@@ -38,13 +45,16 @@ export default async function DevelopersLayout({
   const firstName = user?.fullName?.split(" ")[0] ?? "there";
 
   return (
-    <MemberAppShell
-      greeting={firstName}
-      notifications={notifications}
-      unreadCount={unreadCount}
-      balance={balance}
-    >
-      <div className="app-page md:max-w-5xl">{children}</div>
-    </MemberAppShell>
+    <TenantThemeWrap tenant={memberTenant}>
+      <MemberAppShell
+        greeting={firstName}
+        notifications={notifications}
+        unreadCount={unreadCount}
+        balance={balance}
+        tenant={memberTenant}
+      >
+        {children}
+      </MemberAppShell>
+    </TenantThemeWrap>
   );
 }

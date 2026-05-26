@@ -1,5 +1,9 @@
 import { MemberAppShell } from "@/components/layout/member-app-shell";
-import { getSession } from "@/lib/auth/session";
+import { TenantThemeWrap } from "@/components/tenant/tenant-theme";
+import { requireActiveMemberSession } from "@/lib/auth/require-active-member";
+import { enforceTenantMemberAccess } from "@/lib/reseller/require-tenant-member";
+import { resolveTenantForMemberUser } from "@/lib/reseller/tenant";
+import { getRequestTenant } from "@/lib/reseller/request-tenant";
 import {
   getUserNotifications,
   getUnreadCount,
@@ -7,7 +11,6 @@ import {
 } from "@/lib/notifications";
 import { prisma } from "@/lib/db";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
-import { redirect } from "next/navigation";
 import type { Viewport } from "next";
 
 export const viewport: Viewport = {
@@ -27,8 +30,12 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireActiveMemberSession();
+  await enforceTenantMemberAccess(session.userId, session.role);
+
+  const hostTenant = await getRequestTenant();
+  const memberTenant =
+    hostTenant ?? (await resolveTenantForMemberUser(session.userId));
 
   const [credit, user, balance] = await Promise.all([
     prisma.smsCredit.findUnique({ where: { userId: session.userId } }),
@@ -51,13 +58,16 @@ export default async function DashboardLayout({
   const firstName = user?.fullName?.split(" ")[0] ?? "there";
 
   return (
-    <MemberAppShell
-      greeting={firstName}
-      notifications={notifications}
-      unreadCount={unreadCount}
-      balance={balance}
-    >
-      {children}
-    </MemberAppShell>
+    <TenantThemeWrap tenant={memberTenant}>
+      <MemberAppShell
+        greeting={firstName}
+        notifications={notifications}
+        unreadCount={unreadCount}
+        balance={balance}
+        tenant={memberTenant}
+      >
+        {children}
+      </MemberAppShell>
+    </TenantThemeWrap>
   );
 }
