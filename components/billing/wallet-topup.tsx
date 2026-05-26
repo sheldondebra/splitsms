@@ -12,6 +12,7 @@ export type PaymentMethodOption = {
   label: string;
   description: string;
   available: boolean;
+  category?: "online" | "offline";
 };
 
 const PRESET_AMOUNTS = [10, 25, 50, 100, 200, 500];
@@ -27,9 +28,18 @@ const METHOD_ICONS: Record<string, typeof CreditCard> = {
 export function WalletTopupClient({
   currency,
   paymentMethods,
+  offlineBankDetails,
 }: {
   currency: string;
   paymentMethods: PaymentMethodOption[];
+  offlineBankDetails: {
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
+    branch?: string;
+    swiftCode?: string;
+    instructions: string;
+  };
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -37,6 +47,14 @@ export function WalletTopupClient({
   const [method, setMethod] = useState(
     paymentMethods.find((m) => m.available)?.value ?? "PAYSTACK",
   );
+  const [offline, setOffline] = useState({
+    payerName: "",
+    payerPhone: "",
+    bankName: "",
+    reference: "",
+    paidAt: "",
+    note: "",
+  });
 
   const availableMethods = paymentMethods.filter((m) => m.available);
 
@@ -56,7 +74,11 @@ export function WalletTopupClient({
       const res = await fetch("/api/payments/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: numAmount, method }),
+        body: JSON.stringify({
+          amount: numAmount,
+          method,
+          offline: method === "MANUAL" ? offline : undefined,
+        }),
       });
       const data = await res.json();
       if (!data.success) {
@@ -68,7 +90,7 @@ export function WalletTopupClient({
         return;
       }
       if (method === "MANUAL") {
-        window.location.href = "/dashboard/wallet?submitted=manual";
+        window.location.href = `/dashboard/wallet?submitted=manual&payment=${data.paymentId}`;
         return;
       }
       window.location.href = `/dashboard/wallet?payment=${data.paymentId}`;
@@ -153,6 +175,77 @@ export function WalletTopupClient({
         )}
         <input type="hidden" name="method" value={method} />
       </div>
+
+      {method === "MANUAL" && (
+        <div className="space-y-4 rounded-xl border border-border/60 bg-muted/20 p-4">
+          <div className="space-y-1.5">
+            <p className="text-sm font-semibold">Offline payment details</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {offlineBankDetails.instructions}
+            </p>
+          </div>
+          <div className="rounded-lg border border-border/60 bg-background p-3 text-xs space-y-1">
+            <p><strong>Bank:</strong> {offlineBankDetails.bankName}</p>
+            <p><strong>Account name:</strong> {offlineBankDetails.accountName}</p>
+            <p><strong>Account number:</strong> {offlineBankDetails.accountNumber}</p>
+            {offlineBankDetails.branch && <p><strong>Branch:</strong> {offlineBankDetails.branch}</p>}
+            {offlineBankDetails.swiftCode && <p><strong>SWIFT:</strong> {offlineBankDetails.swiftCode}</p>}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Payer full name</Label>
+              <Input
+                value={offline.payerName}
+                onChange={(e) => setOffline((s) => ({ ...s, payerName: e.target.value }))}
+                placeholder="John Doe"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Payer phone</Label>
+              <Input
+                value={offline.payerPhone}
+                onChange={(e) => setOffline((s) => ({ ...s, payerPhone: e.target.value }))}
+                placeholder="+233..."
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Bank used</Label>
+              <Input
+                value={offline.bankName}
+                onChange={(e) => setOffline((s) => ({ ...s, bankName: e.target.value }))}
+                placeholder="Your bank"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Transfer reference</Label>
+              <Input
+                value={offline.reference}
+                onChange={(e) => setOffline((s) => ({ ...s, reference: e.target.value }))}
+                placeholder="TRX12345"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Date & time paid</Label>
+              <Input
+                type="datetime-local"
+                value={offline.paidAt}
+                onChange={(e) => setOffline((s) => ({ ...s, paidAt: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label className="text-xs">Note (optional)</Label>
+              <Input
+                value={offline.note}
+                onChange={(e) => setOffline((s) => ({ ...s, note: e.target.value }))}
+                placeholder="Any extra payment note"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {error ? (
         <p className="text-sm text-destructive rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 leading-relaxed">

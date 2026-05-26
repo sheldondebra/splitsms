@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { creditWalletFromPayment } from "@/lib/payments/wallet";
-import { verifyPaystackPayment } from "@/lib/payments/paystack-verify";
-import { prisma } from "@/lib/db";
+import { verifyAndCreditPaymentForUser } from "@/lib/payments/verify";
 import { z } from "zod";
 
 const schema = z.object({
   reference: z.string().min(1),
+  method: z.string().optional(),
+  stripeSessionId: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -20,33 +20,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: { message: "Reference required" } }, { status: 400 });
   }
 
-  const payment = await prisma.payment.findFirst({
-    where: {
-      userId: session.userId,
-      OR: [{ id: body.data.reference }, { providerReference: body.data.reference }],
-    },
+  const result = await verifyAndCreditPaymentForUser({
+    userId: session.userId,
+    method: body.data.method,
+    reference: body.data.reference,
+    stripeSessionId: body.data.stripeSessionId,
   });
-
-  if (!payment) {
-    return NextResponse.json({ success: false, error: { message: "Payment not found" } }, { status: 404 });
+  if (!result.ok) {
+    return NextResponse.json({ success: false, error: { message: result.error } }, { status: 400 });
   }
-
-  if (payment.status === "COMPLETED") {
-    return NextResponse.json({ success: true, status: "completed", paymentId: payment.id });
-  }
-
-  if (payment.method === "PAYSTACK") {
-    const verified = await verifyPaystackPayment(body.data.reference);
-    if (!verified.ok) {
-      return NextResponse.json({ success: false, error: { message: verified.error } }, { status: 400 });
-    }
-  }
-
-  await creditWalletFromPayment(payment.id);
 
   return NextResponse.json({
     success: true,
-    status: "completed",
-    paymentId: payment.id,
+    status: result.status,
+    paymentId: result.paymentId,
   });
 }

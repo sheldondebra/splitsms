@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { handlePaystackWebhook } from "@/lib/actions/wallet";
+import { loadPaystackSettings } from "@/lib/payments/gateway-settings";
 import { verifyPaystackSignature } from "@/lib/payments/paystack-verify";
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
   const signature = request.headers.get("x-paystack-signature");
+  const { config } = await loadPaystackSettings();
 
-  if (process.env.PAYSTACK_SECRET_KEY && !verifyPaystackSignature(rawBody, signature)) {
+  if (config.secretKey && !(await verifyPaystackSignature(rawBody, signature))) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 

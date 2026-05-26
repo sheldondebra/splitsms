@@ -3,11 +3,22 @@ import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { getPaymentAdapter } from "@/lib/payments";
 import type { PaymentMethod } from "@/lib/generated/prisma/client";
+import { getPaymentMethodOptions } from "@/lib/payments/methods";
 import { z } from "zod";
 
 const schema = z.object({
   amount: z.number().positive(),
   method: z.enum(["PAYSTACK", "FLUTTERWAVE", "STRIPE", "MTN_MOMO", "MANUAL"]),
+  offline: z
+    .object({
+      payerName: z.string().optional(),
+      payerPhone: z.string().optional(),
+      bankName: z.string().optional(),
+      reference: z.string().optional(),
+      paidAt: z.string().optional(),
+      note: z.string().optional(),
+    })
+    .optional(),
 });
 
 export async function POST(request: Request) {
@@ -19,6 +30,15 @@ export async function POST(request: Request) {
   const body = schema.safeParse(await request.json());
   if (!body.success) {
     return NextResponse.json({ success: false, error: { message: "Invalid amount or method" } }, { status: 400 });
+  }
+
+  const methods = await getPaymentMethodOptions();
+  const selected = methods.find((m) => m.value === body.data.method);
+  if (!selected) {
+    return NextResponse.json({ success: false, error: { message: "Payment method disabled" } }, { status: 400 });
+  }
+  if (!selected.available && body.data.method !== "MANUAL") {
+    return NextResponse.json({ success: false, error: { message: `${selected.label} is not configured` } }, { status: 400 });
   }
 
   const wallet = await prisma.wallet.findUnique({ where: { userId: session.userId } });
@@ -35,6 +55,17 @@ export async function POST(request: Request) {
       currency: wallet.currency,
       providerReference: body.data.method === "MANUAL" ? undefined : `pending-${Date.now()}`,
       status: "PENDING",
+      metadata:
+        body.data.method === "MANUAL"
+          ? {
+              payerName: body.data.offline?.payerName?.trim() || null,
+              payerPhone: body.data.offline?.payerPhone?.trim() || null,
+              bankName: body.data.offline?.bankName?.trim() || null,
+              reference: body.data.offline?.reference?.trim() || null,
+              paidAt: body.data.offline?.paidAt?.trim() || null,
+              note: body.data.offline?.note?.trim() || null,
+            }
+          : undefined,
     },
   });
 

@@ -1,7 +1,9 @@
 import { createHmac } from "crypto";
+import { loadPaystackSettings } from "@/lib/payments/gateway-settings";
 
 export async function verifyPaystackPayment(reference: string) {
-  const secret = process.env.PAYSTACK_SECRET_KEY;
+  const { config } = await loadPaystackSettings();
+  const secret = config.secretKey;
   if (!secret) return { ok: false as const, error: "Paystack not configured" };
 
   const res = await fetch(
@@ -22,8 +24,9 @@ export async function verifyPaystackPayment(reference: string) {
   return { ok: true as const, data: data.data };
 }
 
-export function verifyPaystackSignature(rawBody: string, signature: string | null) {
-  const secret = process.env.PAYSTACK_SECRET_KEY;
+export async function verifyPaystackSignature(rawBody: string, signature: string | null) {
+  const { config } = await loadPaystackSettings();
+  const secret = config.webhookSecret || config.secretKey;
   if (!secret || !signature) return false;
   const hash = createHmac("sha512", secret).update(rawBody).digest("hex");
   return hash === signature;

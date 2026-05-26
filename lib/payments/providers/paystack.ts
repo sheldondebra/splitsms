@@ -1,15 +1,17 @@
+import { loadPaystackSettings } from "@/lib/payments/gateway-settings";
 import type { PaymentProviderAdapter, CheckoutSession } from "../types";
 
 export const paystackAdapter: PaymentProviderAdapter = {
   method: "PAYSTACK",
   async initializeTopUp({ paymentId, amount, currency, email }) {
-    const secret = process.env.PAYSTACK_SECRET_KEY;
+    const { config } = await loadPaystackSettings();
+    const secret = config.secretKey;
     const { getSiteUrl } = await import("@/lib/site-config");
     const appUrl = getSiteUrl();
-    if (!secret) {
+    if (!config.enabled || !secret) {
       return {
         paymentId,
-        instructions: "Paystack is not configured. Set PAYSTACK_SECRET_KEY.",
+        instructions: "Paystack is not configured. Add keys in Admin → Payments → Settings.",
       };
     }
 
@@ -24,7 +26,7 @@ export const paystackAdapter: PaymentProviderAdapter = {
         email: email ?? "member@splitsms.local",
         currency,
         reference: paymentId,
-        callback_url: `${appUrl}/dashboard/wallet?payment=success`,
+        callback_url: `${appUrl}/dashboard/wallet?provider=paystack&reference=${paymentId}`,
       }),
     });
 

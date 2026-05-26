@@ -7,41 +7,9 @@ import { WalletRecentActivity } from "@/components/billing/wallet-recent-activit
 import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
 import { AppPage, PageHeader, AppCard, AppCardBody, AppCardTitle } from "@/components/dashboard/page-shell";
 import { Wallet, Plus, Coins } from "lucide-react";
-
-function getPaymentMethods(): PaymentMethodOption[] {
-  return [
-    {
-      value: "PAYSTACK",
-      label: "Paystack",
-      description: "Card, bank transfer & mobile money",
-      available: Boolean(process.env.PAYSTACK_SECRET_KEY),
-    },
-    {
-      value: "FLUTTERWAVE",
-      label: "Flutterwave",
-      description: "Pan-African card & bank payments",
-      available: Boolean(process.env.FLUTTERWAVE_SECRET_KEY),
-    },
-    {
-      value: "MTN_MOMO",
-      label: "MTN MoMo",
-      description: "Approve payment on your phone",
-      available: Boolean(process.env.MTN_MOMO_SUBSCRIPTION_KEY),
-    },
-    {
-      value: "MANUAL",
-      label: "Bank transfer",
-      description: "Manual approval by our team",
-      available: true,
-    },
-    {
-      value: "STRIPE",
-      label: "Stripe",
-      description: "International cards (USD/EUR)",
-      available: Boolean(process.env.STRIPE_SECRET_KEY),
-    },
-  ];
-}
+import { getPaymentMethodOptions } from "@/lib/payments/methods";
+import { getOfflineBankDetails } from "@/lib/payments/offline-config";
+import { verifyAndCreditPaymentForUser } from "@/lib/payments/verify";
 
 export default async function WalletPage({
   searchParams,
@@ -53,13 +21,29 @@ export default async function WalletPage({
     msg?: string;
     payment?: string;
     submitted?: string;
+    provider?: string;
+    reference?: string;
+    session_id?: string;
   }>;
 }) {
   const session = await getSession();
   if (!session) return null;
   const params = await searchParams;
 
-  const [wallet, credit, transactions] = await Promise.all([
+  let callbackResult: { ok: boolean; error?: string } | null = null;
+  if (params.provider && params.reference) {
+    const verified = await verifyAndCreditPaymentForUser({
+      userId: session.userId,
+      method: params.provider,
+      reference: params.reference,
+      stripeSessionId: params.session_id,
+    });
+    callbackResult = verified.ok
+      ? { ok: true }
+      : { ok: false, error: verified.error ?? "payment" };
+  }
+
+  const [wallet, credit, transactions, paymentMethods, offlineBankDetails] = await Promise.all([
     prisma.wallet.findUnique({ where: { userId: session.userId } }),
     prisma.smsCredit.findUnique({ where: { userId: session.userId } }),
     prisma.transaction.findMany({
@@ -67,6 +51,8 @@ export default async function WalletPage({
       orderBy: { createdAt: "desc" },
       take: 10,
     }),
+    getPaymentMethodOptions() as Promise<PaymentMethodOption[]>,
+    getOfflineBankDetails(),
   ]);
 
   const currency = wallet?.currency ?? "GHS";
@@ -83,11 +69,13 @@ export default async function WalletPage({
         mobileDescription="Top up, buy credits, and view recent activity."
       />
 
-      {params.funded ? (
+      {callbackResult?.ok || params.funded ? (
         <FriendlyAlert
           success="1"
           successMessage="Payment successful — your wallet balance has been updated."
         />
+      ) : callbackResult && !callbackResult.ok ? (
+        <FriendlyAlert error={callbackResult.error ?? "payment"} />
       ) : params.promo === "ok" ? (
         <FriendlyAlert success="1" successMessage="Promo code applied successfully." />
       ) : params.submitted === "manual" ? (
@@ -112,10 +100,14 @@ export default async function WalletPage({
             <AppCardTitle
               icon={Plus}
               title="Add money"
-              description="Secure checkout via your preferred method"
+              description="Pay online (Paystack, Flutterwave, Stripe) or submit offline transfer details"
             />
             <div className="flex-1 min-h-0">
-              <WalletTopupClient currency={currency} paymentMethods={getPaymentMethods()} />
+              <WalletTopupClient
+                currency={currency}
+                paymentMethods={paymentMethods}
+                offlineBankDetails={offlineBankDetails}
+              />
             </div>
           </AppCardBody>
         </AppCard>

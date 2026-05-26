@@ -48,6 +48,7 @@ export const adminNavSections: AdminNavSection[] = [
     label: "Revenue",
     items: [
       { href: "/admin/payments", label: "Payments", icon: CreditCard, badge: "pending-payments" },
+      { href: "/admin/payments/settings", label: "Payment settings", icon: CreditCard },
       { href: "/admin/billing", label: "Billing & promos", icon: Receipt },
       { href: "/admin/pricing", label: "SMS pricing", icon: DollarSign },
     ],
