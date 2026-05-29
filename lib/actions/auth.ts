@@ -54,6 +54,14 @@ function authRedirect(path: string, params?: Record<string, string>): never {
   redirect(`${path}${q}`);
 }
 
+function passwordLoginRedirect(params?: Record<string, string>): never {
+  authRedirect("/login", { ...params });
+}
+
+function passwordLoginRedirectPhone(params?: Record<string, string>): never {
+  authRedirect("/login", { phone: "1", ...params });
+}
+
 function emailOtpDelivery(email: string): {
   email: string;
   channel: OtpDeliveryChannel;
@@ -571,17 +579,33 @@ export async function verifyOtpAction(formData: FormData) {
 }
 
 export async function loginPasswordAction(formData: FormData) {
+  const emailRaw = String(formData.get("email") ?? "").trim().toLowerCase();
+  const identifierRaw = String(
+    formData.get("identifier") ?? formData.get("phone") ?? "",
+  ).trim();
+  const identifier = emailRaw || identifierRaw;
+  const usePhoneForm = Boolean(identifierRaw && !emailRaw);
+
   const parsed = loginSchema.safeParse({
-    identifier: formData.get("identifier") ?? formData.get("phone"),
+    identifier,
     password: formData.get("password"),
   });
 
-  if (!parsed.success) authRedirect("/login", { error: "invalid" });
+  if (!parsed.success) {
+    if (usePhoneForm) passwordLoginRedirectPhone({ error: "invalid" });
+    passwordLoginRedirect({ error: "invalid", ...(emailRaw ? { email: emailRaw } : {}) });
+  }
 
-  const { identifier, password } = parsed.data;
+  const { password } = parsed.data;
   const limit = await checkRateLimit(rateLimitKey("login", identifier));
   if (!limit.allowed) {
-    authRedirect("/login", { error: "rate_limit", retry: String(limit.retryAfterSec) });
+    const rateParams = {
+      error: "rate_limit",
+      retry: String(limit.retryAfterSec),
+      ...(emailRaw ? { email: emailRaw } : {}),
+    };
+    if (usePhoneForm) passwordLoginRedirectPhone(rateParams);
+    passwordLoginRedirect(rateParams);
   }
 
   const user = await findUserByIdentifier(identifier);
@@ -597,17 +621,23 @@ export async function loginPasswordAction(formData: FormData) {
       });
     }
     await logAuthEvent("LOGIN_FAILED", { identifier });
-    authRedirect("/login", { error: "invalid" });
+    if (usePhoneForm) passwordLoginRedirectPhone({ error: "invalid" });
+    passwordLoginRedirect({
+      error: "invalid",
+      ...(emailRaw ? { email: emailRaw } : {}),
+    });
   }
 
   if (isAccountLocked(user.lockedUntil)) {
-    authRedirect("/login", { error: "locked" });
+    if (usePhoneForm) passwordLoginRedirectPhone({ error: "locked" });
+    passwordLoginRedirect({ error: "locked", ...(emailRaw ? { email: emailRaw } : {}) });
   }
 
   if (user.role === "MEMBER") {
     const account = await getMemberAccountForUser(user.id);
     if (isMemberSuspended(account)) {
-      authRedirect("/login", { error: "suspended" });
+      if (usePhoneForm) passwordLoginRedirectPhone({ error: "suspended" });
+      passwordLoginRedirect({ error: "suspended", ...(emailRaw ? { email: emailRaw } : {}) });
     }
   }
 
@@ -619,7 +649,8 @@ export async function loginPasswordAction(formData: FormData) {
       user.id,
     );
     if (!otp.ok) {
-      authRedirect("/login", { error: "otp_cooldown" });
+      if (usePhoneForm) passwordLoginRedirectPhone({ error: "otp_cooldown" });
+      passwordLoginRedirect({ error: "otp_cooldown", ...(emailRaw ? { email: emailRaw } : {}) });
     }
     authRedirect("/verify-otp", { phone: user.phone, purpose: "signup" });
   }
