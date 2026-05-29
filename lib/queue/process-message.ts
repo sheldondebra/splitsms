@@ -33,14 +33,23 @@ export async function processMessageJob(messageId: string, countryCode: string) 
       ? (enterprise.dedicatedRoute.lockedProvider as SmsProviderType | null)
       : (memberAccount?.assignedProvider ?? null);
 
+  const routingCountry =
+    message.countryCode && message.countryCode.length === 2
+      ? message.countryCode
+      : countryCode;
+
   const result = await sendSmsWithFailover(
-    countryCode,
+    routingCountry,
     {
       to: message.recipient,
       from: message.senderId,
       body: message.body,
     },
-    { lockedProvider },
+    {
+      lockedProvider,
+      messageId: message.id,
+      recipientPhone: message.recipient,
+    },
   );
 
   if (result.success) {

@@ -1,7 +1,52 @@
 import { prisma } from "@/lib/db";
 import { getOrCreateMemberAccount } from "@/lib/admin/member-account";
+import { resolveMemberSource } from "@/lib/admin/members-dashboard";
+import { getCountryByCode } from "@/lib/countries-data";
 import { parseUserAgent } from "@/lib/user-agent";
 import { notFound } from "next/navigation";
+
+const STATUS_CHART_COLORS: Record<string, string> = {
+  DELIVERED: "#22c55e",
+  SENT: "#0ea5e9",
+  PENDING: "#f59e0b",
+  FAILED: "#ef4444",
+  REJECTED: "#a855f7",
+  EXPIRED: "#64748b",
+};
+
+function daysAgo(n: number) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function dayLabels(count: number) {
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (count - 1 - i));
+    return {
+      label: d.toLocaleDateString("en-GB", { month: "short", day: "numeric" }),
+      start: (() => {
+        const s = new Date();
+        s.setDate(s.getDate() - (count - 1 - i));
+        s.setHours(0, 0, 0, 0);
+        return s;
+      })(),
+    };
+  });
+}
+
+function avgDeliverySeconds(
+  messages: { sentAt: Date | null; deliveredAt: Date | null }[],
+): number | null {
+  const samples = messages
+    .filter((m) => m.sentAt && m.deliveredAt)
+    .map((m) => (m.deliveredAt!.getTime() - m.sentAt!.getTime()) / 1000)
+    .filter((s) => s >= 0 && s < 86400);
+  if (samples.length === 0) return null;
+  return Math.round(samples.reduce((a, b) => a + b, 0) / samples.length);
+}
 
 export async function getAdminMemberDetail(userId: string) {
   const user = await prisma.user.findUnique({
@@ -9,12 +54,18 @@ export async function getAdminMemberDetail(userId: string) {
     include: {
       wallet: true,
       smsCredit: true,
-      senderIds: { orderBy: { createdAt: "desc" } },
+      senderIds: {
+        orderBy: { createdAt: "desc" },
+        include: { providerRegistrations: true },
+      },
       apiKeys: { orderBy: { createdAt: "desc" } },
       sessions: { orderBy: { lastActiveAt: "desc" }, take: 25 },
       supportTickets: { orderBy: { createdAt: "desc" }, take: 20 },
       webhookEndpoints: { orderBy: { createdAt: "desc" }, take: 10 },
       wordpressSites: { orderBy: { createdAt: "desc" }, take: 10 },
+      connectCustomerProfile: {
+        include: { partner: { select: { id: true, fullName: true, phone: true } } },
+      },
       reseller: true,
       resellerMembership: { include: { reseller: true } },
       enterpriseAccount: true,
@@ -23,6 +74,7 @@ export async function getAdminMemberDetail(userId: string) {
           messages: true,
           campaigns: true,
           apiLogs: true,
+          wordpressSites: true,
         },
       },
     },
@@ -31,8 +83,22 @@ export async function getAdminMemberDetail(userId: string) {
   if (!user) notFound();
 
   const account = await getOrCreateMemberAccount(userId);
+  const since30 = daysAgo(30);
 
-  const [apiLogs, transactions, auditLogs, providers, messageStats] = await Promise.all([
+  const [
+    apiLogs,
+    transactions,
+    auditLogs,
+    providers,
+    messageStats,
+    providerBreakdown,
+    recentMessages,
+    messagesForChart,
+    creditTxForChart,
+    wordpressLogs,
+    routingLogs,
+    apiErrors24h,
+  ] = await Promise.all([
     prisma.apiLog.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
@@ -57,6 +123,70 @@ export async function getAdminMemberDetail(userId: string) {
       where: { userId },
       _count: true,
     }),
+    prisma.message.groupBy({
+      by: ["providerType"],
+      where: { userId, providerType: { not: null } },
+      _count: true,
+    }),
+    prisma.message.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 40,
+      select: {
+        id: true,
+        recipient: true,
+        body: true,
+        status: true,
+        providerType: true,
+        senderId: true,
+        failureReason: true,
+        smsUnits: true,
+        cost: true,
+        sentAt: true,
+        deliveredAt: true,
+        failedAt: true,
+        createdAt: true,
+        isSandbox: true,
+      },
+    }),
+    prisma.message.findMany({
+      where: { userId, createdAt: { gte: since30 } },
+      select: { createdAt: true, status: true },
+    }),
+    prisma.transaction.findMany({
+      where: {
+        userId,
+        createdAt: { gte: since30 },
+        type: { in: ["SMS_DEBIT", "CREDIT_PURCHASE", "WALLET_TOPUP"] },
+      },
+      select: { createdAt: true, credits: true, type: true },
+    }),
+    prisma.wordPressLog.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 25,
+      include: { site: { select: { siteUrl: true } } },
+    }),
+    prisma.smsRoutingLog.findMany({
+      where: { message: { userId } },
+      orderBy: { createdAt: "desc" },
+      take: 15,
+      select: {
+        id: true,
+        recipient: true,
+        selectedProvider: true,
+        reason: true,
+        autoRouted: true,
+        createdAt: true,
+      },
+    }),
+    prisma.apiLog.count({
+      where: {
+        userId,
+        createdAt: { gte: daysAgo(1) },
+        statusCode: { gte: 400 },
+      },
+    }),
   ]);
 
   const sessions = user.sessions.map((s) => ({
@@ -65,7 +195,55 @@ export async function getAdminMemberDetail(userId: string) {
   }));
 
   const failedMessages = messageStats.find((m) => m.status === "FAILED")?._count ?? 0;
+  const deliveredMessages = messageStats.find((m) => m.status === "DELIVERED")?._count ?? 0;
   const sentMessages = messageStats.reduce((n, m) => n + m._count, 0);
+
+  const days = dayLabels(30);
+  const usageChart = days.map(({ label, start }) => {
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    const dayMsgs = messagesForChart.filter(
+      (m) => m.createdAt >= start && m.createdAt < end,
+    );
+    const dayCredits = creditTxForChart
+      .filter((t) => t.createdAt >= start && t.createdAt < end)
+      .reduce((n, t) => {
+        if (t.type === "SMS_DEBIT" && t.credits) return n + Math.abs(t.credits);
+        return n;
+      }, 0);
+    return {
+      date: label,
+      sent: dayMsgs.length,
+      failed: dayMsgs.filter((m) => m.status === "FAILED").length,
+      creditsUsed: dayCredits,
+    };
+  });
+
+  const statusChart = messageStats.map((m) => ({
+    name: m.status,
+    value: m._count,
+    fill: STATUS_CHART_COLORS[m.status] ?? "#94a3b8",
+  }));
+
+  const providerChart = providerBreakdown
+    .filter((p) => p.providerType)
+    .map((p) => ({
+      provider: p.providerType!,
+      count: p._count,
+    }));
+
+  const avgDeliverySec = avgDeliverySeconds(recentMessages);
+  const failureRate =
+    sentMessages > 0 ? Math.round((failedMessages / sentMessages) * 100) : 0;
+
+  const source = resolveMemberSource({
+    connectCustomerProfile: user.connectCustomerProfile,
+    resellerMembership: user.resellerMembership,
+    _count: { wordpressSites: user._count.wordpressSites },
+  });
+
+  const country = getCountryByCode(user.countryCode);
+  const walletBalance = user.wallet?.balance.toNumber() ?? 0;
 
   return {
     user: {
@@ -74,6 +252,7 @@ export async function getAdminMemberDetail(userId: string) {
       phone: user.phone,
       email: user.email,
       countryCode: user.countryCode,
+      countryName: country?.name ?? user.countryCode,
       isVerified: user.isVerified,
       failedLoginCount: user.failedLoginCount,
       lockedUntil: user.lockedUntil,
@@ -82,6 +261,8 @@ export async function getAdminMemberDetail(userId: string) {
       updatedAt: user.updatedAt,
     },
     wallet: user.wallet,
+    walletBalance,
+    walletCurrency: user.wallet?.currency ?? "GHS",
     smsCredit: user.smsCredit,
     account,
     senderIds: user.senderIds,
@@ -94,6 +275,40 @@ export async function getAdminMemberDetail(userId: string) {
     webhooks: user.webhookEndpoints,
     wordpressSites: user.wordpressSites,
     providers,
+    connect: user.connectCustomerProfile
+      ? {
+          id: user.connectCustomerProfile.id,
+          externalRef: user.connectCustomerProfile.externalRef,
+          label: user.connectCustomerProfile.label,
+          partnerId: user.connectCustomerProfile.partner.id,
+          partnerName: user.connectCustomerProfile.partner.fullName,
+          partnerPhone: user.connectCustomerProfile.partner.phone,
+          createdAt: user.connectCustomerProfile.createdAt,
+        }
+      : null,
+    acquisition: {
+      source,
+      sourceLabel:
+        source === "connect"
+          ? "Connect (API)"
+          : source === "wordpress"
+            ? "WordPress"
+            : source === "reseller"
+              ? "Reseller"
+              : "Direct signup",
+    },
+    analytics: {
+      usageChart,
+      statusChart,
+      providerChart,
+      avgDeliverySec,
+      failureRate,
+      deliveredMessages,
+      apiErrors24h,
+    },
+    recentMessages,
+    wordpressLogs,
+    routingLogs,
     counts: {
       messages: user._count.messages,
       campaigns: user._count.campaigns,
@@ -102,6 +317,7 @@ export async function getAdminMemberDetail(userId: string) {
       apiKeys: user.apiKeys.length,
       failedMessages,
       sentMessages,
+      wordpressSites: user._count.wordpressSites,
     },
     reseller: user.reseller,
     resellerMembership: user.resellerMembership,

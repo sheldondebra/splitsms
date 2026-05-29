@@ -5,7 +5,11 @@ import { SenderIdStatusBadge, SenderIdStatusRow } from "@/components/dashboard/s
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Star, Calendar } from "lucide-react";
-import type { SenderIdStatus } from "@/lib/generated/prisma/client";
+import type {
+  SenderIdProviderRegistration,
+  SenderIdStatus,
+} from "@/lib/generated/prisma/client";
+import { SenderIdProviderBadges } from "@/components/admin/sender-id-provider-badges";
 
 export type SenderIdItem = {
   id: string;
@@ -15,6 +19,10 @@ export type SenderIdItem = {
   isDefault: boolean;
   adminNote: string | null;
   createdAt: string;
+  providerRegistrations?: Pick<
+    SenderIdProviderRegistration,
+    "provider" | "status" | "providerStatus" | "error"
+  >[];
 };
 
 export function SenderIdList({ items }: { items: SenderIdItem[] }) {
@@ -57,6 +65,10 @@ export function SenderIdList({ items }: { items: SenderIdItem[] }) {
                 </span>
                 <span>Country: {s.countryCode}</span>
               </div>
+
+              {s.providerRegistrations && s.providerRegistrations.length > 0 && (
+                <SenderIdProviderBadges registrations={s.providerRegistrations} />
+              )}
 
               {s.status === "PENDING" && <SenderIdStatusRow status="PENDING" />}
 

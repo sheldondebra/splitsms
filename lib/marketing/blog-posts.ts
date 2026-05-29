@@ -116,7 +116,7 @@ export const blogPosts: BlogPost[] = [
       {
         heading: "Local operator you can call",
         paragraphs: [
-          "SplitSMS is operated by Tecunit Ghana. When you need help with routing, billing, or integration, you reach a team that understands the local market — not a ticket queue three time zones away.",
+          "SplitSMS is operated by Tecunit. When you need help with routing, billing, or integration, you reach a team that understands the local market — not a ticket queue three time zones away.",
         ],
       },
     ],

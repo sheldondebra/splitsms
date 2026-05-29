@@ -11,9 +11,22 @@ import {
   loginSchema,
   otpCodeSchema,
   resetPasswordSchema,
+  phoneAuthSchema,
+  emailAuthLoginSchema,
+  emailAuthSignupSchema,
+  completeProfileSchema,
   normalizePhone,
   normalizePhoneWithCountry,
 } from "@/lib/auth/validation";
+import {
+  generateOtpOnlyPassword,
+  PLACEHOLDER_PROFILE_NAME,
+  userNeedsProfileCompletion,
+  maskPhoneForDisplay,
+} from "@/lib/auth/phone-auth";
+import { getSession } from "@/lib/auth/session";
+import { isMailjetConfigured } from "@/lib/email/config";
+import type { OtpDeliveryChannel } from "@/lib/auth/otp";
 import { getCountryByCode } from "@/lib/countries-data";
 import {
   findUserByIdentifier,
@@ -39,6 +52,34 @@ import type { OtpPurpose, UserRole } from "@/lib/generated/prisma/client";
 function authRedirect(path: string, params?: Record<string, string>): never {
   const q = params ? `?${new URLSearchParams(params).toString()}` : "";
   redirect(`${path}${q}`);
+}
+
+function emailOtpDelivery(email: string): {
+  email: string;
+  channel: OtpDeliveryChannel;
+} {
+  return {
+    email,
+    channel: isMailjetConfigured() ? "email" : "sms",
+  };
+}
+
+function verifyOtpParamsForEmailFlow(
+  phone: string,
+  purpose: string,
+  countryCode: string,
+  email: string,
+  delivery: OtpDeliveryChannel,
+) {
+  const sentToEmail = delivery === "email" || delivery === "both";
+  return {
+    phone,
+    purpose,
+    country: countryCode,
+    via: "email",
+    delivery: sentToEmail ? "email" : "sms",
+    hint: encodeURIComponent(sentToEmail ? email : maskPhoneForDisplay(phone)),
+  };
 }
 
 async function finishLogin(user: {
@@ -67,6 +108,292 @@ async function finishLogin(user: {
     redirect("/reseller");
   }
   if (user.role === "ENTERPRISE") {
+    redirect("/enterprise");
+  }
+  redirect("/dashboard");
+}
+
+/** Unified phone login / signup — sends OTP, creates account if new */
+export async function requestPhoneAuthAction(formData: FormData) {
+  const intent = String(formData.get("intent") ?? "login");
+  const returnPath = intent === "signup" ? "/signup" : "/login";
+
+  const parsed = phoneAuthSchema.safeParse({
+    phone: formData.get("phone"),
+    countryCode: formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE,
+    dialCode: formData.get("dialCode") ?? "+233",
+  });
+
+  if (!parsed.success) {
+    authRedirect(returnPath, { error: "invalid_phone" });
+  }
+
+  const { countryCode, dialCode } = parsed.data;
+  const phone = normalizePhoneWithCountry(parsed.data.phone, dialCode, countryCode);
+
+  const phoneCheck = phone.length >= 10 ? { success: true as const } : { success: false as const };
+  if (!phoneCheck.success) {
+    authRedirect(returnPath, { error: "invalid_phone" });
+  }
+
+  const limit = await checkRateLimit(rateLimitKey("otp_request", phone));
+  if (!limit.allowed) {
+    authRedirect(returnPath, { error: "rate_limit" });
+  }
+
+  let user = await prisma.user.findUnique({ where: { phone } });
+  let otpPurpose: OtpPurpose = "LOGIN";
+  let purposeParam = "login";
+
+  if (!user) {
+    const passwordHash = await hashPassword(generateOtpOnlyPassword());
+    user = await prisma.user.create({
+      data: {
+        fullName: PLACEHOLDER_PROFILE_NAME,
+        phone,
+        countryCode,
+        passwordHash,
+        wallet: { create: { currency: countryCode === "GH" ? "GHS" : "USD" } },
+        smsCredit: { create: { balance: 5 } },
+        memberAccount: { create: {} },
+      },
+    });
+    otpPurpose = "SIGNUP_VERIFY";
+    purposeParam = "signup";
+    const country = getCountryByCode(countryCode);
+    await logAuthEvent(
+      "SIGNUP_STARTED",
+      { phone, signupMethod: "phone_otp", countryCode, smsProvider: country?.defaultProvider },
+      user.id,
+    );
+  } else {
+    if (user.role === "MEMBER") {
+      const account = await getMemberAccountForUser(user.id);
+      if (isMemberSuspended(account)) {
+        authRedirect(returnPath, { error: "suspended" });
+      }
+    }
+
+    if (!user.isVerified) {
+      otpPurpose = "SIGNUP_VERIFY";
+      purposeParam = "signup";
+    } else {
+      otpPurpose = "LOGIN";
+      purposeParam = "login";
+    }
+  }
+
+  const otp = await createAndSendOtp(phone, otpPurpose, countryCode, user.id);
+  if (!otp.ok) {
+    authRedirect(returnPath, {
+      error: "otp_cooldown",
+      cooldown: String(otp.cooldownSec),
+    });
+  }
+
+  authRedirect("/verify-otp", {
+    phone,
+    purpose: purposeParam,
+    country: countryCode,
+  });
+}
+
+/** Email login / signup — OTP via Mailjet when configured, else SMS to phone */
+export async function requestEmailAuthAction(formData: FormData) {
+  const intent = String(formData.get("intent") ?? "login");
+  const returnPath = intent === "signup" ? "/signup" : "/login";
+
+  if (intent === "signup") {
+    const parsed = emailAuthSignupSchema.safeParse({
+      email: formData.get("email"),
+      phone: formData.get("phone"),
+      countryCode: formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE,
+      dialCode: formData.get("dialCode") ?? "+233",
+    });
+
+    if (!parsed.success) {
+      const field = parsed.error.issues[0]?.path[0];
+      authRedirect(returnPath, {
+        error: field === "email" ? "email" : "invalid_phone",
+        method: "email",
+      });
+    }
+
+    const { email, countryCode, dialCode } = parsed.data;
+    const phone = normalizePhoneWithCountry(parsed.data.phone, dialCode, countryCode);
+
+    if (phone.length < 10) {
+      authRedirect(returnPath, { error: "invalid_phone", method: "email" });
+    }
+
+    const limit = await checkRateLimit(rateLimitKey("otp_request", phone));
+    if (!limit.allowed) {
+      authRedirect(returnPath, { error: "rate_limit", method: "email" });
+    }
+
+    const [existingPhone, existingEmail] = await Promise.all([
+      prisma.user.findUnique({ where: { phone } }),
+      prisma.user.findUnique({ where: { email } }),
+    ]);
+
+    if (existingPhone) {
+      authRedirect(returnPath, { error: "exists", method: "email" });
+    }
+    if (existingEmail) {
+      authRedirect(returnPath, { error: "email_taken", method: "email" });
+    }
+
+    const passwordHash = await hashPassword(generateOtpOnlyPassword());
+    const user = await prisma.user.create({
+      data: {
+        fullName: PLACEHOLDER_PROFILE_NAME,
+        phone,
+        email,
+        countryCode,
+        passwordHash,
+        wallet: { create: { currency: countryCode === "GH" ? "GHS" : "USD" } },
+        smsCredit: { create: { balance: 5 } },
+        memberAccount: { create: {} },
+      },
+    });
+
+    const country = getCountryByCode(countryCode);
+    await logAuthEvent(
+      "SIGNUP_STARTED",
+      { phone, email, signupMethod: "email_otp", countryCode, smsProvider: country?.defaultProvider },
+      user.id,
+    );
+
+    const deliveryOpts = emailOtpDelivery(email);
+
+    let otp;
+    try {
+      otp = await createAndSendOtp(phone, "SIGNUP_VERIFY", countryCode, user.id, deliveryOpts);
+    } catch {
+      authRedirect(returnPath, { error: "email_send", method: "email" });
+    }
+
+    if (!otp.ok) {
+      authRedirect(returnPath, {
+        error: "otp_cooldown",
+        cooldown: String(otp.cooldownSec),
+        method: "email",
+      });
+    }
+
+    authRedirect(
+      "/verify-otp",
+      verifyOtpParamsForEmailFlow(phone, "signup", countryCode, email, otp.delivery),
+    );
+    return;
+  }
+
+  const parsed = emailAuthLoginSchema.safeParse({
+    email: formData.get("email"),
+  });
+
+  if (!parsed.success) {
+    authRedirect(returnPath, { error: "email", method: "email" });
+  }
+
+  const email = parsed.data.email;
+  const limit = await checkRateLimit(rateLimitKey("otp_request", email));
+  if (!limit.allowed) {
+    authRedirect(returnPath, { error: "rate_limit", method: "email" });
+  }
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    authRedirect(returnPath, { error: "email_not_found", method: "email" });
+  }
+
+  if (user!.role === "MEMBER") {
+    const account = await getMemberAccountForUser(user!.id);
+    if (isMemberSuspended(account)) {
+      authRedirect(returnPath, { error: "suspended", method: "email" });
+    }
+  }
+
+  const otpPurpose: OtpPurpose = user!.isVerified ? "LOGIN" : "SIGNUP_VERIFY";
+  const purposeParam = user!.isVerified ? "login" : "signup";
+
+  const loginEmail = email;
+  const deliveryOpts = emailOtpDelivery(loginEmail);
+
+  let otp;
+  try {
+    otp = await createAndSendOtp(
+      user!.phone,
+      otpPurpose,
+      user!.countryCode,
+      user!.id,
+      deliveryOpts,
+    );
+  } catch {
+    authRedirect(returnPath, { error: "email_send", method: "email" });
+  }
+
+  if (!otp.ok) {
+    authRedirect(returnPath, {
+      error: "otp_cooldown",
+      cooldown: String(otp.cooldownSec),
+      method: "email",
+    });
+  }
+
+  authRedirect(
+    "/verify-otp",
+    verifyOtpParamsForEmailFlow(
+      user!.phone,
+      purposeParam,
+      user!.countryCode,
+      loginEmail,
+      otp.delivery,
+    ),
+  );
+}
+
+export async function completeProfileAction(formData: FormData) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  const parsed = completeProfileSchema.safeParse({
+    fullName: formData.get("fullName"),
+    email: formData.get("email") ?? "",
+  });
+
+  if (!parsed.success) {
+    authRedirect("/complete-profile", { error: "name" });
+  }
+
+  const { fullName, email } = parsed.data;
+
+  if (email) {
+    const taken = await prisma.user.findFirst({
+      where: { email, id: { not: session.userId } },
+    });
+    if (taken) {
+      authRedirect("/complete-profile", { error: "email_taken" });
+    }
+  }
+
+  await prisma.user.update({
+    where: { id: session.userId },
+    data: {
+      fullName,
+      ...(email ? { email } : {}),
+    },
+  });
+
+  await logAuthEvent("PROFILE_COMPLETED", { phone: session.phone }, session.userId);
+
+  if (session.role === "ADMIN" || session.role === "SUPER_ADMIN") {
+    redirect("/admin");
+  }
+  if (session.role === "RESELLER") {
+    redirect("/reseller");
+  }
+  if (session.role === "ENTERPRISE") {
     redirect("/enterprise");
   }
   redirect("/dashboard");
@@ -228,6 +555,18 @@ export async function verifyOtpAction(formData: FormData) {
   });
 
   await logAuthEvent("PHONE_VERIFIED", { phone }, user!.id);
+
+  if (userNeedsProfileCompletion(user!.fullName)) {
+    await assertTenantLoginAllowed(user!.id, user!.role);
+    await createSession({
+      userId: user!.id,
+      role: user!.role,
+      phone: user!.phone,
+    });
+    await recordDeviceSession(user!.id);
+    redirect("/complete-profile");
+  }
+
   await finishLogin(user!);
 }
 
@@ -321,20 +660,37 @@ export async function forgotPasswordAction(formData: FormData) {
   const user = await findUserByIdentifier(identifier);
 
   if (user && !isAccountLocked(user.lockedUntil)) {
-    const otp = await createAndSendOtp(
-      user.phone,
-      "PASSWORD_RESET",
-      user.countryCode,
-      user.id,
-    );
-    if (!otp.ok) {
-      authRedirect("/forgot-password", {
-        error: "cooldown",
-        cooldown: String(otp.cooldownSec),
+    const useEmail = Boolean(user.email && isMailjetConfigured());
+    const deliveryOpts = useEmail && user.email ? emailOtpDelivery(user.email) : undefined;
+
+    try {
+      const otp = await createAndSendOtp(
+        user.phone,
+        "PASSWORD_RESET",
+        user.countryCode,
+        user.id,
+        deliveryOpts,
+      );
+      if (!otp.ok) {
+        authRedirect("/forgot-password", {
+          error: "cooldown",
+          cooldown: String(otp.cooldownSec),
+        });
+      }
+      await logAuthEvent("PASSWORD_RESET_REQUESTED", { phone: user.phone }, user.id);
+      authRedirect("/verify-otp", {
+        phone: user.phone,
+        purpose: "reset",
+        ...(useEmail && user.email
+          ? {
+              delivery: "email",
+              hint: encodeURIComponent(user.email),
+            }
+          : {}),
       });
+    } catch {
+      authRedirect("/forgot-password", { error: "email_send" });
     }
-    await logAuthEvent("PASSWORD_RESET_REQUESTED", { phone: user.phone }, user.id);
-    authRedirect("/verify-otp", { phone: user.phone, purpose: "reset" });
   }
 
   authRedirect("/forgot-password", { sent: "1" });

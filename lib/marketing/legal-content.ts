@@ -1,5 +1,5 @@
 const updated = "May 22, 2026";
-const operator = "Tecunit Ghana (SplitSMS)";
+const operator = "Tecunit (SplitSMS)";
 
 export const privacySections = {
   title: "Privacy Policy",
@@ -34,7 +34,7 @@ export const privacySections = {
     },
     {
       title: "Contact",
-      body: ["Questions about privacy: support@tecunitgh.com · Tecunit Ghana."],
+      body: ["Questions about privacy: support@tecunitgh.com · Tecunit."],
     },
   ],
 };

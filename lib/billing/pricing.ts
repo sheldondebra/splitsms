@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/db";
-import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
+import { displayPricingCurrency } from "@/lib/billing/country-currency";
+import type { PublicPricingRow } from "@/lib/billing/public-pricing";
+
+export type { PublicPricingRow } from "@/lib/billing/public-pricing";
+export { pickPricingRow } from "@/lib/billing/public-pricing";
 
 export type ResolvedPrice = {
   countryCode: string;
@@ -39,7 +43,9 @@ export async function resolveSmsPrice(
     countryName: pricing?.country.name ?? code,
     sellPrice: sell,
     costPrice: cost,
-    currency: custom?.currency ?? pricing?.currency ?? "GHS",
+    currency: custom?.currency
+      ? custom.currency
+      : displayPricingCurrency(code, pricing?.currency ?? "GHS"),
     provider: pricing?.provider ?? "mNotify",
     creditsPerSms: pricing?.creditsPerSms ?? 1,
     profitPerSms: Math.max(0, sell - cost),
@@ -62,17 +68,6 @@ export async function listAllPricingForAdmin() {
   });
 }
 
-export type PublicPricingRow = {
-  id: string;
-  countryCode: string;
-  countryName: string;
-  dialCode: string;
-  memberPrice: number;
-  creditsPerSms: number;
-  currency: string;
-  provider: string;
-};
-
 export function toPublicPricingRows(
   rows: Awaited<ReturnType<typeof listPublicPricing>>,
 ): PublicPricingRow[] {
@@ -83,20 +78,7 @@ export function toPublicPricingRows(
     dialCode: p.country.dialCode,
     memberPrice: p.memberPrice.toNumber(),
     creditsPerSms: p.creditsPerSms,
-    currency: p.currency,
+    currency: displayPricingCurrency(p.country.code, p.currency),
     provider: p.provider,
   }));
-}
-
-export function pickPricingRow(
-  rows: PublicPricingRow[],
-  countryCode?: string | null,
-): PublicPricingRow | null {
-  if (rows.length === 0) return null;
-  const code = countryCode?.toUpperCase();
-  if (code) {
-    const match = rows.find((r) => r.countryCode === code);
-    if (match) return match;
-  }
-  return rows.find((r) => r.countryCode === DEFAULT_COUNTRY_CODE) ?? rows[0];
 }

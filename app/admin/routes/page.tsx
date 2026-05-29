@@ -4,14 +4,24 @@ import { getAdminRoutesDashboard } from "@/lib/admin/routes-dashboard";
 export default async function AdminRoutesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; test?: string; error?: string }>;
+  searchParams: Promise<{
+    saved?: string;
+    test?: string;
+    error?: string;
+    balances?: string;
+  }>;
 }) {
   const params = await searchParams;
   const data = await getAdminRoutesDashboard();
   return (
     <AdminRoutesView
       data={data}
-      flash={{ saved: params.saved, test: params.test, error: params.error }}
+      flash={{
+        saved: params.saved,
+        test: params.test,
+        error: params.error,
+        balances: params.balances,
+      }}
     />
   );
 }

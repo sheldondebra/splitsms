@@ -57,6 +57,7 @@ export default async function SenderIdsPage({
 
   const senderIds = await prisma.senderId.findMany({
     where: { userId: session.userId },
+    include: { providerRegistrations: true },
     orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
   });
 
@@ -68,6 +69,7 @@ export default async function SenderIdsPage({
     isDefault: s.isDefault,
     adminNote: s.adminNote,
     createdAt: s.createdAt.toISOString(),
+    providerRegistrations: s.providerRegistrations,
   }));
 
   const approved = items.filter((s) => s.status === "APPROVED");

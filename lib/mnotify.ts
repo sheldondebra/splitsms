@@ -5,6 +5,11 @@
  */
 
 import { loadMnotifySettings } from "@/lib/mnotify-settings";
+import {
+  cacheBalanceFromMnotifyResponse,
+  saveMnotifyBalanceCache,
+} from "@/lib/mnotify/balance";
+import { buildMnotifyUrl, trimApiKey } from "@/lib/mnotify/internal";
 
 export type MnotifyQuickSmsParams = {
   recipients: string[];
@@ -40,8 +45,54 @@ export async function isMnotifyConfigured() {
   return enabled && Boolean(apiKey);
 }
 
+/** International digits without + (mNotify expects e.g. 233558185288, not 0558185288). */
 export function normalizeMnotifyPhone(phone: string) {
-  return phone.replace(/\s+/g, "").replace(/^\+/, "");
+  let digits = phone.replace(/\s+/g, "").replace(/[^\d]/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  // Ghana local: 0558185288 → 233558185288
+  if (digits.startsWith("0") && digits.length >= 10) {
+    digits = `233${digits.slice(1)}`;
+  }
+  return digits;
+}
+
+function parseMnotifyError(
+  data: MnotifyQuickSmsResponse | Record<string, unknown>,
+  status: number,
+): string {
+  const msg =
+    (typeof data.message === "string" && data.message) ||
+    (typeof data.status === "string" && data.status !== "success" ? data.status : "") ||
+    (typeof data.error === "string" && data.error) ||
+    "";
+
+  if (status === 401) {
+    return (
+      msg ||
+      "mNotify rejected the API key (HTTP 401). Generate a new key at mNotify BMS → Developer, paste it in Admin → mNotify (Save), and confirm “Enable mNotify” is checked."
+    );
+  }
+  if (status === 403) {
+    return msg || "mNotify forbidden (HTTP 403) — sender ID may not be approved for this account.";
+  }
+  return msg || `mNotify HTTP ${status}`;
+}
+
+/** Lightweight check that the stored API key is accepted by mNotify. */
+export async function verifyMnotifyApiKey(): Promise<{
+  ok: boolean;
+  error?: string;
+  balance?: number;
+}> {
+  const { fetchMnotifyAccountBalance } = await import("@/lib/mnotify/balance");
+  const result = await fetchMnotifyAccountBalance();
+  if (result.ok && result.amount != null) {
+    return { ok: true, balance: result.amount };
+  }
+  if (result.ok) {
+    return { ok: true };
+  }
+  return { ok: false, error: result.error };
 }
 
 export async function sendMnotifyQuickSms(
@@ -49,8 +100,8 @@ export async function sendMnotifyQuickSms(
   overrides?: { apiKey?: string; baseUrl?: string },
 ) {
   const config = await getMnotifyConfig();
-  const apiKey = overrides?.apiKey ?? config.apiKey;
-  const baseUrl = overrides?.baseUrl ?? config.baseUrl;
+  const apiKey = trimApiKey(overrides?.apiKey ?? config.apiKey);
+  const baseUrl = (overrides?.baseUrl ?? config.baseUrl).replace(/\/$/, "");
 
   if (!config.enabled) {
     return { ok: false as const, error: "mNotify is disabled in Admin settings" };
@@ -62,16 +113,19 @@ export async function sendMnotifyQuickSms(
     };
   }
 
-  const url = `${baseUrl}/api/sms/quick?key=${encodeURIComponent(apiKey)}`;
+  const url = buildMnotifyUrl(baseUrl, "/api/sms/quick", apiKey);
   const recipients = params.recipients.map(normalizeMnotifyPhone);
 
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
       body: JSON.stringify({
         recipient: recipients,
-        sender: params.sender,
+        sender: params.sender.trim(),
         message: params.message,
         is_schedule: params.isSchedule ?? false,
         schedule_date: params.scheduleDate ?? "",
@@ -83,11 +137,18 @@ export async function sendMnotifyQuickSms(
     if (!res.ok) {
       return {
         ok: false as const,
-        error: data?.message ?? data?.status ?? `mNotify HTTP ${res.status}`,
+        error: parseMnotifyError(data, res.status),
+        httpStatus: res.status,
       };
     }
 
     const providerRef = String(data.campaign_id ?? data.code ?? `mnotify-${Date.now()}`);
+
+    const cached = cacheBalanceFromMnotifyResponse(data, "sms/quick response");
+    if (cached) {
+      await saveMnotifyBalanceCache(cached).catch(() => undefined);
+    }
+
     return { ok: true as const, data, providerRef };
   } catch (e) {
     return {

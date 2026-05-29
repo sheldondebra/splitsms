@@ -17,11 +17,16 @@ type OtpFormProps = {
   resent?: boolean;
   initialCooldown?: number;
   returnTo?: string;
+  /** User signed in with email tab */
+  viaEmail?: boolean;
+  phoneHint?: string;
+  /** sms | email — where the code was delivered */
+  delivery?: string;
 };
 
 const purposeLabels: Record<string, string> = {
-  signup: "verify your account",
-  login: "sign in",
+  signup: "finish creating your account",
+  login: "sign you in",
   reset: "reset your password",
 };
 
@@ -34,6 +39,9 @@ export function OtpForm({
   resent,
   initialCooldown = 0,
   returnTo,
+  viaEmail = false,
+  phoneHint,
+  delivery = "sms",
 }: OtpFormProps) {
   const [cooldown, setCooldown] = useState(initialCooldown);
 
@@ -54,8 +62,26 @@ export function OtpForm({
       <div className="flex items-start gap-3 rounded-lg bg-muted/50 p-3 text-sm">
         <Shield className="h-5 w-5 text-primary shrink-0 mt-0.5" />
         <p className="text-muted-foreground">
-          We sent a 6-digit code to <span className="font-medium text-foreground">{phone}</span> to{" "}
-          {purposeLabels[purpose] ?? "continue"}. Code expires in 10 minutes.
+          {delivery === "email" ? (
+            <>
+              We sent a 6-digit code to{" "}
+              <span className="font-medium text-foreground">{phoneHint ?? "your email"}</span> to{" "}
+              {purposeLabels[purpose] ?? "continue"}.
+            </>
+          ) : viaEmail ? (
+            <>
+              We sent a 6-digit code to{" "}
+              <span className="font-medium text-foreground">{phoneHint ?? phone}</span>{" "}
+              (the phone on your account) to {purposeLabels[purpose] ?? "continue"}.
+            </>
+          ) : (
+            <>
+              We sent a 6-digit code to{" "}
+              <span className="font-medium text-foreground">{phone}</span> to{" "}
+              {purposeLabels[purpose] ?? "continue"}.
+            </>
+          )}{" "}
+          Code expires in 10 minutes.
         </p>
       </div>
 
@@ -78,8 +104,8 @@ export function OtpForm({
             className="text-center text-2xl tracking-[0.4em] font-mono h-12"
           />
         </div>
-        <Button type="submit" className="w-full font-semibold">
-          Verify & continue
+        <Button type="submit" className="w-full h-11 font-semibold text-base">
+          {purpose === "login" ? "Verify & sign in" : "Verify & continue"}
         </Button>
       </form>
 

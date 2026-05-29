@@ -1,6 +1,16 @@
 import { prisma } from "@/lib/db";
 import { loadMnotifySettings } from "@/lib/mnotify-settings";
 import { isMnotifyConfigured, getMnotifyStatus } from "@/lib/mnotify";
+import {
+  isInfobipConfigured,
+  isTwilioConfigured,
+  loadInfobipSettings,
+  loadTwilioSettings,
+} from "@/lib/sms/provider-credentials";
+import { fetchAllSmsProviderBalances } from "@/lib/sms/provider-balances";
+import { loadSmsRoutingPolicy } from "@/lib/sms/routing-policy";
+import { getRecentSmsRoutingLogs } from "@/lib/sms/routing-log";
+import type { ProviderSmsBalance } from "@/lib/sms/provider-balances";
 import type { SmsProviderType } from "@/lib/generated/prisma/client";
 
 export type ProviderHealth = {
@@ -12,6 +22,7 @@ export type ProviderHealth = {
   configHint: string;
   messages7d: number;
   failed7d: number;
+  balance: ProviderSmsBalance;
 };
 
 export type RouteRow = {
@@ -36,33 +47,47 @@ function daysAgo(n: number) {
   return d;
 }
 
-function providerConfigured(type: SmsProviderType, mnotifyOk: boolean): { ok: boolean; hint: string } {
+function providerConfigured(
+  type: SmsProviderType,
+  flags: { mnotifyOk: boolean; twilioOk: boolean; infobipOk: boolean },
+): { ok: boolean; hint: string } {
   if (type === "MNOTIFY") {
-    return mnotifyOk
-      ? { ok: true, hint: "API key in Admin → mNotify" }
-      : { ok: false, hint: "Configure mNotify API key" };
+    return flags.mnotifyOk
+      ? { ok: true, hint: "Configured in Admin → Providers" }
+      : { ok: false, hint: "Configure mNotify in Providers tab" };
   }
   if (type === "TWILIO") {
-    const ok = Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
-    return {
-      ok,
-      hint: ok ? "TWILIO_* env vars set" : "Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER",
-    };
+    return flags.twilioOk
+      ? { ok: true, hint: "Twilio credentials in Providers" }
+      : { ok: false, hint: "Add Twilio SID, token & from number in Providers" };
   }
-  const ok = Boolean(process.env.INFOBIP_API_KEY);
-  return {
-    ok,
-    hint: ok ? "INFOBIP_API_KEY set" : "Set INFOBIP_API_KEY (and optional INFOBIP_BASE_URL)",
-  };
+  return flags.infobipOk
+    ? { ok: true, hint: "Infobip API key in Providers" }
+    : { ok: false, hint: "Add Infobip API key in Providers" };
 }
 
 export async function getAdminRoutesDashboard() {
   const since7d = daysAgo(7);
-  const [mnotifyOk, mnotifySettings, mnotifyStatus, providers, routes, countries, lastTestSetting] =
-    await Promise.all([
+  const [
+    mnotifyOk,
+    twilioSettings,
+    infobipSettings,
+    routingPolicy,
+    mnotifyStatus,
+    providerBalances,
+    routingLogs,
+    providers,
+    routes,
+    countries,
+    lastTestSetting,
+  ] = await Promise.all([
       isMnotifyConfigured(),
-      loadMnotifySettings(),
+      loadTwilioSettings(),
+      loadInfobipSettings(),
+      loadSmsRoutingPolicy(),
       getMnotifyStatus(),
+      fetchAllSmsProviderBalances(),
+      getRecentSmsRoutingLogs(40),
       prisma.smsProvider.findMany({ orderBy: { type: "asc" } }),
       prisma.smsRoute.findMany({
         include: {
@@ -103,9 +128,26 @@ export async function getAdminRoutesDashboard() {
     statMap.set(f.providerType!, cur);
   }
 
+  const balanceByType = new Map(providerBalances.map((b) => [b.type, b]));
+  const configFlags = {
+    mnotifyOk,
+    twilioOk: isTwilioConfigured(twilioSettings),
+    infobipOk: isInfobipConfigured(infobipSettings),
+  };
+
   const providerHealth: ProviderHealth[] = providers.map((p) => {
-    const cfg = providerConfigured(p.type, mnotifyOk);
+    const cfg = providerConfigured(p.type, configFlags);
     const stats = statMap.get(p.type);
+    const balance =
+      balanceByType.get(p.type) ?? {
+        type: p.type,
+        name: p.name,
+        status: "unsupported" as const,
+        display: "—",
+        amount: null,
+        currency: null,
+        bonus: null,
+      };
     return {
       id: p.id,
       type: p.type,
@@ -115,6 +157,7 @@ export async function getAdminRoutesDashboard() {
       configHint: cfg.hint,
       messages7d: stats?.total ?? 0,
       failed7d: stats?.failed ?? 0,
+      balance,
     };
   });
 
@@ -137,7 +180,7 @@ export async function getAdminRoutesDashboard() {
 
   const routeRows: RouteRow[] = routes.map((r) => {
     const steps = r.steps.map((s) => {
-      const cfg = providerConfigured(s.provider.type, mnotifyOk);
+      const cfg = providerConfigured(s.provider.type, configFlags);
       return {
         priority: s.priority,
         providerId: s.provider.id,
@@ -197,14 +240,12 @@ export async function getAdminRoutesDashboard() {
 
   return {
     providerHealth,
+    providerBalances,
     routeRows,
     missingRoutes,
     providers: providers.map((p) => ({ id: p.id, type: p.type, name: p.name, isActive: p.isActive })),
-    policy: {
-      mnotifyFirst: mnotifySettings.mnotifyFirst,
-      allowFailover: mnotifySettings.allowFailover,
-      mnotifyEnabled: mnotifySettings.enabled,
-    },
+    policy: routingPolicy,
+    routingLogs,
     mnotifyStatus,
     totals: {
       routes: routeRows.length,

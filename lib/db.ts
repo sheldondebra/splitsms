@@ -26,6 +26,9 @@ const REQUIRED_MODELS = [
   "enterpriseAccount",
   "apiLog",
   "memberAccount",
+  "senderIdProviderRegistration",
+  "smsRoutingLog",
+  "connectCustomer",
 ] as const;
 
 function clientHasRequiredModels(client: PrismaClient): boolean {

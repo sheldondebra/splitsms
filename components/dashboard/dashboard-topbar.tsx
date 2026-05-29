@@ -5,11 +5,16 @@ import { NotificationBell, type NotificationItem } from "@/components/dashboard/
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DashboardBalance } from "@/components/dashboard/dashboard-balance";
 import { PortalSwitch } from "@/components/dashboard/portal-switch";
+import {
+  UserProfileMenu,
+  type MemberProfileSummary,
+} from "@/components/dashboard/user-profile-menu";
 import { getMemberPageTitle } from "@/lib/navigation/member-page-title";
 import type { BalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
 
 type DashboardTopbarProps = {
   greeting: string;
+  profile: MemberProfileSummary;
   notifications: NotificationItem[];
   unreadCount: number;
   balance: BalanceSnapshot;
@@ -17,6 +22,7 @@ type DashboardTopbarProps = {
 
 export function DashboardTopbar({
   greeting,
+  profile,
   notifications,
   unreadCount,
   balance,
@@ -42,11 +48,12 @@ export function DashboardTopbar({
             <DashboardBalance snapshot={balance} variant="compact" />
           </div>
 
-          <PortalSwitch className="shrink-0 md:hidden lg:inline-flex" />
+          <PortalSwitch className="shrink-0" />
 
           <div className="flex items-center gap-0.5 shrink-0 rounded-lg border border-border/60 bg-muted/30 p-0.5">
             <ThemeToggle className="h-8 w-8 rounded-md hover:bg-background/80" />
             <NotificationBell notifications={notifications} unreadCount={unreadCount} />
+            <UserProfileMenu profile={profile} />
           </div>
         </div>
       </div>

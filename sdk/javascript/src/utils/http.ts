@@ -16,7 +16,7 @@ export class HttpClient {
   constructor(options: HttpClientOptions) {
     if (!options.apiKey) throw new SplitSMSError("apiKey is required");
     this.apiKey = options.apiKey;
-    this.baseUrl = (options.baseUrl ?? "https://splitsms.com").replace(/\/$/, "");
+    this.baseUrl = (options.baseUrl ?? "https://www.splitsms.com").replace(/\/$/, "");
     this.maxRetries = options.maxRetries ?? 2;
     this.fetchFn = options.fetch ?? globalThis.fetch;
     if (!this.fetchFn) {

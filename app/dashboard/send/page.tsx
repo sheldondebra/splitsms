@@ -3,7 +3,8 @@ import { getSession } from "@/lib/auth/session";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
 import { SendSmsForm } from "@/components/sms/send-sms-form";
-import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
+import { SendPageToasts } from "@/components/sms/send-page-toasts";
+import { Suspense } from "react";
 import { AppPage, PageHeader, AppCard, AppCardBody } from "@/components/dashboard/page-shell";
 import Link from "next/link";
 import { Send, Wallet } from "lucide-react";
@@ -65,7 +66,9 @@ export default async function SendSmsPage({
         }
       />
 
-      <FriendlyAlert error={params.error} success={params.sent} />
+      <Suspense fallback={null}>
+        <SendPageToasts />
+      </Suspense>
 
       <AppCard className="overflow-visible">
         <AppCardBody>

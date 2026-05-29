@@ -7,6 +7,10 @@ import { NotificationBell, type NotificationItem } from "@/components/dashboard/
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DashboardBalance } from "@/components/dashboard/dashboard-balance";
 import { PortalSwitch } from "@/components/dashboard/portal-switch";
+import {
+  UserProfileMenu,
+  type MemberProfileSummary,
+} from "@/components/dashboard/user-profile-menu";
 import { getMemberPageTitle } from "@/lib/navigation/member-page-title";
 import {
   developersNavItems,
@@ -17,6 +21,7 @@ import type { BalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
 
 type MobileAppHeaderProps = {
   onMenuOpen: () => void;
+  profile: MemberProfileSummary;
   notifications: NotificationItem[];
   unreadCount: number;
   balance: BalanceSnapshot;
@@ -24,6 +29,7 @@ type MobileAppHeaderProps = {
 
 export function MobileAppHeader({
   onMenuOpen,
+  profile,
   notifications,
   unreadCount,
   balance,
@@ -54,6 +60,7 @@ export function MobileAppHeader({
           </div>
           <ThemeToggle className="h-8 w-8 shrink-0 rounded-lg" />
           <NotificationBell notifications={notifications} unreadCount={unreadCount} />
+          <UserProfileMenu profile={profile} />
         </div>
       </div>
 

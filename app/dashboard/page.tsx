@@ -6,22 +6,16 @@ import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
 import { DashboardChartsPanel } from "@/components/dashboard/dashboard-charts-panel";
 import {
   SupportChatPanel,
-  type ChatMessage,
 } from "@/components/dashboard/support-chat-panel";
+import { buildSupportChatMessages } from "@/lib/support/chat";
 import { DashboardMetrics, DashboardAlert } from "@/components/dashboard/dashboard-metrics";
 import { RecentActivityList } from "@/components/dashboard/recent-activity-list";
 import { SetupStrip } from "@/components/dashboard/setup-strip";
 import { Send, Megaphone, Percent, BadgeCheck } from "lucide-react";
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ chat?: string }>;
-}) {
+export default async function DashboardPage() {
   const session = await getSession();
   if (!session) return null;
-
-  const { chat } = await searchParams;
 
   const [data, balance, user, recentMessages, hasTopup, senderIds, tickets] =
     await Promise.all([
@@ -65,39 +59,7 @@ export default async function DashboardPage({
   const hasBalance =
     balance.walletBalance > 0 || balance.creditBalance > 0 || Boolean(hasTopup);
   const firstName = user?.fullName?.split(" ")[0] ?? "there";
-
-  const chatMessages: ChatMessage[] = [
-    {
-      id: "welcome",
-      role: "support",
-      body: `Hi ${firstName}! How can we help? Ask about billing, delivery reports, or Sender IDs.`,
-      time: "SplitSMS",
-    },
-  ];
-
-  for (const t of tickets) {
-    chatMessages.push({
-      id: t.id,
-      role: "user",
-      body: t.message,
-      time: t.createdAt.toLocaleString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      status: t.status === "OPEN" ? "Open" : t.status,
-    });
-  }
-
-  if (tickets.some((t) => t.status === "OPEN")) {
-    chatMessages.push({
-      id: "ack-latest",
-      role: "support",
-      body: "Thanks — we've received your message. Our team will follow up shortly.",
-      time: "SplitSMS",
-    });
-  }
+  const chatMessages = buildSupportChatMessages(firstName, tickets);
 
   return (
     <div className="app-page space-y-5 md:space-y-6 pb-2">
@@ -180,7 +142,7 @@ export default async function DashboardPage({
         </div>
 
         <div className="lg:col-span-2">
-          <SupportChatPanel messages={chatMessages} sent={chat === "sent"} />
+          <SupportChatPanel initialMessages={chatMessages} />
         </div>
       </div>
     </div>

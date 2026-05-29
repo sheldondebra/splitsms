@@ -5,7 +5,7 @@ import { privacySections } from "@/lib/marketing/legal-content";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "SplitSMS privacy policy — how Tecunit Ghana collects and protects your data.",
+  description: "SplitSMS privacy policy — how Tecunit collects and protects your data.",
   alternates: { canonical: "/privacy" },
 };
 

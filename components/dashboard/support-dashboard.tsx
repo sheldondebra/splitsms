@@ -39,6 +39,7 @@ import {
 
 export type SupportTicketRow = {
   id: string;
+  ticketNumber: string;
   subject: string;
   message: string;
   status: string;
@@ -130,9 +131,8 @@ export function SupportDashboard({
           <AppCard className="overflow-hidden">
             <AppCardBody className="p-0 sm:p-0">
               <SupportChatPanel
-                key={`${draftKey}-${chatMessages.length}`}
-                messages={chatMessages}
-                sent={sent}
+                key={draftKey}
+                initialMessages={chatMessages}
                 draftMessage={draftMessage}
               />
             </AppCardBody>
@@ -246,6 +246,9 @@ export function SupportDashboard({
                           >
                             <div className="min-w-0 flex-1">
                               <p className="truncate font-semibold text-foreground">{t.subject}</p>
+                              <p className="mt-0.5 font-mono text-[10px] text-primary">
+                                {t.ticketNumber}
+                              </p>
                               <p className="mt-1 text-xs text-muted-foreground">
                                 {formatWhen(t.createdAt)}
                               </p>
@@ -297,6 +300,9 @@ export function SupportDashboard({
                           >
                             <div className="min-w-0 flex-1">
                               <p className="font-semibold text-foreground">{t.subject}</p>
+                              <p className="mt-0.5 font-mono text-[10px] text-primary">
+                                {t.ticketNumber}
+                              </p>
                               <p className="mt-1 text-xs text-muted-foreground">
                                 {formatWhen(t.createdAt)}
                               </p>

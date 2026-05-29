@@ -1,3 +1,8 @@
+import site from "@/config/site.json";
+
+const SITE_URL = site.siteUrl.replace(/\/$/, "");
+const API_V1_URL = `${SITE_URL}${site.apiPathPrefix}`;
+
 export type DocBlock =
   | { type: "p"; text: string }
   | { type: "ul"; items: string[] }
@@ -23,7 +28,7 @@ export type DocChapter = {
 export const docsMeta = {
   version: "2.0",
   lastUpdated: "2026-05-23",
-  maintainer: "Tecunit Ghana",
+  maintainer: "Tecunit",
 };
 
 export const platformDocsChapters: DocChapter[] = [
@@ -38,7 +43,7 @@ export const platformDocsChapters: DocChapter[] = [
         blocks: [
           {
             type: "p",
-            text: "SplitSMS is an enterprise-grade bulk and transactional SMS platform operated by Tecunit Ghana. Businesses use it for marketing campaigns, OTP verification, order notifications, and API-driven messaging across Ghana, Nigeria, and 190+ countries — with transparent pay-as-you-go pricing and no annual contracts.",
+            text: "SplitSMS is an enterprise-grade bulk and transactional SMS platform operated by Tecunit. Businesses use it for marketing campaigns, OTP verification, order notifications, and API-driven messaging across Ghana, Nigeria, and 190+ countries — with transparent pay-as-you-go pricing and no annual contracts.",
           },
           {
             type: "table",
@@ -317,7 +322,7 @@ export const platformDocsChapters: DocChapter[] = [
         blocks: [
           {
             type: "p",
-            text: "All requests use HTTPS and JSON. Authenticate with Authorization: Bearer YOUR_API_KEY. Production base URL: https://splitsms.com — API prefix: /api/v1. See the full [API reference](/api-docs) for every endpoint, schema, and cURL example.",
+            text: `All requests use HTTPS and JSON. Authenticate with Authorization: Bearer YOUR_API_KEY. Production API base: ${API_V1_URL}. See the full [API reference](/api-docs) for every endpoint, schema, and cURL example.`,
           },
           {
             type: "table",
@@ -360,7 +365,7 @@ export const platformDocsChapters: DocChapter[] = [
           {
             type: "code",
             language: "bash",
-            code: `curl -X POST 'https://splitsms.com/api/v1/sms/send' \\
+            code: `curl -X POST '${API_V1_URL}/sms/send' \\
   -H 'Authorization: Bearer YOUR_API_KEY' \\
   -H 'Content-Type: application/json' \\
   -d '{
@@ -512,8 +517,8 @@ if (expected !== signature) throw new Error("Invalid signature");`,
             items: [
               "WordPress Admin → Dashboard → Updates → Update SplitSMS",
               "Or Plugins → Installed Plugins → Check for updates",
-              "Manifest: https://splitsms.com/api/plugin/update",
-              "Manual fallback: download splitsms.zip from splitsms.com/wordpress-plugin/splitsms.zip",
+              `Manifest: ${SITE_URL}/api/plugin/update`,
+              `Manual fallback: download splitsms.zip from ${SITE_URL}/wordpress-plugin/splitsms.zip`,
             ],
           },
           {
@@ -554,7 +559,7 @@ if (expected !== signature) throw new Error("Invalid signature");`,
           },
           {
             type: "p",
-            text: "Read our [Privacy Policy](/privacy), [Terms](/terms), and [Data Protection](/data-protection) pages for how Tecunit Ghana processes account and message metadata.",
+            text: "Read our [Privacy Policy](/privacy), [Terms](/terms), and [Data Protection](/data-protection) pages for how Tecunit processes account and message metadata.",
           },
         ],
       },
@@ -578,7 +583,7 @@ import { SplitSMS } from "@splitsms/sdk";
 
 const client = new SplitSMS({
   apiKey: process.env.SPLITSMS_API_KEY!,
-  baseUrl: "https://splitsms.com",
+  baseUrl: SITE_URL,
 });
 
 const result = await client.messages.send({
@@ -678,10 +683,12 @@ console.log(result.messageIds);`,
 ];
 
 export const docsQuickLinks = [
+  { href: "/docs/api", label: "REST API", desc: "Authentication, SMS, wallet, webhooks" },
+  { href: "/docs/connect", label: "Connect", desc: "Embedded customers & partner APIs" },
   { href: "/api-docs", label: "API reference", desc: "Interactive endpoints & cURL" },
-  { href: "/developers/docs", label: "Developer portal", desc: "Keys, webhooks, logs" },
+  { href: "/docs/sdk", label: "SDKs", desc: "JavaScript, PHP, Flutter" },
+  { href: "/docs/mobile", label: "Mobile", desc: "Flutter app integration" },
   { href: "/integrations/wordpress", label: "WordPress", desc: "Plugin setup & WooCommerce" },
-  { href: "/sdk", label: "SDKs", desc: "JavaScript, PHP, Flutter" },
   { href: "/changelog", label: "Changelog", desc: "Platform & plugin releases" },
-  { href: "/support", label: "Support", desc: "Contact Tecunit Ghana" },
+  { href: "/support", label: "Support", desc: "Contact Tecunit" },
 ];

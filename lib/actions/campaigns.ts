@@ -6,6 +6,7 @@ import { normalizePhones, countSmsUnits } from "@/lib/sms/units";
 import { estimateCampaignCost } from "@/lib/sms/message-preview";
 import { dispatchCampaign } from "@/lib/campaigns/dispatch";
 import type { CampaignRecurrence } from "@/lib/generated/prisma/client";
+import { resolveApprovedSenderForUser } from "@/lib/sender-ids/validate-send";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -14,7 +15,7 @@ export async function createCampaignAction(formData: FormData) {
   if (!session) redirect("/login");
 
   const name = String(formData.get("name") ?? "Campaign");
-  const senderId = String(formData.get("senderId") ?? "");
+  const senderIdRaw = String(formData.get("senderId") ?? "");
   const message = String(formData.get("message") ?? "");
   const countryCode = String(formData.get("countryCode") ?? "GH");
   const contactGroupId = String(formData.get("contactGroupId") ?? "") || undefined;
@@ -35,8 +36,15 @@ export async function createCampaignAction(formData: FormData) {
     recipientCount = normalizePhones(recipientsRaw).length;
   }
 
-  if (!senderId || !message || recipientCount === 0) {
+  if (!message || recipientCount === 0) {
     redirect("/dashboard/campaigns/new?error=invalid");
+  }
+
+  let senderId: string;
+  try {
+    senderId = await resolveApprovedSenderForUser(session.userId, senderIdRaw);
+  } catch {
+    redirect("/dashboard/campaigns/new?error=sender");
   }
 
   const pricing = await prisma.smsPricing.findFirst({

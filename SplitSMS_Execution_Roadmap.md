@@ -166,7 +166,6 @@ Primary providers:
 ## Inspiration
 
 - Stripe
-- Vercel
 - Linear
 - Twilio
 
@@ -212,7 +211,7 @@ Primary providers:
 # Recommended Infrastructure
 
 ## Frontend
-- Vercel
+- Next.js (Railway, Fly.io, or VPS — see `DEPLOY.md`)
 
 ## Backend
 - Railway

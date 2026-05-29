@@ -1,9 +1,11 @@
+import { loadInfobipSettings } from "@/lib/sms/provider-credentials";
 import type { SendParams, SendResult, SmsProviderAdapter } from "./types";
 
 export async function sendViaInfobip(params: SendParams): Promise<SendResult> {
-  const apiKey = process.env.INFOBIP_API_KEY;
-  const baseUrl = process.env.INFOBIP_BASE_URL ?? "https://api.infobip.com";
-  if (!apiKey) return { success: false, error: "INFOBIP_API_KEY not configured" };
+  const cfg = await loadInfobipSettings();
+  const apiKey = cfg.apiKey;
+  const baseUrl = cfg.baseUrl.replace(/\/$/, "") || "https://api.infobip.com";
+  if (!cfg.enabled || !apiKey) return { success: false, error: "Infobip not configured" };
 
   const res = await fetch(`${baseUrl}/sms/2/text/advanced`, {
     method: "POST",

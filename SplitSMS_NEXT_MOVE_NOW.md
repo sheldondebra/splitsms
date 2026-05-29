@@ -65,7 +65,7 @@ npm run worker:reports
 ```
 
 5. **Smoke test** — Sign up → OTP → top up wallet → send bulk SMS → check Reports  
-6. **Deploy** — Vercel (app) + Neon (DB) + Upstash (Redis) per §22  
+6. **Deploy** — See `DEPLOY.md` (app host + Neon DB + Redis for queues)  
 
 ---
 

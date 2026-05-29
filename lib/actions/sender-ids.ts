@@ -3,7 +3,8 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
-import { registerSenderIdWithProvider } from "@/lib/sender-ids/provider-sync";
+import { normalizeSenderIdValue, validateSenderIdValue } from "@/lib/sender-ids/normalize";
+import { registerSenderIdWithAllProviders } from "@/lib/sender-ids/provider-sync";
 import { getOrCreateMemberAccount } from "@/lib/admin/member-account";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -12,15 +13,13 @@ export async function requestSenderIdAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const value = String(formData.get("value") ?? "")
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "");
+  const value = normalizeSenderIdValue(String(formData.get("value") ?? ""));
   const countryCode = String(formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE)
     .trim()
     .toUpperCase();
 
-  if (!value || value.length > 11) {
+  const validation = validateSenderIdValue(value);
+  if (!validation.ok) {
     redirect("/dashboard/sender-ids?error=invalid");
   }
 
@@ -56,7 +55,7 @@ export async function requestSenderIdAction(formData: FormData) {
   });
 
   const purpose = `SplitSMS bulk SMS for ${user?.fullName ?? "customer"} (${value})`;
-  const provider = await registerSenderIdWithProvider({
+  const provider = await registerSenderIdWithAllProviders({
     senderRecordId: sender.id,
     userId: session.userId,
     value,
@@ -67,16 +66,8 @@ export async function requestSenderIdAction(formData: FormData) {
   revalidatePath("/dashboard/sender-ids");
   revalidatePath("/dashboard/send");
 
-  if (provider.submitted && provider.localStatus === "APPROVED") {
-    redirect("/dashboard/sender-ids?approved=1");
-  }
-
   if (provider.submitted) {
     redirect("/dashboard/sender-ids?requested=1");
-  }
-
-  if (provider.error) {
-    redirect("/dashboard/sender-ids?error=provider");
   }
 
   redirect("/dashboard/sender-ids?requested=1");

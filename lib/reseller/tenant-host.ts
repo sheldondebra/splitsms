@@ -25,8 +25,6 @@ export function isPlatformHost(host: string) {
     .filter(Boolean);
   if (extra.includes(h)) return true;
 
-  if (h.endsWith(".vercel.app")) return true;
-
   return false;
 }
 

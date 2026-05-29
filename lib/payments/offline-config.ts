@@ -11,7 +11,7 @@ export type OfflineBankDetails = {
 
 const DEFAULT: OfflineBankDetails = {
   bankName: process.env.OFFLINE_BANK_NAME ?? "Ecobank Ghana",
-  accountName: process.env.OFFLINE_ACCOUNT_NAME ?? "Tecunit Ghana Ltd",
+  accountName: process.env.OFFLINE_ACCOUNT_NAME ?? "Tecunit Ltd",
   accountNumber: process.env.OFFLINE_ACCOUNT_NUMBER ?? "Contact support for details",
   branch: process.env.OFFLINE_BANK_BRANCH,
   instructions:

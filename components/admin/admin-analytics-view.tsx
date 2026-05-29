@@ -91,7 +91,7 @@ export function AdminAnalyticsView({ data }: { data: AnalyticsData }) {
             <p className="text-sm">
               SMS gateway is not configured — delivery stats may be incomplete until mNotify is connected.
             </p>
-            <Link href="/admin/mnotify" className={cn(buttonVariants({ size: "sm" }))}>
+            <Link href="/admin/providers" className={cn(buttonVariants({ size: "sm" }))}>
               Configure gateway
             </Link>
           </div>

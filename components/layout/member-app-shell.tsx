@@ -12,10 +12,12 @@ import { MobileNavDrawer } from "@/components/dashboard/mobile-nav-drawer";
 import { MobileAppHeader } from "@/components/dashboard/mobile-app-header";
 import type { NotificationItem } from "@/components/dashboard/notification-panel";
 import type { BalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
+import type { MemberProfileSummary } from "@/components/dashboard/user-profile-menu";
 
 type MemberAppShellProps = {
   children: React.ReactNode;
   greeting: string;
+  profile: MemberProfileSummary;
   notifications: NotificationItem[];
   unreadCount: number;
   balance: BalanceSnapshot;
@@ -25,6 +27,7 @@ type MemberAppShellProps = {
 export function MemberAppShell({
   children,
   greeting,
+  profile,
   notifications,
   unreadCount,
   balance,
@@ -46,6 +49,7 @@ export function MemberAppShell({
       <div className="flex flex-1 flex-col min-w-0 w-full max-w-[100vw]">
         <MobileAppHeader
           onMenuOpen={() => setMenuOpen(true)}
+          profile={profile}
           notifications={notifications}
           unreadCount={unreadCount}
           balance={balance}
@@ -54,6 +58,7 @@ export function MemberAppShell({
         <div className="hidden md:block">
           <DashboardTopbar
             greeting={greeting}
+            profile={profile}
             notifications={notifications}
             unreadCount={unreadCount}
             balance={balance}

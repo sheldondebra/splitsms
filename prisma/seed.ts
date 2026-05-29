@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import bcrypt from "bcryptjs";
 import { PrismaClient, SmsProviderType } from "../lib/generated/prisma/client";
 import { COUNTRIES_DATA } from "../lib/countries-data";
+import { getCountryDefaultCurrency } from "../lib/billing/country-currency";
 import { seedSampleTemplatesForUser } from "../lib/sms/seed-templates";
 
 const ADMIN = {
@@ -69,7 +70,7 @@ async function main() {
         memberPrice,
         costPrice,
         provider: c.code === "GH" ? "mNotify" : "Infobip",
-        currency: "GHS",
+        currency: getCountryDefaultCurrency(c.code),
       },
     });
 

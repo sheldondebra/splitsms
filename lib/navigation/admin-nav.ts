@@ -9,10 +9,11 @@ import {
   DollarSign,
   BadgeCheck,
   Route,
-  Radio,
+  Layers3,
   ScrollText,
   BarChart3,
   ShieldAlert,
+  Settings,
 } from "lucide-react";
 
 export type AdminNavItem = {
@@ -32,7 +33,10 @@ export const adminNavSections: AdminNavSection[] = [
   {
     id: "main",
     label: "Main",
-    items: [{ href: "/admin", label: "Overview", icon: LayoutDashboard }],
+    items: [
+      { href: "/admin", label: "Overview", icon: LayoutDashboard },
+      { href: "/admin/general", label: "General office", icon: Settings },
+    ],
   },
   {
     id: "users",
@@ -59,7 +63,7 @@ export const adminNavSections: AdminNavSection[] = [
     items: [
       { href: "/admin/sender-ids", label: "Sender IDs", icon: BadgeCheck, badge: "pending-sender-ids" },
       { href: "/admin/routes", label: "Routes", icon: Route },
-      { href: "/admin/mnotify", label: "mNotify setup", icon: Radio },
+      { href: "/admin/providers", label: "Providers", icon: Layers3 },
     ],
   },
   {
@@ -74,6 +78,8 @@ export const adminNavSections: AdminNavSection[] = [
 ];
 
 export function getAdminPageTitle(pathname: string): string {
+  if (pathname === "/admin/mnotify" || pathname.startsWith("/admin/mnotify/"))
+    return "Providers";
   if (/^\/admin\/members\/[^/]+$/.test(pathname)) return "Member detail";
   if (/^\/admin\/resellers\/[^/]+$/.test(pathname)) return "Reseller detail";
   for (const section of adminNavSections) {

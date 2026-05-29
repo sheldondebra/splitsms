@@ -13,25 +13,37 @@ import { countSmsUnits, normalizePhones, isGsm7 } from "@/lib/sms/units";
 import { deductSmsCredits } from "@/lib/sms/billing";
 import { enqueueSmsJob } from "@/lib/queue/enqueue-sms";
 import { resolveMessagePriority } from "@/lib/enterprise/priority";
+import { resolveApprovedSenderForUser } from "@/lib/sender-ids/validate-send";
 import { redirect } from "next/navigation";
 
-export async function sendSmsAction(formData: FormData) {
+export type SendSmsResult =
+  | { ok: true; recipientCount: number; campaignId: string; creditsUsed: number }
+  | { ok: false; error: string };
+
+export async function sendSmsAction(formData: FormData): Promise<SendSmsResult> {
   const session = await getSession();
   if (!session) redirect("/login");
 
   const account = await getMemberAccountForUser(session.userId);
   if (isMemberSuspended(account) || !memberHasFeature(account, "featureBulkSms")) {
-    redirect("/dashboard/send?error=access");
+    return { ok: false, error: "access" };
   }
 
-  const senderId = String(formData.get("senderId") ?? "");
+  const senderIdRaw = String(formData.get("senderId") ?? "");
   const body = String(formData.get("body") ?? "");
   const recipientsRaw = String(formData.get("recipients") ?? "");
   const countryCode = String(formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE);
 
   const recipients = normalizePhones(recipientsRaw);
-  if (!senderId || !body || recipients.length === 0) {
-    redirect("/dashboard/send?error=invalid");
+  if (!body || recipients.length === 0) {
+    return { ok: false, error: "invalid" };
+  }
+
+  let senderId: string;
+  try {
+    senderId = await resolveApprovedSenderForUser(session.userId, senderIdRaw);
+  } catch {
+    return { ok: false, error: "sender" };
   }
 
   const units = countSmsUnits(body);
@@ -57,9 +69,9 @@ export async function sendSmsAction(formData: FormData) {
     );
   } catch (e) {
     if (e instanceof ResellerAccessError) {
-      redirect(`/dashboard/send?error=${e.code.toLowerCase()}`);
+      return { ok: false, error: e.code.toLowerCase() };
     }
-    redirect("/dashboard/send?error=credits");
+    return { ok: false, error: "credits" };
   }
 
   const campaign = await prisma.campaign.create({
@@ -109,7 +121,12 @@ export async function sendSmsAction(formData: FormData) {
     data: { status: "COMPLETED" },
   });
 
-  redirect(`/dashboard/reports?campaign=${campaign.id}&sent=1`);
+  return {
+    ok: true,
+    recipientCount: recipients.length,
+    campaignId: campaign.id,
+    creditsUsed: totalUnits,
+  };
 }
 
 export async function getSmsEstimate(body: string, recipientCount: number, countryCode: string) {

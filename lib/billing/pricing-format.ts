@@ -1,4 +1,4 @@
-import type { PublicPricingRow } from "@/lib/billing/pricing";
+import type { PublicPricingRow } from "@/lib/billing/public-pricing";
 
 export type CustomRate = {
   countryCode: string;
@@ -9,6 +9,10 @@ export type CustomRate = {
 export function formatPrice(amount: number, currency: string) {
   const n = amount < 0.01 ? amount.toFixed(4) : amount.toFixed(3);
   return `${currency} ${n}`;
+}
+
+export function formatRowPrice(row: PublicPricingRow) {
+  return formatPrice(row.memberPrice, row.currency);
 }
 
 export function resolveMemberPrice(

@@ -10,6 +10,8 @@ import {
   ensureLowBalanceNotification,
 } from "@/lib/notifications";
 import { prisma } from "@/lib/db";
+import { userNeedsProfileCompletion } from "@/lib/auth/phone-auth";
+import { redirect } from "next/navigation";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
 import type { Viewport } from "next";
 
@@ -41,7 +43,7 @@ export default async function DashboardLayout({
     prisma.smsCredit.findUnique({ where: { userId: session.userId } }),
     prisma.user.findUnique({
       where: { id: session.userId },
-      select: { fullName: true },
+      select: { fullName: true, email: true, phone: true },
     }),
     getBalanceSnapshot(session.userId),
   ]);
@@ -55,12 +57,21 @@ export default async function DashboardLayout({
     getUnreadCount(session.userId),
   ]);
 
+  if (user && userNeedsProfileCompletion(user.fullName)) {
+    redirect("/complete-profile");
+  }
+
   const firstName = user?.fullName?.split(" ")[0] ?? "there";
 
   return (
     <TenantThemeWrap tenant={memberTenant}>
       <MemberAppShell
         greeting={firstName}
+        profile={{
+          fullName: user?.fullName ?? "Member",
+          email: user?.email ?? null,
+          phone: user?.phone ?? session.phone,
+        }}
         notifications={notifications}
         unreadCount={unreadCount}
         balance={balance}

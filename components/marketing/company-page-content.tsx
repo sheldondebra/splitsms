@@ -33,7 +33,14 @@ export function CompanyPageContent() {
           </p>
           <h1 className="mt-5 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl lg:max-w-3xl">
             SplitSMS — bulk SMS built by{" "}
-            <span className="text-gradient-orange">Tecunit Ghana</span>
+            <a
+              href="https://www.tecunitgh.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gradient-orange hover:underline underline-offset-4"
+            >
+              Tecunit
+            </a>
           </h1>
           <p className="mt-5 text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed">
             SplitSMS is the SMS platform we wished existed: simple campaigns, honest
@@ -85,10 +92,18 @@ export function CompanyPageContent() {
 
       <section className="py-16 md:py-20 bg-muted/30 border-y border-border/40">
         <div className="mx-auto max-w-6xl px-4">
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">About Tecunit Ghana</h2>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">About Tecunit</h2>
           <p className="mt-4 max-w-3xl text-muted-foreground leading-relaxed">
             SplitSMS is developed and operated by{" "}
-            <strong className="text-foreground">Tecunit Ghana</strong> — a technology company
+            <a
+              href="https://www.tecunitgh.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-foreground hover:text-primary hover:underline underline-offset-2"
+            >
+              Tecunit
+            </a>{" "}
+            — a technology company
             focused on practical tools for African businesses. We combine local market knowledge
             with carrier-grade SMS infrastructure so your messages reach customers reliably,
             whether they are in Accra, Lagos, or London.
@@ -108,7 +123,7 @@ export function CompanyPageContent() {
           <div className="mt-10 rounded-2xl border border-border/60 bg-card p-6 md:p-8">
             <h3 className="font-semibold text-lg">Get in touch</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Questions about SplitSMS or Tecunit Ghana?{" "}
+              Questions about SplitSMS or Tecunit?{" "}
               <Link href="/support" className="text-primary font-medium hover:underline">
                 Submit a support request
               </Link>{" "}

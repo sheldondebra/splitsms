@@ -10,11 +10,7 @@ import {
   rejectSenderIdAction,
 } from "@/lib/actions/admin-sender-ids";
 import { getOrCreateMemberAccount } from "@/lib/admin/member-account";
-import {
-  applyProviderStatusToSender,
-  submitSenderIdToMnotify,
-} from "@/lib/sender-ids/provider-sync";
-import { isMnotifyConfigured } from "@/lib/mnotify";
+import { syncSenderIdFromProviders } from "@/lib/sender-ids/provider-sync";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { MemberAccountStatus, SmsProviderType } from "@/lib/generated/prisma/client";
@@ -235,20 +231,34 @@ export async function adminSendPasswordResetLinkAction(formData: FormData) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) redirect("/admin/members");
 
-  const otp = await createAndSendOtp(
-    user.phone,
-    "PASSWORD_RESET",
-    user.countryCode,
-    user.id,
-  );
+  let saved: "reset_sent" | "reset_failed" = "reset_sent";
+  let cooldown = "0";
 
-  await logAuthEvent("PASSWORD_RESET_REQUESTED", { phone: user.phone, byAdmin: true }, user.id);
-  await logAdmin("ADMIN_SEND_RESET_OTP", userId, session.userId, { ok: otp.ok });
+  try {
+    const otp = await createAndSendOtp(
+      user.phone,
+      "PASSWORD_RESET",
+      user.countryCode,
+      user.id,
+    );
+    if (!otp.ok) {
+      saved = "reset_failed";
+      cooldown = String(otp.cooldownSec ?? 0);
+    }
+    await logAuthEvent("PASSWORD_RESET_REQUESTED", { phone: user.phone, byAdmin: true }, user.id);
+    await logAdmin("ADMIN_SEND_RESET_OTP", userId, session.userId, { ok: otp.ok });
+  } catch (e) {
+    saved = "reset_failed";
+    await logAdmin("ADMIN_SEND_RESET_OTP", userId, session.userId, {
+      ok: false,
+      error: e instanceof Error ? e.message : "SMS failed",
+    });
+  }
 
   redirect(
     memberPath(userId, {
-      saved: otp.ok ? "reset_sent" : "reset_failed",
-      ...(otp.ok ? {} : { cooldown: String(otp.cooldownSec ?? 0) }),
+      saved,
+      ...(saved === "reset_failed" ? { cooldown, error: "sms_failed" } : {}),
     }),
   );
 }
@@ -280,23 +290,9 @@ export async function adminSyncSenderIdStatusAction(formData: FormData) {
   });
   if (!sender) redirect(memberPath(userId, { error: "sender" }));
 
-  if (!(await isMnotifyConfigured())) {
-    redirect(memberPath(userId, { error: "mnotify" }));
-  }
+  await syncSenderIdFromProviders(sender.id);
 
-  const result = await submitSenderIdToMnotify(
-    sender.value,
-    `SplitSMS sender ID check (${sender.value})`,
-  );
-
-  if (result.ok && result.providerStatus) {
-    await applyProviderStatusToSender(sender.id, userId, result.providerStatus);
-  }
-
-  await logAdmin("ADMIN_SYNC_SENDER_ID", userId, session.userId, {
-    senderId,
-    providerStatus: result.providerStatus,
-  });
+  await logAdmin("ADMIN_SYNC_SENDER_ID", userId, session.userId, { senderId });
   revalidatePath("/admin/sender-ids");
   redirect(memberPath(userId, { saved: "sender_sync" }));
 }

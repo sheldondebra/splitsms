@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import type { PublicPricingRow } from "@/lib/billing/pricing";
+import type { PublicPricingRow } from "@/lib/billing/public-pricing";
 import {
   type CustomRate,
   formatPrice,

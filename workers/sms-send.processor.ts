@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { Worker } from "bullmq";
 import { getRedisConnection } from "@/lib/queue/connection";
 import { SMS_SEND_QUEUE, type SmsSendJob } from "@/lib/queue/sms-queue";

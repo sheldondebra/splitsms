@@ -12,10 +12,15 @@ import {
 import {
   MemberAvatar,
   StatusPill,
-  InfoRow,
   ActionBar,
 } from "@/components/admin/member-detail/member-detail-ui";
+import { MaskedBalance } from "@/components/admin/member-detail/masked-balance";
+import { MemberUsageCharts } from "@/components/admin/member-detail/member-usage-charts";
+import { MemberUserDetails } from "@/components/admin/member-detail/member-user-details";
+import { MemberMessagingPanel } from "@/components/admin/member-detail/member-messaging-panel";
 import { ProviderBadge } from "@/components/admin/provider-badge";
+import { SenderIdRegisterForm } from "@/components/admin/sender-id-register-form";
+import { SenderIdProviderBadges } from "@/components/admin/sender-id-provider-badges";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -76,6 +81,7 @@ type Props = {
 
 const TAB_ITEMS = [
   { value: "overview", label: "Overview", icon: LayoutGrid },
+  { value: "messaging", label: "SMS & logs", icon: MessageSquare },
   { value: "sessions", label: "Sessions", icon: Monitor },
   { value: "api", label: "API", icon: Key },
   { value: "senders", label: "Sender IDs", icon: BadgeCheck },
@@ -87,7 +93,7 @@ const TAB_ITEMS = [
 
 function defaultTab(saved?: string) {
   if (!saved) return "overview";
-  if (saved.startsWith("sender")) return "senders";
+  if (saved.startsWith("sender") || saved === "created") return "senders";
   if (saved === "api_key") return "api";
   if (saved === "credits" || saved === "wallet") return "billing";
   if (
@@ -161,6 +167,9 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
                 )}
                 <div className="flex flex-wrap items-center gap-2 mt-3">
                   <StatusPill status={account.status} />
+                  <Badge variant="outline" className="text-[10px] font-medium">
+                    {data.acquisition.sourceLabel}
+                  </Badge>
                   {user.isVerified ? (
                     <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
                       <CheckCircle2 className="h-3.5 w-3.5" />
@@ -182,6 +191,12 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
             </div>
 
             <div className="flex flex-wrap gap-2 lg:justify-end shrink-0">
+              <Link
+                href={`/admin/members/${id}?tab=messaging`}
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              >
+                SMS & logs
+              </Link>
               <Link
                 href={`/admin/members/${id}?tab=billing`}
                 className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
@@ -209,9 +224,11 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
               label="Wallet"
               value={
                 wallet ? (
-                  <span className="text-lg">
-                    {wallet.currency} {wallet.balance.toString()}
-                  </span>
+                  <MaskedBalance
+                    amount={data.walletBalance}
+                    currency={data.walletCurrency}
+                    size="sm"
+                  />
                 ) : (
                   "—"
                 )
@@ -222,7 +239,7 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
             <AdminStatCard
               label="Messages"
               value={counts.messages.toLocaleString()}
-              hint={`${counts.failedMessages} failed`}
+              hint={`${data.analytics.failureRate}% fail · avg ${data.analytics.avgDeliverySec != null ? `${data.analytics.avgDeliverySec}s` : "—"} delivery`}
               icon={Radio}
               variant={counts.failedMessages > 10 ? "warning" : "default"}
               className="p-4"
@@ -277,36 +294,14 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
         </div>
 
         <TabsContent value="overview" className="space-y-4 mt-6">
-          <div className="grid gap-4 lg:grid-cols-3">
-            <AdminCard title="Profile" className="lg:col-span-1">
-              <InfoRow label="Full name" value={user.fullName} />
-              <InfoRow label="Phone" value={user.phone} mono />
-              <InfoRow label="Email" value={user.email ?? "—"} />
-              <InfoRow label="Country" value={user.countryCode} />
-              <InfoRow label="Referral" value={user.referralCode ?? "—"} mono />
-            </AdminCard>
-            <AdminCard title="Usage" className="lg:col-span-1">
-              <InfoRow
-                label="Sender IDs"
-                value={
-                  <span>
-                    {data.senderIds.length} / {account.maxSenderIds}
-                    {account.senderIdsBlocked && (
-                      <Badge variant="destructive" className="ml-2 text-[10px]">
-                        Blocked
-                      </Badge>
-                    )}
-                  </span>
-                }
-              />
-              <InfoRow label="Campaigns" value={counts.campaigns} />
-              <InfoRow label="Failed logins" value={user.failedLoginCount} />
-              <InfoRow label="Sessions" value={data.sessions.length} />
-            </AdminCard>
-            <AdminCard title="Features" className="lg:col-span-1">
-              <FeatureList account={account} />
-            </AdminCard>
-          </div>
+          <MemberUserDetails data={data} />
+          <MemberUsageCharts
+            usageChart={data.analytics.usageChart}
+            statusChart={data.analytics.statusChart}
+          />
+          <AdminCard title="Feature access">
+            <FeatureList account={account} />
+          </AdminCard>
           {account.adminNote && (
             <AdminCard title="Admin note">
               <p className="text-sm whitespace-pre-wrap leading-relaxed">{account.adminNote}</p>
@@ -326,6 +321,10 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
               )}
             </AdminCard>
           )}
+        </TabsContent>
+
+        <TabsContent value="messaging" className="mt-6">
+          <MemberMessagingPanel data={data} />
         </TabsContent>
 
         <TabsContent value="sessions" className="mt-6">
@@ -507,9 +506,21 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
         </TabsContent>
 
         <TabsContent value="senders" className="space-y-4 mt-6">
+          {!account.senderIdsBlocked && data.senderIds.length < account.maxSenderIds && (
+            <AdminCard
+              title="Register sender ID"
+              description="Create on behalf of this member and submit to all providers."
+            >
+              <SenderIdRegisterForm
+                members={[{ id, label: data.user.fullName }]}
+                defaultUserId={id}
+                returnTo={`/admin/members/${id}?tab=senders`}
+              />
+            </AdminCard>
+          )}
           <AdminCard
             title="Sender IDs"
-            description={`${data.senderIds.length} of ${account.maxSenderIds} slots · Sync with registrar`}
+            description={`${data.senderIds.length} of ${account.maxSenderIds} slots · Per-provider status below`}
             actions={
               account.senderIdsBlocked ? (
                 <Badge variant="destructive">Registrations blocked</Badge>
@@ -542,15 +553,11 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
                         </Badge>
                       )}
                     </div>
+                    <SenderIdProviderBadges
+                      registrations={s.providerRegistrations ?? []}
+                    />
                     {s.providerStatus && (
-                      <div className="flex items-center gap-2 text-xs rounded-lg bg-background/80 border border-border/50 px-3 py-2">
-                        <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <span>
-                          Registrar: <strong>{s.providerStatus}</strong>
-                          {s.providerSubmittedAt &&
-                            ` · ${formatDistanceToNow(s.providerSubmittedAt, { addSuffix: true })}`}
-                        </span>
-                      </div>
+                      <p className="text-xs text-muted-foreground">{s.providerStatus}</p>
                     )}
                     {s.adminNote && (
                       <p className="text-xs text-muted-foreground italic">{s.adminNote}</p>
@@ -561,7 +568,7 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
                         <input type="hidden" name="senderId" value={s.id} />
                         <Button type="submit" size="sm" variant="secondary">
                           <Radio className="h-3.5 w-3.5 mr-1" />
-                          Check status
+                          Sync all providers
                         </Button>
                       </form>
                       {s.status === "PENDING" && (
@@ -737,11 +744,12 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
               {wallet ? (
                 <form action={adminAdjustWalletAction} className="space-y-4">
                   <input type="hidden" name="userId" value={id} />
-                  <p className="text-3xl font-bold tabular-nums">
-                    {wallet.balance.toString()}
-                    <span className="text-sm font-normal text-muted-foreground ml-2">
-                      {wallet.currency}
-                    </span>
+                  <MaskedBalance
+                    amount={data.walletBalance}
+                    currency={data.walletCurrency}
+                  />
+                  <p className="text-xs text-muted-foreground -mt-2">
+                    Click the eye icon to reveal the full balance before adjusting.
                   </p>
                   <div className="space-y-2">
                     <Label>Adjust (+ / −)</Label>
@@ -955,9 +963,10 @@ function flashMessage(saved: string, temp?: string) {
       ? `Password set. Share this temporary password securely: ${temp}`
       : "Password updated.",
     reset_sent: "Password reset OTP sent via SMS.",
-    reset_failed: "Could not send reset OTP — check cooldown or SMS gateway.",
+    reset_failed: "Could not send reset OTP — check cooldown, country route, or provider settings in Admin → Providers.",
     api_key: "API key status updated.",
-    sender_sync: "Sender ID synced with registrar.",
+    created: "Sender ID registered and submitted to providers.",
+    sender_sync: "Sender ID synced with all providers.",
     sender_approved: "Sender ID approved.",
     sender_rejected: "Sender ID rejected.",
     sender_blocked: "Sender ID blocked.",

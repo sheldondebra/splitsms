@@ -51,8 +51,19 @@ export async function runAutomationWorkflows(
 
     for (const wf of workflows) {
       const config = (wf.config ?? {}) as { senderId?: string };
-      const senderId = config.senderId ?? approvedSender?.value ?? null;
-      if (!senderId) continue;
+      const senderCandidate = config.senderId ?? approvedSender?.value ?? null;
+      if (!senderCandidate) continue;
+
+      let senderId: string;
+      try {
+        const { assertApprovedSenderForUser } = await import(
+          "@/lib/sender-ids/validate-send"
+        );
+        const row = await assertApprovedSenderForUser(userId, senderCandidate);
+        senderId = row.value;
+      } catch {
+        continue;
+      }
 
       let body = wf.message;
       for (const [key, value] of Object.entries(ctx.replacements ?? {})) {

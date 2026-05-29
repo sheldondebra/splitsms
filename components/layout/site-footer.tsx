@@ -45,7 +45,7 @@ const wordpressIntegrationLinks = [
 
 const companyLinks = [
   { href: "/company", label: "About SplitSMS" },
-  { href: "/company", label: "Tecunit Ghana" },
+  { href: "https://www.tecunitgh.com", label: "Tecunit" },
   { href: "/support", label: "Support" },
 ];
 
@@ -72,6 +72,9 @@ function FooterLinkGroup({
   icon: LucideIcon;
   links: { href: string; label: string }[];
 }) {
+  const linkClassName =
+    "group inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground dark:text-white/65 dark:hover:text-white transition-colors";
+
   return (
     <div className="min-w-0">
       <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground dark:text-white/40 mb-4">
@@ -79,17 +82,29 @@ function FooterLinkGroup({
         <span className="truncate">{title}</span>
       </p>
       <ul className="space-y-2.5">
-        {links.map(({ href, label }) => (
-          <li key={`${href}-${label}`}>
-            <Link
-              href={href}
-              className="group inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground dark:text-white/65 dark:hover:text-white transition-colors"
-            >
-              <span className="h-px w-0 bg-primary transition-all group-hover:w-3 shrink-0" />
-              {label}
-            </Link>
-          </li>
-        ))}
+        {links.map(({ href, label }) => {
+          const isExternal = href.startsWith("http://") || href.startsWith("https://");
+          return (
+            <li key={`${href}-${label}`}>
+              {isExternal ? (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={linkClassName}
+                >
+                  <span className="h-px w-0 bg-primary transition-all group-hover:w-3 shrink-0" />
+                  {label}
+                </a>
+              ) : (
+                <Link href={href} className={linkClassName}>
+                  <span className="h-px w-0 bg-primary transition-all group-hover:w-3 shrink-0" />
+                  {label}
+                </Link>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -171,7 +186,15 @@ export function SiteFooter() {
                   SplitSMS
                 </Link>{" "}
                 — operated by{" "}
-                <span className="text-foreground/90 font-medium">Tecunit Ghana</span>.
+                <a
+                  href="https://www.tecunitgh.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground/90 font-medium hover:text-primary underline-offset-2 hover:underline"
+                >
+                  Tecunit
+                </a>
+                .
               </p>
               <div className="mt-4 flex items-start gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
@@ -192,7 +215,16 @@ export function SiteFooter() {
 
         <div className="max-w-[1600px] mx-auto border-t border-border dark:border-white/10 py-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">
-            © {year} SplitSMS · Tecunit Ghana · All rights reserved
+            © {year} SplitSMS ·{" "}
+            <a
+              href="https://www.tecunitgh.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-primary transition-colors"
+            >
+              Tecunit
+            </a>{" "}
+            · All rights reserved
           </p>
           <nav className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground" aria-label="Legal">
             {legalLinks.map(({ href, label }) => (

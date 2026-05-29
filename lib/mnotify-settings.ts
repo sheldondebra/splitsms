@@ -41,7 +41,7 @@ export async function loadMnotifySettings(): Promise<MnotifySettings> {
 
   return {
     enabled: stored.enabled ?? base.enabled,
-    apiKey: stored.apiKey || process.env.MNOTIFY_API_KEY || "",
+    apiKey: (stored.apiKey || process.env.MNOTIFY_API_KEY || "").trim(),
     baseUrl: stored.baseUrl || base.baseUrl,
     defaultSenderId: stored.defaultSenderId || base.defaultSenderId,
     mnotifyFirst: stored.mnotifyFirst ?? base.mnotifyFirst,

@@ -23,6 +23,9 @@ export default async function VerifyOtpPage({
     cooldown?: string;
     country?: string;
     returnTo?: string;
+    via?: string;
+    hint?: string;
+    delivery?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -53,16 +56,16 @@ export default async function VerifyOtpPage({
   );
 
   const titles: Record<string, string> = {
-    signup: "Verify your phone",
-    login: "Enter login code",
-    reset: "Verify reset code",
+    signup: "Enter your code",
+    login: "Enter your code",
+    reset: "Enter reset code",
   };
 
   return (
     <AuthLayout
       tenant={tenant}
       title={titles[purpose] ?? "Enter verification code"}
-      subtitle="Secure one-time password via SMS"
+      subtitle={`Code sent to ${phone}`}
       sideDescription={
         tenant
           ? `Never share your code. ${tenant.brandName} support will never ask for it.`
@@ -81,6 +84,9 @@ export default async function VerifyOtpPage({
           returnTo={
             params.returnTo?.startsWith("/dashboard") ? params.returnTo : undefined
           }
+          viaEmail={params.via === "email"}
+          delivery={params.delivery ?? (params.via === "email" ? "sms" : "sms")}
+          phoneHint={params.hint ? decodeURIComponent(params.hint) : undefined}
         />
         <p className="mt-6 text-center text-sm text-muted-foreground">
           <Link

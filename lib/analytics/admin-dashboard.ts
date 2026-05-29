@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getMnotifyStatus } from "@/lib/mnotify";
+import { fetchAllSmsProviderBalances } from "@/lib/sms/provider-balances";
 
 function daysAgo(n: number) {
   const d = new Date();
@@ -25,6 +26,7 @@ export async function getAdminDashboardOverview() {
     failed,
     campaigns,
     mnotify,
+    providerBalances,
     dailyMsgs,
     pendingSenderIds,
     messagesToday,
@@ -41,6 +43,7 @@ export async function getAdminDashboardOverview() {
     prisma.message.count({ where: { status: "FAILED" } }),
     prisma.campaign.count({ where: { status: { in: ["SENDING", "SCHEDULED"] } } }),
     getMnotifyStatus(),
+    fetchAllSmsProviderBalances(),
     prisma.message.findMany({
       where: { createdAt: { gte: daysAgo(14) } },
       select: { createdAt: true },
@@ -99,6 +102,7 @@ export async function getAdminDashboardOverview() {
     failureRate,
     activeCampaigns: campaigns,
     mnotify,
+    providerBalances,
     dailyVolume,
     providerHealth: mnotify.configured ? "healthy" : "needs_setup",
   };

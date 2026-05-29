@@ -124,6 +124,20 @@ enum SenderIdStatus {
   REJECTED
 }
 
+enum SenderIdProviderType {
+  MNOTIFY
+  TWILIO
+  INFOBIP
+}
+
+enum SenderIdProviderStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FAILED
+  SKIPPED
+}
+
 enum MemberAccountStatus {
   ACTIVE
   SUSPENDED
@@ -187,6 +201,8 @@ model User {
   wordpressSites   WordPressSite[]
   wordpressLogs    WordPressLog[]
   memberAccount    MemberAccount?
+  connectCustomersAsPartner ConnectCustomer[] @relation("ConnectPartner")
+  connectCustomerProfile    ConnectCustomer?  @relation("ConnectCustomer")
 }
 
 model MemberAccount {
@@ -625,10 +641,30 @@ model Message {
   channel       String?
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
+  routingLogs   SmsRoutingLog[]
 
   @@index([userId, status, createdAt])
   @@index([campaignId])
   @@index([priority, status])
+}
+
+model SmsRoutingLog {
+  id               String           @id @default(cuid())
+  messageId        String?
+  message          Message?         @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  recipient        String?
+  recipientCountry String?
+  routeCountry     String
+  providerOrder    Json
+  selectedProvider SmsProviderType?
+  attempts         Json?
+  reason           String
+  autoRouted       Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+
+  @@index([createdAt])
+  @@index([messageId])
+  @@index([routeCountry, createdAt])
 }
 
 model SenderId {
@@ -644,8 +680,25 @@ model SenderId {
   providerSubmittedAt DateTime?
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
+  providerRegistrations SenderIdProviderRegistration[]
 
   @@index([userId, status])
+}
+
+model SenderIdProviderRegistration {
+  id             String                 @id @default(cuid())
+  senderId       String
+  sender         SenderId               @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  provider       SenderIdProviderType
+  status         SenderIdProviderStatus @default(PENDING)
+  externalRef    String?
+  providerStatus String?
+  error          String?
+  submittedAt    DateTime?
+  updatedAt      DateTime               @updatedAt
+
+  @@unique([senderId, provider])
+  @@index([senderId])
 }
 
 model ApiKey {
@@ -857,6 +910,22 @@ model WordPressSite {
 
   @@unique([userId, siteUrl])
   @@index([userId, status])
+}
+
+model ConnectCustomer {
+  id             String   @id @default(cuid())
+  partnerUserId  String
+  partner        User     @relation("ConnectPartner", fields: [partnerUserId], references: [id], onDelete: Cascade)
+  customerUserId String   @unique
+  customer       User     @relation("ConnectCustomer", fields: [customerUserId], references: [id], onDelete: Cascade)
+  externalRef    String?
+  label          String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([partnerUserId, externalRef])
+  @@index([partnerUserId])
 }
 
 model WordPressLog {

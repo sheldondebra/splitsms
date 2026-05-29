@@ -500,7 +500,6 @@ The dashboard must feel:
 Use inspiration from:
 
 - Stripe
-- Vercel
 - Linear
 - Resend
 - Clerk

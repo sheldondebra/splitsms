@@ -72,6 +72,31 @@ export function normalizePhoneWithCountry(
   return `${dialCode}${local}`;
 }
 
+export const phoneAuthSchema = z.object({
+  phone: z.string().min(8, "Enter your phone number").max(20),
+  countryCode: z.string().min(2).max(10).toUpperCase(),
+  dialCode: z.string().min(2).max(6),
+});
+
+export const emailAuthLoginSchema = z.object({
+  email: emailSchema,
+});
+
+export const emailAuthSignupSchema = z.object({
+  email: emailSchema,
+  phone: z.string().min(8, "Enter your phone number").max(20),
+  countryCode: z.string().min(2).max(10).toUpperCase(),
+  dialCode: z.string().min(2).max(6),
+});
+
+export const completeProfileSchema = z.object({
+  fullName: z.string().min(2, "Name is too short").max(120),
+  email: z
+    .string()
+    .optional()
+    .transform((v) => (v?.trim() ? v.trim().toLowerCase() : undefined)),
+});
+
 export const loginSchema = z.object({
   identifier: z.string().min(3).max(120).transform((v) => v.trim()),
   password: z.string().min(1),

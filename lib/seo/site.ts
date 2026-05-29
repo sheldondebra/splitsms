@@ -34,7 +34,7 @@ export const organizationJsonLd = {
   areaServed: ["GH", "NG", "Worldwide"],
   parentOrganization: {
     "@type": "Organization",
-    name: "Tecunit Ghana",
+    name: "Tecunit",
   },
 };
 

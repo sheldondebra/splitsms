@@ -1,3 +1,5 @@
+import { defaultSiteUrl } from "@/lib/site-config";
+
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 export type ApiEndpointDoc = {
@@ -19,7 +21,8 @@ export type ApiDocSection = {
   endpoints: ApiEndpointDoc[];
 };
 
-export const API_BASE_HINT = "https://splitsms.com";
+/** Fallback when baseUrl prop is omitted (client docs). */
+export const API_BASE_HINT = defaultSiteUrl;
 
 export const apiDocSections: ApiDocSection[] = [
   {
@@ -254,6 +257,115 @@ export const apiDocSections: ApiDocSection[] = [
         permission: "sms.send",
         body: `{ "phone": "233201234567", "code": "123456" }`,
         response: `{ "success": true, "verified": true }`,
+      },
+    ],
+  },
+  {
+    id: "connect",
+    title: "Connect",
+    icon: "link",
+    description:
+      "Provision embedded customers under your partner account. Use customer_id on sender-ids and send endpoints.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/api/v1/connect/customers",
+        title: "List Connect customers",
+        description: "Customers you provisioned via Connect. Filter by external_ref.",
+        permission: "connect.customers",
+        query: ["limit (max 100)", "external_ref"],
+        response: `{
+  "success": true,
+  "data": [
+    {
+      "id": "...",
+      "external_ref": "wp-user-42",
+      "label": "Acme Shop",
+      "user_id": "...",
+      "full_name": "Jane Doe",
+      "phone": "233201234567",
+      "wallet_balance": 0,
+      "wallet_currency": "GHS",
+      "sms_credits": 10,
+      "created_at": "2026-05-26T12:00:00.000Z"
+    }
+  ]
+}`,
+      },
+      {
+        method: "POST",
+        path: "/api/v1/connect/customers",
+        title: "Provision customer",
+        description:
+          "Create a member account linked to your partner. Idempotent when external_ref already exists.",
+        permission: "connect.customers",
+        body: `{
+  "full_name": "Jane Doe",
+  "phone": "233201234567",
+  "country_code": "GH",
+  "email": "jane@example.com",
+  "external_ref": "wp-user-42",
+  "initial_sms_credits": 10,
+  "initial_wallet_balance": 0
+}`,
+        response: `{
+  "success": true,
+  "data": { "id": "...", "external_ref": "wp-user-42", "sms_credits": 10 }
+}`,
+      },
+      {
+        method: "GET",
+        path: "/api/v1/connect/customers/{id}",
+        title: "Get Connect customer",
+        description: "Lookup by Connect link id, customer user id, or external_ref.",
+        permission: "connect.customers",
+      },
+    ],
+  },
+  {
+    id: "sender-ids",
+    title: "Sender IDs",
+    icon: "badge",
+    description:
+      "Register and list sender IDs. Connect partners pass customer_id to act on behalf of a provisioned customer.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/api/v1/sender-ids",
+        title: "List sender IDs",
+        description: "Your sender IDs or a Connect customer's when customer_id is set.",
+        permission: "sender_ids.read",
+        query: ["customer_id (optional Connect customer id / external_ref)"],
+        response: `{
+  "success": true,
+  "data": [
+    {
+      "id": "...",
+      "value": "MYBRAND",
+      "status": "APPROVED",
+      "providers": [{ "provider": "MNOTIFY", "status": "APPROVED" }]
+    }
+  ]
+}`,
+      },
+      {
+        method: "POST",
+        path: "/api/v1/sender-ids",
+        title: "Register sender ID",
+        description: "Submit for approval across configured providers (mNotify, Twilio, Infobip).",
+        permission: "sender_ids.write",
+        body: `{
+  "value": "MYBRAND",
+  "purpose": "Transactional",
+  "customer_id": "optional-connect-customer-id"
+}`,
+      },
+      {
+        method: "GET",
+        path: "/api/v1/sender-ids/{id}",
+        title: "Get sender ID",
+        description: "Single sender ID with provider registration statuses.",
+        permission: "sender_ids.read",
       },
     ],
   },

@@ -6,6 +6,7 @@ import { resolveMessagePriority } from "@/lib/enterprise/priority";
 import { processSandboxMessage } from "@/lib/api/sandbox";
 import type { ApiContext } from "@/lib/api/context";
 import { apiError, apiSuccess } from "@/lib/api/errors";
+import { resolveApprovedSenderForUser } from "@/lib/sender-ids/validate-send";
 
 export type SendSmsInput = {
   sender: string;
@@ -18,6 +19,17 @@ export async function apiSendMessages(ctx: ApiContext, input: SendSmsInput) {
   const recipientList = normalizePhones(input.recipients.join("\n"));
   if (recipientList.length === 0) {
     return apiError("INVALID_REQUEST", "No valid recipients", 400);
+  }
+
+  let approvedSender: string;
+  try {
+    approvedSender = await resolveApprovedSenderForUser(ctx.user.id, input.sender);
+  } catch {
+    return apiError(
+      "INVALID_REQUEST",
+      "Sender ID is not approved for this account",
+      400,
+    );
   }
 
   const units = countSmsUnits(input.message);
@@ -48,7 +60,7 @@ export async function apiSendMessages(ctx: ApiContext, input: SendSmsInput) {
     data: {
       userId: ctx.user.id,
       name: `API ${new Date().toISOString()}`,
-      senderId: input.sender,
+      senderId: approvedSender,
       message: input.message,
       countryCode: input.countryCode,
       recipientCount: recipientList.length,
@@ -66,7 +78,7 @@ export async function apiSendMessages(ctx: ApiContext, input: SendSmsInput) {
         campaignId: campaign.id,
         recipient,
         body: input.message,
-        senderId: input.sender,
+        senderId: approvedSender,
         countryCode: input.countryCode,
         smsUnits: units,
         cost: ctx.isSandbox ? 0 : costPerUnit * units,

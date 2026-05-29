@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { getSession, isAdminRole } from "@/lib/auth/session";
-import { saveMnotifySettings, loadMnotifySettings } from "@/lib/mnotify-settings";
+import { saveSmsRoutingPolicy, type SenderRegistrationMode } from "@/lib/sms/routing-policy";
 import { sendSmsWithFailover } from "@/lib/sms/orchestrator";
 import { mnotifyAdapter } from "@/lib/sms/providers/mnotify";
 import { twilioAdapter } from "@/lib/sms/providers/twilio";
@@ -52,20 +52,29 @@ async function saveLastRouteTest(payload: {
 
 export async function saveRoutingPolicyAction(formData: FormData) {
   const session = await requireAdmin();
-  const current = await loadMnotifySettings();
-  await saveMnotifySettings(
+
+  const mode = String(formData.get("senderRegistrationMode") ?? "BY_COUNTRY") as SenderRegistrationMode;
+  const selected: SmsProviderType[] = [];
+  for (const p of PROVIDERS) {
+    if (formData.get(`reg_${p}`) === "on") selected.push(p);
+  }
+
+  await saveSmsRoutingPolicy(
     {
-      enabled: current.enabled,
-      apiKey: "",
-      baseUrl: current.baseUrl,
-      defaultSenderId: current.defaultSenderId,
+      autoRouteByRecipient: formData.get("autoRouteByRecipient") === "on",
+      routingLogEnabled: formData.get("routingLogEnabled") === "on",
       mnotifyFirst: formData.get("mnotifyFirst") === "on",
       allowFailover: formData.get("allowFailover") === "on",
+      senderRegistrationMode: ["ALL", "BY_COUNTRY", "SELECTED"].includes(mode)
+        ? mode
+        : "BY_COUNTRY",
+      senderRegistrationProviders:
+        mode === "SELECTED" && selected.length > 0 ? selected : [...PROVIDERS],
     },
     session.userId,
   );
   revalidatePath("/admin/routes");
-  revalidatePath("/admin/mnotify");
+  revalidatePath("/admin/providers");
   redirect(routesPath({ saved: "policy" }));
 }
 
@@ -165,9 +174,13 @@ export async function testSmsRouteAction(formData: FormData) {
     const r = await sendSmsWithFailover(
       countryCode,
       { to: phone, from: sender, body: message },
-      mode === "primary" && PROVIDERS.includes(lockedProvider)
-        ? { lockedProvider }
-        : undefined,
+      {
+        lockedProvider:
+          mode === "primary" && PROVIDERS.includes(lockedProvider)
+            ? lockedProvider
+            : undefined,
+        recipientPhone: phone,
+      },
     );
     result = r;
   }

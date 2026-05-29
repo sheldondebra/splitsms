@@ -1,84 +1,73 @@
 import { prisma } from "@/lib/db";
-import {
-  approveSenderIdAction,
-  rejectSenderIdAction,
-} from "@/lib/actions/admin-sender-ids";
+import { backfillSenderProviderRegistrations } from "@/lib/sender-ids/provider-registrations";
 import {
   AdminPage,
   AdminPageHeader,
-  AdminCard,
-  AdminEmpty,
-  AdminListRow,
 } from "@/components/admin/admin-page-shell";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { AdminSenderIdsView } from "@/components/admin/admin-sender-ids-view";
 import { BadgeCheck } from "lucide-react";
 
-export default async function AdminSenderIdsPage() {
-  const requests = await prisma.senderId.findMany({
-    where: { status: "PENDING" },
-    include: { user: true },
-    orderBy: { createdAt: "desc" },
-  });
+const senderInclude = {
+  user: { select: { id: true, fullName: true, phone: true } },
+  providerRegistrations: true,
+} as const;
+
+type TabId = "pending" | "register" | "all";
+
+function parseTab(tab: string | undefined): TabId {
+  if (tab === "register" || tab === "all") return tab;
+  return "pending";
+}
+
+export default async function AdminSenderIdsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; saved?: string; error?: string }>;
+}) {
+  const { tab, saved, error } = await searchParams;
+  const initialTab = parseTab(tab);
+
+  await backfillSenderProviderRegistrations();
+
+  const [pending, allSenders, members] = await Promise.all([
+    prisma.senderId.findMany({
+      where: { status: "PENDING" },
+      include: senderInclude,
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.senderId.findMany({
+      include: senderInclude,
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    }),
+    prisma.user.findMany({
+      where: { role: "MEMBER" },
+      select: { id: true, fullName: true, phone: true },
+      orderBy: { fullName: "asc" },
+      take: 500,
+    }),
+  ]);
+
+  const memberOptions = members.map((m) => ({
+    id: m.id,
+    label: `${m.fullName} · ${m.phone}`,
+  }));
 
   return (
     <AdminPage>
       <AdminPageHeader
         title="Sender IDs"
-        description="Review and approve member sender ID requests before they can send SMS."
+        description="Register sender IDs for members, submit to all SMS providers, and approve for sending."
         icon={BadgeCheck}
       />
-
-      <AdminCard
-        title="Pending requests"
-        description={
-          requests.length === 0
-            ? "No requests awaiting review"
-            : `${requests.length} request${requests.length !== 1 ? "s" : ""}`
-        }
-      >
-        {requests.length === 0 ? (
-          <AdminEmpty>All sender ID requests are processed.</AdminEmpty>
-        ) : (
-          <div className="-my-1">
-            {requests.map((s) => (
-              <AdminListRow key={s.id}>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold font-mono text-sm">{s.value}</p>
-                    <Badge variant="outline" className="text-[10px]">
-                      {s.countryCode}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-0.5">{s.user.fullName}</p>
-                  <p className="text-xs text-muted-foreground">{s.user.phone}</p>
-                </div>
-                <div className="flex flex-wrap gap-2 sm:justify-end">
-                  <form action={approveSenderIdAction}>
-                    <input type="hidden" name="id" value={s.id} />
-                    <input type="hidden" name="setDefault" value="1" />
-                    <Button size="sm" type="submit">
-                      Approve
-                    </Button>
-                  </form>
-                  <form action={rejectSenderIdAction} className="flex gap-2 items-center">
-                    <input type="hidden" name="id" value={s.id} />
-                    <Input
-                      name="note"
-                      placeholder="Deny reason"
-                      className="h-8 w-36 text-xs"
-                    />
-                    <Button size="sm" type="submit" variant="destructive">
-                      Deny
-                    </Button>
-                  </form>
-                </div>
-              </AdminListRow>
-            ))}
-          </div>
-        )}
-      </AdminCard>
+      <AdminSenderIdsView
+        pending={pending}
+        allSenders={allSenders}
+        members={memberOptions}
+        initialTab={initialTab}
+        saved={saved}
+        error={error}
+      />
     </AdminPage>
   );
 }

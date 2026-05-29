@@ -16,6 +16,48 @@ export type ChangelogRelease = {
 
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "2.0.0",
+    date: "2026-05-26",
+    label: "Connect",
+    product: "platform",
+    summary:
+      "SplitSMS Connect — partner customer provisioning, sender ID APIs, smart routing, unified providers admin, and documentation v2.",
+    changes: [
+      {
+        type: "added",
+        text: "Connect™ — POST/GET /api/v1/connect/customers to provision embedded customers with wallet and SMS credits.",
+      },
+      {
+        type: "added",
+        text: "REST sender IDs — GET/POST /api/v1/sender-ids with optional customer_id for Connect partners.",
+      },
+      {
+        type: "added",
+        text: "Dashboard /dashboard/connect hub — API keys, customers, routing, and quick links.",
+      },
+      {
+        type: "added",
+        text: "Admin Providers page — mNotify, Infobip, Twilio usage, balances, and credentials in one place.",
+      },
+      {
+        type: "added",
+        text: "Multi-provider sender ID registration (mNotify, Twilio, Infobip) with per-provider status badges.",
+      },
+      {
+        type: "added",
+        text: "Smart routing — auto-route by recipient country; admin routing policy and switch logs.",
+      },
+      {
+        type: "added",
+        text: "Docs v2 routes — /docs/api, /docs/connect, /docs/sdk, /docs/mobile.",
+      },
+      {
+        type: "changed",
+        text: "API permissions — connect.customers, sender_ids.read, sender_ids.write added to default scopes.",
+      },
+    ],
+  },
+  {
     version: "1.2.1",
     date: "2026-05-22",
     product: "wordpress",

@@ -1,49 +1,9 @@
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { SupportDashboard } from "@/components/dashboard/support-dashboard";
-import type { ChatMessage } from "@/components/dashboard/support-chat-panel";
+import { buildSupportChatMessages, formatTicketNumber } from "@/lib/support/chat";
 import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 import { LifeBuoy } from "lucide-react";
-
-function buildChatMessages(
-  firstName: string,
-  tickets: { id: string; message: string; status: string; createdAt: Date }[],
-): ChatMessage[] {
-  const messages: ChatMessage[] = [
-    {
-      id: "welcome",
-      role: "support",
-      body: `Hi ${firstName}! How can we help? Ask about billing, delivery reports, or Sender IDs.`,
-      time: "SplitSMS",
-    },
-  ];
-
-  for (const t of [...tickets].reverse()) {
-    messages.push({
-      id: t.id,
-      role: "user",
-      body: t.message,
-      time: t.createdAt.toLocaleString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      status: t.status === "OPEN" ? "Open" : t.status,
-    });
-  }
-
-  if (tickets.some((t) => t.status.toUpperCase() === "OPEN")) {
-    messages.push({
-      id: "ack-latest",
-      role: "support",
-      body: "Thanks — we've received your message. Our team will follow up shortly.",
-      time: "SplitSMS",
-    });
-  }
-
-  return messages;
-}
 
 export default async function SupportPage({
   searchParams,
@@ -77,13 +37,11 @@ export default async function SupportPage({
   if (!user) return null;
 
   const firstName = user.fullName.split(" ")[0] ?? "there";
-  const chatMessages = buildChatMessages(
-    firstName,
-    [...tickets].reverse().slice(-12),
-  );
+  const chatMessages = buildSupportChatMessages(firstName, tickets);
 
   const rows = tickets.map((t) => ({
     id: t.id,
+    ticketNumber: formatTicketNumber(t.id, t.createdAt),
     subject: t.subject,
     message: t.message,
     status: t.status,

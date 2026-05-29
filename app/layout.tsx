@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { getSiteUrl } from "@/lib/site-config";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -35,9 +36,7 @@ export const metadata: Metadata = {
     "SplitSMS",
   ],
   icons: { icon: "/smslogo.png" },
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://splitsms.com",
-  ),
+  metadataBase: new URL(getSiteUrl()),
 };
 
 export default async function RootLayout({

@@ -377,3 +377,26 @@
 .tenant-branded .border-primary\/40 {
   border-color: color-mix(in srgb, var(--tenant-primary, var(--primary)) 40%, transparent) !important;
 }
+
+/* Sonner toasts */
+[data-sonner-toaster] {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --width: 380px;
+}
+
+[data-sonner-toast] {
+  border-radius: var(--radius-xl);
+  padding: 14px 16px;
+}
+
+[data-sonner-toast][data-type="success"] [data-icon] {
+  color: oklch(0.55 0.15 145);
+}
+
+[data-sonner-toast][data-type="error"] [data-icon] {
+  color: var(--destructive);
+}
+
+[data-sonner-toast][data-type="loading"] [data-icon] {
+  color: var(--primary);
+}

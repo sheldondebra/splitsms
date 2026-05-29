@@ -35,7 +35,7 @@ export default async function DevelopersLayout({
   const [user, balance, notifications, unreadCount] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.userId },
-      select: { fullName: true },
+      select: { fullName: true, email: true, phone: true },
     }),
     getBalanceSnapshot(session.userId),
     getUserNotifications(session.userId, 15),
@@ -48,6 +48,11 @@ export default async function DevelopersLayout({
     <TenantThemeWrap tenant={memberTenant}>
       <MemberAppShell
         greeting={firstName}
+        profile={{
+          fullName: user?.fullName ?? "Member",
+          email: user?.email ?? null,
+          phone: user?.phone ?? session.phone,
+        }}
         notifications={notifications}
         unreadCount={unreadCount}
         balance={balance}

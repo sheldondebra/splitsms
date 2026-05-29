@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ProviderBalancesPanel } from "@/components/admin/provider-balances-panel";
 import {
   Route,
   Radio,
@@ -31,6 +32,7 @@ import {
   ArrowRight,
   Building2,
   DollarSign,
+  Wallet,
 } from "lucide-react";
 
 type RoutesData = Awaited<ReturnType<typeof getAdminRoutesDashboard>>;
@@ -59,9 +61,18 @@ export function AdminRoutesView({
   flash,
 }: {
   data: RoutesData;
-  flash?: { saved?: string; test?: string; error?: string };
+  flash?: { saved?: string; test?: string; error?: string; balances?: string };
 }) {
-  const { providerHealth, routeRows, missingRoutes, policy, totals, lastTest } = data;
+  const {
+    providerHealth,
+    providerBalances,
+    routeRows,
+    missingRoutes,
+    policy,
+    routingLogs,
+    totals,
+    lastTest,
+  } = data;
 
   return (
     <AdminPage wide>
@@ -71,7 +82,7 @@ export function AdminRoutesView({
         icon={Route}
         actions={
           <Link
-            href="/admin/mnotify"
+            href="/admin/providers"
             className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1")}
           >
             <Radio className="h-3.5 w-3.5" />
@@ -79,6 +90,10 @@ export function AdminRoutesView({
           </Link>
         }
       />
+
+      {flash?.balances === "refreshed" && (
+        <AdminAlert variant="success">Provider balances refreshed from upstream APIs.</AdminAlert>
+      )}
 
       {flash?.saved === "policy" && (
         <AdminAlert variant="success">Global routing policy saved.</AdminAlert>
@@ -119,6 +134,8 @@ export function AdminRoutesView({
         </AdminCard>
       )}
 
+      <ProviderBalancesPanel balances={providerBalances} />
+
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <AdminStatCard label="Countries routed" value={totals.routes} variant="primary" />
         <AdminStatCard
@@ -140,43 +157,187 @@ export function AdminRoutesView({
       </div>
 
       <AdminCard
-        title="Global routing policy"
-        description="Applied before country failover when mNotify is enabled"
+        title="Routing policy"
+        description="Auto-pick provider from recipient country (e.g. US → Twilio, GH → mNotify) and control sender ID registration"
       >
-        <form action={saveRoutingPolicyAction} className="flex flex-wrap items-end gap-6">
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input
-              type="checkbox"
-              name="mnotifyFirst"
-              defaultChecked={policy.mnotifyFirst}
-              className="h-4 w-4 rounded accent-primary"
-            />
-            mNotify first (platform-wide)
-          </label>
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input
-              type="checkbox"
-              name="allowFailover"
-              defaultChecked={policy.allowFailover}
-              className="h-4 w-4 rounded accent-primary"
-            />
-            Allow failover to country chain
-          </label>
+        <form action={saveRoutingPolicyAction} className="space-y-5">
+          <div className="flex flex-wrap gap-6">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                name="autoRouteByRecipient"
+                defaultChecked={policy.autoRouteByRecipient}
+                className="h-4 w-4 rounded accent-primary"
+              />
+              Auto-route by recipient number
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                name="routingLogEnabled"
+                defaultChecked={policy.routingLogEnabled}
+                className="h-4 w-4 rounded accent-primary"
+              />
+              Log provider switches
+            </label>
+            <label
+              className={cn(
+                "flex items-center gap-2 text-sm cursor-pointer",
+                policy.autoRouteByRecipient && "opacity-50",
+              )}
+              title={
+                policy.autoRouteByRecipient
+                  ? "Disabled while auto-route by recipient is on"
+                  : undefined
+              }
+            >
+              <input
+                type="checkbox"
+                name="mnotifyFirst"
+                defaultChecked={policy.mnotifyFirst}
+                disabled={policy.autoRouteByRecipient}
+                className="h-4 w-4 rounded accent-primary"
+              />
+              mNotify first (legacy mode)
+            </label>
+            <label
+              className={cn(
+                "flex items-center gap-2 text-sm cursor-pointer",
+                policy.autoRouteByRecipient && "opacity-50",
+              )}
+            >
+              <input
+                type="checkbox"
+                name="allowFailover"
+                defaultChecked={policy.allowFailover}
+                disabled={policy.autoRouteByRecipient}
+                className="h-4 w-4 rounded accent-primary"
+              />
+              Allow failover (legacy mode)
+            </label>
+          </div>
+
+          <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
+            <p className="text-sm font-medium">Sender ID registration (member / admin)</p>
+            <div className="flex flex-wrap gap-4 text-sm">
+              {(
+                [
+                  ["ALL", "All providers"],
+                  ["BY_COUNTRY", "By sender country route"],
+                  ["SELECTED", "Selected providers only"],
+                ] as const
+              ).map(([value, label]) => (
+                <label key={value} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="senderRegistrationMode"
+                    value={value}
+                    defaultChecked={policy.senderRegistrationMode === value}
+                    className="accent-primary"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-4 text-sm">
+              {PROVIDER_OPTIONS.map((p) => (
+                <label key={p} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name={`reg_${p}`}
+                    defaultChecked={policy.senderRegistrationProviders.includes(p)}
+                    className="h-4 w-4 rounded accent-primary"
+                  />
+                  {p}
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              <strong>By country</strong> registers with the same failover chain as SMS for that
+              country. <strong>All</strong> hits mNotify, Twilio, and Infobip every time.
+            </p>
+          </div>
+
           <Button type="submit" size="sm">
-            Save policy
+            Save routing policy
           </Button>
         </form>
         <p className="text-xs text-muted-foreground mt-3">
-          mNotify status:{" "}
+          mNotify:{" "}
           {data.mnotifyStatus.configured ? (
             <span className="text-emerald-600 font-medium">configured</span>
           ) : (
-            <Link href="/admin/mnotify" className="text-primary hover:underline">
-              not configured →
+            <Link href="/admin/providers" className="text-primary hover:underline">
+              configure providers →
             </Link>
           )}
-          {!policy.mnotifyEnabled && " · mNotify disabled in settings"}
+          {policy.autoRouteByRecipient && (
+            <span>
+              {" "}
+              · Auto-route uses per-country chains below (US → global providers, GH → mNotify).
+            </span>
+          )}
         </p>
+      </AdminCard>
+
+      <AdminCard
+        title="Provider switch log"
+        description={
+          policy.routingLogEnabled
+            ? "Recent routing decisions per message"
+            : "Enable “Log provider switches” to record decisions"
+        }
+      >
+        {routingLogs.length === 0 ? (
+          <AdminEmpty>No routing logs yet. Send a test SMS to populate.</AdminEmpty>
+        ) : (
+          <div className="overflow-x-auto -mx-1">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-xs text-muted-foreground">
+                  <th className="py-2 pr-3">Time</th>
+                  <th className="py-2 pr-3">Recipient</th>
+                  <th className="py-2 pr-3">Route</th>
+                  <th className="py-2 pr-3">Provider</th>
+                  <th className="py-2 pr-3">Chain</th>
+                  <th className="py-2">Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {routingLogs.map((log) => {
+                  const order = Array.isArray(log.providerOrder)
+                    ? (log.providerOrder as string[]).join(" → ")
+                    : "—";
+                  return (
+                    <tr key={log.id} className="border-b border-border/50">
+                      <td className="py-2 pr-3 text-xs whitespace-nowrap">
+                        {new Date(log.createdAt).toLocaleString()}
+                      </td>
+                      <td className="py-2 pr-3 font-mono text-xs">
+                        {log.recipient ?? "—"}
+                        {log.autoRouted && (
+                          <Badge variant="outline" className="ml-1 text-[9px]">
+                            auto
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="py-2 pr-3 text-xs">
+                        {log.recipientCountry && log.recipientCountry !== log.routeCountry
+                          ? `${log.recipientCountry} → ${log.routeCountry}`
+                          : log.routeCountry}
+                      </td>
+                      <td className="py-2 pr-3 font-medium">{log.selectedProvider ?? "—"}</td>
+                      <td className="py-2 pr-3 text-xs text-muted-foreground max-w-[140px] truncate">
+                        {order}
+                      </td>
+                      <td className="py-2 text-xs text-muted-foreground">{log.reason}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </AdminCard>
 
       <AdminCard title="Providers" description="Configuration health and 7-day traffic">
@@ -203,6 +364,25 @@ export function AdminRoutesView({
                 )}
               </div>
               <p className="text-[11px] text-muted-foreground leading-snug">{p.configHint}</p>
+              <div className="flex items-center gap-1.5 rounded-lg bg-background/60 border border-border/50 px-2.5 py-2">
+                <Wallet className="h-3.5 w-3.5 text-primary shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    SMS balance
+                  </p>
+                  <p
+                    className={cn(
+                      "text-sm font-semibold tabular-nums truncate",
+                      p.balance.status === "ok" && "text-foreground",
+                      p.balance.status === "error" && "text-amber-700 dark:text-amber-300",
+                      p.balance.status === "unconfigured" && "text-muted-foreground font-medium",
+                    )}
+                    title={p.balance.error}
+                  >
+                    {p.balance.display}
+                  </p>
+                </div>
+              </div>
               <p className="text-xs tabular-nums">
                 {p.messages7d.toLocaleString()} sent
                 {p.failed7d > 0 && (

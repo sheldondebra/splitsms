@@ -297,7 +297,6 @@ The UI must look:
 
 - Linear
 - Stripe
-- Vercel
 - Twilio
 - Resend
 - Clerk
@@ -433,7 +432,7 @@ Become a communication infrastructure company.
 ## Recommended
 
 ### Frontend
-- Vercel
+- Next.js (Railway, Fly.io, or VPS — see `DEPLOY.md`)
 
 ### Backend
 - Railway

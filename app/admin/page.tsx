@@ -8,6 +8,7 @@ import {
   AdminCard,
 } from "@/components/admin/admin-page-shell";
 import { AdminVolumeChart } from "@/components/dashboard/admin-volume-chart";
+import { ProviderBalancesPanel } from "@/components/admin/provider-balances-panel";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -34,7 +35,7 @@ const quickActions: {
   { href: "/admin/members", label: "Members", icon: Users },
   { href: "/admin/pricing", label: "SMS pricing", icon: DollarSign },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/admin/mnotify", label: "Gateway setup", icon: Radio },
+  { href: "/admin/providers", label: "Providers", icon: Radio },
 ];
 
 export default async function AdminDashboardPage() {
@@ -57,12 +58,14 @@ export default async function AdminDashboardPage() {
                 Add your mNotify API key to enable OTP and bulk SMS platform-wide.
               </p>
             </div>
-            <Link href="/admin/mnotify" className={cn(buttonVariants({ size: "sm" }))}>
+            <Link href="/admin/providers" className={cn(buttonVariants({ size: "sm" }))}>
               Configure now
             </Link>
           </div>
         </AdminAlert>
       )}
+
+      <ProviderBalancesPanel balances={stats.providerBalances} compact />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <AdminStatCard

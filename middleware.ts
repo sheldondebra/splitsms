@@ -133,6 +133,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/forgot-password?error=session", request.url));
   }
 
+  const isCompleteProfile = pathname.startsWith("/complete-profile");
+  if (isCompleteProfile && !session) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+  if (isCompleteProfile && session) {
+    if (tenant) {
+      const requestHeaders = attachTenantHeaders(request, tenant);
+      return NextResponse.next({ request: { headers: requestHeaders } });
+    }
+    return NextResponse.next();
+  }
+
   if (isAuth && session) {
     const external = externalResellerPortal(session, tenant);
     if (external) {
@@ -163,5 +175,6 @@ export const config = {
     "/verify-otp",
     "/forgot-password",
     "/reset-password",
+    "/complete-profile",
   ],
 };

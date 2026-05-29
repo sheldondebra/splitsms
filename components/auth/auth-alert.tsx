@@ -34,6 +34,19 @@ const messages: Record<string, { text: string; variant: "error" | "success" | "i
     text: "Reseller owners should use the main SplitSMS site for the reseller portal.",
     variant: "info",
   },
+  suspended: {
+    text: "This account is suspended. Contact support if you need access.",
+    variant: "error",
+  },
+  name: { text: "Please enter your name (at least 2 characters).", variant: "error" },
+  email_not_found: {
+    text: "No account found for this email. Sign up or try your phone number.",
+    variant: "error",
+  },
+  email_send: {
+    text: "Could not send the email code. Check Mailjet settings or try phone sign-in.",
+    variant: "error",
+  },
 };
 
 export function AuthAlert({

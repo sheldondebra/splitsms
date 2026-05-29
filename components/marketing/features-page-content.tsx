@@ -229,7 +229,7 @@ export function FeaturesPageContent() {
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Stop overpaying for cluttered portals. SplitSMS is the simpler alternative to
               Infobip and Twilio for bulk messaging — with local payment rails and support from
-              Tecunit Ghana.
+              Tecunit.
             </p>
           </div>
           <div className="mt-10 grid gap-5 sm:grid-cols-2">
@@ -383,7 +383,7 @@ export function FeaturesPageContent() {
               per month.
             </p>
             <p>
-              Operated by Tecunit Ghana, SplitSMS supports Sender ID registration, local payment
+              Operated by Tecunit, SplitSMS supports Sender ID registration, local payment
               methods, and fair pricing across 190+ countries. Sign up in minutes, get free starter
               credits, and send your first bulk campaign today — or integrate our API and ship OTP
               login in your app this week.

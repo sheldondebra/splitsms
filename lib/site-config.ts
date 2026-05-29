@@ -4,10 +4,20 @@ export type SiteConfig = typeof raw;
 
 const config: SiteConfig = raw;
 
-/** Canonical production URL (www). Override with NEXT_PUBLIC_APP_URL in env. */
+/** Production default from config/site.json (no env). */
+export const defaultSiteUrl = config.siteUrl.replace(/\/$/, "");
+
+/** Canonical production URL. Override with NEXT_PUBLIC_APP_URL in env. */
 export function getSiteUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
-  return fromEnv || config.siteUrl.replace(/\/$/, "");
+  return fromEnv || defaultSiteUrl;
+}
+
+/** Public REST API base, e.g. https://www.splitsms.com/api/v1 */
+export function getApiPublicBaseUrl(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "");
+  if (fromEnv) return fromEnv;
+  return getApiV1Url();
 }
 
 export function getApiBaseUrl(): string {
