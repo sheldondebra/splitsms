@@ -601,6 +601,49 @@ class SplitSMS_Settings {
             $clean['enabled'] = '1';
         }
 
+        if ('settings' === $scope && isset($clean['sender_id']) && '' !== trim((string) $clean['sender_id'])) {
+            $merged = wp_parse_args($clean, array_merge($defaults, $this->options));
+            $valid_sender = $this->with_overrides(
+                array(
+                    'api_key' => $merged['api_key'],
+                    'api_base_url' => $merged['api_base_url'],
+                    'enabled' => $merged['enabled'],
+                ),
+                function () use ($clean) {
+                    if (!self::is_configured()) {
+                        return true;
+                    }
+                    $result = (new SplitSMS_API())->list_sender_ids();
+                    if (empty($result['ok'])) {
+                        set_transient(
+                            'splitsms_settings_error',
+                            isset($result['error']) ? $result['error'] : __('Could not verify sender ID.', 'splitsms'),
+                            45
+                        );
+                        return false;
+                    }
+                    $allowed = array();
+                    foreach ($result['items'] as $item) {
+                        if (isset($item['value']) && is_string($item['value'])) {
+                            $allowed[] = $item['value'];
+                        }
+                    }
+                    if (!in_array($clean['sender_id'], $allowed, true)) {
+                        set_transient(
+                            'splitsms_settings_error',
+                            __('Choose a sender ID from your SplitSMS account — custom values are not allowed.', 'splitsms'),
+                            45
+                        );
+                        return false;
+                    }
+                    return true;
+                }
+            );
+            if (!$valid_sender) {
+                $clean['sender_id'] = isset($this->options['sender_id']) ? $this->options['sender_id'] : $defaults['sender_id'];
+            }
+        }
+
         $this->options = wp_parse_args($clean, $defaults);
         update_option(self::OPTION_KEY, $this->options);
 

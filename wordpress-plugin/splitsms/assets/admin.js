@@ -144,9 +144,183 @@
     });
   }
 
+  var replaceKeyBtn = qs('#splitsms-replace-key');
+  var apiKeyRow = qs('#splitsms-api-key-row');
+  var apiConnected = qs('#splitsms-api-connected');
+  if (replaceKeyBtn && apiKeyRow) {
+    replaceKeyBtn.addEventListener('click', function () {
+      apiKeyRow.hidden = false;
+      apiKeyRow.classList.remove('splitsms-api-key-row--replace');
+      if (apiConnected) {
+        apiConnected.hidden = true;
+      }
+      var input = getApiKeyInput();
+      if (input) {
+        input.focus();
+        input.value = '';
+        input.dataset.userEdited = '1';
+      }
+    });
+  }
+
+  function initSenderPicker() {
+    var picker = qs('#splitsms-sender-picker');
+    if (!picker) {
+      return;
+    }
+
+    var search = qs('#splitsms-sender-search');
+    var list = qs('#splitsms-sender-list');
+    var hidden = qs('#splitsms-sender-id-value');
+    var toggle = qs('#splitsms-sender-toggle');
+    var selectedLight = qs('#splitsms-sender-selected-light');
+    var hint = qs('#splitsms-sender-hint');
+    if (!search || !list || !hidden) {
+      return;
+    }
+
+    function allOptions() {
+      return list.querySelectorAll('.splitsms-sender-picker__option');
+    }
+
+    function setOpen(open) {
+      list.hidden = !open;
+      search.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    function selectOption(option) {
+      if (!option) {
+        return;
+      }
+      var value = option.getAttribute('data-value') || '';
+      var tone = option.getAttribute('data-tone') || 'pending';
+      hidden.value = value;
+      search.value = value;
+      allOptions().forEach(function (opt) {
+        var selected = opt === option;
+        opt.classList.toggle('is-selected', selected);
+        opt.setAttribute('aria-selected', selected ? 'true' : 'false');
+      });
+      if (selectedLight) {
+        selectedLight.className = 'splitsms-status-light splitsms-status-light--' + tone;
+      }
+      if (hint && tone !== 'ok') {
+        hint.textContent = tone === 'denied'
+          ? 'This sender ID was denied — choose another or register a new one on SplitSMS.'
+          : 'This sender ID is pending approval — SMS may fail until SplitSMS activates it.';
+      }
+      setOpen(false);
+    }
+
+    function filterOptions(query) {
+      var q = query.trim().toLowerCase();
+      var visible = 0;
+      allOptions().forEach(function (opt) {
+        var value = (opt.getAttribute('data-value') || '').toLowerCase();
+        var show = !q || value.indexOf(q) !== -1;
+        opt.hidden = !show;
+        if (show) {
+          visible += 1;
+        }
+      });
+      setOpen(visible > 0);
+    }
+
+    search.addEventListener('focus', function () {
+      filterOptions(search.value);
+    });
+
+    search.addEventListener('input', function () {
+      hidden.value = '';
+      filterOptions(search.value);
+    });
+
+    search.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        var first = list.querySelector('.splitsms-sender-picker__option:not([hidden])');
+        if (first) {
+          selectOption(first);
+        }
+      }
+    });
+
+    if (toggle) {
+      toggle.addEventListener('click', function () {
+        setOpen(list.hidden);
+        if (!list.hidden) {
+          search.focus();
+        }
+      });
+    }
+
+    list.addEventListener('click', function (e) {
+      var option = e.target.closest('.splitsms-sender-picker__option');
+      if (option) {
+        selectOption(option);
+      }
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!picker.contains(e.target)) {
+        setOpen(false);
+        if (hidden.value && search.value !== hidden.value) {
+          search.value = hidden.value;
+        }
+      }
+    });
+
+    var selected = list.querySelector('.splitsms-sender-picker__option.is-selected');
+    if (!selected && hidden.value) {
+      allOptions().forEach(function (opt) {
+        if (opt.getAttribute('data-value') === hidden.value) {
+          selectOption(opt);
+        }
+      });
+    } else if (!selected && !hidden.value) {
+      var defaultOpt = list.querySelector('.splitsms-sender-picker__option[data-tone="ok"]') || allOptions()[0];
+      if (defaultOpt) {
+        selectOption(defaultOpt);
+      }
+    }
+  }
+
+  initSenderPicker();
+
+  var settingsForm = getSettingsForm();
+  if (settingsForm) {
+    settingsForm.addEventListener('submit', function (e) {
+      var list = qs('#splitsms-sender-list');
+      var hidden = qs('#splitsms-sender-id-value');
+      if (!list || !hidden || !qs('#splitsms-sender-picker')) {
+        return;
+      }
+      var value = hidden.value.trim();
+      if (!value) {
+        return;
+      }
+      var allowed = false;
+      list.querySelectorAll('.splitsms-sender-picker__option').forEach(function (opt) {
+        if (opt.getAttribute('data-value') === value) {
+          allowed = true;
+        }
+      });
+      if (!allowed) {
+        e.preventDefault();
+        window.alert('Choose a sender ID from your SplitSMS account.');
+      }
+    });
+  }
+
   var sectionNav = qs('.splitsms-section-nav');
   if (sectionNav) {
     var navLinks = sectionNav.querySelectorAll('a[href^="#"]');
+    var sections = [];
+
     navLinks.forEach(function (link) {
       link.addEventListener('click', function (e) {
         var id = link.getAttribute('href').slice(1);
@@ -155,8 +329,36 @@
           e.preventDefault();
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
           history.replaceState(null, '', '#' + id);
+          navLinks.forEach(function (l) { l.classList.remove('is-active'); });
+          link.classList.add('is-active');
         }
       });
+
+      var sectionId = link.getAttribute('data-section') || link.getAttribute('href').slice(1);
+      var el = document.getElementById(sectionId);
+      if (el) {
+        sections.push({ id: sectionId, link: link, el: el });
+      }
     });
+
+    function updateActiveSection() {
+      var scrollY = window.scrollY || window.pageYOffset;
+      var current = sections[0];
+      sections.forEach(function (item) {
+        var top = item.el.getBoundingClientRect().top + scrollY - 120;
+        if (scrollY >= top) {
+          current = item;
+        }
+      });
+      if (current) {
+        navLinks.forEach(function (l) { l.classList.remove('is-active'); });
+        current.link.classList.add('is-active');
+      }
+    }
+
+    if (sections.length) {
+      updateActiveSection();
+      window.addEventListener('scroll', updateActiveSection, { passive: true });
+    }
   }
 })();

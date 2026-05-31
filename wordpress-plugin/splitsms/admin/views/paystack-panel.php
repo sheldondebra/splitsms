@@ -1,8 +1,6 @@
 <?php
 /**
  * Paystack + WooCommerce setup panel (Integrations page).
- *
- * @var bool $paystack_active
  */
 
 if (!defined('ABSPATH')) {
@@ -20,64 +18,72 @@ foreach ($checklist as $item) {
 }
 $all_ready = $ready_count === count($checklist);
 ?>
-<section class="splitsms-card splitsms-paystack-panel">
-    <h2><?php esc_html_e('Paystack + WooCommerce', 'splitsms'); ?></h2>
-    <p class="description">
-        <?php esc_html_e('SplitSMS does not connect to Paystack directly. When Paystack confirms payment, WooCommerce updates the order and SplitSMS sends your SMS templates.', 'splitsms'); ?>
-        <a href="https://support.paystack.com/en/articles/2124162" target="_blank" rel="noopener"><?php esc_html_e('Paystack WordPress guide', 'splitsms'); ?></a>
-        ·
-        <a href="https://woocommerce.com/document/paystack/" target="_blank" rel="noopener"><?php esc_html_e('WooCommerce Paystack docs', 'splitsms'); ?></a>
-    </p>
-
-    <div class="splitsms-paystack-status <?php echo $all_ready ? 'is-ready' : 'is-pending'; ?>">
-        <strong>
+<section class="splitsms-card splitsms-integration-card splitsms-paystack-panel">
+    <header class="splitsms-integration-card__head">
+        <div>
+            <h2><?php esc_html_e('Paystack + WooCommerce', 'splitsms'); ?></h2>
+            <p class="description">
+                <?php esc_html_e('SplitSMS sends SMS when WooCommerce marks the order paid — not directly from Paystack.', 'splitsms'); ?>
+                <a href="https://support.paystack.com/en/articles/2124162" target="_blank" rel="noopener"><?php esc_html_e('Paystack guide', 'splitsms'); ?></a>
+                ·
+                <a href="https://woocommerce.com/document/paystack/" target="_blank" rel="noopener"><?php esc_html_e('WooCommerce docs', 'splitsms'); ?></a>
+            </p>
+        </div>
+        <span class="splitsms-intel-pill <?php echo $all_ready ? 'splitsms-intel-pill--ok' : 'splitsms-intel-pill--warn'; ?>">
+            <span class="splitsms-status-light splitsms-status-light--<?php echo $all_ready ? 'ok' : 'pending'; ?>" aria-hidden="true"></span>
             <?php
             if ($all_ready) {
-                esc_html_e('Paystack SMS setup looks complete', 'splitsms');
+                esc_html_e('Setup complete', 'splitsms');
             } else {
                 printf(
-                    /* translators: 1: completed steps 2: total steps */
-                    esc_html__('Setup checklist: %1$d / %2$d', 'splitsms'),
+                    esc_html__('%1$d / %2$d steps', 'splitsms'),
                     (int) $ready_count,
                     count($checklist)
                 );
             }
             ?>
-        </strong>
-    </div>
+        </span>
+    </header>
 
-    <ol class="splitsms-paystack-checklist">
-        <?php foreach ($checklist as $item) : ?>
-            <li class="<?php echo !empty($item['done']) ? 'is-done' : 'is-todo'; ?>">
-                <span class="splitsms-paystack-check" aria-hidden="true"><?php echo !empty($item['done']) ? '✓' : '○'; ?></span>
-                <span>
-                    <strong><?php echo esc_html($item['label']); ?></strong>
-                    <span class="description"><?php echo esc_html($item['detail']); ?></span>
-                </span>
-            </li>
-        <?php endforeach; ?>
-    </ol>
+    <div class="splitsms-paystack-layout">
+        <div class="splitsms-paystack-layout__checklist">
+            <h3><?php esc_html_e('Checklist', 'splitsms'); ?></h3>
+            <ol class="splitsms-paystack-checklist">
+                <?php foreach ($checklist as $item) : ?>
+                    <li class="<?php echo !empty($item['done']) ? 'is-done' : 'is-todo'; ?>">
+                        <span class="splitsms-paystack-check" aria-hidden="true"><?php echo !empty($item['done']) ? '✓' : '○'; ?></span>
+                        <span>
+                            <strong><?php echo esc_html($item['label']); ?></strong>
+                            <span class="description"><?php echo esc_html($item['detail']); ?></span>
+                        </span>
+                    </li>
+                <?php endforeach; ?>
+            </ol>
+        </div>
 
-    <?php if ('' !== $webhook_url) : ?>
-    <div class="splitsms-paystack-webhook">
-        <p><strong><?php esc_html_e('Paystack webhook URL (required for reliable payment SMS)', 'splitsms'); ?></strong></p>
-        <p class="description">
-            <?php esc_html_e('Paste this in Paystack Dashboard → Settings → API Keys & Webhooks. Without it, orders may stay pending when checkout redirects fail — and payment SMS will not send.', 'splitsms'); ?>
-        </p>
-        <code class="splitsms-paystack-webhook-url" id="splitsms-paystack-webhook-url"><?php echo esc_html($webhook_url); ?></code>
-        <button type="button" class="button" id="splitsms-copy-webhook"><?php esc_html_e('Copy webhook URL', 'splitsms'); ?></button>
-    </div>
-    <?php endif; ?>
-
-    <div class="splitsms-paystack-notes">
-        <h3><?php esc_html_e('Paystack tips', 'splitsms'); ?></h3>
-        <ul>
-            <li><?php esc_html_e('Use Test Mode in Paystack and WooCommerce until checkout works, then switch both to Live Mode.', 'splitsms'); ?></li>
-            <li><?php esc_html_e('Collect billing phone at checkout — Paystack payment SMS uses the WooCommerce billing phone.', 'splitsms'); ?></li>
-            <li><?php esc_html_e('Enable “Payment complete” and “Paid → processing (Paystack)” below — they cover inline checkout and webhook recovery.', 'splitsms'); ?></li>
-            <?php if (!SplitSMS_Settings::is_yes($s['wc_payment_complete']) && !SplitSMS_Settings::is_yes($s['wc_payment_on_processing'])) : ?>
-                <li class="splitsms-paystack-warn"><?php esc_html_e('Neither payment SMS toggle is enabled — customers will not receive payment confirmation texts.', 'splitsms'); ?></li>
+        <div class="splitsms-paystack-layout__side">
+            <?php if ('' !== $webhook_url) : ?>
+            <div class="splitsms-paystack-webhook">
+                <p><strong><?php esc_html_e('Webhook URL', 'splitsms'); ?></strong></p>
+                <p class="description">
+                    <?php esc_html_e('Paste in Paystack Dashboard → Settings → API Keys & Webhooks.', 'splitsms'); ?>
+                </p>
+                <code class="splitsms-paystack-webhook-url" id="splitsms-paystack-webhook-url"><?php echo esc_html($webhook_url); ?></code>
+                <button type="button" class="button button-secondary" id="splitsms-copy-webhook"><?php esc_html_e('Copy URL', 'splitsms'); ?></button>
+            </div>
             <?php endif; ?>
-        </ul>
+
+            <div class="splitsms-paystack-notes">
+                <h3><?php esc_html_e('Tips', 'splitsms'); ?></h3>
+                <ul>
+                    <li><?php esc_html_e('Test in Paystack + WooCommerce test mode before going live.', 'splitsms'); ?></li>
+                    <li><?php esc_html_e('Collect billing phone at checkout.', 'splitsms'); ?></li>
+                    <li><?php esc_html_e('Enable “Payment complete” and “Paid → processing” in WooCommerce below.', 'splitsms'); ?></li>
+                    <?php if (!SplitSMS_Settings::is_yes($s['wc_payment_complete']) && !SplitSMS_Settings::is_yes($s['wc_payment_on_processing'])) : ?>
+                        <li class="splitsms-paystack-warn"><?php esc_html_e('Payment SMS toggles are off — enable them in the WooCommerce section.', 'splitsms'); ?></li>
+                    <?php endif; ?>
+                </ul>
+            </div>
+        </div>
     </div>
 </section>

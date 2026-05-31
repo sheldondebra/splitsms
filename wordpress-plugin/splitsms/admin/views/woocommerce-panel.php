@@ -68,7 +68,7 @@ $s = SplitSMS_Settings::instance()->all();
         </div>
     </div>
 
-    <details class="splitsms-details splitsms-details--templates" open>
+    <details class="splitsms-details splitsms-details--templates">
         <summary><strong><?php esc_html_e('Message templates', 'splitsms'); ?></strong></summary>
         <div class="splitsms-template-grid">
             <p><label><?php esc_html_e('Order placed', 'splitsms'); ?>

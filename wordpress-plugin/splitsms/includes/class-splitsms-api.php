@@ -98,6 +98,33 @@ class SplitSMS_API {
     }
 
     /**
+     * List sender IDs registered on the connected SplitSMS account.
+     *
+     * @return array{ok:bool, error?:string, items:array<int, array<string,mixed>>}
+     */
+    public function list_sender_ids() {
+        if (!SplitSMS_Settings::is_configured()) {
+            return array('ok' => false, 'error' => SplitSMS_Settings::configuration_error(), 'items' => array());
+        }
+
+        $response = $this->request('GET', $this->endpoint('/api/v1/sender-ids'));
+        if (empty($response['ok'])) {
+            $err = isset($response['error']) ? $response['error'] : __('Could not load sender IDs', 'splitsms');
+            if (is_string($err) && false !== stripos($err, 'FORBIDDEN')) {
+                $err .= ' ' . __('Add sender_ids.read to your API key scopes.', 'splitsms');
+            }
+            return array('ok' => false, 'error' => $err, 'items' => array());
+        }
+
+        $items = array();
+        if (isset($response['data']['data']) && is_array($response['data']['data'])) {
+            $items = $response['data']['data'];
+        }
+
+        return array('ok' => true, 'items' => $items);
+    }
+
+    /**
      * Register this WordPress site with SplitSMS.
      *
      * @return array{ok:bool, error?:string}

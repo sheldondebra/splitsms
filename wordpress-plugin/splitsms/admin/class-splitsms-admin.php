@@ -27,6 +27,7 @@ class SplitSMS_Admin {
         add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
         add_action('wp_ajax_splitsms_test_connection', array($this, 'ajax_test_connection'));
         add_action('wp_ajax_splitsms_send_test', array($this, 'ajax_send_test'));
+        add_action('wp_ajax_splitsms_list_sender_ids', array($this, 'ajax_list_sender_ids'));
         add_action('admin_post_splitsms_send_sms', array($this, 'handle_send_sms'));
         add_action('admin_bar_menu', array($this, 'admin_bar_balance'), 100);
     }
@@ -92,10 +93,16 @@ class SplitSMS_Admin {
                 'ajaxUrl' => admin_url('admin-ajax.php'),
                 'nonceTest' => wp_create_nonce('splitsms_test'),
                 'nonceSend' => wp_create_nonce('splitsms_send_test'),
+                'nonceSenderIds' => wp_create_nonce('splitsms_sender_ids'),
                 'walletUrl' => defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/wallet' : '',
+                'senderIdsUrl' => defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/sender-ids' : '',
                 'strings' => array(
                     'testing' => __('Testing connection…', 'splitsms'),
                     'sending' => __('Sending test SMS…', 'splitsms'),
+                    'connected' => __('Connected', 'splitsms'),
+                    'loadingSenders' => __('Loading sender IDs…', 'splitsms'),
+                    'noSenders' => __('No sender IDs found. Register one on SplitSMS.', 'splitsms'),
+                    'searchSenders' => __('Search sender IDs…', 'splitsms'),
                 ),
             )
         );
@@ -205,6 +212,42 @@ class SplitSMS_Admin {
             wp_send_json_success(array('message' => __('Test SMS sent.', 'splitsms')));
         }
         wp_send_json_error(array('message' => isset($result['error']) ? $result['error'] : __('Send failed', 'splitsms')));
+    }
+
+    public function ajax_list_sender_ids() {
+        check_ajax_referer('splitsms_sender_ids', 'nonce');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Forbidden'), 403);
+        }
+
+        $settings = SplitSMS_Settings::instance();
+        $overrides = array('enabled' => '1');
+        if (!empty($_POST['api_key'])) {
+            $candidate = sanitize_text_field(wp_unslash($_POST['api_key']));
+            if (SplitSMS_Settings::validate_api_key_format($candidate)) {
+                $overrides['api_key'] = $candidate;
+            }
+        } elseif ('' !== trim($settings->get('api_key')) && SplitSMS_Settings::validate_api_key_format($settings->get('api_key'))) {
+            $overrides['api_key'] = $settings->get('api_key');
+        }
+        if (!empty($_POST['api_base_url'])) {
+            $url = esc_url_raw(rtrim(sanitize_text_field(wp_unslash($_POST['api_base_url'])), '/'));
+            if (SplitSMS_Settings::is_allowed_api_url($url)) {
+                $overrides['api_base_url'] = $url;
+            }
+        }
+
+        $result = $settings->with_overrides($overrides, function () {
+            return (new SplitSMS_API())->list_sender_ids();
+        });
+
+        if (!empty($result['ok'])) {
+            wp_send_json_success(array('items' => $result['items']));
+        }
+
+        wp_send_json_error(array(
+            'message' => isset($result['error']) ? $result['error'] : __('Could not load sender IDs', 'splitsms'),
+        ));
     }
 
     public function handle_send_sms() {
@@ -455,11 +498,23 @@ class SplitSMS_Admin {
         );
         $has_saved_key = '' !== $opts['api_key'];
         $saved_key_valid = $has_saved_key && SplitSMS_Settings::validate_api_key_format($opts['api_key']);
+        $api_connected = $saved_key_valid && SplitSMS_Settings::is_configured();
+        $sender_ids = array();
+        $sender_ids_error = '';
+        if ($api_connected) {
+            $sender_result = (new SplitSMS_API())->list_sender_ids();
+            if (!empty($sender_result['ok'])) {
+                $sender_ids = $sender_result['items'];
+            } else {
+                $sender_ids_error = isset($sender_result['error']) ? $sender_result['error'] : '';
+            }
+        }
+        $selected_sender = isset($opts['sender_id']) ? (string) $opts['sender_id'] : '';
         $settings_error = get_transient('splitsms_settings_error');
         if ($settings_error) {
             delete_transient('splitsms_settings_error');
         }
-        $this->render_shell(__('Settings', 'splitsms'), function () use ($s, $opts, $updated, $removed, $show_api_url, $has_saved_key, $saved_key_valid, $settings_error) {
+        $this->render_shell(__('Settings', 'splitsms'), function () use ($s, $opts, $updated, $removed, $show_api_url, $has_saved_key, $saved_key_valid, $api_connected, $sender_ids, $sender_ids_error, $selected_sender, $settings_error) {
             ?>
             <?php if ($settings_error) : ?>
                 <div class="notice notice-error"><p><?php echo esc_html($settings_error); ?></p></div>
@@ -504,7 +559,17 @@ class SplitSMS_Admin {
                     <tr>
                         <th><?php esc_html_e('API key', 'splitsms'); ?></th>
                         <td>
-                            <div class="splitsms-api-key-row">
+                            <?php if ($api_connected) : ?>
+                                <div class="splitsms-api-connected" id="splitsms-api-connected">
+                                    <span class="splitsms-status-light splitsms-status-light--ok" aria-hidden="true"></span>
+                                    <strong><?php esc_html_e('Connected', 'splitsms'); ?></strong>
+                                    <span class="splitsms-api-mask"><?php echo esc_html($s->masked_api_key()); ?></span>
+                                    <button type="button" class="button button-link" id="splitsms-replace-key">
+                                        <?php esc_html_e('Replace key', 'splitsms'); ?>
+                                    </button>
+                                </div>
+                            <?php endif; ?>
+                            <div class="splitsms-api-key-row<?php echo $api_connected ? ' splitsms-api-key-row--replace' : ''; ?>" id="splitsms-api-key-row" <?php echo $api_connected ? 'hidden' : ''; ?>>
                                 <input
                                     type="password"
                                     class="regular-text splitsms-api-key-input"
@@ -512,15 +577,22 @@ class SplitSMS_Admin {
                                     name="splitsms[api_key]"
                                     value=""
                                     autocomplete="off"
-                                    placeholder="<?php echo esc_attr($has_saved_key ? __('Key saved — paste to replace', 'splitsms') : __('Paste API key (sk_…)', 'splitsms')); ?>"
+                                    placeholder="<?php echo esc_attr($has_saved_key ? __('Paste new key to replace', 'splitsms') : __('Paste API key (sk_…)', 'splitsms')); ?>"
                                     data-has-saved="<?php echo $has_saved_key ? '1' : '0'; ?>"
                                     data-saved-key="<?php echo $has_saved_key ? esc_attr($opts['api_key']) : ''; ?>"
                                 />
-                                <button type="button" class="button splitsms-api-key-toggle" id="splitsms-api-key-toggle" aria-pressed="false">
-                                    <?php esc_html_e('Show', 'splitsms'); ?>
-                                </button>
+                                <?php if (!$api_connected) : ?>
+                                    <button type="button" class="button splitsms-api-key-toggle" id="splitsms-api-key-toggle" aria-pressed="false">
+                                        <?php esc_html_e('Show', 'splitsms'); ?>
+                                    </button>
+                                <?php endif; ?>
                             </div>
-                            <?php if ($has_saved_key && $saved_key_valid) : ?>
+                            <?php if ($api_connected) : ?>
+                                <p class="description">
+                                    <?php esc_html_e('Your API key is saved securely. Click Replace key to paste a new one.', 'splitsms'); ?>
+                                    <?php esc_html_e('Scopes: sms.send, wallet.read, sender_ids.read.', 'splitsms'); ?>
+                                </p>
+                            <?php elseif ($has_saved_key && $saved_key_valid) : ?>
                                 <p class="description"><?php esc_html_e('Full key is saved. Click Show to reveal the complete secret, or paste a new key to replace.', 'splitsms'); ?></p>
                             <?php elseif ($has_saved_key) : ?>
                                 <p class="description" style="color:#b45309;">
@@ -529,7 +601,7 @@ class SplitSMS_Admin {
                             <?php else : ?>
                                 <p class="description">
                                     <?php esc_html_e('Paste the full secret shown once when you create a key (~56 characters). Do not copy the short prefix from the keys table.', 'splitsms'); ?>
-                                    <?php esc_html_e('Required scopes: sms.send and wallet.read.', 'splitsms'); ?>
+                                    <?php esc_html_e('Required scopes: sms.send, wallet.read, and sender_ids.read.', 'splitsms'); ?>
                                 </p>
                             <?php endif; ?>
                         </td>
@@ -540,7 +612,11 @@ class SplitSMS_Admin {
                 <table class="form-table">
                     <tr>
                         <th><?php esc_html_e('Sender ID', 'splitsms'); ?></th>
-                        <td><input type="text" class="regular-text" name="splitsms[sender_id]" value="<?php echo esc_attr($opts['sender_id']); ?>" /></td>
+                        <td>
+                            <?php
+                            include SPLITSMS_PLUGIN_DIR . 'admin/views/sender-id-picker.php';
+                            ?>
+                        </td>
                     </tr>
                     <tr>
                         <th><?php esc_html_e('Country code', 'splitsms'); ?></th>
