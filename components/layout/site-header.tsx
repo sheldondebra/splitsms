@@ -155,10 +155,11 @@ export function SiteHeader({ account = null }: { account?: HeaderAccountProfile 
                     <Link
                       href={item.href}
                       className={cn(
-                        "flex h-11 items-center rounded-lg px-3 text-[15px] font-medium transition-colors",
+                        "relative flex h-11 items-center px-3 text-[15px] font-medium transition-colors",
                         active
-                          ? "bg-primary/10 text-primary"
-                          : "text-foreground hover:bg-muted",
+                          ? "text-primary font-semibold after:scale-x-100"
+                          : "text-foreground hover:text-primary/90 after:scale-x-0 hover:after:scale-x-100",
+                        "after:content-[''] after:absolute after:left-3 after:bottom-2 after:h-0.5 after:w-5 after:rounded-full after:bg-current after:origin-left after:transition-transform after:duration-200",
                       )}
                     >
                       {item.label}

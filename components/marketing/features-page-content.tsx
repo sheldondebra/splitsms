@@ -16,7 +16,6 @@ import {
   Puzzle,
   ArrowRight,
   CheckCircle2,
-  Sparkles,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -175,7 +174,7 @@ export function FeaturesPageContent() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,oklch(0.72_0.19_45/0.12),transparent)]" />
         <div className="relative mx-auto max-w-6xl px-4 pt-14 pb-16 md:pt-20 md:pb-20">
           <p className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            <Sparkles className="h-3.5 w-3.5" />
+            <Zap className="h-3.5 w-3.5" />
             Bulk SMS platform · 190+ countries
           </p>
           <h1 className="mt-5 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl lg:max-w-4xl lg:leading-[1.08]">

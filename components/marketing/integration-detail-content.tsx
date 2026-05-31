@@ -5,7 +5,7 @@ import {
   ExternalLink,
   Link2,
   ListOrdered,
-  Sparkles,
+  Info,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -95,7 +95,7 @@ export function IntegrationDetailContent({ integration }: { integration: Integra
           <div className="lg:col-span-2 space-y-10">
             <div className="rounded-2xl border border-border/60 bg-card p-6 md:p-8">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
+                <Info className="h-5 w-5 text-primary" />
                 Overview
               </h2>
               <p className="mt-3 text-sm text-muted-foreground leading-relaxed">

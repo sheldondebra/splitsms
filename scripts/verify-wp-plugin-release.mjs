@@ -40,11 +40,11 @@ if (existsSync(manifestPath)) {
 if (existsSync(versionedZip) && process.platform === "win32") {
   try {
     execSync(
-      `powershell -NoProfile -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::OpenRead('${versionedZip.replace(/'/g, "''")}'); $ok=($z.Entries | Where-Object { $_.FullName -eq 'splitsms.php' }).Count -gt 0; $z.Dispose(); if (-not $ok) { exit 1 }"`,
+      `powershell -NoProfile -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::OpenRead('${versionedZip.replace(/'/g, "''")}'); $ok=($z.Entries | Where-Object { $_.FullName -replace '\\\\','/' -eq 'splitsms/splitsms.php' }).Count -gt 0; $z.Dispose(); if (-not $ok) { exit 1 }"`,
       { encoding: "utf8" },
     );
   } catch {
-    errors.push(`${versionedZip} is missing splitsms.php at archive root`);
+    errors.push(`${versionedZip} is missing splitsms/splitsms.php (WordPress folder layout)`);
   }
 }
 

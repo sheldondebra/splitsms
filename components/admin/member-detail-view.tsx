@@ -61,7 +61,6 @@ import {
   BadgeCheck,
   Settings2,
   Lock,
-  Sparkles,
   Copy,
   Check,
 } from "lucide-react";

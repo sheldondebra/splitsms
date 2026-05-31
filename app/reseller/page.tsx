@@ -21,7 +21,7 @@ import {
   Percent,
   ArrowRight,
   Clock,
-  Sparkles,
+  Store,
 } from "lucide-react";
 
 export default async function ResellerDashboardPage({
@@ -41,7 +41,7 @@ export default async function ResellerDashboardPage({
         <ResellerPageHeader
           title="Become a reseller"
           description="Launch your own SMS business: sub-users, custom pricing per country, commission on every message, and white-label branding."
-          icon={Sparkles}
+          icon={Store}
         />
         <ResellerCard>
           <form action={applyForResellerAction} className="space-y-4">

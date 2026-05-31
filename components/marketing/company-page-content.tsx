@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { ArrowRight, Building2, Globe2, HeartHandshake, Sparkles } from "lucide-react";
+import { ArrowRight, Building2, Globe2, HeartHandshake, Zap } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +15,7 @@ const values = [
     desc: "Ghana is home. We understand Sender ID rules, mobile money, and West African deliverability — while routing SMS to 190+ countries.",
   },
   {
-    icon: Sparkles,
+    icon: Zap,
     title: "Modern by design",
     desc: "SplitSMS is the cleaner alternative to legacy portals — campaigns, OTP API, webhooks, and WooCommerce in one affordable platform.",
   },

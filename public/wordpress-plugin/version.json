@@ -1,11 +1,11 @@
 {
   "name": "SplitSMS",
   "slug": "splitsms",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "homepage": "https://www.splitsms.com",
-  "download_url": "https://www.splitsms.com/wordpress-plugin/splitsms-1.6.0.zip",
+  "download_url": "https://www.splitsms.com/wordpress-plugin/splitsms-1.6.1.zip",
   "download_url_latest": "https://www.splitsms.com/wordpress-plugin/splitsms.zip",
-  "download_filename": "splitsms-1.6.0.zip",
+  "download_filename": "splitsms-1.6.1.zip",
   "requires": "6.0",
   "tested": "6.7",
   "requires_php": "7.4",
@@ -14,5 +14,5 @@
   "integrations_url": "https://www.splitsms.com/integrations",
   "update_check_url": "https://www.splitsms.com/api/plugin/update",
   "last_updated": "2026-05-31",
-  "changelog": "• New: WordPress core SMS settings UI — registration and password reset templates\n• New: Dedicated WPForms integration with skip logs and per-form ID filter\n• Improve: Complete Crocoblock admin — all JetEngine, JetBooking, and JetAppointment templates and toggles\n• Improve: JetFormBuilder admin template and provider phone field controls\n• Fix: Removed unused otp_login setting\n• Improve: readme and installation steps aligned with SplitSMS admin menu"
+  "changelog": "• Fix: Plugin zip uses standard WordPress layout (splitsms/splitsms.php) so uploads and updates replace the folder correctly\n• New: uninstall.php — deleting the plugin removes all SplitSMS data; WordPress removes the full plugin folder\n• New: “Replace from splitsms.com” on Settings — reinstall without manual FTP when upload says folder exists\n• Fix: Removes leftover splitsms-1 folders and nested splitsms/splitsms/ installs on activation"
 }

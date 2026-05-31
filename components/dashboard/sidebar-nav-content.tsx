@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sparkles } from "lucide-react";
+import { Wallet } from "lucide-react";
 import {
   dashboardNavCategories,
   isNavActive,
@@ -75,7 +75,7 @@ export function SidebarNavContent({
             className="group flex items-start gap-3 rounded-xl border border-sidebar-primary/20 bg-gradient-to-br from-sidebar-primary/12 to-sidebar-primary/5 px-3.5 py-3 transition-colors hover:border-sidebar-primary/35 hover:from-sidebar-primary/18"
           >
             <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary/15 text-sidebar-primary">
-              <Sparkles className="h-4 w-4" aria-hidden />
+              <Wallet className="h-4 w-4" aria-hidden />
             </span>
             <span className="min-w-0">
               <span className="block text-sm font-semibold text-sidebar-foreground">

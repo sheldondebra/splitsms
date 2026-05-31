@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Braces, Key, Zap, ArrowRight, Terminal, Link2, Puzzle } from "lucide-react";
+import { Braces, Key, Zap, ArrowRight, Terminal, Link2, Puzzle, FileCode2 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CopyButton } from "@/components/developers/copy-button";
@@ -46,6 +46,22 @@ export function ApiDocsHero({ baseUrl }: ApiDocsHeroProps) {
               >
                 <Key className="h-4 w-4" />
                 Get API keys
+              </Link>
+              <Link
+                href="/developers/generate"
+                className={cn(buttonVariants({ size: "lg", variant: "outline" }), "gap-2")}
+              >
+                <FileCode2 className="h-4 w-4" />
+                Generate code
+              </Link>
+              <Link
+                href="/openapi.json"
+                className={cn(buttonVariants({ size: "lg", variant: "outline" }), "gap-2")}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Braces className="h-4 w-4" />
+                OpenAPI
               </Link>
               <Link
                 href="/developers/postman"

@@ -143,4 +143,20 @@
       }
     });
   }
+
+  var sectionNav = qs('.splitsms-section-nav');
+  if (sectionNav) {
+    var navLinks = sectionNav.querySelectorAll('a[href^="#"]');
+    navLinks.forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        var id = link.getAttribute('href').slice(1);
+        var target = document.getElementById(id);
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.replaceState(null, '', '#' + id);
+        }
+      });
+    });
+  }
 })();

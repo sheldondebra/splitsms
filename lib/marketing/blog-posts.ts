@@ -547,6 +547,267 @@ export const blogPosts: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "jetformbuilder-send-sms-splitsms-wordpress",
+    title: "JetFormBuilder SMS: Send Text Messages After Any Form Submit",
+    excerpt:
+      "Add SplitSMS as a native JetFormBuilder Post Submit Action — per-form templates, phone mapping, and no custom PHP.",
+    category: "WordPress",
+    readTime: "7 min read",
+    published: "2026-05-26",
+    sections: [
+      {
+        paragraphs: [
+          "JetFormBuilder powers thousands of WordPress sites — booking forms, lead capture, multi-step applications, and checkout flows built inside the block editor. When someone submits, you usually send email. Email is slow, gets filtered, and customers rarely read it on the go. SMS closes the gap in seconds.",
+          "SplitSMS plugin v1.6.0 adds a native Send SMS (SplitSMS) Post Submit Action inside JetFormBuilder. Drag the action onto your form, map the phone field, write a short template, and every successful submit triggers a text through your SplitSMS wallet — no Zapier, no webhook middleware, no PHP snippets.",
+        ],
+      },
+      {
+        heading: "Why JetFormBuilder + SMS beats email-only workflows",
+        paragraphs: [
+          "Form submissions are high-intent moments. A job applicant, a clinic patient booking a slot, or a buyer requesting a quote is actively waiting for confirmation. SMS open rates exceed 90% on mobile-first markets like Ghana and Nigeria. A single line — Thanks {field_name}, we received your request. Ref #{record_id}. — reduces support calls and builds trust immediately.",
+          "JetFormBuilder already exposes field values to Post Submit Actions. SplitSMS reads those values at submit time, normalizes the phone number, and sends through the same API your dashboard uses. Delivery logs appear under SplitSMS → Logs in wp-admin and in your SplitSMS developer portal.",
+        ],
+      },
+      {
+        heading: "How to add Send SMS in JetFormBuilder",
+        paragraphs: [
+          "Install the SplitSMS WordPress plugin from splitsms.com/integrations (v1.6.0 or later). Connect your API key under SplitSMS → Settings — paste the full key (~56 characters), set your approved Sender ID, and run Test connection.",
+          "Open your JetFormBuilder form → Post Submit Actions → Add Action → Send SMS (SplitSMS). Choose the phone field (Tel or Text field with a valid number). Write your message body using JetFormBuilder macros for field values — for example Hi %field_name%, your booking on %field_date% is confirmed.",
+          "Save the form and submit a test entry with your own mobile number. Check SplitSMS → Logs for a delivered status before going live.",
+        ],
+      },
+      {
+        heading: "Per-form control vs global auto-SMS",
+        paragraphs: [
+          "The native action gives you per-form templates — different messages for contact vs booking vs payment forms. SplitSMS also supports optional global JetFormBuilder auto-SMS under SplitSMS → Crocoblock, but when the Send SMS action is present on a form, the plugin skips the global hook to avoid duplicate texts.",
+          "Use the action for production forms where message copy matters. Use global auto-SMS only for quick experiments or legacy forms you have not migrated yet.",
+        ],
+      },
+      {
+        heading: "Templates, placeholders, and admin alerts",
+        paragraphs: [
+          "Keep messages under 160 characters when possible to stay in one SMS segment. Include {site_name} or your brand Sender ID so recipients know who sent the text. For internal alerts, add a second Post Submit Action or enable admin phone notifications in SplitSMS settings so your team gets pinged on high-value leads.",
+          "SplitSMS does not charge WordPress separately — each SMS debits your wallet at published Ghana rates (from around GHS 0.029 per segment). Top up via Paystack from the SplitSMS dashboard.",
+        ],
+      },
+      {
+        heading: "SEO takeaway for WordPress developers",
+        paragraphs: [
+          "If you build client sites with Crocoblock and JetFormBuilder, advertising SMS-ready forms is a differentiator. Search terms like JetFormBuilder SMS notification, WordPress form SMS Ghana, and send SMS after form submit map directly to this workflow. Install SplitSMS once per site, configure per form in minutes, and ship transactional SMS without leaving WordPress admin.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "wpforms-elementor-contact-form-7-sms-wordpress",
+    title: "WPForms, Contact Form 7 & Elementor SMS: Which WordPress Form Plugin Works Best?",
+    excerpt:
+      "Compare SplitSMS integrations for WPForms, CF7, and Elementor Pro Forms — setup, phone fields, and skip logs.",
+    category: "WordPress",
+    readTime: "8 min read",
+    published: "2026-05-24",
+    sections: [
+      {
+        paragraphs: [
+          "Every WordPress lead-gen site runs on forms. Whether you chose WPForms for its drag-and-drop UI, Contact Form 7 for its lightweight footprint, or Elementor Pro Forms because your whole site is built in Elementor — the problem is the same: email notifications are unreliable and slow. SplitSMS sends an SMS the moment a form submits successfully.",
+          "The official SplitSMS WordPress plugin (v1.6.0) ships dedicated integrations for all three. This guide explains how each hook works, how to map phone fields, and how to debug delivery with skip logs.",
+        ],
+      },
+      {
+        heading: "WPForms SMS notifications",
+        paragraphs: [
+          "SplitSMS listens on wpforms_process_complete — after WPForms validates and stores the entry. Add a Phone field type to your form (not just a text field labeled Phone — WPForms has a dedicated Phone field for better parsing).",
+          "Under SplitSMS → Integrations → WPForms, enable the integration and optionally restrict by form ID so only your contact or quote forms send SMS. Customize the message template per form. Placeholders pull from submitted field values.",
+          "Best for: agencies standardizing on WPForms, membership sites, and small business sites where non-technical owners edit forms in wp-admin.",
+        ],
+      },
+      {
+        heading: "Contact Form 7 SMS after submit",
+        paragraphs: [
+          "CF7 remains the most installed form plugin on WordPress. SplitSMS hooks wpcf7_submit and sends after a successful mail hand-off. If your SMTP plugin fails silently, enable the optional mail_failed fallback so SMS still fires when email does not.",
+          "Add a tel input or text field for phone numbers. Map the field name in SplitSMS → Integrations → Contact Form 7. Use skip logs to exclude spam-trap forms or internal test forms from burning SMS credits.",
+          "Best for: theme developers, minimal stacks, and sites that already have dozens of CF7 forms — enable SMS per form ID without rebuilding forms.",
+        ],
+      },
+      {
+        heading: "Elementor Pro Forms SMS",
+        paragraphs: [
+          "Elementor Pro forms fire elementor_pro/forms/new_record on submit. SplitSMS maps the Tel field using Advanced → Field ID — set a clear ID like phone or mobile in the Elementor form widget, then enter that ID in the SplitSMS Elementor panel.",
+          "Filter by form name when you only want SMS on specific forms (quote request vs newsletter). Elementor's mail_sent fallback covers edge cases where the primary hook timing differs across Elementor versions.",
+          "Best for: marketing sites, landing pages, and WooCommerce stores where Elementor controls the entire front end.",
+        ],
+      },
+      {
+        heading: "Shared setup: API key, Sender ID, and logs",
+        paragraphs: [
+          "All three integrations share one SplitSMS → Settings screen. Create an API key with sms.send permission in your SplitSMS dashboard. Register an approved Sender ID so Ghana recipients see your brand name, not a random long code.",
+          "Every send writes to SplitSMS → Logs with recipient, template, status, and source (WPForms, CF7, or Elementor). Failed sends show API errors — wrong API key, insufficient wallet balance, or invalid phone format — so you fix issues without guessing.",
+        ],
+      },
+      {
+        heading: "Choosing the right plugin for SMS",
+        paragraphs: [
+          "You do not need to migrate form plugins to use SplitSMS. Pick the integration that matches what is already active on the site. WPForms and Elementor offer the friendliest admin UX for phone field setup. CF7 offers the lightest weight and per-form ID filters for power users.",
+          "Download the plugin at splitsms.com/integrations/wordpress, connect your account, enable one form integration, and send a test submission. Most sites go live in under fifteen minutes — the same day you would spend wiring a third-party automation tool.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "crocoblock-jetbooking-jetappointment-sms-wordpress",
+    title: "Crocoblock SMS: JetBooking, JetAppointment & JetEngine with SplitSMS",
+    excerpt:
+      "Automate booking confirmations, appointment reminders, and CPT status alerts on WordPress with Crocoblock + SplitSMS.",
+    category: "WordPress",
+    readTime: "7 min read",
+    published: "2026-05-22",
+    sections: [
+      {
+        paragraphs: [
+          "Crocoblock turns WordPress into an app platform — custom post types with JetEngine, reservations with JetBooking, and time-slot scheduling with JetAppointment. Your clients book online, but they still expect a text confirmation on their phone. Email alone will not cut no-show rates.",
+          "The SplitSMS WordPress plugin includes a dedicated Crocoblock module: per-event SMS templates, phone field mapping, conditional rules, and WP-Cron reminders for upcoming appointments.",
+        ],
+      },
+      {
+        heading: "JetBooking: confirm reservations by SMS",
+        paragraphs: [
+          "When a guest books a room, desk, or equipment slot, enable SMS on booking created and booking confirmed under SplitSMS → Crocoblock → JetBooking. Templates support placeholders for guest name, check-in date, property name, and booking reference.",
+          "Send a reminder 24 hours before check-in using scheduled reminders — SplitSMS queues via WP-Cron so you do not need a separate cron SaaS. Cancelled bookings can trigger a cancellation SMS automatically so your calendar and customer expectations stay aligned.",
+        ],
+      },
+      {
+        heading: "JetAppointment: reduce no-shows at clinics and salons",
+        paragraphs: [
+          "Salons, dental clinics, tutors, and consultants lose revenue when clients forget appointments. Map the phone field once in SplitSMS → Crocoblock → JetAppointment. Enable SMS on appointment created, confirmed, and cancelled.",
+          "Reminder SMS — sent hours or days before the slot — is the highest-ROI message type for service businesses. Keep copy short: Reminder: {service} tomorrow at {time} with {provider}. Reply to reschedule. — {site_name}.",
+        ],
+      },
+      {
+        heading: "JetEngine: SMS on custom post type changes",
+        paragraphs: [
+          "JetEngine CPTs power directories, job boards, property listings, and internal workflows. SplitSMS can send when a post is created, updated, or when a custom status field changes — for example when a job application moves from pending to shortlisted.",
+          "Use conditional SMS rules (JSON) to send only when specific meta fields match — avoid texting every draft save. Pair with admin phone alerts so your team gets internal SMS on high-priority status changes.",
+        ],
+      },
+      {
+        heading: "Template editor and phone field mapping",
+        paragraphs: [
+          "Each Crocoblock event has its own template editor in wp-admin. Preview placeholders documented in SplitSMS → Crocoblock. Wrong phone mapping is the number-one reason SMS fails — confirm JetEngine / JetBooking stores phone in the field you mapped, including international format for Ghana (+233) numbers.",
+          "SplitSMS normalizes common local formats (024, 020, 054) before sending. Test with your own number on staging before client go-live.",
+        ],
+      },
+      {
+        heading: "One plugin for Crocoblock + WooCommerce + forms",
+        paragraphs: [
+          "Agencies building Crocoblock stacks often run WooCommerce and JetFormBuilder on the same site. SplitSMS v1.6.0 unifies SMS for orders, forms, and bookings under one API key and one wallet. Install from splitsms.com/wordpress-plugin, enable Crocoblock under Integrations, and configure each Jet module from SplitSMS → Crocoblock.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "woocommerce-hpos-paystack-sms-splitsms-wordpress",
+    title: "WooCommerce HPOS & Paystack SMS: Order Texts That Fire at the Right Time",
+    excerpt:
+      "SplitSMS supports WooCommerce HPOS, block checkout, and Paystack — order placed, paid, shipped, refunded.",
+    category: "WordPress",
+    readTime: "8 min read",
+    published: "2026-05-20",
+    sections: [
+      {
+        paragraphs: [
+          "WooCommerce in 2026 means High-Performance Order Storage (HPOS), block checkout, and payment gateways like Paystack that confirm payment asynchronously. Your SMS plugin must hook the right order events — not just order created — or customers get a paid confirmation before money actually clears.",
+          "SplitSMS WordPress plugin v1.6.0 supports HPOS and block checkout. It listens to WooCommerce status transitions and payment-complete hooks so SMS matches what your customer sees in their bank app.",
+        ],
+      },
+      {
+        heading: "Which WooCommerce events to enable",
+        paragraphs: [
+          "Order placed — immediate reassurance after checkout (especially useful before payment redirect). Payment complete — fires when WooCommerce marks the order paid; critical for Paystack, Flutterwave, and Stripe. Processing and completed — fulfillment updates customers check their phone for.",
+          "Also available: failed, cancelled, refunded, and shipped with tracking number placeholder {tracking_number}. Enable only the events your customers expect — too many texts feel spammy; too few generate where is my order? tickets.",
+        ],
+      },
+      {
+        heading: "Paystack and mobile money on WooCommerce",
+        paragraphs: [
+          "SplitSMS does not process payments. Your customer pays via Paystack on your WooCommerce checkout; Paystack webhook updates order status; SplitSMS sends SMS when WooCommerce fires payment_complete or status changes you enabled.",
+          "Enable Payment complete and Paid → processing in SplitSMS → Integrations → WooCommerce so a slow webhook does not skip the confirmation text. Template placeholder {paystack_reference} helps support teams match SMS to gateway logs.",
+        ],
+      },
+      {
+        heading: "Message templates that convert",
+        paragraphs: [
+          "Use WooCommerce placeholders: {customer_name}, {order_id}, {order_total}, {order_status}, {payment_method}, {site_name}, {refund_amount}. Example payment SMS: Hi {customer_name}, payment of {order_total} received for order #{order_id}. Thank you — {site_name}.",
+          "Shipping SMS with {tracking_number} cuts delivery support volume. Keep promotional upsells out of transactional templates — mixed intent hurts trust and can confuse compliance boundaries.",
+        ],
+      },
+      {
+        heading: "HPOS and block checkout compatibility",
+        paragraphs: [
+          "WooCommerce HPOS stores orders in dedicated tables for faster admin and API access. Legacy SMS plugins that read post meta directly often break under HPOS. SplitSMS uses WooCommerce APIs and standard hooks — compatible with HPOS when enabled under WooCommerce → Settings → Advanced → Features.",
+          "Block checkout and classic shortcode checkout both trigger the same order lifecycle hooks SplitSMS listens to. Test with a real Paystack sandbox transaction before Black Friday traffic.",
+        ],
+      },
+      {
+        heading: "Install and verify in wp-admin",
+        paragraphs: [
+          "Download splitsms.zip (v1.6.0) from splitsms.com/wordpress-plugin. Connect API key, Sender ID, and billing phone under SplitSMS → Settings. Enable WooCommerce under Integrations, save templates, place a test order, and confirm delivery in SplitSMS → Logs.",
+          "Same SplitSMS account powers your bulk campaigns, OTP API, and WordPress store — one wallet, transparent Ghana pricing, delivery reports in the dashboard and wp-admin.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "wordpress-welcome-sms-user-registration-password-reset",
+    title: "WordPress Welcome SMS: Registration & Password Reset by Text",
+    excerpt:
+      "Send welcome texts on new user signup and optional password reset links via SMS — SplitSMS core WordPress integration.",
+    category: "WordPress",
+    readTime: "6 min read",
+    published: "2026-05-19",
+    sections: [
+      {
+        paragraphs: [
+          "Membership sites, LMS platforms, and B2B portals register users every day. WordPress sends a confirmation email by default — and most users never open it. A welcome SMS on registration confirms the account instantly and gives you a direct line for OTP or support later.",
+          "SplitSMS WordPress plugin includes a WordPress core integration: welcome SMS on user registration and optional password reset notification via text.",
+        ],
+      },
+      {
+        heading: "Welcome SMS on new user registration",
+        paragraphs: [
+          "Enable WordPress core under SplitSMS → Integrations. When wp_insert_user or standard registration completes, SplitSMS sends your welcome template to the phone number stored on the user profile — or a phone field you collect at signup via WPForms, JetFormBuilder, or custom registration forms.",
+          "Example: Welcome to {site_name}, {user_login}! Your account is active. Log in at {site_url}. Keep it under 160 characters and include one clear next step.",
+        ],
+      },
+      {
+        heading: "Password reset via SMS (optional)",
+        paragraphs: [
+          "Email password reset links get lost in spam. Optional SMS notification alerts the user that a reset was requested and can include a short link if your workflow supports it. Enable only if you collect verified phone numbers at registration — sending reset hints to wrong numbers is a security risk.",
+          "Pair with SplitSMS OTP API if you want true phone-based login — send a six-digit code instead of a long email link for mobile-first audiences in Ghana and Nigeria.",
+        ],
+      },
+      {
+        heading: "Where to store phone numbers on WordPress",
+        paragraphs: [
+          "Standard user meta works for custom registration plugins. WooCommerce billing phone can double as SMS destination for customer accounts. Form plugins should write phone to user meta on signup so SplitSMS core integration finds it on the next login.",
+          "Validate format at registration — SplitSMS logs show invalid number errors so you fix the form field rather than losing silent failures.",
+        ],
+      },
+      {
+        heading: "Transactional vs marketing on member sites",
+        paragraphs: [
+          "Welcome and password reset SMS are transactional — users expect them when they sign up or request access. Marketing SMS to the same list requires separate opt-in. Use SplitSMS contact groups and campaigns for newsletters; use the WordPress plugin for account lifecycle messages.",
+        ],
+      },
+      {
+        heading: "Get started with SplitSMS on WordPress",
+        paragraphs: [
+          "Install plugin v1.6.0 from splitsms.com/integrations, connect your API key, enable WordPress core under Integrations, and register a test user on staging. Check SplitSMS → Logs for delivered status.",
+          "Combine with WooCommerce, WPForms, and Crocoblock on the same site — one plugin, one API key, every WordPress event covered.",
+        ],
+      },
+    ],
+  },
 ];
 
 export function getBlogPost(slug: string) {

@@ -113,8 +113,9 @@ if (existsSync(postmanPath)) {
   writeFileSync(postmanPath, JSON.stringify(collection, null, 2) + "\n");
 }
 
-// Zip plugin — versioned name + latest alias (splitsms.zip)
+// Zip plugin — WordPress expects splitsms/splitsms.php inside the archive (single top-level folder).
 const pluginDir = join(root, "wordpress-plugin/splitsms");
+const pluginParent = join(root, "wordpress-plugin");
 const versionedZip = join(publicWpDir, `splitsms-${wp.version}.zip`);
 const latestZip = join(publicWpDir, "splitsms.zip");
 
@@ -124,29 +125,28 @@ function buildZip(outPath) {
       `$src = '${pluginDir.replace(/'/g, "''")}'`,
       `$out = '${outPath.replace(/'/g, "''")}'`,
       "if (Test-Path $out) { Remove-Item $out -Force }",
-      "Push-Location $src",
-      "Compress-Archive -Path * -DestinationPath $out -Force",
-      "Pop-Location",
+      "Compress-Archive -Path $src -DestinationPath $out -Force",
     ].join("; ");
     execSync(`powershell -NoProfile -Command "${psZip}"`, { stdio: "inherit", cwd: root });
   } else {
-    execSync(`cd "${pluginDir}" && zip -r "${outPath}" . -x "*.DS_Store"`, { stdio: "inherit" });
+    execSync(`cd "${pluginParent}" && zip -r "${outPath}" splitsms -x "*.DS_Store"`, { stdio: "inherit" });
   }
 }
 
 function validateZip(zipOut) {
+  const expect = "splitsms/splitsms.php";
   if (process.platform === "win32") {
     execSync(
-      `powershell -NoProfile -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::OpenRead('${zipOut.replace(/'/g, "''")}'); $root=($z.Entries | Where-Object { $_.FullName -eq 'splitsms.php' }).Count -gt 0; $nested=($z.Entries | Where-Object { $_.FullName -like 'splitsms/splitsms.php' }).Count -gt 0; $z.Dispose(); if (-not $root -or $nested) { exit 1 }"`,
+      `powershell -NoProfile -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::OpenRead('${zipOut.replace(/'/g, "''")}'); $ok=($z.Entries | Where-Object { $_.FullName -replace '\\\\','/' -eq '${expect}' }).Count -gt 0; $bad=($z.Entries | Where-Object { $_.FullName -replace '\\\\','/' -eq 'splitsms.php' }).Count -gt 0; $z.Dispose(); if (-not $ok -or $bad) { exit 1 }"`,
       { encoding: "utf8" },
     );
   } else {
     const listing = execSync(`unzip -l "${zipOut}"`, { encoding: "utf8" });
-    if (!listing.includes(" splitsms.php")) {
-      throw new Error("Zip missing splitsms.php at archive root");
+    if (!listing.includes(` ${expect}`) && !listing.includes(`splitsms/splitsms.php`)) {
+      throw new Error(`Zip missing ${expect}`);
     }
-    if (listing.includes(" splitsms/splitsms.php")) {
-      throw new Error("Zip has nested splitsms/ folder — fix zip command");
+    if (listing.match(/^\s+\d+\s+\d{2}-\d{2}-\d{2,4}\s+\d{2}:\d{2}\s+splitsms\.php$/m)) {
+      throw new Error("Zip has flat splitsms.php at archive root — must be splitsms/splitsms.php");
     }
   }
 }

@@ -40,6 +40,28 @@ export default function ApiDocsPage() {
                   Developer portal
                 </Link>
                 <Link
+                  href="/developers/generate"
+                  className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 font-medium hover:bg-muted/50 transition-colors"
+                >
+                  Generate code
+                </Link>
+                <a
+                  href="/openapi.json"
+                  className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 font-medium hover:bg-muted/50 transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  OpenAPI
+                </a>
+                <a
+                  href="/llms.txt"
+                  className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 font-medium hover:bg-muted/50 transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  llms.txt
+                </a>
+                <Link
                   href="/developers/postman"
                   className="inline-flex items-center gap-1.5 rounded-lg border border-[#FF6C37]/30 bg-[#FF6C37]/5 px-3 py-2 font-medium text-[#FF6C37] hover:bg-[#FF6C37]/10 transition-colors"
                 >

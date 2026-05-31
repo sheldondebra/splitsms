@@ -193,19 +193,38 @@
     @apply hidden lg:flex flex-1 items-center justify-center gap-0.5 px-1 min-w-0;
   }
   .site-header-link {
-    @apply relative rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors whitespace-nowrap;
+    @apply relative px-2.5 py-2 text-[13px] font-medium transition-colors whitespace-nowrap;
+  }
+  .site-header-link::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 0.125rem;
+    width: 1.125rem;
+    height: 2px;
+    border-radius: 9999px;
+    background: currentColor;
+    transform: translateX(-50%) scaleX(0);
+    transform-origin: center;
+    transition: transform 0.2s ease;
+    opacity: 0.85;
+  }
+  .site-header-link:hover::after,
+  .site-header-link--active-hero::after,
+  .site-header-link--active-solid::after {
+    transform: translateX(-50%) scaleX(1);
   }
   .site-header-link--hero {
-    @apply text-white/85 hover:text-white hover:bg-white/10;
+    @apply text-white/85 hover:text-white;
   }
   .site-header-link--solid {
-    @apply text-foreground/80 hover:text-foreground hover:bg-muted/80;
+    @apply text-foreground/75 hover:text-foreground;
   }
   .site-header-link--active-hero {
-    @apply text-white bg-white/12 font-semibold;
+    @apply text-white font-semibold;
   }
   .site-header-link--active-solid {
-    @apply text-primary bg-primary/10 font-semibold hover:text-primary hover:bg-primary/15;
+    @apply text-primary font-semibold hover:text-primary;
   }
   .site-footer-surface {
     @apply bg-muted/40;

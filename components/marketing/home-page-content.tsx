@@ -17,9 +17,9 @@ import {
   CheckCircle2,
   ArrowRight,
   Star,
-  Sparkles,
   Puzzle,
   Link2,
+  MessageSquare,
 } from "lucide-react";
 import { HomeBlogSection } from "@/components/marketing/home-blog-section";
 import {
@@ -120,7 +120,7 @@ export function HomePageContent() {
           <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
             <div>
               <p className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary mb-4">
-                <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <MessageSquare className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 #1 bulk SMS platform · 190+ countries
               </p>
               <h1

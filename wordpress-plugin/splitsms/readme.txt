@@ -4,7 +4,7 @@ Tags: sms, woocommerce, notifications, api, transactional
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.6.0
+Stable tag: 1.6.1
 License: GPLv2 or later
 
 Send transactional SMS from WordPress and WooCommerce using your SplitSMS API key.
@@ -21,12 +21,14 @@ Send transactional SMS from WordPress and WooCommerce using your SplitSMS API ke
 
 == Installation ==
 
-1. If upgrading, deactivate SplitSMS and delete every `splitsms` / `splitsms-1` folder under `wp-content/plugins/` first.
-2. Install via Plugins → Add New → Upload `splitsms.zip` from splitsms.com (do not rename the zip file).
+1. Install via Plugins → Add New → Upload `splitsms.zip` from splitsms.com (do not rename the zip).
+2. If WordPress says the folder already exists: open **SplitSMS → Settings** and click **Replace from splitsms.com**, or delete SplitSMS under Plugins first, then upload again.
 3. Activate the plugin.
 4. Open the **SplitSMS** menu in wp-admin.
 5. Enter your API key from the SplitSMS dashboard (Settings → SplitSMS).
 6. Enable integrations and save.
+
+Deleting SplitSMS under **Plugins → Delete** removes the entire plugin folder and all SplitSMS data from your database.
 
 == Frequently Asked Questions ==
 
@@ -43,6 +45,12 @@ The billing phone on the order (or shipping phone, custom meta key, or user meta
 Connect SplitSMS, then in the form editor go to JetForm → Post Submit Actions → New Action → **Send SMS (SplitSMS)**.
 
 == Changelog ==
+
+= 1.6.1 =
+* Fix: Plugin zip uses standard WordPress layout (splitsms/splitsms.php) so uploads and updates replace the folder correctly
+* New: uninstall.php — deleting the plugin removes all SplitSMS data; WordPress removes the full plugin folder
+* New: “Replace from splitsms.com” on Settings — reinstall without manual FTP when upload says folder exists
+* Fix: Removes leftover splitsms-1 folders and nested splitsms/splitsms/ installs on activation
 
 = 1.6.0 =
 * New: WordPress core SMS settings UI — registration and password reset templates

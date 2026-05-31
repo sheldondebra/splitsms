@@ -12,6 +12,8 @@ import {
   Puzzle,
   Package,
   Globe2,
+  FileCode2,
+  MessageSquareText,
   Terminal,
 } from "lucide-react";
 import { CopyButton } from "@/components/developers/copy-button";
@@ -50,6 +52,21 @@ const tiles = [
     title: "Documentation",
     desc: "REST reference & guides",
     stat: "All endpoints",
+  },
+  {
+    href: "/developers/generate",
+    icon: FileCode2,
+    title: "Generate code",
+    desc: "Copy .env + stack snippets",
+    stat: "Vibe coders",
+    primary: false,
+  },
+  {
+    href: "/developers/prompts",
+    icon: MessageSquareText,
+    title: "AI prompts",
+    desc: "Cursor / ChatGPT prompts",
+    stat: "Copy & paste",
   },
   {
     href: "/developers/postman",
@@ -91,7 +108,7 @@ const tiles = [
 
 const steps = [
   { n: 1, label: "Create an API key", href: "/developers/api-keys" },
-  { n: 2, label: "Read the docs", href: "/developers/docs" },
+  { n: 2, label: "Generate integration code", href: "/developers/generate" },
   { n: 3, label: "Send your first SMS", href: "/developers/docs#api-reference" },
   { n: 4, label: "Configure webhooks", href: "/developers/webhooks" },
 ];

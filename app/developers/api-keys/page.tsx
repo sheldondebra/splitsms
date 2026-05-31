@@ -1,12 +1,11 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { ApiKeysManager } from "@/components/developers/api-keys-manager";
-import { Key } from "lucide-react";
+import { Key, FileCode2 } from "lucide-react";
 import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { BookOpen } from "lucide-react";
 
 export default async function DevelopersApiKeysPage({
   searchParams,
@@ -43,11 +42,11 @@ export default async function DevelopersApiKeysPage({
         mobileDescription="Manage keys — view active and revoked."
         actions={
           <Link
-            href="/developers/docs"
+            href="/developers/generate"
             className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-10 rounded-xl gap-2")}
           >
-            <BookOpen className="h-4 w-4" />
-            API docs
+            <FileCode2 className="h-4 w-4" />
+            Generate code
           </Link>
         }
       />

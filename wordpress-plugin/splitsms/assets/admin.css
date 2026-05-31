@@ -643,6 +643,348 @@
   font-weight: 600;
 }
 
+/* Integrations page */
+.splitsms-integrations-intro {
+  margin-bottom: 1rem;
+}
+
+.splitsms-integrations-intro .description {
+  margin: 0 0 0.75rem;
+  max-width: 52rem;
+}
+
+.splitsms-notice-inline--warn {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.splitsms-detect-panel--compact {
+  padding: 1rem 1.25rem;
+}
+
+.splitsms-detect-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.splitsms-detect-panel__head h2 {
+  margin: 0;
+}
+
+.splitsms-detect-panel__head .description {
+  margin: 0;
+}
+
+.splitsms-detect-panel__foot {
+  margin: 0.85rem 0 0;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--splitsms-border);
+}
+
+.splitsms-detect-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.splitsms-detect-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.splitsms-detect-group__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--splitsms-muted);
+  min-width: 7.5rem;
+}
+
+.splitsms-detect-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  flex: 1;
+}
+
+.splitsms-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--splitsms-border);
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.splitsms-chip.is-active {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.splitsms-chip.is-inactive {
+  opacity: 0.72;
+}
+
+.splitsms-chip__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
+}
+
+.splitsms-chip.is-active .splitsms-chip__dot {
+  background: #22c55e;
+  opacity: 1;
+}
+
+.splitsms-section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 1rem;
+  padding: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid var(--splitsms-border);
+  border-radius: 10px;
+  position: sticky;
+  top: 32px;
+  z-index: 10;
+}
+
+.splitsms-section-nav a {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.splitsms-section-nav a:hover,
+.splitsms-section-nav a:focus {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.splitsms-form-section {
+  scroll-margin-top: 5.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.splitsms-form-section__head {
+  margin: 0 0 0.75rem;
+}
+
+.splitsms-form-section__head h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.splitsms-form-section__head .description {
+  margin: 0;
+}
+
+.splitsms-form-section__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.splitsms-form-section__stack .splitsms-card,
+.splitsms-form-section > .splitsms-card {
+  margin-bottom: 0;
+}
+
+.splitsms-integration-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--splitsms-border);
+}
+
+.splitsms-integration-card__head h2 {
+  margin: 0 0 0.35rem;
+}
+
+.splitsms-integration-card__head .description {
+  margin: 0;
+  max-width: 36rem;
+}
+
+.splitsms-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  background: var(--splitsms-accent-soft);
+  border: 1px solid #bfdbfe;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e40af;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.splitsms-integration-card__grid {
+  display: grid;
+  gap: 1.25rem 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.splitsms-integration-card__grid--woo {
+  margin-bottom: 0.75rem;
+}
+
+.splitsms-field-block h3 {
+  margin: 0 0 0.65rem;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.splitsms-field-label {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 0.25rem;
+}
+
+.splitsms-check-grid--compact {
+  margin: 0 0 0.65rem;
+}
+
+.splitsms-form-id-list {
+  margin: 0 0 0.85rem;
+  padding: 0.5rem 0.75rem;
+  list-style: none;
+  background: #f8fafc;
+  border: 1px solid var(--splitsms-border);
+  border-radius: 8px;
+  max-height: 140px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.splitsms-form-id-list li {
+  padding: 0.2rem 0;
+}
+
+.splitsms-form-id-list code {
+  margin-right: 0.35rem;
+}
+
+.splitsms-details {
+  margin: 0.75rem 0 0;
+  border: 1px solid var(--splitsms-border);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.splitsms-details summary {
+  padding: 0.55rem 0.85rem;
+  cursor: pointer;
+  font-size: 13px;
+  color: #334155;
+  user-select: none;
+}
+
+.splitsms-details[open] summary {
+  border-bottom: 1px solid var(--splitsms-border);
+}
+
+.splitsms-details .splitsms-var-list,
+.splitsms-details .description {
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.splitsms-details--templates {
+  margin-top: 0.5rem;
+  background: #fff;
+}
+
+.splitsms-details--templates summary {
+  font-size: 14px;
+}
+
+.splitsms-template-grid {
+  display: grid;
+  gap: 0.75rem 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  padding: 0.85rem;
+}
+
+.splitsms-template-grid p {
+  margin: 0;
+}
+
+.splitsms-template-grid label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 0.25rem;
+}
+
+.splitsms-template-grid--two {
+  padding: 0;
+  margin-top: 0.75rem;
+}
+
+.splitsms-woo-panel {
+  border-color: #c7d2fe;
+}
+
+.splitsms-wpforms-panel {
+  border-color: #93c5fd;
+  background: linear-gradient(180deg, #eff6ff 0%, #fff 100%);
+}
+
+.splitsms-crocoblock-cta {
+  margin-bottom: 0;
+}
+
+.splitsms-save-bar {
+  position: sticky;
+  bottom: 0;
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--splitsms-border);
+  border-radius: 10px;
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(6px);
+  z-index: 5;
+}
+
+.splitsms-save-bar .button-primary {
+  min-width: 160px;
+}
+
 @media (max-width: 782px) {
   .splitsms-layout {
     grid-template-columns: 1fr;

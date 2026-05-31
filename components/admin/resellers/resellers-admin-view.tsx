@@ -33,7 +33,6 @@ import {
   Clock,
   Ban,
   ExternalLink,
-  Sparkles,
   Settings2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -375,7 +374,7 @@ export function ResellersAdminView({ data, flash, filter }: Props) {
           {stats.pending > 0 && filter !== "pending" && (
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/8 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm">
-                <Sparkles className="h-4 w-4 text-amber-600" />
+                <Clock className="h-4 w-4 text-amber-600" />
                 <span>
                   <strong>{stats.pending}</strong> application
                   {stats.pending !== 1 ? "s" : ""} awaiting review

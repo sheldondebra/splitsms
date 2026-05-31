@@ -37,7 +37,7 @@ import {
   Coins,
   MessageSquare,
   Server,
-  Sparkles,
+  Star,
   Wallet,
   Send,
 } from "lucide-react";
@@ -291,7 +291,7 @@ export function MemberPricingDashboard({
                   <div className="flex flex-wrap gap-2">
                     {selectedResolved.isCustom && (
                       <Badge className="gap-1 bg-emerald-600 hover:bg-emerald-600">
-                        <Sparkles className="h-3 w-3" />
+                        <Star className="h-3 w-3" />
                         Custom rate
                       </Badge>
                     )}
@@ -620,7 +620,7 @@ export function MemberPricingDashboard({
             <AppCard>
               <AppCardBody className="space-y-3">
                 <h3 className="flex items-center gap-2 font-semibold">
-                  <Sparkles className="h-4 w-4 text-primary" />
+                  <Star className="h-4 w-4 text-primary" />
                   Your custom rates
                 </h3>
                 <p className="text-sm text-muted-foreground">

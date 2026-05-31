@@ -4,13 +4,13 @@ import { completeProfileAction } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sparkles } from "lucide-react";
+import { Gift } from "lucide-react";
 
 export function CompleteProfileForm() {
   return (
     <form action={completeProfileAction} className="space-y-5">
       <div className="rounded-lg border border-primary/25 bg-primary/5 px-4 py-3 text-sm text-muted-foreground flex gap-2">
-        <Sparkles className="h-5 w-5 text-primary shrink-0" />
+        <Gift className="h-5 w-5 text-primary shrink-0" />
         <p>Phone verified! Add your name to finish — you get 5 free SMS credits.</p>
       </div>
 

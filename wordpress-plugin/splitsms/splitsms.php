@@ -3,7 +3,7 @@
  * Plugin Name:       SplitSMS
  * Plugin URI:        https://www.splitsms.com/integrations
  * Description:       Send transactional SMS from WordPress and WooCommerce using your SplitSMS API key.
- * Version:           1.6.0
+ * Version:           1.6.1
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            SplitSMS
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('SPLITSMS_VERSION')) {
-    define('SPLITSMS_VERSION', '1.6.0');
+    define('SPLITSMS_VERSION', '1.6.1');
 }
 if (!defined('SPLITSMS_PLUGIN_FILE')) {
     define('SPLITSMS_PLUGIN_FILE', __FILE__);
@@ -62,6 +62,7 @@ function splitsms_require($relative) {
 
 $bootstrap_ok = true;
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/splitsms-config.php');
+$bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-install.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-settings.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-logger.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-api.php');
@@ -89,12 +90,21 @@ if (!$bootstrap_ok) {
  * Plugin activation — create tables and default options.
  */
 function splitsms_activate() {
+    if (class_exists('SplitSMS_Install')) {
+        SplitSMS_Install::on_activate();
+    }
     if (!class_exists('SplitSMS_Settings')) {
         return;
     }
     SplitSMS_Settings::activate_defaults();
 }
 register_activation_hook(__FILE__, 'splitsms_activate');
+
+if (!$bootstrap_ok) {
+    return;
+}
+
+SplitSMS_Install::init();
 
 /**
  * Bootstrap plugin services.
@@ -168,19 +178,3 @@ function splitsms_after_plugin_update($upgrader, $options) {
     }
 }
 add_action('upgrader_process_complete', 'splitsms_after_plugin_update', 10, 2);
-
-register_uninstall_hook(__FILE__, 'splitsms_uninstall');
-
-/**
- * Remove plugin data on uninstall.
- */
-function splitsms_uninstall() {
-    delete_option('splitsms_settings');
-    delete_option('splitsms_db_version');
-    if (class_exists('SplitSMS_Reminders')) {
-        SplitSMS_Reminders::clear_cron();
-    }
-    global $wpdb;
-    $wpdb->query('DROP TABLE IF EXISTS ' . $wpdb->prefix . 'splitsms_logs'); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-    $wpdb->query('DROP TABLE IF EXISTS ' . $wpdb->prefix . 'splitsms_reminders'); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-}

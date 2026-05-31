@@ -37,7 +37,7 @@ import {
   MoreVertical,
   Pencil,
   Plus,
-  Sparkles,
+  LayoutTemplate,
   Star,
   Trash2,
   Send,
@@ -233,7 +233,7 @@ export function TemplatesManager({ templates: initial }: { templates: TemplateIt
             {pending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Sparkles className="h-4 w-4" />
+              <LayoutTemplate className="h-4 w-4" />
             )}
             Add 10 samples
           </Button>
@@ -255,7 +255,7 @@ export function TemplatesManager({ templates: initial }: { templates: TemplateIt
           </div>
           <div className="flex flex-wrap justify-center gap-2">
             <Button type="button" variant="outline" className="rounded-xl" onClick={handleSeedSamples}>
-              <Sparkles className="h-4 w-4 mr-2" />
+              <LayoutTemplate className="h-4 w-4 mr-2" />
               Load sample templates
             </Button>
             <Button type="button" className="rounded-xl" onClick={openCreate}>

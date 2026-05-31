@@ -24,6 +24,7 @@ const productLinks = [
 ];
 
 const developerLinks = [
+  { href: "/vibe-coders", label: "Vibe coders" },
   { href: "/docs", label: "Documentation" },
   { href: "/changelog", label: "Changelog" },
   { href: "/sdk", label: "SDKs" },
