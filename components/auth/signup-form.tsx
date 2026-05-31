@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { initialCountryState } from "@/lib/auth/initial-country-state";
 import { signupAction } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +10,6 @@ import { PasswordField } from "@/components/auth/password-field";
 import { CountrySelect } from "@/components/auth/country-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { SignupCountryOption } from "@/lib/signup-countries";
-import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
-import { detectCountryFromLocale } from "@/lib/country-detect";
 import { Mail, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,20 +20,11 @@ type SignupFormProps = {
 
 export function SignupForm({ countries, defaultMethod = "phone" }: SignupFormProps) {
   const [method, setMethod] = useState<"phone" | "email">(defaultMethod);
-  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
-  const [dialCode, setDialCode] = useState("+");
+  const [countryCode, setCountryCode] = useState(
+    () => initialCountryState(countries).countryCode,
+  );
+  const [dialCode, setDialCode] = useState(() => initialCountryState(countries).dialCode);
   const [phoneLocal, setPhoneLocal] = useState("");
-
-  useEffect(() => {
-    const detected = detectCountryFromLocale(
-      typeof navigator !== "undefined" ? navigator.language : undefined,
-    );
-    const match = countries.find((c) => c.code === detected);
-    if (match) {
-      setCountryCode(match.code);
-      setDialCode(match.dialCode);
-    }
-  }, [countries]);
 
   function onCountryChange(code: string, country: SignupCountryOption) {
     setCountryCode(code);

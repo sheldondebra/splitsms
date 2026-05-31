@@ -5,14 +5,17 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * JetFormBuilder submission SMS.
+ * JetFormBuilder — native Send SMS form action + optional global submit hook.
  */
 class SplitSMS_JetFormBuilder {
     /** @var self|null */
     private static $instance = null;
 
-    /** @var SplitSMS_Crocoblock */
-    private $cb;
+    /** @var SplitSMS_Crocoblock|null */
+    private $cb = null;
+
+    /** @var array<int, bool> */
+    private static $action_sent_forms = array();
 
     public static function instance() {
         if (null === self::$instance) {
@@ -27,6 +30,8 @@ class SplitSMS_JetFormBuilder {
             return;
         }
 
+        add_action('jet-form-builder/actions/register', array($this, 'register_form_action'), 10, 1);
+
         $settings = SplitSMS_Settings::instance();
         if (!$settings->feature_enabled('cb_jfb_enabled')) {
             return;
@@ -37,11 +42,51 @@ class SplitSMS_JetFormBuilder {
     }
 
     /**
+     * @param object $manager Jet_Form_Builder\Actions\Manager
+     */
+    public function register_form_action($manager) {
+        if (!SplitSMS_Settings::is_configured()) {
+            return;
+        }
+        if (!class_exists('\Jet_Form_Builder\Actions\Types\Base')) {
+            return;
+        }
+        if (!is_object($manager) || !method_exists($manager, 'register_action_type')) {
+            return;
+        }
+
+        require_once SPLITSMS_PLUGIN_DIR . 'includes/integrations/class-splitsms-jfb-send-sms-action.php';
+
+        if (!class_exists('SplitSMS_JFB_Send_Sms_Action')) {
+            return;
+        }
+
+        $manager->register_action_type(new SplitSMS_JFB_Send_Sms_Action());
+    }
+
+    /**
+     * @param int $form_id
+     */
+    public static function note_action_sent($form_id) {
+        if ($form_id > 0) {
+            self::$action_sent_forms[(int) $form_id] = true;
+        }
+    }
+
+    /**
+     * @param int $form_id
+     * @return bool
+     */
+    public static function action_sent_for_form($form_id) {
+        return !empty(self::$action_sent_forms[(int) $form_id]);
+    }
+
+    /**
      * @param object $handler Jet_Form_Builder\Form_Handler
      * @param bool   $is_success
      */
     public function on_after_send($handler, $is_success) {
-        if (!$is_success) {
+        if (!$is_success || null === $this->cb) {
             return;
         }
 
@@ -67,6 +112,10 @@ class SplitSMS_JetFormBuilder {
             }
         }
 
+        if (self::action_sent_for_form($form_id)) {
+            return;
+        }
+
         $allowed = $settings->get('cb_jfb_form_ids', '');
         if ('' !== trim($allowed)) {
             $ids = array_map('intval', array_map('trim', explode(',', $allowed)));
@@ -75,7 +124,7 @@ class SplitSMS_JetFormBuilder {
             }
         }
 
-        $vars = $this->normalize_fields($fields);
+        $vars = self::normalize_request_vars($fields);
         $vars['form_id'] = (string) $form_id;
         $form_post = $form_id ? get_post($form_id) : null;
         $vars['form_title'] = $form_post ? $form_post->post_title : '';
@@ -102,10 +151,10 @@ class SplitSMS_JetFormBuilder {
     }
 
     /**
-     * @param array<string,mixed> $fields
-     * @return array<string,string>
+     * @param array<string, mixed> $fields
+     * @return array<string, string>
      */
-    private function normalize_fields($fields) {
+    public static function normalize_request_vars($fields) {
         $vars = array();
         foreach ($fields as $key => $value) {
             if (is_scalar($value)) {

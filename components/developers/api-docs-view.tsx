@@ -11,9 +11,10 @@ import {
   Users,
   Megaphone,
   KeyRound,
+  Puzzle,
+  Link2,
+  BadgeCheck,
 } from "lucide-react";
-
-import { Puzzle } from "lucide-react";
 
 const sectionIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   auth: Shield,
@@ -22,6 +23,8 @@ const sectionIcons: Record<string, React.ComponentType<{ className?: string }>> 
   contacts: Users,
   campaigns: Megaphone,
   otp: KeyRound,
+  connect: Link2,
+  "sender-ids": BadgeCheck,
   wordpress: Puzzle,
 };
 

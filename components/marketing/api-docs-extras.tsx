@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Webhook, Gauge, FileCode2, Puzzle } from "lucide-react";
+import { Webhook, Gauge, FileCode2, Puzzle, Link2 } from "lucide-react";
 import { CopyButton } from "@/components/developers/copy-button";
 import { getSiteUrl, wordpressPlugin } from "@/lib/site-config";
 
@@ -74,7 +74,13 @@ export function ApiDocsExtras() {
         </div>
         <h2 className="text-lg font-semibold">JavaScript SDK</h2>
         <p className="text-sm text-muted-foreground mt-2">
-          <code className="text-xs bg-muted px-1 rounded">npm install @splitsms/sdk</code>
+          Not on npm.org — install from SplitSMS:{" "}
+          <code className="text-xs bg-muted px-1 rounded break-all">
+            npm install {baseUrl}/sdk/javascript/splitsms-sdk.tgz
+          </code>
+        </p>
+        <p className="text-xs text-red-600/90 dark:text-red-400/90 mt-2">
+          <code className="font-mono">npm install @splitsms/sdk</code> returns 404 — use the URL above.
         </p>
         <pre className="mt-4 rounded-xl bg-zinc-950 text-zinc-300 p-3 text-[11px] font-mono overflow-x-auto leading-relaxed">
 {`import { SplitSMS } from "@splitsms/sdk";
@@ -101,6 +107,25 @@ await sms.messages.send({
         </div>
       </div>
 
+      <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-400 mb-4">
+          <Link2 className="h-5 w-5" />
+        </div>
+        <h2 className="text-lg font-semibold">SplitSMS Connect</h2>
+        <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+          Provision embedded customers with{" "}
+          <code className="text-xs bg-muted px-1 rounded font-mono">POST /api/v1/connect/customers</code>.
+          Register sender IDs on their behalf with{" "}
+          <code className="text-xs bg-muted px-1 rounded font-mono">customer_id</code>.
+        </p>
+        <Link
+          href="/docs/connect"
+          className="inline-block mt-4 text-sm font-medium text-primary hover:underline"
+        >
+          Connect documentation →
+        </Link>
+      </div>
+
       <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/8 to-card p-6 md:col-span-2 lg:col-span-3 flex flex-col sm:flex-row sm:items-center gap-6">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
           <Puzzle className="h-7 w-7" />
@@ -108,15 +133,23 @@ await sms.messages.send({
         <div className="flex-1 min-w-0">
           <h2 className="text-lg font-bold">WordPress & WooCommerce</h2>
           <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-            Official plugin with order notifications, form plugins, and per-event toggles — no custom code required.
+            Official plugin v{wordpressPlugin.version} — order notifications, WordPress core SMS,
+            CF7, WPForms, Elementor Pro, JetFormBuilder Post Submit Action, and Crocoblock. Per-event
+            toggles and cloud log sync.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 shrink-0">
           <Link
-            href="/integrations"
+            href="/integrations/wordpress"
             className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
           >
-            WordPress plugin →
+            Setup guide →
+          </Link>
+          <Link
+            href="/changelog"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-border px-6 text-sm font-semibold hover:bg-muted/50 transition-colors"
+          >
+            Changelog
           </Link>
           <a
             href={wordpressPlugin.downloadUrl}

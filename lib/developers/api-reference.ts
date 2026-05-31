@@ -1,4 +1,4 @@
-import { defaultSiteUrl } from "@/lib/site-config";
+import { defaultSiteUrl, wordpressPlugin } from "@/lib/site-config";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
@@ -305,8 +305,10 @@ export const apiDocSections: ApiDocSection[] = [
   "country_code": "GH",
   "email": "jane@example.com",
   "external_ref": "wp-user-42",
+  "label": "Acme Shop",
   "initial_sms_credits": 10,
-  "initial_wallet_balance": 0
+  "initial_wallet_balance": 0,
+  "currency": "GHS"
 }`,
         response: `{
   "success": true,
@@ -356,8 +358,10 @@ export const apiDocSections: ApiDocSection[] = [
         permission: "sender_ids.write",
         body: `{
   "value": "MYBRAND",
+  "country_code": "GH",
   "purpose": "Transactional",
-  "customer_id": "optional-connect-customer-id"
+  "customer_id": "optional-connect-customer-id",
+  "set_default": true
 }`,
       },
       {
@@ -373,8 +377,7 @@ export const apiDocSections: ApiDocSection[] = [
     id: "wordpress",
     title: "WordPress",
     icon: "puzzle",
-    description:
-      "Endpoints used by the official SplitSMS WordPress plugin — site registration, logs, and account status.",
+    description: `Endpoints used by the official SplitSMS WordPress plugin (v${wordpressPlugin.version}) — WooCommerce, CF7, WPForms, Elementor Pro, JetFormBuilder, and Crocoblock integrations sync through these routes.`,
     endpoints: [
       {
         method: "GET",
@@ -407,7 +410,7 @@ export const apiDocSections: ApiDocSection[] = [
   "site_url": "https://shop.example.com",
   "site_name": "My Shop",
   "wp_version": "6.7",
-  "plugin_version": "1.1.0",
+  "plugin_version": "${wordpressPlugin.version}",
   "php_version": "8.2"
 }`,
         response: `{
@@ -423,16 +426,37 @@ export const apiDocSections: ApiDocSection[] = [
         method: "POST",
         path: "/api/v1/wordpress/logs",
         title: "Sync plugin log",
-        description: "Push an SMS event from WordPress to your SplitSMS dashboard.",
-        permission: "sms.read",
+        description:
+          "Push an SMS event from WordPress to your SplitSMS dashboard. Common event values: wc_order_placed, wc_order_processing, wc_order_completed, cf7_submit, wpforms_submit, elementor_form, jfb_send_sms, user_register.",
+        permission: "sms.send",
         body: `{
   "site_url": "https://shop.example.com",
   "event": "wc_order_processing",
   "recipient": "233201234567",
+  "message_type": "transactional",
   "status": "sent",
   "source": "woocommerce",
-  "external_ref": "order-1042"
+  "body": "Your order #1042 is processing.",
+  "external_ref": "order-1042",
+  "message_id": "optional-splitsms-message-id",
+  "cost": 0.029,
+  "meta": { "order_id": 1042 }
 }`,
+        response: `{ "success": true, "log_id": "..." }`,
+      },
+      {
+        method: "POST",
+        path: "/api/v1/wordpress/events",
+        title: "Ingest plugin event",
+        description:
+          "Generic event ingestion for plugin telemetry (non-SMS events). Stored in WordPress activity logs.",
+        permission: "sms.read",
+        body: `{
+  "site_url": "https://shop.example.com",
+  "event": "integration_enabled",
+  "payload": { "module": "jetformbuilder" }
+}`,
+        response: `{ "success": true, "event_id": "..." }`,
       },
       {
         method: "GET",

@@ -41,5 +41,5 @@ export const POST = withApi(
     return apiSuccess({ log_id: log.id });
   },
   "/api/v1/wordpress/logs",
-  "sms.read",
+  "sms.send",
 );

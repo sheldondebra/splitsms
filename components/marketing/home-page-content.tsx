@@ -18,12 +18,16 @@ import {
   ArrowRight,
   Star,
   Sparkles,
+  Puzzle,
+  Link2,
 } from "lucide-react";
 import { HomeBlogSection } from "@/components/marketing/home-blog-section";
 import {
   DashboardPreview,
   DashboardPreviewStrip,
 } from "@/components/marketing/dashboard-preview";
+import { wordpressPlugin } from "@/lib/site-config";
+import { wordpressIntegrationFeatureGroups } from "@/lib/marketing/wordpress-integration-features";
 
 const stats = [
   { value: "190+", label: "Countries" },
@@ -95,6 +99,10 @@ const faqs = [
   {
     q: "Do you provide an SMS API?",
     a: "Yes — send SMS, OTP, wallet, contacts, campaigns, and webhooks. Sandbox keys included.",
+  },
+  {
+    q: "Is there a WordPress or WooCommerce plugin?",
+    a: `Yes. The official SplitSMS plugin (v${wordpressPlugin.version}) sends order SMS, form notifications, and registration alerts — no custom code. JetFormBuilder, Elementor Pro, CF7, WPForms, and Crocoblock are supported.`,
   },
   {
     q: "Can I send to Nigeria and other countries?",
@@ -252,6 +260,107 @@ export function HomePageContent() {
                 <p className="mt-1 text-xs text-muted-foreground">{desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Integrations */}
+      <section className="py-20 bg-background border-t" aria-labelledby="integrations">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="max-w-2xl mb-10">
+            <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">
+              Integrations
+            </p>
+            <h2 id="integrations" className="text-2xl md:text-3xl font-bold tracking-tight">
+              WordPress, WooCommerce & partner Connect
+            </h2>
+            <p className="mt-3 text-muted-foreground leading-relaxed">
+              No-code plugin for stores and forms, or Connect APIs to embed SMS inside your own
+              product.
+            </p>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/8 to-card p-6 sm:p-8 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                  <Puzzle className="h-6 w-6" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-bold">WordPress & WooCommerce</h3>
+                  <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+                    Official plugin v{wordpressPlugin.version} — install once, connect your API key,
+                    enable the integrations you need.
+                  </p>
+                </div>
+              </div>
+              <ul className="mt-6 grid gap-3 sm:grid-cols-2 text-sm">
+                {wordpressIntegrationFeatureGroups.map(({ title, items }) => (
+                  <li key={title} className="rounded-xl border border-border/60 bg-background/60 p-3">
+                    <p className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">
+                      {title}
+                    </p>
+                    <p className="mt-1 text-muted-foreground leading-snug">{items[0]}</p>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-6 flex flex-wrap gap-2">
+                <Link
+                  href="/integrations/wordpress"
+                  className={cn(buttonVariants(), "rounded-xl font-semibold")}
+                >
+                  Setup guide
+                </Link>
+                <Link
+                  href="/integrations"
+                  className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
+                >
+                  All integrations
+                </Link>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border/60 bg-card p-6 sm:p-8 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                  <Link2 className="h-6 w-6" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-bold">SplitSMS Connect</h3>
+                  <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+                    Provision embedded customers, allocate SMS credits, and register sender IDs via
+                    REST — built for SaaS platforms and resellers.
+                  </p>
+                </div>
+              </div>
+              <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
+                {[
+                  "POST /api/v1/connect/customers — create sub-accounts with wallet & credits",
+                  "Sender ID APIs scoped per customer",
+                  "Smart routing and unified provider admin",
+                  "Dashboard at /dashboard/connect for partner oversight",
+                ].map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-6 flex flex-wrap gap-2">
+                <Link
+                  href="/docs/connect"
+                  className={cn(buttonVariants(), "rounded-xl font-semibold")}
+                >
+                  Connect docs
+                </Link>
+                <Link
+                  href="/developers"
+                  className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
+                >
+                  Developer portal
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>

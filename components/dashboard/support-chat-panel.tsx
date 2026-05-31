@@ -36,17 +36,21 @@ export function SupportChatPanel({
   poll = true,
 }: SupportChatPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const initialMessagesKey = initialMessages.map((m) => m.id).join("|");
   const [messages, setMessages] = useState(initialMessages);
+  const [messagesKey, setMessagesKey] = useState(initialMessagesKey);
+
+  if (initialMessagesKey !== messagesKey) {
+    setMessagesKey(initialMessagesKey);
+    setMessages(initialMessages);
+  }
+
   const [text, setText] = useState(draftMessage);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const lastSyncRef = useRef<string>("");
   const [, startTransition] = useTransition();
-
-  useEffect(() => {
-    setMessages(initialMessages);
-  }, [initialMessages]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });

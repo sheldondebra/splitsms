@@ -6,7 +6,7 @@ import { getSiteUrl } from "@/lib/site-config";
 export const metadata: Metadata = {
   title: "Integrations — WordPress, Paystack, Flutterwave & more",
   description:
-    "Connect SplitSMS to WordPress, Crocoblock, WooCommerce, Paystack, Flutterwave, and form plugins. Setup guides and how SMS billing works.",
+    "Connect SplitSMS to WordPress, Crocoblock, WooCommerce, Paystack, Flutterwave, Elementor Pro, and form plugins. Setup guides and how SMS billing works.",
   alternates: { canonical: "/integrations" },
   openGraph: {
     url: `${getSiteUrl()}/integrations`,

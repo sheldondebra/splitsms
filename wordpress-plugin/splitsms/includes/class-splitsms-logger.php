@@ -80,32 +80,34 @@ class SplitSMS_Logger {
             array('%s', '%s', '%s', '%s', '%s', '%s', '%f', '%s', '%s', '%d', '%s')
         );
 
-        $id = (int) $wpdb->insert_id;
-        if ($id && SplitSMS_Settings::instance()->feature_enabled('debug_logs')) {
-            $this->maybe_sync_row($id, $row);
-        } elseif ($id && SplitSMS_Settings::is_configured()) {
-            $this->maybe_sync_row($id, $row);
-        }
-
-        return $id;
+        return (int) $wpdb->insert_id;
     }
 
     /**
-     * @param int                 $id
-     * @param array<string,mixed> $row
+     * Push a stored log row to SplitSMS (after send completes).
+     *
+     * @param int $id Local log row ID.
      */
-    private function maybe_sync_row($id, $row) {
-        if (!SplitSMS_Settings::is_configured()) {
+    public function sync_log_by_id($id) {
+        $id = (int) $id;
+        if ($id <= 0 || !SplitSMS_Settings::is_configured()) {
+            return;
+        }
+
+        global $wpdb;
+        $table = self::table_name();
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id), ARRAY_A);
+        if (!$row) {
             return;
         }
 
         $api = new SplitSMS_API();
-        $result = $api->push_log(array_merge($row, array('local_id' => $id)));
+        $result = $api->push_log($row);
 
         if (!empty($result['ok'])) {
-            global $wpdb;
             $wpdb->update(
-                self::table_name(),
+                $table,
                 array('synced' => 1),
                 array('id' => $id),
                 array('%d'),

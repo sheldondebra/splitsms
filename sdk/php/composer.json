@@ -1,12 +1,14 @@
 {
-  "name": "splitsms/splitsms-php",
-  "description": "Official SplitSMS PHP SDK — SMS, OTP, wallet, and campaigns",
+  "name": "splitsms/sdk",
+  "description": "Official SplitSMS PHP SDK — SMS, OTP, wallet, Connect, and sender IDs",
   "type": "library",
   "license": "MIT",
+  "version": "1.1.0",
   "homepage": "https://www.splitsms.com/sdk",
   "require": {
     "php": ">=7.4",
-    "ext-json": "*"
+    "ext-json": "*",
+    "ext-curl": "*"
   },
   "autoload": {
     "psr-4": {

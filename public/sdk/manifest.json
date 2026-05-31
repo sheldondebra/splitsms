@@ -1,0 +1,30 @@
+{
+  "updated_at": "2026-05-31T14:56:23.811Z",
+  "site_url": "https://www.splitsms.com",
+  "api_base": "https://www.splitsms.com/api/v1",
+  "docs_url": "https://www.splitsms.com/sdk",
+  "javascript": {
+    "name": "@splitsms/sdk",
+    "version": "1.1.0",
+    "install_npm_url": "https://www.splitsms.com/sdk/javascript/splitsms-sdk-1.1.0.tgz",
+    "install_npm_latest": "https://www.splitsms.com/sdk/javascript/splitsms-sdk.tgz",
+    "install_command": "npm install https://www.splitsms.com/sdk/javascript/splitsms-sdk.tgz"
+  },
+  "php": {
+    "name": "splitsms/sdk",
+    "version": "1.1.0",
+    "composer_repository": "https://www.splitsms.com/sdk/php/",
+    "packages_json": "https://www.splitsms.com/sdk/php/packages.json",
+    "install_commands": [
+      "composer config repositories.splitsms composer https://www.splitsms.com/sdk/php/",
+      "composer require splitsms/sdk"
+    ],
+    "zip_url": "https://www.splitsms.com/sdk/php/splitsms-sdk-1.1.0.zip"
+  },
+  "flutter": {
+    "name": "splitsms_flutter",
+    "version": "1.1.0",
+    "zip_url": "https://www.splitsms.com/sdk/flutter/splitsms-flutter-1.1.0.zip",
+    "install_note": "Download zip, extract to packages/splitsms_flutter, then add path dependency in pubspec.yaml"
+  }
+}

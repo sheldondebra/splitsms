@@ -4,28 +4,29 @@ Tags: sms, woocommerce, notifications, api, transactional
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.4.5
+Stable tag: 1.6.0
 License: GPLv2 or later
 
 Send transactional SMS from WordPress and WooCommerce using your SplitSMS API key.
 
 == Description ==
 
-* WooCommerce: order placed, payment complete, status changes (processing, completed, cancelled)
-* WordPress: new user welcome SMS, optional password reset via SMS
-* Contact Form 7, WPForms, and Elementor Pro: auto-reply SMS after form submit
-* Paystack / Flutterwave / Stripe: SMS when WooCommerce marks orders paid (via WooCommerce hooks)
-* Crocoblock: JetEngine, JetFormBuilder, JetBooking, JetAppointment
-* Per-feature toggles and editable message templates with placeholders
+* **Dashboard** — balance, send test SMS, activity stats, and cloud log sync
+* **WooCommerce** — order placed, payment complete, processing, completed, cancelled, failed, refunded, shipped (tracking), HPOS compatible, block checkout
+* **WordPress core** — welcome SMS on registration, optional password reset via SMS
+* **Forms** — Contact Form 7, WPForms, Elementor Pro Forms, JetFormBuilder native “Send SMS” action
+* **Crocoblock** — JetEngine CPTs, JetFormBuilder, JetBooking, JetAppointment with reminders and admin alerts
+* **Payments** — Paystack / Flutterwave / Stripe via WooCommerce payment hooks (no direct gateway API)
+* Per-feature toggles, editable templates with placeholders, skip reasons in logs
 
 == Installation ==
 
 1. If upgrading, deactivate SplitSMS and delete every `splitsms` / `splitsms-1` folder under `wp-content/plugins/` first.
 2. Install via Plugins → Add New → Upload `splitsms.zip` from splitsms.com (do not rename the zip file).
 3. Activate the plugin.
-3. Go to Settings → SplitSMS.
-4. Enter API base URL https://www.splitsms.com (pre-filled) and your API key from the SplitSMS dashboard.
-5. Enable the notifications you want and save.
+4. Open the **SplitSMS** menu in wp-admin.
+5. Enter your API key from the SplitSMS dashboard (Settings → SplitSMS).
+6. Enable integrations and save.
 
 == Frequently Asked Questions ==
 
@@ -35,9 +36,66 @@ Sign in to SplitSMS → Developers → API Keys.
 
 = Which phone number is used for WooCommerce? =
 
-The billing phone on the order.
+The billing phone on the order (or shipping phone, custom meta key, or user meta as fallback).
+
+= How do I add SMS to a JetFormBuilder form? =
+
+Connect SplitSMS, then in the form editor go to JetForm → Post Submit Actions → New Action → **Send SMS (SplitSMS)**.
 
 == Changelog ==
+
+= 1.6.0 =
+* New: WordPress core SMS settings UI — registration and password reset templates
+* New: Dedicated WPForms integration with skip logs and per-form ID filter
+* Improve: Complete Crocoblock admin — all JetEngine, JetBooking, and JetAppointment templates and toggles
+* Improve: JetFormBuilder admin template and provider phone field controls
+* Fix: Removed unused otp_login setting
+* Improve: readme and installation steps aligned with SplitSMS admin menu
+
+= 1.5.1 =
+* New: JetFormBuilder native “Send SMS (SplitSMS)” post-submit form action
+* Improve: Per-form SMS via JetFormBuilder actions; global auto-SMS skipped when the action runs
+* Improve: Crocoblock JetFormBuilder panel documents Post Submit Actions setup
+
+= 1.5.0 =
+* New: Full Elementor Pro Forms integration aligned with official form hooks
+* Improve: elementor_pro/forms/new_record + mail_sent fallback with dedupe
+* Improve: Tel field detection via field type, Field ID, and auto-scan
+* Improve: Per-form name filter, template vars, skip logs synced to dashboard
+* New: Elementor setup panel on Integrations with Field ID instructions
+
+= 1.4.9 =
+* New: Dedicated Contact Form 7 integration (class-splitsms-cf7.php)
+* New: CF7 setup panel — lists forms, field tips, link to CF7 docs
+* Improve: wpcf7_submit hook (mail_sent + optional mail_failed when SMTP fails)
+* Improve: Phone detection — tel fields, array values, auto-scan field names
+* Improve: Template vars — form_title, form_id, subject, message, field_* placeholders
+* Improve: Per-form ID filter and skip logs synced to SplitSMS dashboard
+* Fix: CF7 hooks register even when SplitSMS loads before Contact Form 7
+
+= 1.4.8 =
+* New: WooCommerce failed, refunded, and shipped (tracking) SMS events + templates
+* New: HPOS (custom order tables) compatibility declaration for WooCommerce
+* Improve: Skip logs (no phone, offline COD/BACS, dedupe) sync to SplitSMS dashboard
+* Improve: Order template vars — shipping, tracking, refund, order date, item count
+* Improve: COD/BACS payment SMS only when order is marked paid
+* Fix: WooCommerce integration boots even when plugin loads before WooCommerce
+
+= 1.4.7 =
+* New: Paystack setup checklist on Integrations (webhook URL copy, test/live tips)
+* Improve: Payment SMS for Paystack on-hold→completed and subscription renewals
+* Improve: Template variables {transaction_id} and {paystack_reference}
+* Improve: Detect Paystack gateway even when disabled in checkout settings
+
+= 1.4.6 =
+* Fix: WordPress log sync uses sms.send permission (no longer requires sms.read)
+* Fix: Cloud logs sync after send with final status (sent/failed), not stale pending
+* Fix: Parse message_ids and campaign_id from SplitSMS send API response
+* Fix: Send SMS admin page form handler and submit button
+* Fix: Password reset keeps default email when user has no phone on file
+* New: WooCommerce templates for order placed, processing, completed, and cancelled
+* New: Low balance SMS alert (once per day when account status reports low balance)
+* Improve: Crocoblock knowledge base link on Help page
 
 = 1.4.5 =
 * Fix: Find customer phone from billing, shipping, user meta, and common order meta keys

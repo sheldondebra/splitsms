@@ -3,8 +3,29 @@
   "siteName": "SplitSMS",
   "supportEmail": "support@tecunitgh.com",
   "apiPathPrefix": "/api/v1",
+  "sdks": {
+    "javascript": {
+      "version": "1.1.0",
+      "packageName": "@splitsms/sdk",
+      "downloadPath": "/sdk/javascript/splitsms-sdk.tgz",
+      "versionedDownloadPath": "/sdk/javascript/splitsms-sdk-{version}.tgz"
+    },
+    "php": {
+      "version": "1.1.0",
+      "packageName": "splitsms/sdk",
+      "composerRepoPath": "/sdk/php/",
+      "downloadPath": "/sdk/php/splitsms-sdk.zip",
+      "versionedDownloadPath": "/sdk/php/splitsms-sdk-{version}.zip"
+    },
+    "flutter": {
+      "version": "1.1.0",
+      "packageName": "splitsms_flutter",
+      "downloadPath": "/sdk/flutter/splitsms-flutter.zip",
+      "versionedDownloadPath": "/sdk/flutter/splitsms-flutter-{version}.zip"
+    }
+  },
   "wordpressPlugin": {
-    "version": "1.4.5",
+    "version": "1.6.0",
     "slug": "splitsms",
     "downloadPath": "/wordpress-plugin/splitsms.zip",
     "versionedDownloadPath": "/wordpress-plugin/splitsms-{version}.zip",

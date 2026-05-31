@@ -49,6 +49,23 @@ const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: "revoked", label: "Revoked" },
 ];
 
+function readStoredApiKey(createdFromUrl?: string): string | null {
+  if (createdFromUrl) {
+    const decoded = decodeURIComponent(createdFromUrl);
+    try {
+      sessionStorage.setItem(STORAGE_KEY, decoded);
+    } catch {
+      /* ignore */
+    }
+    return decoded;
+  }
+  try {
+    return sessionStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
 export function ApiKeysManager({
   keys,
   createdFromUrl,
@@ -56,32 +73,19 @@ export function ApiKeysManager({
   keys: ApiKeyRow[];
   createdFromUrl?: string;
 }) {
-  const [newKey, setNewKey] = useState<string | null>(null);
+  const [newKey, setNewKey] = useState<string | null>(() =>
+    typeof window !== "undefined" ? readStoredApiKey(createdFromUrl) : null,
+  );
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
-  const [createOpen, setCreateOpen] = useState(keys.length === 0);
+  const [createOpen, setCreateOpen] = useState(keys.length === 0 && !createdFromUrl);
 
   const activeCount = keys.filter((k) => k.isActive).length;
   const revokedCount = keys.length - activeCount;
 
   useEffect(() => {
-    if (createdFromUrl) {
-      const decoded = decodeURIComponent(createdFromUrl);
-      setNewKey(decoded);
-      try {
-        sessionStorage.setItem(STORAGE_KEY, decoded);
-      } catch {
-        /* ignore */
-      }
-      window.history.replaceState({}, "", "/developers/api-keys");
-      setCreateOpen(false);
-    } else {
-      try {
-        const stored = sessionStorage.getItem(STORAGE_KEY);
-        if (stored) setNewKey(stored);
-      } catch {
-        /* ignore */
-      }
-    }
+    if (!createdFromUrl) return;
+    window.history.replaceState({}, "", "/developers/api-keys");
+    queueMicrotask(() => setCreateOpen(false));
   }, [createdFromUrl]);
 
   const filtered = useMemo(() => {

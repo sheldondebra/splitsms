@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { wordpressPlugin } from "@/lib/site-config";
 
 const stats = [
   { value: "190+", label: "Countries supported" },
@@ -97,8 +98,8 @@ const coreFeatures = [
   {
     icon: Puzzle,
     title: "WordPress & WooCommerce",
-    desc: "Official plugin: order notifications, form plugins (CF7, WPForms), and toggles per event type.",
-    tags: ["E-commerce", "No code"],
+    desc: `Official plugin v${wordpressPlugin.version}: WooCommerce, CF7, WPForms, Elementor Pro, JetFormBuilder action, and Crocoblock.`,
+    tags: ["E-commerce", "No code", "Auto-updates"],
   },
   {
     icon: Shield,

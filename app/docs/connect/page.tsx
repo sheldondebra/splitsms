@@ -1,55 +1,71 @@
 import type { Metadata } from "next";
-import { DocsSubpage } from "@/components/marketing/docs-subpage";
-import Link from "next/link";
+import { MarketingPageShell } from "@/components/marketing/marketing-page-shell";
+import { ConnectDocsContent } from "@/components/marketing/connect-docs-content";
+import { connectFaqs } from "@/lib/marketing/connect-docs";
+import { getSiteUrl, siteName } from "@/lib/site-config";
+
+const siteUrl = getSiteUrl();
+
+const connectDescription =
+  "Provision customer accounts, wallets, and sender IDs via REST API. White-label SMS for SaaS platforms, agencies, and marketplaces — smart routing, WordPress plugin, and partner dashboard included.";
 
 export const metadata: Metadata = {
-  title: "SplitSMS Connect — embedded SMS platform",
-  description:
-    "Provision customers, wallets, sender IDs, and SMS from your SaaS, WordPress, or mobile app.",
+  title: "SplitSMS Connect — Embed SMS API for SaaS & Partners",
+  description: connectDescription,
+  keywords: [
+    "SplitSMS Connect",
+    "embed SMS API",
+    "white label SMS",
+    "SMS reseller API",
+    "provision SMS customers",
+    "SaaS SMS integration",
+    "partner SMS platform",
+    "embedded SMS",
+    "SMS API for marketplace",
+  ],
+  alternates: { canonical: `${siteUrl}/docs/connect` },
+  openGraph: {
+    title: "SplitSMS Connect — Embed SMS in Your Product",
+    description:
+      "Create customer accounts, allocate SMS credits, register sender IDs, and send globally through one partner API.",
+    url: `${siteUrl}/docs/connect`,
+    type: "article",
+  },
 };
+
+function connectDocsJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "TechArticle",
+        headline: "SplitSMS Connect — Embed SMS API for SaaS & Partners",
+        description: connectDescription,
+        url: `${siteUrl}/docs/connect`,
+        author: { "@type": "Organization", name: siteName },
+        publisher: { "@type": "Organization", name: siteName, url: siteUrl },
+        dateModified: "2026-05-31",
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: connectFaqs.map(({ q, a }) => ({
+          "@type": "Question",
+          name: q,
+          acceptedAnswer: { "@type": "Answer", text: a },
+        })),
+      },
+    ],
+  };
+}
 
 export default function DocsConnectPage() {
   return (
-    <DocsSubpage
-      title="SplitSMS Connect™"
-      description="Embed SMS into your product: create customers via API, manage wallets and sender IDs, route by country, and sync WordPress stores."
-    >
-      <h2>What is Connect?</h2>
-      <p>
-        Connect turns SplitSMS into an embedded communications layer for partners. Your app
-        provisions customer accounts, funds wallets, registers sender IDs on mNotify / Twilio /
-        Infobip, and sends SMS through the same routing engine as the dashboard.
-      </p>
-      <h2>Customer provisioning</h2>
-      <pre>{`POST /api/v1/connect/customers
-{
-  "full_name": "Acme Shop",
-  "phone": "233201234567",
-  "country_code": "GH",
-  "external_ref": "your_crm_id_123",
-  "initial_sms_credits": 100
-}`}</pre>
-      <p>
-        Use <code>external_ref</code> to map SplitSMS customers to your database. List and fetch
-        customers with <code>GET /connect/customers</code>.
-      </p>
-      <h2>Sender IDs</h2>
-      <p>
-        Register on behalf of a customer with <code>customer_id</code> (Connect link id, user id,
-        or external_ref). Registration follows your{" "}
-        <Link href="/admin/routes">routing policy</Link> (all providers, by country, or selected).
-      </p>
-      <h2>Smart routing</h2>
-      <p>
-        When auto-route is enabled, US numbers use global providers (Twilio / Infobip) and Ghana
-        numbers use mNotify — per country failover chains in Admin → SMS routes. Switch logs are
-        available to admins.
-      </p>
-      <h2>Dashboard</h2>
-      <p>
-        Members use <Link href="/dashboard/connect">Connect hub</Link> for API keys, WordPress
-        sites, wallet, and sender IDs in one place.
-      </p>
-    </DocsSubpage>
+    <MarketingPageShell>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(connectDocsJsonLd()) }}
+      />
+      <ConnectDocsContent baseUrl={siteUrl} />
+    </MarketingPageShell>
   );
 }

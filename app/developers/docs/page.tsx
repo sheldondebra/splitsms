@@ -12,7 +12,7 @@ export const fetchCache = "force-no-store";
 export const metadata = {
   title: "API Documentation",
   description:
-    "SplitSMS REST API reference, authentication, SDKs, and WordPress plugin connection guide.",
+    "SplitSMS REST API reference — SMS, OTP, Connect customers, sender IDs, webhooks, and WordPress plugin v1.6.0.",
 };
 
 export default function DevelopersDocsPage() {

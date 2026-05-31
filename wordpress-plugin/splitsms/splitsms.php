@@ -3,7 +3,7 @@
  * Plugin Name:       SplitSMS
  * Plugin URI:        https://www.splitsms.com/integrations
  * Description:       Send transactional SMS from WordPress and WooCommerce using your SplitSMS API key.
- * Version:           1.4.5
+ * Version:           1.6.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            SplitSMS
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('SPLITSMS_VERSION')) {
-    define('SPLITSMS_VERSION', '1.4.5');
+    define('SPLITSMS_VERSION', '1.6.0');
 }
 if (!defined('SPLITSMS_PLUGIN_FILE')) {
     define('SPLITSMS_PLUGIN_FILE', __FILE__);
@@ -66,12 +66,15 @@ $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-setti
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-logger.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-api.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-integrations-registry.php');
+$bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-paystack.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-reminders.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/integrations/class-splitsms-crocoblock.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/integrations/class-splitsms-jetengine.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/integrations/class-splitsms-jetformbuilder.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/integrations/class-splitsms-jetbooking.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/integrations/class-splitsms-jetappointment.php');
+$bootstrap_ok = $bootstrap_ok && splitsms_require('includes/integrations/class-splitsms-cf7.php');
+$bootstrap_ok = $bootstrap_ok && splitsms_require('includes/integrations/class-splitsms-wpforms.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/integrations/class-splitsms-elementor.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-woocommerce.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-wordpress.php');
@@ -108,10 +111,10 @@ function splitsms_init() {
     SplitSMS_Reminders::register_cron_hooks();
 
     if (SplitSMS_Settings::is_configured()) {
-        if (class_exists('WooCommerce')) {
-            SplitSMS_WooCommerce::instance();
-        }
+        SplitSMS_WooCommerce::instance();
         SplitSMS_WordPress::instance();
+        SplitSMS_CF7::instance();
+        SplitSMS_WPForms::instance();
         SplitSMS_JetEngine::instance();
         SplitSMS_JetFormBuilder::instance();
         SplitSMS_JetBooking::instance();
@@ -120,6 +123,20 @@ function splitsms_init() {
     }
 }
 add_action('plugins_loaded', 'splitsms_init');
+
+/**
+ * Declare compatibility with WooCommerce HPOS (custom order tables).
+ */
+function splitsms_declare_wc_compatibility() {
+    if (class_exists('\Automattic\WooCommerce\Utilities\FeaturesUtil')) {
+        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
+            'custom_order_tables',
+            SPLITSMS_PLUGIN_FILE,
+            true
+        );
+    }
+}
+add_action('before_woocommerce_init', 'splitsms_declare_wc_compatibility');
 
 /**
  * After plugin update via WordPress — merge new settings keys only.

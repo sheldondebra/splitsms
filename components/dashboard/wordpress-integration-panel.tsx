@@ -74,7 +74,7 @@ const setupSteps = [
   {
     step: 4,
     title: "Enable events",
-    desc: "Turn on WooCommerce, forms, or Crocoblock notifications you need.",
+    desc: "Turn on WooCommerce, WordPress core, CF7, WPForms, Elementor Pro, or Crocoblock under Integrations.",
   },
 ];
 

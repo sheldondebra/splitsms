@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMounted } from "@/lib/hooks/use-mounted";
 import { useTheme } from "@/components/theme-provider";
 import type { Theme } from "@/lib/theme";
 import { Monitor, Moon, Sun } from "lucide-react";
@@ -14,9 +14,7 @@ const options: { value: Theme; label: string; icon: typeof Sun }[] = [
 
 export function ThemeSidebarToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useMounted();
 
   if (!mounted) {
     return <div className={cn("h-9 rounded-lg bg-sidebar-accent/50 animate-pulse", className)} />;

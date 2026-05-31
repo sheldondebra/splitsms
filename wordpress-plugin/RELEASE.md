@@ -53,7 +53,7 @@ Settings and API keys are preserved on update.
 
 ### Verify update endpoint
 
-After deploy, these should show version **1.4.5** (or current):
+After deploy, these should show version **1.6.0** (or current in `config/site.json`):
 
 - Manifest: `https://splitsms.com/api/plugin/update`
 - Download: `https://splitsms.com/wordpress-plugin/splitsms.zip`

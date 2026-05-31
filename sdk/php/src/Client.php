@@ -20,12 +20,20 @@ class Client
     /** @var Wallet */
     private $wallet;
 
+    /** @var Connect */
+    private $connect;
+
+    /** @var SenderIds */
+    private $senderIds;
+
     public function __construct($apiKey, $baseUrl = 'https://www.splitsms.com')
     {
         $this->http = new HttpClient($apiKey, $baseUrl);
         $this->sms = new Sms($this->http);
         $this->otp = new Otp($this->http);
         $this->wallet = new Wallet($this->http);
+        $this->connect = new Connect($this->http);
+        $this->senderIds = new SenderIds($this->http);
     }
 
     /** @return Sms */
@@ -44,5 +52,17 @@ class Client
     public function wallet()
     {
         return $this->wallet;
+    }
+
+    /** @return Connect */
+    public function connect()
+    {
+        return $this->connect;
+    }
+
+    /** @return SenderIds */
+    public function senderIds()
+    {
+        return $this->senderIds;
     }
 }

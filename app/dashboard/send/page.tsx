@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
+import { getContactsForSendPicker } from "@/lib/contacts/send-picker";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
 import { SendSmsForm } from "@/components/sms/send-sms-form";
@@ -30,7 +31,7 @@ export default async function SendSmsPage({
       })
     : null;
 
-  const [senderIds, balance, templates] = session
+  const [senderIds, balance, templates, contactPicker] = session
     ? await Promise.all([
         prisma.senderId.findMany({
           where: { userId: session.userId, status: "APPROVED" },
@@ -42,8 +43,9 @@ export default async function SendSmsPage({
           orderBy: [{ isFavorite: "desc" }, { name: "asc" }],
           select: { id: true, name: true, content: true },
         }),
+        getContactsForSendPicker(session.userId),
       ])
-    : [[], null, []];
+    : [[], null, [], { contacts: [], groups: [], totalContacts: 0 }];
 
   return (
     <AppPage>
@@ -78,6 +80,9 @@ export default async function SendSmsPage({
             templates={templates}
             initialTemplateId={params.template}
             defaultCountryCode={user?.countryCode ?? DEFAULT_COUNTRY_CODE}
+            contacts={contactPicker.contacts}
+            contactGroups={contactPicker.groups}
+            totalContacts={contactPicker.totalContacts}
           />
         </AppCardBody>
       </AppCard>

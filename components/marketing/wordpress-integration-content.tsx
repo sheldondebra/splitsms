@@ -3,59 +3,21 @@ import {
   Download,
   Key,
   Puzzle,
-  ShoppingCart,
-  UserPlus,
-  FileText,
   CheckCircle2,
   ExternalLink,
   RefreshCw,
-  Layers,
+  BookOpen,
+  History,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getSiteUrl, wordpressPlugin } from "@/lib/site-config";
 import { CopyButton } from "@/components/developers/copy-button";
-
-const features = [
-  {
-    icon: ShoppingCart,
-    title: "WooCommerce",
-    items: [
-      "Order placed at checkout",
-      "Payment complete",
-      "Status: processing, completed, cancelled",
-      "Custom templates per event",
-    ],
-  },
-  {
-    icon: UserPlus,
-    title: "WordPress",
-    items: [
-      "Welcome SMS on user registration",
-      "Optional password reset link via SMS",
-      "Uses billing_phone or splitsms_phone meta",
-    ],
-  },
-  {
-    icon: FileText,
-    title: "Form plugins",
-    items: [
-      "Contact Form 7 — after mail sent",
-      "WPForms — after successful submit",
-      "Configurable phone field name",
-    ],
-  },
-  {
-    icon: Layers,
-    title: "Crocoblock / JetEngine",
-    items: [
-      "JetEngine custom post types & status changes",
-      "JetFormBuilder form submissions",
-      "JetBooking & JetAppointment with reminders",
-      "Field mapping + conditional SMS rules",
-    ],
-  },
-];
+import {
+  wordpressIntegrationFeatureGroups,
+  wordpressSetupSteps,
+  woocommerceTemplatePlaceholders,
+} from "@/lib/marketing/wordpress-integration-features";
 
 export function WordPressIntegrationContent() {
   const baseUrl = getSiteUrl();
@@ -128,7 +90,7 @@ export function WordPressIntegrationContent() {
           </div>
 
           <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {features.map(({ icon: Icon, title, items }) => (
+            {wordpressIntegrationFeatureGroups.map(({ icon: Icon, title, items }) => (
               <div
                 key={title}
                 className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm"
@@ -150,27 +112,43 @@ export function WordPressIntegrationContent() {
           <div className="mt-12 rounded-2xl border border-border/60 bg-card p-6 md:p-8">
             <h2 className="text-lg font-semibold">Setup in 5 minutes</h2>
             <ol className="mt-4 list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link href="/signup" className="text-primary font-medium hover:underline">
-                  Create a SplitSMS account
-                </Link>{" "}
-                and generate an API key with <strong>sms.send</strong> permission.
-              </li>
-              <li>WordPress → Plugins → Add New → Upload → choose splitsms.zip.</li>
-              <li>
-                Settings → SplitSMS → set API base URL to{" "}
-                <code className="text-xs bg-muted px-1 rounded">{baseUrl}</code>
-              </li>
-              <li>Paste your API key and approved Sender ID.</li>
-              <li>Enable WooCommerce, forms, or Crocoblock (JetEngine / JetBooking) events in the plugin.</li>
+              {wordpressSetupSteps(baseUrl).map((step, i) => (
+                <li key={i}>
+                  {i === 0 ? (
+                    <>
+                      <Link href="/signup" className="text-primary font-medium hover:underline">
+                        Create a SplitSMS account
+                      </Link>{" "}
+                      and generate an API key with <strong>sms.send</strong> permission.
+                    </>
+                  ) : (
+                    step
+                  )}
+                </li>
+              ))}
             </ol>
+            <p className="mt-4 text-xs text-muted-foreground">
+              WooCommerce placeholders:{" "}
+              <code className="bg-muted px-1 rounded text-[11px]">{woocommerceTemplatePlaceholders}</code>
+            </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/login" className={cn(buttonVariants({ variant: "outline" }), "gap-2")}>
+              <Link href="/docs" className={cn(buttonVariants({ variant: "outline" }), "gap-2")}>
+                <BookOpen className="h-4 w-4" />
+                Documentation
+              </Link>
+              <Link href="/changelog" className={cn(buttonVariants({ variant: "outline" }), "gap-2")}>
+                <History className="h-4 w-4" />
+                Changelog
+              </Link>
+              <Link href="/integrations/crocoblock" className={cn(buttonVariants({ variant: "outline" }))}>
+                Crocoblock guide
+              </Link>
+              <Link href="/integrations/elementor-pro" className={cn(buttonVariants({ variant: "outline" }))}>
+                Elementor Pro
+              </Link>
+              <Link href="/login" className={cn(buttonVariants({ variant: "ghost" }), "gap-2")}>
                 <Key className="h-4 w-4" />
                 Log in for API keys
-              </Link>
-              <Link href="/company" className={cn(buttonVariants({ variant: "ghost" }))}>
-                About SplitSMS & Tecunit →
               </Link>
             </div>
           </div>

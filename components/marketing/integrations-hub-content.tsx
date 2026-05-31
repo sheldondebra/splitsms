@@ -23,7 +23,7 @@ const categoryMeta = {
   },
   automation: {
     title: "Automation",
-    description: "Crocoblock, Contact Form 7, WPForms — SMS on every event.",
+    description: "Crocoblock, Contact Form 7, WPForms, Elementor Pro — SMS on every event.",
     icon: Layers,
   },
 } as const;

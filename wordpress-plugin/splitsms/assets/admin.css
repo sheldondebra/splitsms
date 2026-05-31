@@ -567,6 +567,82 @@
   margin-bottom: 1rem;
 }
 
+.splitsms-paystack-panel {
+  border-color: #bae6fd;
+  background: linear-gradient(180deg, #f0f9ff 0%, #fff 100%);
+}
+
+.splitsms-paystack-status {
+  margin: 0.75rem 0 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.splitsms-paystack-status.is-ready {
+  background: #ecfdf5;
+  border: 1px solid #86efac;
+  color: #166534;
+}
+
+.splitsms-paystack-status.is-pending {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+}
+
+.splitsms-paystack-checklist {
+  margin: 0 0 1rem 1.25rem;
+  padding: 0;
+}
+
+.splitsms-paystack-checklist li {
+  margin-bottom: 0.65rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.splitsms-paystack-checklist .description {
+  display: block;
+  margin-top: 0.15rem;
+}
+
+.splitsms-paystack-checklist .is-done .splitsms-paystack-check {
+  color: #16a34a;
+}
+
+.splitsms-paystack-webhook-url {
+  display: block;
+  padding: 0.65rem 0.75rem;
+  margin: 0.5rem 0;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 6px;
+  word-break: break-all;
+  font-size: 12px;
+}
+
+.splitsms-cf7-warn {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.splitsms-cf7-panel {
+  border-color: #c4b5fd;
+  background: linear-gradient(180deg, #f5f3ff 0%, #fff 100%);
+}
+
+.splitsms-elementor-panel {
+  border-color: #fda4af;
+  background: linear-gradient(180deg, #fff1f2 0%, #fff 100%);
+}
+
+.splitsms-elementor-warn {
+  color: #b45309;
+  font-weight: 600;
+}
+
 @media (max-width: 782px) {
   .splitsms-layout {
     grid-template-columns: 1fr;

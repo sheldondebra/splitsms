@@ -31,8 +31,12 @@ function isActive(pathname: string, href: string) {
 export function SiteHeader({ account = null }: { account?: HeaderAccountProfile | null }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [lastPathname, setLastPathname] = useState(pathname);
 
-  useEffect(() => setMenuOpen(false), [pathname]);
+  if (pathname !== lastPathname) {
+    setLastPathname(pathname);
+    setMenuOpen(false);
+  }
 
   useEffect(() => {
     if (!menuOpen) return;

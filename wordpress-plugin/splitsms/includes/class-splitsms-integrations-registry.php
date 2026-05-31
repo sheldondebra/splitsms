@@ -18,13 +18,15 @@ class SplitSMS_Integrations_Registry {
                 'label' => 'WooCommerce',
                 'active' => class_exists('WooCommerce', false),
                 'group' => 'store',
-                'note' => __('Order placed, processing, completed, cancelled, and payment complete events.', 'splitsms'),
+                'note' => __('Order placed, payments, processing, completed, cancelled, failed, refunded, and shipping tracking events.', 'splitsms'),
             ),
             'paystack' => array(
                 'label' => 'WooCommerce Paystack',
-                'active' => self::has_payment_gateway('paystack'),
+                'active' => class_exists('SplitSMS_Paystack', false)
+                    ? SplitSMS_Paystack::is_gateway_present()
+                    : self::has_payment_gateway('paystack'),
                 'group' => 'gateway',
-                'note' => __('SMS fires when WooCommerce marks the order paid (payment_complete or processing). Configure Paystack webhooks in WooCommerce.', 'splitsms'),
+                'note' => __('SMS when Paystack confirms payment (payment_complete or processing). Set Paystack webhook URL for reliable delivery.', 'splitsms'),
             ),
             'flutterwave' => array(
                 'label' => 'WooCommerce Flutterwave (Rave)',
@@ -42,19 +44,19 @@ class SplitSMS_Integrations_Registry {
                 'label' => 'Contact Form 7',
                 'active' => defined('WPCF7_VERSION'),
                 'group' => 'forms',
-                'note' => __('SMS after successful form submit (wpcf7_mail_sent).', 'splitsms'),
+                'note' => __('SMS after valid submit (wpcf7_submit / mail_sent). Optional SMS when email fails. Skips sync to dashboard.', 'splitsms'),
             ),
             'wpforms' => array(
                 'label' => 'WPForms',
                 'active' => defined('WPFORMS_VERSION') || function_exists('wpforms'),
                 'group' => 'forms',
-                'note' => __('SMS after form submission (wpforms_process_complete).', 'splitsms'),
+                'note' => __('SMS after form submission — dedicated integration with skip logs and per-form ID filter.', 'splitsms'),
             ),
             'elementor' => array(
                 'label' => 'Elementor Pro Forms',
                 'active' => defined('ELEMENTOR_PRO_VERSION'),
                 'group' => 'forms',
-                'note' => __('SMS on Elementor Pro form submit (new_record).', 'splitsms'),
+                'note' => __('SMS on elementor_pro/forms/new_record after form actions. Tel field required.', 'splitsms'),
             ),
             'jetengine' => array(
                 'label' => 'JetEngine',
@@ -66,7 +68,7 @@ class SplitSMS_Integrations_Registry {
                 'label' => 'JetFormBuilder',
                 'active' => defined('JET_FORM_BUILDER_VERSION'),
                 'group' => 'crocoblock',
-                'note' => __('Form submit SMS — enable JetFormBuilder under Crocoblock.', 'splitsms'),
+                'note' => __('Add “Send SMS (SplitSMS)” in JetFormBuilder Post Submit Actions, or use global templates under Crocoblock.', 'splitsms'),
             ),
             'jetbooking' => array(
                 'label' => 'JetBooking',
@@ -105,7 +107,14 @@ class SplitSMS_Integrations_Registry {
 
         $available = $gateways->get_available_payment_gateways();
         if (!is_array($available)) {
-            return false;
+            $available = array();
+        }
+
+        if (method_exists($gateways, 'payment_gateways')) {
+            $registered = $gateways->payment_gateways();
+            if (is_array($registered)) {
+                $available = array_merge($registered, $available);
+            }
         }
 
         foreach (array_keys($available) as $id) {

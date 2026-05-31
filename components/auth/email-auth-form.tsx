@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { initialCountryState } from "@/lib/auth/initial-country-state";
 import { requestEmailAuthAction } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { CountrySelect } from "@/components/auth/country-select";
 import type { SignupCountryOption } from "@/lib/signup-countries";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
-import { detectCountryFromLocale } from "@/lib/country-detect";
 import { ArrowRight, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,21 +19,10 @@ type EmailAuthFormProps = {
 
 export function EmailAuthForm({ countries, intent = "login" }: EmailAuthFormProps) {
   const isSignup = intent === "signup";
-  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
-  const [dialCode, setDialCode] = useState("+233");
+  const initial = isSignup ? initialCountryState(countries) : { countryCode: DEFAULT_COUNTRY_CODE, dialCode: "+233" };
+  const [countryCode, setCountryCode] = useState(initial.countryCode);
+  const [dialCode, setDialCode] = useState(initial.dialCode);
   const [phoneLocal, setPhoneLocal] = useState("");
-
-  useEffect(() => {
-    if (!isSignup) return;
-    const detected = detectCountryFromLocale(
-      typeof navigator !== "undefined" ? navigator.language : undefined,
-    );
-    const match = countries.find((c) => c.code === detected);
-    if (match) {
-      setCountryCode(match.code);
-      setDialCode(match.dialCode);
-    }
-  }, [countries, isSignup]);
 
   function onCountryChange(code: string, country: SignupCountryOption) {
     setCountryCode(code);

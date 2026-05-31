@@ -1,7 +1,7 @@
 {
   "name": "@splitsms/sdk",
-  "version": "1.0.0",
-  "description": "Official SplitSMS SDK for Node.js and browsers — SMS, OTP, wallet, and campaigns",
+  "version": "1.1.0",
+  "description": "Official SplitSMS SDK — install from https://www.splitsms.com/sdk/javascript/splitsms-sdk.tgz (NOT registry.npmjs.org)",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

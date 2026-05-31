@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useMounted } from "@/lib/hooks/use-mounted";
 import {
   THEME_COOKIE,
   type Theme,
@@ -76,17 +77,19 @@ export function ThemeProvider({
     serverTheme === "dark" ? "dark" : "light",
   );
   const [systemTheme, setSystemTheme] = useState<"light" | "dark">("light");
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
 
   useEffect(() => {
-    setMounted(true);
+    if (!mounted) return;
     const stored = readStoredTheme();
-    setThemeState(stored);
     const resolved = resolveTheme(stored);
-    setResolvedTheme(resolved);
-    setSystemTheme(
-      window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
-    );
+    queueMicrotask(() => {
+      setThemeState(stored);
+      setResolvedTheme(resolved);
+      setSystemTheme(
+        window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
+      );
+    });
     applyThemeToDocument(resolved);
     persistTheme(stored);
 
@@ -102,7 +105,7 @@ export function ThemeProvider({
     };
     mq.addEventListener("change", onSystemChange);
     return () => mq.removeEventListener("change", onSystemChange);
-  }, []);
+  }, [mounted]);
 
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);

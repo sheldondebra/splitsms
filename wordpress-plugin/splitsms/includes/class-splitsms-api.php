@@ -55,12 +55,7 @@ class SplitSMS_API {
 
         $response = $this->request('POST', $url, $body);
         if (!empty($response['ok'])) {
-            $message_id = null;
-            if (isset($response['data']['data']['message_id'])) {
-                $message_id = $response['data']['data']['message_id'];
-            } elseif (isset($response['data']['message_id'])) {
-                $message_id = $response['data']['message_id'];
-            }
+            $message_id = $this->extract_send_message_id(isset($response['data']) ? $response['data'] : null);
             $this->update_log_status($log_id, 'sent', $message_id);
             return array('ok' => true, 'data' => $response['data'], 'log_id' => $log_id);
         }
@@ -274,6 +269,32 @@ class SplitSMS_API {
             $format[] = '%s';
         }
         $wpdb->update(self::logger_table(), $data, array('id' => $log_id), $format, array('%d'));
+        SplitSMS_Logger::instance()->sync_log_by_id($log_id);
+    }
+
+    /**
+     * @param array<string,mixed>|null $payload API success body.
+     * @return string|null
+     */
+    private function extract_send_message_id($payload) {
+        if (!is_array($payload)) {
+            return null;
+        }
+
+        if (!empty($payload['message_ids']) && is_array($payload['message_ids'])) {
+            return (string) $payload['message_ids'][0];
+        }
+        if (!empty($payload['campaign_id'])) {
+            return (string) $payload['campaign_id'];
+        }
+        if (!empty($payload['message_id'])) {
+            return (string) $payload['message_id'];
+        }
+        if (isset($payload['data']) && is_array($payload['data'])) {
+            return $this->extract_send_message_id($payload['data']);
+        }
+
+        return null;
     }
 
     private static function logger_table() {

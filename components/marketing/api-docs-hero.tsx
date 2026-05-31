@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Braces, Key, Zap, Webhook, ArrowRight, Terminal } from "lucide-react";
+import { Braces, Key, Zap, ArrowRight, Terminal, Link2, Puzzle } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CopyButton } from "@/components/developers/copy-button";
+import { wordpressPlugin } from "@/lib/site-config";
 
 type ApiDocsHeroProps = {
   baseUrl: string;
@@ -33,8 +34,9 @@ export function ApiDocsHero({ baseUrl }: ApiDocsHeroProps) {
               <span className="text-gradient-orange">SplitSMS API</span>
             </h1>
             <p className="mt-4 text-base text-muted-foreground max-w-xl leading-relaxed">
-              Send SMS, verify OTPs, manage contacts and campaigns, read wallet balance, and
-              receive webhooks — with sandbox keys for safe testing.
+              Send SMS, verify OTPs, manage contacts and campaigns, provision Connect customers,
+              register sender IDs, and integrate WordPress v{wordpressPlugin.version} — with
+              sandbox keys and HMAC-signed webhooks.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row flex-wrap gap-3">
@@ -53,6 +55,13 @@ export function ApiDocsHero({ baseUrl }: ApiDocsHeroProps) {
                 Postman collection
               </Link>
               <Link
+                href="/docs/connect"
+                className={cn(buttonVariants({ size: "lg", variant: "outline" }), "gap-2")}
+              >
+                <Link2 className="h-4 w-4" />
+                Connect API
+              </Link>
+              <Link
                 href="/login"
                 className={cn(
                   buttonVariants({ size: "lg", variant: "ghost" }),
@@ -64,11 +73,12 @@ export function ApiDocsHero({ baseUrl }: ApiDocsHeroProps) {
               </Link>
             </div>
 
-            <div className="mt-10 grid grid-cols-3 gap-3 max-w-md">
+            <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-lg">
               {[
                 { icon: Zap, label: "Bulk SMS", sub: "Queue & campaigns" },
                 { icon: Key, label: "OTP", sub: "Send & verify" },
-                { icon: Webhook, label: "Webhooks", sub: "Signed events" },
+                { icon: Link2, label: "Connect", sub: "Embed customers" },
+                { icon: Puzzle, label: "WordPress", sub: `Plugin v${wordpressPlugin.version}` },
               ].map(({ icon: Icon, label, sub }) => (
                 <div
                   key={label}

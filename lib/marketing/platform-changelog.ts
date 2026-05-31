@@ -58,6 +58,139 @@ export const changelogReleases: ChangelogRelease[] = [
     ],
   },
   {
+    version: "1.6.0",
+    date: "2026-05-31",
+    product: "wordpress",
+    summary:
+      "Complete admin UI for WordPress core and Crocoblock, dedicated WPForms integration, and docs alignment.",
+    changes: [
+      {
+        type: "added",
+        text: "WordPress core SMS settings — registration and password reset templates on Integrations.",
+      },
+      {
+        type: "added",
+        text: "Dedicated WPForms class with skip logs, per-form ID filter, and setup panel.",
+      },
+      {
+        type: "changed",
+        text: "Crocoblock admin exposes all JetEngine, JetBooking, and JetAppointment templates and toggles.",
+      },
+      {
+        type: "fixed",
+        text: "Removed unused otp_login_enabled setting.",
+      },
+    ],
+  },
+  {
+    version: "1.5.1",
+    date: "2026-05-31",
+    product: "wordpress",
+    summary: "JetFormBuilder native Send SMS post-submit form action.",
+    changes: [
+      {
+        type: "added",
+        text: "Send SMS (SplitSMS) appears in JetFormBuilder Post Submit Actions when connected.",
+      },
+      {
+        type: "changed",
+        text: "Global JetFormBuilder auto-SMS skipped when the per-form action runs.",
+      },
+    ],
+  },
+  {
+    version: "1.5.0",
+    date: "2026-05-30",
+    product: "wordpress",
+    summary: "Full Elementor Pro Forms integration.",
+    changes: [
+      {
+        type: "added",
+        text: "Elementor Pro Forms — elementor_pro/forms/new_record + mail_sent fallback.",
+      },
+      {
+        type: "added",
+        text: "Elementor setup panel with Field ID instructions on Integrations.",
+      },
+    ],
+  },
+  {
+    version: "1.4.9",
+    date: "2026-05-29",
+    product: "wordpress",
+    summary: "Dedicated Contact Form 7 integration with skip logs and per-form filters.",
+    changes: [
+      {
+        type: "added",
+        text: "class-splitsms-cf7.php — wpcf7_submit primary hook with mail_failed fallback.",
+      },
+      {
+        type: "added",
+        text: "CF7 setup panel listing forms; skip reasons sync to SplitSMS dashboard.",
+      },
+    ],
+  },
+  {
+    version: "1.4.8",
+    date: "2026-05-28",
+    product: "wordpress",
+    summary: "WooCommerce failed, refunded, shipped events; HPOS compatibility.",
+    changes: [
+      {
+        type: "added",
+        text: "SMS for payment failed, refunded, and shipped (tracking) order events.",
+      },
+      {
+        type: "added",
+        text: "HPOS (custom order tables) compatibility declaration.",
+      },
+      {
+        type: "changed",
+        text: "COD/BACS payment SMS only when order is marked paid.",
+      },
+    ],
+  },
+  {
+    version: "1.4.6",
+    date: "2026-05-27",
+    product: "wordpress",
+    summary: "Cloud log sync fixes, Send SMS admin page, and low balance alerts.",
+    changes: [
+      {
+        type: "fixed",
+        text: "WordPress log sync uses sms.send permission (not sms.read).",
+      },
+      {
+        type: "fixed",
+        text: "Cloud logs sync with final sent/failed status after API response.",
+      },
+      {
+        type: "added",
+        text: "Low balance SMS alert (once per day) and WooCommerce order-placed templates.",
+      },
+    ],
+  },
+  {
+    version: "1.3.0",
+    date: "2026-05-25",
+    product: "wordpress",
+    summary: "Elementor Pro forms, Paystack paid→processing hook, Crocoblock module independence.",
+    changes: [
+      {
+        type: "added",
+        text: "Elementor Pro forms integration (initial release, expanded in 1.5.0).",
+      },
+      {
+        type: "added",
+        text: "WooCommerce paid → processing hook for Paystack / Flutterwave gateways.",
+      },
+      {
+        type: "fixed",
+        text: "Crocoblock modules work without master Crocoblock toggle.",
+      },
+    ],
+  },
+  {
     version: "1.2.1",
     date: "2026-05-22",
     product: "wordpress",
@@ -169,6 +302,28 @@ export const changelogReleases: ChangelogRelease[] = [
       {
         type: "added",
         text: "Per-event templates with placeholders and local message logs.",
+      },
+    ],
+  },
+  {
+    version: "2026.05.31",
+    date: "2026-05-31",
+    label: "Documentation",
+    product: "platform",
+    summary:
+      "Documentation and changelog updated for WordPress plugin v1.6.0, Connect v2.0, and form integrations.",
+    changes: [
+      {
+        type: "changed",
+        text: "/docs WordPress chapter — core SMS, all form plugins, JetFormBuilder action, full WooCommerce events.",
+      },
+      {
+        type: "changed",
+        text: "/changelog — WordPress releases 1.3.0 through 1.6.0 documented.",
+      },
+      {
+        type: "added",
+        text: "Integrations catalog — Elementor Pro Forms page; WPForms and CF7 setup details refreshed.",
       },
     ],
   },

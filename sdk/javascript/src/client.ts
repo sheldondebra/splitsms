@@ -4,10 +4,13 @@ import { OtpResource } from "./otp/index.js";
 import { WalletResource } from "./wallet/index.js";
 import { CampaignsResource } from "./campaigns/index.js";
 
+import { ConnectResource } from "./connect/index.js";
+import { SenderIdsResource } from "./sender-ids/index.js";
+
 export type SplitSMSOptions = HttpClientOptions;
 
 /**
- * Official SplitSMS SDK — SMS, OTP, wallet, and campaigns.
+ * Official SplitSMS SDK — SMS, OTP, wallet, campaigns, Connect, and sender IDs.
  * @see https://www.splitsms.com/sdk
  */
 export class SplitSMS {
@@ -17,6 +20,8 @@ export class SplitSMS {
   readonly otp: OtpResource;
   readonly wallet: WalletResource;
   readonly campaigns: CampaignsResource;
+  readonly connect: ConnectResource;
+  readonly senderIds: SenderIdsResource;
 
   constructor(options: SplitSMSOptions) {
     this.http = new HttpClient(options);
@@ -24,6 +29,8 @@ export class SplitSMS {
     this.otp = new OtpResource(this.http);
     this.wallet = new WalletResource(this.http);
     this.campaigns = new CampaignsResource(this.http);
+    this.connect = new ConnectResource(this.http);
+    this.senderIds = new SenderIdsResource(this.http);
   }
 
   /** @deprecated Use messages.send() */

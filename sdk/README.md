@@ -1,29 +1,26 @@
 # SplitSMS SDKs
 
-Official client libraries for [www.splitsms.com](https://www.splitsms.com).
+Official client libraries for [www.splitsms.com/sdk](https://www.splitsms.com/sdk).
+
+Packages are **hosted on SplitSMS** — install without npm, Packagist, or pub.dev:
 
 | SDK | Install | Folder |
 |-----|---------|--------|
-| JavaScript / Node | `npm install @splitsms/sdk` | `javascript/` |
-| PHP | `composer require splitsms/splitsms-php` | `php/` |
-| Flutter | `flutter pub add splitsms_flutter` | `flutter/` |
+| JavaScript / Node | `npm install https://www.splitsms.com/sdk/javascript/splitsms-sdk.tgz` | `javascript/` |
+| PHP | `composer config repositories.splitsms composer https://www.splitsms.com/sdk/php/` then `composer require splitsms/sdk` | `php/` |
+| Flutter | Download zip from `/sdk/flutter/`, path dependency | `flutter/` |
 
-Documentation: [https://www.splitsms.com/sdk](https://www.splitsms.com/sdk)
-
-## Build JavaScript SDK
+Build and publish artifacts from repo root:
 
 ```bash
-cd sdk/javascript
-npm install
-npm run build
+npm run sync:sdks
 ```
 
-## Features (all SDKs)
+## Features (v1.1.0)
 
-- Send SMS
-- Send & verify OTP
-- Wallet balance
-- Delivery / message status
+- Send SMS, OTP send/verify, wallet balance
+- Connect customer provisioning
+- Sender ID registration
 - Campaign list (JS)
 
-See `SplitSMS_SDK_Developer_Integration_System.md` for the full product spec.
+See [SDK page](https://www.splitsms.com/sdk) for copy-paste examples.

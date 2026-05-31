@@ -1,13 +1,26 @@
 "use client";
 
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { sendSmsAction } from "@/lib/actions/sms";
 import { getMessagePreview } from "@/lib/sms/message-preview";
 import { SendCostPreview } from "@/components/sms/send-cost-preview";
 import { SmsPreview } from "@/components/sms/sms-preview";
+import {
+  RecipientChipInput,
+  type RecipientChip,
+} from "@/components/sms/recipient-chip-input";
+import { ContactPickerTrigger } from "@/components/sms/contact-picker-dialog";
+import type {
+  SendContactGroupOption,
+  SendContactOption,
+} from "@/lib/contacts/send-picker";
+import {
+  splitRecipientInput,
+  validateRecipientPhone,
+} from "@/lib/sms/phone-validation";
 import { TEMPLATE_VARIABLES } from "@/lib/sms/personalize";
 import { friendlyError } from "@/lib/ux/messages";
 import { Button } from "@/components/ui/button";
@@ -41,13 +54,30 @@ type SendSmsFormProps = {
   templates: SendTemplateOption[];
   initialTemplateId?: string;
   defaultCountryCode?: string;
+  contacts?: SendContactOption[];
+  contactGroups?: SendContactGroupOption[];
+  totalContacts?: number;
 };
 
-function countRecipients(raw: string) {
-  return raw
-    .split(/[\n,;]+/)
-    .map((s) => s.trim())
-    .filter(Boolean).length;
+function validRecipientCount(chips: RecipientChip[]) {
+  return chips.filter((c) => c.valid).length;
+}
+
+function mergeRecipientPhones(existing: string, phones: string[]): string {
+  const seen = new Set(
+    splitRecipientInput(existing).map(
+      (p) => validateRecipientPhone(p).display || p.replace(/\D/g, ""),
+    ),
+  );
+  const merged = splitRecipientInput(existing);
+  for (const phone of phones) {
+    const display = validateRecipientPhone(phone).display || phone.replace(/^\+/, "");
+    const key = display.replace(/\D/g, "") || display;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(display);
+  }
+  return merged.join("\n");
 }
 
 export function SendSmsForm({
@@ -56,13 +86,20 @@ export function SendSmsForm({
   templates,
   initialTemplateId,
   defaultCountryCode = DEFAULT_COUNTRY_CODE,
+  contacts = [],
+  contactGroups = [],
+  totalContacts = 0,
 }: SendSmsFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showSuccess, setShowSuccess] = useState(false);
   const [lastSent, setLastSent] = useState<{ count: number; credits: number } | null>(null);
+  const initialTpl = initialTemplateId
+    ? templates.find((t) => t.id === initialTemplateId)
+    : undefined;
   const [recipients, setRecipients] = useState("");
-  const [body, setBody] = useState("");
+  const [recipientChips, setRecipientChips] = useState<RecipientChip[]>([]);
+  const [body, setBody] = useState(initialTpl?.content ?? "");
   const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplateId ?? "");
   const [senderId, setSenderId] = useState(senderOptions[0]?.value ?? defaultSender);
   const [countryCode, setCountryCode] = useState(defaultCountryCode);
@@ -71,15 +108,6 @@ export function SendSmsForm({
     () => templates.find((t) => t.id === selectedTemplateId),
     [templates, selectedTemplateId],
   );
-
-  useEffect(() => {
-    if (!initialTemplateId || templates.length === 0) return;
-    const tpl = templates.find((t) => t.id === initialTemplateId);
-    if (tpl) {
-      setSelectedTemplateId(tpl.id);
-      setBody(tpl.content);
-    }
-  }, [initialTemplateId, templates]);
 
   function applyTemplate(id: string) {
     setSelectedTemplateId(id);
@@ -93,9 +121,16 @@ export function SendSmsForm({
     setBody((b) => (b ? `${b}${b.endsWith(" ") ? "" : " "}${token}` : token));
   }
 
-  const recipientCount = countRecipients(recipients);
+  const recipientCount = validRecipientCount(recipientChips);
+  const invalidRecipientCount = recipientChips.length - recipientCount;
+  const hasInvalidRecipients = invalidRecipientCount > 0;
   const preview = useMemo(() => getMessagePreview(body), [body]);
   const hasApprovedSender = senderOptions.length > 0;
+
+  function addContactsFromPicker(phones: string[]) {
+    if (phones.length === 0) return;
+    setRecipients((prev) => mergeRecipientPhones(prev, phones));
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -116,6 +151,7 @@ export function SendSmsForm({
           setLastSent({ count: result.recipientCount, credits: result.creditsUsed });
           setShowSuccess(true);
           setRecipients("");
+          setRecipientChips([]);
           setBody("");
           setSelectedTemplateId("");
 
@@ -302,33 +338,59 @@ export function SendSmsForm({
 
           {/* Recipients */}
           <div className="rounded-xl border border-border/60 bg-card p-4 sm:p-5 space-y-3">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-primary shrink-0" />
                 <Label htmlFor="recipients" className="text-sm font-semibold">
                   Phone numbers
                 </Label>
               </div>
-              {recipientCount > 0 ? (
-                <Badge variant="secondary" className="shrink-0">
-                  {recipientCount} number{recipientCount === 1 ? "" : "s"}
-                </Badge>
-              ) : null}
+              <div className="flex items-center gap-2 shrink-0">
+                <ContactPickerTrigger
+                  contacts={contacts}
+                  groups={contactGroups}
+                  totalContacts={totalContacts}
+                  onAdd={addContactsFromPicker}
+                  disabled={pending}
+                />
+                {recipientChips.length > 0 ? (
+                  <div className="flex items-center gap-1.5">
+                    {recipientCount > 0 && (
+                      <Badge
+                        variant="secondary"
+                        className="bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border-0"
+                      >
+                        {recipientCount} valid
+                      </Badge>
+                    )}
+                    {hasInvalidRecipients && (
+                      <Badge
+                        variant="secondary"
+                        className="bg-red-500/15 text-red-800 dark:text-red-200 border-0"
+                      >
+                        {invalidRecipientCount} invalid
+                      </Badge>
+                    )}
+                  </div>
+                ) : null}
+              </div>
             </div>
-            <Textarea
+            <RecipientChipInput
               id="recipients"
               name="recipients"
-              rows={5}
-              required
               value={recipients}
-              onChange={(e) => setRecipients(e.target.value)}
+              onChange={(value, chips) => {
+                setRecipients(value);
+                setRecipientChips(chips);
+              }}
               disabled={pending}
-              placeholder={"One number per line\ne.g. 233201234567"}
-              className="min-h-[130px] resize-y font-mono text-sm sm:text-base"
+              placeholder="233201234567 then Space or comma"
             />
-            <p className="text-xs text-muted-foreground">
-              Separate with a new line, comma, or semicolon. Use international format without +.
-            </p>
+            {hasInvalidRecipients && (
+              <p className="text-xs text-red-700 dark:text-red-400">
+                Remove or fix invalid numbers before sending.
+              </p>
+            )}
           </div>
 
           {/* Message */}
@@ -421,7 +483,7 @@ export function SendSmsForm({
 
           <Button
             type="submit"
-            disabled={pending || recipientCount === 0 || !body.trim()}
+            disabled={pending || recipientCount === 0 || hasInvalidRecipients || !body.trim()}
             className="h-12 w-full text-base font-semibold rounded-xl shadow-sm gap-2"
           >
             {pending ? (

@@ -6,6 +6,7 @@ import {
   changelogProductLabels,
   type ChangelogChangeType,
 } from "@/lib/marketing/platform-changelog";
+import { wordpressPlugin } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
 const typeStyles: Record<ChangelogChangeType, string> = {
@@ -118,7 +119,9 @@ export function ChangelogContent() {
             <p>
               WordPress plugin updates appear automatically in your site under{" "}
               <strong className="text-foreground">Plugins → Updates</strong> when a new version is
-              published. Platform changes roll out on splitsms.com without action required.
+              published (current release:{" "}
+              <strong className="text-foreground">v{wordpressPlugin.version}</strong>). Platform
+              changes roll out on splitsms.com without action required.
             </p>
             <p className="mt-3">
               Found a bug?{" "}

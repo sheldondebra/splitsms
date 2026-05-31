@@ -4,15 +4,17 @@ import { SdkPageContent } from "@/components/marketing/sdk-page-content";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const metadata: Metadata = {
-  title: "SDKs — JavaScript, PHP & Flutter | SplitSMS Developer Tools",
+  title: "SDKs — JavaScript, PHP & Flutter | Install from SplitSMS",
   description:
-    "Official SplitSMS SDKs: npm @splitsms/sdk, Composer splitsms-php, Flutter splitsms_flutter. Send SMS, OTP, and check wallet balance in minutes.",
+    "Official SplitSMS SDKs hosted on splitsms.com — npm tarball, Composer repository, and Flutter zip. SMS, OTP, Connect, sender IDs. No third-party registry required.",
   keywords: [
     "SplitSMS SDK",
     "SMS API JavaScript",
     "SMS PHP SDK",
     "Flutter SMS",
-    "npm splitsms",
+    "npm install splitsms",
+    "composer splitsms",
+    "embed SMS API",
   ],
   alternates: { canonical: "/sdk" },
   openGraph: {

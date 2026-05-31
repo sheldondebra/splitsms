@@ -89,7 +89,9 @@ export function MemberPricingDashboard({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
-  const [estimates, setEstimates] = useState<SavedEstimate[]>([]);
+  const [estimates, setEstimates] = useState<SavedEstimate[]>(() =>
+    typeof window !== "undefined" ? loadEstimates() : [],
+  );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [estimateName, setEstimateName] = useState("");
   const [calcMessage, setCalcMessage] = useState("Hello {firstName}, your order is ready.");
@@ -122,10 +124,6 @@ export function MemberPricingDashboard({
   const recipientCount = Math.max(0, Number(calcRecipients) || 0);
   const calcCredits = segments * recipientCount * (selected?.creditsPerSms ?? 1);
   const calcCost = selectedResolved ? calcCredits * selectedResolved.price : 0;
-
-  useEffect(() => {
-    setEstimates(loadEstimates());
-  }, []);
 
   function onCountryChange(code: string) {
     const params = new URLSearchParams(searchParams.toString());

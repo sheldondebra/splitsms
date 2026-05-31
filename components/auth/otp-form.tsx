@@ -52,8 +52,9 @@ export function OtpForm({
   }, [cooldown]);
 
   useEffect(() => {
-    if (initialCooldown > 0) setCooldown(initialCooldown);
-  }, [initialCooldown]);
+    if (initialCooldown <= 0 || initialCooldown === cooldown) return;
+    queueMicrotask(() => setCooldown(initialCooldown));
+  }, [initialCooldown, cooldown]);
 
   return (
     <div className="space-y-5">

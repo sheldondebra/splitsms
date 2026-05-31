@@ -27,8 +27,9 @@ export type DocChapter = {
 
 export const docsMeta = {
   version: "2.0",
-  lastUpdated: "2026-05-23",
+  lastUpdated: "2026-05-31",
   maintainer: "Tecunit",
+  wordpressPluginVersion: site.wordpressPlugin.version,
 };
 
 export const platformDocsChapters: DocChapter[] = [
@@ -51,7 +52,7 @@ export const platformDocsChapters: DocChapter[] = [
             rows: [
               ["Dashboard", "Campaigns, contacts, sender IDs, wallet, reports, and support"],
               ["REST API v1", "Send SMS, OTP, contacts, campaigns, webhooks, WordPress sync"],
-              ["WordPress plugin", "WooCommerce, CF7, WPForms, Crocoblock / JetEngine"],
+              ["WordPress plugin", `WooCommerce, CF7, WPForms, Elementor Pro, Crocoblock / JetEngine (v${site.wordpressPlugin.version})`],
               ["Routing", "Infobip, Twilio, and mNotify with automatic failover"],
               ["Billing", "Prepaid wallet — Paystack, Flutterwave, MoMo, Stripe where enabled"],
             ],
@@ -421,7 +422,7 @@ if (expected !== signature) throw new Error("Invalid signature");`,
   {
     id: "wordpress",
     title: "WordPress plugin",
-    description: "Official plugin for WooCommerce, forms, and Crocoblock.",
+    description: `Official plugin (v${site.wordpressPlugin.version}) for WooCommerce, forms, WordPress core, and Crocoblock.`,
     subsections: [
       {
         id: "wp-install",
@@ -430,10 +431,10 @@ if (expected !== signature) throw new Error("Invalid signature");`,
           {
             type: "ol",
             items: [
-              "Download splitsms.zip from [Integrations → WordPress](/integrations/wordpress).",
+              `Download splitsms.zip (v${site.wordpressPlugin.version}) from [Integrations → WordPress](/integrations/wordpress).`,
               "If upgrading, deactivate and remove old splitsms* folders under wp-content/plugins/ first.",
               "Plugins → Add New → Upload Plugin → choose the zip → Activate.",
-              "Open SplitSMS → Settings — paste your full API key (~56 chars), Sender ID, and admin phone.",
+              "Open the **SplitSMS** menu in wp-admin → **Settings** — paste your full API key (~56 chars), Sender ID, and admin phone.",
               "Click Test connection, then Save. Send a test SMS to confirm delivery.",
             ],
           },
@@ -450,15 +451,34 @@ if (expected !== signature) throw new Error("Invalid signature");`,
         blocks: [
           {
             type: "p",
-            text: "Create a live API key under Dashboard → App connections. Copy the entire key at creation — the dashboard only shows a prefix afterward. Partial keys (e.g. sk_test_99a064) will fail with not_configured errors.",
+            text: "Create a live API key under Dashboard → App connections with **sms.send** permission. Copy the entire key at creation — the dashboard only shows a prefix afterward. Partial keys (e.g. sk_test_99a064) will fail with not_configured errors.",
           },
           {
             type: "ul",
             items: [
               "Test connection before save — invalid keys are rejected",
-              "Settings merge on plugin update — keys are preserved",
+              "Settings merge on plugin update — keys and templates are preserved",
               "Connected sites appear in Dashboard → WordPress integration",
-              "Local dev: use http://127.0.0.1 or your Local WP URL in API settings",
+              "Skip reasons (no phone, disabled event) sync to your SplitSMS dashboard",
+              "Local dev: use http://127.0.0.1:3000 when running npm run dev on Local WP",
+            ],
+          },
+        ],
+      },
+      {
+        id: "wp-core",
+        title: "WordPress core",
+        blocks: [
+          {
+            type: "p",
+            text: "Under **SplitSMS → Integrations → WordPress core**, enable welcome SMS on user registration and optional password reset via SMS.",
+          },
+          {
+            type: "ul",
+            items: [
+              "Phone is read from user meta **billing_phone** or **splitsms_phone**",
+              "Password reset SMS replaces the email when a phone exists; otherwise WordPress email is kept",
+              "Templates support {site_name}, {customer_name}, {reset_link}",
             ],
           },
         ],
@@ -469,7 +489,15 @@ if (expected !== signature) throw new Error("Invalid signature");`,
         blocks: [
           {
             type: "p",
-            text: "Enable events under SplitSMS → Integrations. SMS is sent to the order billing phone, then shipping phone, then common meta keys if billing is empty.",
+            text: "Enable events under SplitSMS → Integrations. SMS is sent to billing phone, then shipping phone, custom order meta, or user meta if billing is empty. HPOS (custom order tables) and block checkout are supported.",
+          },
+          {
+            type: "ul",
+            items: [
+              "Events: order placed, payment complete, paid → processing, processing, completed, cancelled, failed, refunded, shipped (tracking)",
+              "Paystack / Flutterwave / Stripe — SMS fires when WooCommerce marks the order paid (no direct gateway API)",
+              "COD/BACS payment SMS only when the order is marked paid",
+            ],
           },
           {
             type: "table",
@@ -480,6 +508,9 @@ if (expected !== signature) throw new Error("Invalid signature");`,
               ["{order_total}", "Formatted order total"],
               ["{order_status}", "Current order status"],
               ["{payment_method}", "Gateway title"],
+              ["{paystack_reference}", "Paystack transaction reference (when available)"],
+              ["{tracking_number}", "Shipping tracking number"],
+              ["{refund_amount}", "Refund total on refunded orders"],
               ["{site_name}", "WordPress site name"],
             ],
           },
@@ -491,19 +522,57 @@ if (expected !== signature) throw new Error("Invalid signature");`,
         ],
       },
       {
+        id: "wp-forms",
+        title: "Form plugins",
+        blocks: [
+          {
+            type: "table",
+            headers: ["Plugin", "Hook / action", "Setup"],
+            rows: [
+              [
+                "Contact Form 7",
+                "wpcf7_submit (mail_sent; optional mail_failed)",
+                "Tel field e.g. [tel* your-phone]; per-form IDs; skip logs",
+              ],
+              [
+                "WPForms",
+                "wpforms_process_complete",
+                "Phone field type or name; per-form IDs; setup panel lists forms",
+              ],
+              [
+                "Elementor Pro",
+                "elementor_pro/forms/new_record",
+                "Tel field → Advanced → Field ID; per-form name filter",
+              ],
+              [
+                "JetFormBuilder",
+                "Post Submit Action: Send SMS (SplitSMS)",
+                "Add action per form, or enable global auto-SMS under Crocoblock",
+              ],
+            ],
+          },
+          {
+            type: "p",
+            text: "All form integrations support custom message templates with placeholders like {name}, {phone}, {form_title}, and {site_name}.",
+          },
+        ],
+      },
+      {
         id: "wp-crocoblock",
         title: "Crocoblock",
         blocks: [
           {
             type: "p",
-            text: "JetEngine, JetFormBuilder, JetBooking, and JetAppointment modules live under SplitSMS → Crocoblock. Map phone fields, write templates, and use conditional rules for status-based SMS.",
+            text: "JetEngine, JetFormBuilder, JetBooking, and JetAppointment modules live under **SplitSMS → Crocoblock**. Map phone fields, edit every event template, and use optional conditional rules (JSON) for status-based SMS.",
           },
           {
             type: "ul",
             items: [
-              "JetBooking / JetAppointment — reminder SMS via WP-Cron",
-              "Activity tagged by source in WordPress logs and your dashboard",
-              "Requires plugin v1.2.0+; latest features in v1.4.x",
+              "JetFormBuilder — native **Send SMS (SplitSMS)** in Post Submit Actions (recommended per-form control)",
+              "JetBooking / JetAppointment — reminder SMS via WP-Cron before check-in or appointment",
+              "Per-module toggles work independently of the master Crocoblock switch",
+              "Activity tagged by source in WordPress logs and your SplitSMS dashboard",
+              `Requires plugin v1.2.0+; current release v${site.wordpressPlugin.version}`,
             ],
           },
         ],
@@ -518,12 +587,12 @@ if (expected !== signature) throw new Error("Invalid signature");`,
               "WordPress Admin → Dashboard → Updates → Update SplitSMS",
               "Or Plugins → Installed Plugins → Check for updates",
               `Manifest: ${SITE_URL}/api/plugin/update`,
-              `Manual fallback: download splitsms.zip from ${SITE_URL}/wordpress-plugin/splitsms.zip`,
+              `Manual fallback: download splitsms-${site.wordpressPlugin.version}.zip from ${SITE_URL}/wordpress-plugin/`,
             ],
           },
           {
             type: "p",
-            text: "API keys, templates, and toggles are preserved when you update. See [Dashboard → WordPress](/dashboard/integrations/wordpress) for connected site stats.",
+            text: "API keys, templates, and toggles are preserved when you update. See [Changelog](/changelog) for release notes and [Dashboard → WordPress](/dashboard/integrations/wordpress) for connected site stats.",
           },
         ],
       },
@@ -577,22 +646,27 @@ if (expected !== signature) throw new Error("Invalid signature");`,
           {
             type: "code",
             language: "typescript",
-            code: `npm install @splitsms/sdk
+            code: `npm install ${SITE_URL}/sdk/javascript/splitsms-sdk.tgz
 
 import { SplitSMS } from "@splitsms/sdk";
 
 const client = new SplitSMS({
   apiKey: process.env.SPLITSMS_API_KEY!,
-  baseUrl: SITE_URL,
+  baseUrl: "${SITE_URL}",
 });
 
-const result = await client.messages.send({
+await client.messages.send({
   sender: "MYBRAND",
   recipients: ["233201234567"],
   message: "Hello from SplitSMS",
 });
 
-console.log(result.messageIds);`,
+await client.connect.createCustomer({
+  full_name: "Jane Doe",
+  phone: "233201234567",
+  country_code: "GH",
+  external_ref: "user-42",
+});`,
           },
         ],
       },
@@ -603,10 +677,10 @@ console.log(result.messageIds);`,
           {
             type: "ul",
             items: [
-              "PHP: composer require splitsms/sdk — see [SDK page](/sdk)",
-              "Flutter: splitsms_flutter for mobile OTP and notifications",
+              `PHP: composer config repositories.splitsms composer ${SITE_URL}/sdk/php/ then composer require splitsms/sdk`,
+              `Flutter: download ${SITE_URL}/sdk/flutter/splitsms-flutter.zip — path dependency (see [SDK page](/sdk))`,
               "Postman: import the collection from Developers → Postman",
-              "All SDKs accept baseUrl override for staging",
+              "Install manifest: /sdk/manifest.json — all packages hosted on SplitSMS",
             ],
           },
         ],
@@ -660,9 +734,10 @@ console.log(result.messageIds);`,
           {
             type: "ul",
             items: [
-              "not_configured — paste full API key, not prefix only",
+              "not_configured — paste full API key (~56 chars), not prefix only",
               "no_billing_phone — add phone to checkout or custom meta key",
-              "wc_*_skipped in logs — event disabled or phone missing",
+              "wc_*_skipped / cf7_*_skipped — event disabled or phone missing; synced to dashboard",
+              "JetFormBuilder action missing — add Send SMS (SplitSMS) under Post Submit Actions",
               "Connection test fails — check SSL, firewall, and splitsms.com reachability",
             ],
           },

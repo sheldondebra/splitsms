@@ -32,6 +32,7 @@ const LOGO = {
   mtn: "https://cdn.simpleicons.org/mtn/FFCC00",
   cf7: "https://cdn.simpleicons.org/contactform7/0073AA",
   wpforms: "https://cdn.simpleicons.org/wpforms/E27730",
+  elementor: "https://cdn.simpleicons.org/elementor/92003B",
 };
 
 export const integrationsCatalog: IntegrationDef[] = [
@@ -43,7 +44,7 @@ export const integrationsCatalog: IntegrationDef[] = [
     logoSrc: LOGO.wordpress,
     brandColor: "#21759B",
     metaDescription:
-      "Connect WordPress and WooCommerce to SplitSMS. Order SMS, registration alerts, CF7, WPForms, and auto-updates from splitsms.com.",
+      "Connect WordPress and WooCommerce to SplitSMS. Order SMS, registration alerts, CF7, WPForms, Elementor Pro, Crocoblock, and auto-updates from splitsms.com.",
     heroDescription:
       "Install the free SplitSMS plugin on any WordPress site. Connect your API key once, then send transactional SMS from WooCommerce orders, user signups, and form plugins.",
     overview:
@@ -69,18 +70,20 @@ export const integrationsCatalog: IntegrationDef[] = [
       },
       {
         title: "Enable integrations",
-        body: "Turn on WooCommerce, Contact Form 7, WPForms, or Crocoblock under the plugin menus.",
+        body: "Turn on WooCommerce, WordPress core, Contact Form 7, WPForms, Elementor Pro, or Crocoblock under SplitSMS → Integrations and Crocoblock.",
       },
     ],
     capabilities: [
-      "WooCommerce order & payment SMS",
-      "WordPress user registration",
-      "Contact Form 7 & WPForms",
+      "WooCommerce order, payment & status SMS",
+      "WordPress registration & password reset",
+      "Contact Form 7, WPForms & Elementor Pro",
+      "JetFormBuilder native Send SMS action",
+      "Crocoblock JetEngine, JetBooking & JetAppointment",
       "Admin bar SMS balance widget",
       "Local + cloud message logs",
       "One-click plugin updates",
     ],
-    relatedSlugs: ["woocommerce", "crocoblock", "paystack"],
+    relatedSlugs: ["woocommerce", "crocoblock", "paystack", "elementor-pro"],
     primaryCta: { label: "Download plugin", href: wordpressPlugin.downloadUrl, external: true },
     secondaryCta: { label: "API documentation", href: "/api-docs" },
   },
@@ -115,7 +118,7 @@ export const integrationsCatalog: IntegrationDef[] = [
       },
       {
         title: "Open SplitSMS → Crocoblock",
-        body: "Enable JetEngine, JetFormBuilder, JetBooking, or JetAppointment modules and set phone field names.",
+        body: "Enable JetEngine, JetFormBuilder, JetBooking, or JetAppointment modules. For JetFormBuilder, add Send SMS (SplitSMS) under Post Submit Actions or use global templates.",
       },
       {
         title: "Customize templates",
@@ -123,12 +126,12 @@ export const integrationsCatalog: IntegrationDef[] = [
       },
     ],
     capabilities: [
-      "JetEngine CPT create & status SMS",
-      "JetFormBuilder after-submit alerts",
-      "JetBooking confirm, cancel & reminders",
+      "JetEngine CPT create, update & status SMS",
+      "JetFormBuilder Post Submit Action + global auto-SMS",
+      "JetBooking confirm, cancel, status & reminders",
       "JetAppointment + provider alerts",
-      "Field mapping UI",
-      "Conditional SMS rules",
+      "Full template editor per event",
+      "Conditional SMS rules (JSON)",
     ],
     relatedSlugs: ["wordpress", "woocommerce"],
     primaryCta: { label: "WordPress plugin setup", href: "/integrations/wordpress" },
@@ -152,25 +155,30 @@ export const integrationsCatalog: IntegrationDef[] = [
       "Connect your SplitSMS API key in wp-admin — this powers SMS delivery, separate from Paystack checkout.",
       "When a customer checks out, SplitSMS can send an order-placed SMS to the billing phone.",
       "When Paystack confirms payment, WooCommerce marks the order paid and fires woocommerce_payment_complete — SplitSMS sends your payment-received template.",
+      "If the customer’s network drops after Paystack checkout, the Paystack webhook marks the order paid — enable Paid → processing so SMS still sends.",
       "Status changes (processing, completed, cancelled) can trigger additional SMS with {order_id}, {order_total}, and {payment_method}.",
       "All messages log in WordPress and sync to your SplitSMS dashboard — manage templates and toggles without touching Paystack settings.",
     ],
     setupSteps: [
       {
         title: "Set up WooCommerce + Paystack on WordPress",
-        body: "Configure Paystack as your store gateway. Test a live or sandbox checkout so orders reach paid status correctly.",
+        body: "Install the Paystack WooCommerce gateway from Paystack’s integrations directory. Add test/live API keys under WooCommerce → Settings → Payments → Paystack, and run a test checkout before going live.",
+      },
+      {
+        title: "Configure Paystack webhook (required)",
+        body: "Copy the webhook URL from WooCommerce Paystack settings into Paystack Dashboard → Settings → API Keys & Webhooks. This ensures orders are marked paid when checkout redirects fail — and SplitSMS payment SMS still fires.",
       },
       {
         title: "Install & connect SplitSMS",
         body: "Download the SplitSMS plugin, add your API key and approved Sender ID, and send a test SMS.",
       },
       {
-        title: "Enable WooCommerce events",
-        body: "SplitSMS → Integrations → enable order placed, payment complete, and the statuses you need.",
+        title: "Enable WooCommerce payment events",
+        body: "SplitSMS → Integrations → enable order placed, payment complete, and Paid → processing (Paystack). The setup checklist guides you through each step.",
       },
       {
         title: "Customize Paystack payment SMS",
-        body: "Edit templates e.g. “Hi {customer_name}, we received your payment of {order_total} for order #{order_id}.”",
+        body: "Edit templates e.g. “Hi {customer_name}, we received your payment of {order_total} for order #{order_id}.” Use {paystack_reference} for the Paystack transaction reference.",
       },
     ],
     capabilities: [
@@ -340,16 +348,17 @@ export const integrationsCatalog: IntegrationDef[] = [
     overview:
       "Contact Form 7 is a lightweight form plugin. SplitSMS sends a configurable message to the phone field after mail is sent successfully.",
     howSplitSmsWorks: [
-      "Hook: wpcf7_mail_sent — only fires on successful submit.",
-      "Phone field name is configurable (default: your-phone).",
-      "Message template supports {site_name} and custom text.",
+      "Hook: wpcf7_submit — fires on mail_sent; optional mail_failed when SMTP fails.",
+      "Phone field name is configurable (default: your-phone); per-form ID filter.",
+      "Skip reasons (no phone, empty template) sync to your SplitSMS dashboard.",
+      "Message template supports {site_name}, {name}, {form_title}, {field_*} placeholders.",
     ],
     setupSteps: [
       { title: "Install SplitSMS", body: "WordPress plugin from splitsms.com." },
       { title: "Enable CF7", body: "Integrations → Contact Form 7." },
       { title: "Set phone field", body: "Match your CF7 field name for phone numbers." },
     ],
-    capabilities: ["After-submit SMS", "Custom template", "Field mapping"],
+    capabilities: ["After-submit SMS", "Per-form ID filter", "Skip logs to dashboard", "Custom template"],
     relatedSlugs: ["wordpress", "wpforms"],
     primaryCta: { label: "WordPress setup", href: "/integrations/wordpress" },
   },
@@ -367,17 +376,45 @@ export const integrationsCatalog: IntegrationDef[] = [
     overview:
       "WPForms powers lead capture and applications. SplitSMS maps the phone field by name or label slug.",
     howSplitSmsWorks: [
-      "Hook: wpforms_process_complete.",
-      "Configurable phone field identifier.",
-      "Uses your SplitSMS API key and sender ID.",
+      "Dedicated SplitSMS_WPForms class — hook: wpforms_process_complete.",
+      "Phone field by type, name, or label slug; per-form ID filter.",
+      "Skip logs sync to SplitSMS dashboard when phone or template is missing.",
     ],
     setupSteps: [
-      { title: "Install SplitSMS plugin", body: "Connect API key first." },
-      { title: "Enable WPForms", body: "In SplitSMS → Integrations." },
+      { title: "Install SplitSMS plugin", body: "Connect API key under SplitSMS → Settings." },
+      { title: "Enable WPForms", body: "SplitSMS → Integrations → WPForms; optional form ID filter." },
+      { title: "Add Phone field", body: "Use WPForms Phone field type; match field name in plugin settings." },
     ],
-    capabilities: ["Form complete SMS", "Custom message", "Phone field mapping"],
+    capabilities: ["Form complete SMS", "Per-form ID filter", "Skip logs", "Custom message"],
     relatedSlugs: ["wordpress", "contact-form-7"],
     primaryCta: { label: "Get started", href: "/integrations/wordpress" },
+  },
+  {
+    slug: "elementor-pro",
+    name: "Elementor Pro Forms",
+    tagline: "SMS after Elementor form submission",
+    category: "automation",
+    logoSrc: LOGO.elementor,
+    brandColor: "#92003B",
+    metaDescription:
+      "Send SMS when Elementor Pro Forms submit — SplitSMS WordPress plugin with Tel field detection and skip logs.",
+    heroDescription:
+      "Thank visitors instantly when they submit an Elementor Pro form — map the Tel field ID and customize your message template.",
+    overview:
+      "Elementor Pro Forms power landing pages and lead capture. SplitSMS hooks elementor_pro/forms/new_record after form actions run, with mail_sent fallback and deduplication.",
+    howSplitSmsWorks: [
+      "Primary hook: elementor_pro/forms/new_record; fallback: elementor_pro/forms/mail_sent.",
+      "Tel field detected via Field ID (Advanced tab), field type, or auto-scan.",
+      "Optional per-form name filter; skip reasons sync to SplitSMS dashboard.",
+    ],
+    setupSteps: [
+      { title: "Install SplitSMS plugin", body: "Requires Elementor Pro and a connected API key." },
+      { title: "Enable Elementor Pro", body: "SplitSMS → Integrations → Elementor Pro Forms." },
+      { title: "Set Field ID", body: "Add Tel field; set Field ID (e.g. phone) to match plugin settings." },
+    ],
+    capabilities: ["After-submit SMS", "Tel field auto-detect", "Per-form filter", "Skip logs"],
+    relatedSlugs: ["wordpress", "contact-form-7", "wpforms"],
+    primaryCta: { label: "WordPress setup", href: "/integrations/wordpress" },
   },
 ];
 

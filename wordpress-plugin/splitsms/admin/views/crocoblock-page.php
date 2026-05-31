@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
 
 $detected = SplitSMS_Crocoblock::detect_plugins();
 $any = SplitSMS_Crocoblock::any_detected();
-$vars_hint = '{name}, {phone}, {email}, {booking_date}, {appointment_date}, {status}, {title}, {form_title}';
+$vars_hint = '{name}, {phone}, {email}, {booking_date}, {check_in}, {appointment_date}, {appointment_time}, {status}, {title}, {form_title}, {site_name}';
 ?>
 <form method="post" action="<?php echo esc_url(admin_url('admin.php?page=splitsms-crocoblock')); ?>">
     <?php wp_nonce_field('splitsms_settings'); ?>
@@ -26,6 +26,9 @@ $vars_hint = '{name}, {phone}, {email}, {booking_date}, {appointment_date}, {sta
         <?php else : ?>
             <ul class="splitsms-detect-list">
                 <?php foreach ($detected as $slug => $active) : ?>
+                    <?php if (in_array($slug, array('jetwoobuilder', 'jetsmartfilters'), true)) {
+                        continue;
+                    } ?>
                     <li><?php echo $active ? '✓' : '○'; ?> <?php echo esc_html(ucwords(str_replace('_', ' ', $slug))); ?></li>
                 <?php endforeach; ?>
             </ul>
@@ -75,9 +78,11 @@ $vars_hint = '{name}, {phone}, {email}, {booking_date}, {appointment_date}, {sta
         <p><label><?php esc_html_e('Post types (comma-separated, empty = all)', 'splitsms'); ?><br />
             <input type="text" class="large-text" name="splitsms[cb_jetengine_post_types]" value="<?php echo esc_attr($s['cb_jetengine_post_types']); ?>" /></label></p>
         <label><input type="checkbox" name="splitsms[cb_jetengine_on_create]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jetengine_on_create'])); ?> /> <?php esc_html_e('On create', 'splitsms'); ?></label><br />
+        <label><input type="checkbox" name="splitsms[cb_jetengine_on_update]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jetengine_on_update'])); ?> /> <?php esc_html_e('On update', 'splitsms'); ?></label><br />
         <label><input type="checkbox" name="splitsms[cb_jetengine_on_status]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jetengine_on_status'])); ?> /> <?php esc_html_e('On status change', 'splitsms'); ?></label><br />
         <label><input type="checkbox" name="splitsms[cb_jetengine_admin_alert]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jetengine_admin_alert'])); ?> /> <?php esc_html_e('Admin alert', 'splitsms'); ?></label>
         <p><label><?php esc_html_e('Created template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetengine_tpl_created]"><?php echo esc_textarea($s['cb_jetengine_tpl_created']); ?></textarea></label></p>
+        <p><label><?php esc_html_e('Update template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetengine_tpl_update]"><?php echo esc_textarea($s['cb_jetengine_tpl_update']); ?></textarea></label></p>
         <p><label><?php esc_html_e('Status template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetengine_tpl_status]"><?php echo esc_textarea($s['cb_jetengine_tpl_status']); ?></textarea></label></p>
         <p><label><?php esc_html_e('Admin template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetengine_tpl_admin]"><?php echo esc_textarea($s['cb_jetengine_tpl_admin']); ?></textarea></label></p>
     </section>
@@ -86,13 +91,15 @@ $vars_hint = '{name}, {phone}, {email}, {booking_date}, {appointment_date}, {sta
     <?php if (!empty($detected['jetformbuilder'])) : ?>
     <section class="splitsms-card splitsms-automation-card">
         <h3>JetFormBuilder</h3>
-        <label><input type="checkbox" name="splitsms[cb_jfb_enabled]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jfb_enabled'])); ?> /> <?php esc_html_e('Enable', 'splitsms'); ?></label>
+        <p class="description"><?php esc_html_e('When SplitSMS is connected, “Send SMS (SplitSMS)” appears under JetFormBuilder → Post Submit Actions. Add it per form for custom messages, or rely on the global templates below.', 'splitsms'); ?></p>
+        <label><input type="checkbox" name="splitsms[cb_jfb_enabled]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jfb_enabled'])); ?> /> <?php esc_html_e('Enable global auto-SMS on submit', 'splitsms'); ?></label>
         <p><label><?php esc_html_e('Form IDs (comma-separated, empty = all)', 'splitsms'); ?><br />
             <input type="text" class="regular-text" name="splitsms[cb_jfb_form_ids]" value="<?php echo esc_attr($s['cb_jfb_form_ids']); ?>" /></label></p>
         <p><label><?php esc_html_e('Phone field', 'splitsms'); ?>
             <input type="text" class="regular-text" name="splitsms[cb_jfb_phone_field]" value="<?php echo esc_attr($s['cb_jfb_phone_field']); ?>" /></label></p>
         <label><input type="checkbox" name="splitsms[cb_jfb_admin_alert]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jfb_admin_alert'])); ?> /> <?php esc_html_e('Admin alert', 'splitsms'); ?></label>
         <p><label><?php esc_html_e('Submit template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jfb_tpl_submitted]"><?php echo esc_textarea($s['cb_jfb_tpl_submitted']); ?></textarea></label></p>
+        <p><label><?php esc_html_e('Admin template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jfb_tpl_admin]"><?php echo esc_textarea($s['cb_jfb_tpl_admin']); ?></textarea></label></p>
     </section>
     <?php endif; ?>
 
@@ -106,8 +113,12 @@ $vars_hint = '{name}, {phone}, {email}, {booking_date}, {appointment_date}, {sta
         <label><input type="checkbox" name="splitsms[cb_jetbooking_on_status]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jetbooking_on_status'])); ?> /> <?php esc_html_e('Status changed', 'splitsms'); ?></label><br />
         <label><input type="checkbox" name="splitsms[cb_jetbooking_reminder]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jetbooking_reminder'])); ?> /> <?php esc_html_e('Send reminder before check-in', 'splitsms'); ?></label><br />
         <label><input type="checkbox" name="splitsms[cb_jetbooking_admin_alert]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jetbooking_admin_alert'])); ?> /> <?php esc_html_e('Admin alert', 'splitsms'); ?></label>
+        <p><label><?php esc_html_e('Created template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetbooking_tpl_created]"><?php echo esc_textarea($s['cb_jetbooking_tpl_created']); ?></textarea></label></p>
         <p><label><?php esc_html_e('Confirmed template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetbooking_tpl_confirmed]"><?php echo esc_textarea($s['cb_jetbooking_tpl_confirmed']); ?></textarea></label></p>
+        <p><label><?php esc_html_e('Cancelled template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetbooking_tpl_cancelled]"><?php echo esc_textarea($s['cb_jetbooking_tpl_cancelled']); ?></textarea></label></p>
+        <p><label><?php esc_html_e('Status template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetbooking_tpl_status]"><?php echo esc_textarea($s['cb_jetbooking_tpl_status']); ?></textarea></label></p>
         <p><label><?php esc_html_e('Reminder template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetbooking_tpl_reminder]"><?php echo esc_textarea($s['cb_jetbooking_tpl_reminder']); ?></textarea></label></p>
+        <p><label><?php esc_html_e('Admin template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetbooking_tpl_admin]"><?php echo esc_textarea($s['cb_jetbooking_tpl_admin']); ?></textarea></label></p>
     </section>
     <?php endif; ?>
 
@@ -115,12 +126,21 @@ $vars_hint = '{name}, {phone}, {email}, {booking_date}, {appointment_date}, {sta
     <section class="splitsms-card splitsms-automation-card">
         <h3>JetAppointment</h3>
         <label><input type="checkbox" name="splitsms[cb_jetappointment_enabled]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jetappointment_enabled'])); ?> /> <?php esc_html_e('Enable', 'splitsms'); ?></label>
-        <p><label><?php esc_html_e('Phone field', 'splitsms'); ?>
+        <p><label><?php esc_html_e('Client phone field', 'splitsms'); ?>
             <input type="text" class="regular-text" name="splitsms[cb_jetappointment_phone_field]" value="<?php echo esc_attr($s['cb_jetappointment_phone_field']); ?>" /></label></p>
+        <p><label><?php esc_html_e('Provider phone field', 'splitsms'); ?>
+            <input type="text" class="regular-text" name="splitsms[cb_provider_phone_field]" value="<?php echo esc_attr($s['cb_provider_phone_field']); ?>" /></label></p>
         <label><input type="checkbox" name="splitsms[cb_jetappointment_on_create]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jetappointment_on_create'])); ?> /> <?php esc_html_e('Appointment booked', 'splitsms'); ?></label><br />
+        <label><input type="checkbox" name="splitsms[cb_jetappointment_on_status]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jetappointment_on_status'])); ?> /> <?php esc_html_e('Status changed', 'splitsms'); ?></label><br />
         <label><input type="checkbox" name="splitsms[cb_jetappointment_reminder]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jetappointment_reminder'])); ?> /> <?php esc_html_e('Send reminder', 'splitsms'); ?></label><br />
+        <label><input type="checkbox" name="splitsms[cb_jetappointment_admin_alert]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jetappointment_admin_alert'])); ?> /> <?php esc_html_e('Admin alert', 'splitsms'); ?></label><br />
         <label><input type="checkbox" name="splitsms[cb_jetappointment_provider_alert]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jetappointment_provider_alert'])); ?> /> <?php esc_html_e('Provider alert', 'splitsms'); ?></label>
+        <p><label><?php esc_html_e('Created template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetappointment_tpl_created]"><?php echo esc_textarea($s['cb_jetappointment_tpl_created']); ?></textarea></label></p>
         <p><label><?php esc_html_e('Confirmed template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetappointment_tpl_confirmed]"><?php echo esc_textarea($s['cb_jetappointment_tpl_confirmed']); ?></textarea></label></p>
+        <p><label><?php esc_html_e('Cancelled template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetappointment_tpl_cancelled]"><?php echo esc_textarea($s['cb_jetappointment_tpl_cancelled']); ?></textarea></label></p>
+        <p><label><?php esc_html_e('Status template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetappointment_tpl_status]"><?php echo esc_textarea($s['cb_jetappointment_tpl_status']); ?></textarea></label></p>
+        <p><label><?php esc_html_e('Reminder template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetappointment_tpl_reminder]"><?php echo esc_textarea($s['cb_jetappointment_tpl_reminder']); ?></textarea></label></p>
+        <p><label><?php esc_html_e('Admin template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetappointment_tpl_admin]"><?php echo esc_textarea($s['cb_jetappointment_tpl_admin']); ?></textarea></label></p>
         <p><label><?php esc_html_e('Provider template', 'splitsms'); ?><br /><textarea class="large-text" rows="2" name="splitsms[cb_jetappointment_tpl_provider]"><?php echo esc_textarea($s['cb_jetappointment_tpl_provider']); ?></textarea></label></p>
     </section>
     <?php endif; ?>

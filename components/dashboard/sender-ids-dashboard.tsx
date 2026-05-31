@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { SenderIdList, type SenderIdItem } from "@/components/dashboard/sender-id-list";
 import { SenderIdRequestForm } from "@/components/dashboard/sender-id-request-form";
@@ -47,7 +47,7 @@ export function SenderIdsDashboard({ items, defaultId }: SenderIdsDashboardProps
   const pending = items.filter((s) => s.status === "PENDING");
   const rejected = items.filter((s) => s.status === "REJECTED");
 
-  const filtered = useMemo(() => {
+  const filtered = (() => {
     const q = query.trim().toLowerCase();
     return items.filter((s) => {
       if (statusFilter !== "all" && s.status !== statusFilter) return false;
@@ -58,7 +58,7 @@ export function SenderIdsDashboard({ items, defaultId }: SenderIdsDashboardProps
         (s.adminNote?.toLowerCase().includes(q) ?? false)
       );
     });
-  }, [items, query, statusFilter]);
+  })();
 
   return (
     <div className="space-y-6 lg:space-y-8">

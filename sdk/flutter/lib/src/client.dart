@@ -49,6 +49,36 @@ class SplitSMS {
     return _request('GET', '/api/v1/wallet/balance');
   }
 
+  Future<Map<String, dynamic>> accountBalance() async {
+    return _request('GET', '/api/v1/balance');
+  }
+
+  Future<Map<String, dynamic>> listConnectCustomers({
+    int? limit,
+    String? externalRef,
+  }) async {
+    final q = <String, String>{};
+    if (limit != null) q['limit'] = '$limit';
+    if (externalRef != null) q['external_ref'] = externalRef;
+    final query = q.isEmpty
+        ? ''
+        : '?${q.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&')}';
+    return _request('GET', '/api/v1/connect/customers$query');
+  }
+
+  Future<Map<String, dynamic>> createConnectCustomer(Map<String, dynamic> body) async {
+    return _request('POST', '/api/v1/connect/customers', body);
+  }
+
+  Future<Map<String, dynamic>> listSenderIds({String? customerId}) async {
+    final q = customerId != null ? '?customer_id=${Uri.encodeComponent(customerId)}' : '';
+    return _request('GET', '/api/v1/sender-ids$q');
+  }
+
+  Future<Map<String, dynamic>> registerSenderId(Map<String, dynamic> body) async {
+    return _request('POST', '/api/v1/sender-ids', body);
+  }
+
   Future<Map<String, dynamic>> _request(
     String method,
     String path, [

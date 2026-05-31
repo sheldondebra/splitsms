@@ -60,4 +60,36 @@ export const wordpressPlugin = {
   },
 };
 
+function sdkArtifact(kind: keyof SiteConfig["sdks"]) {
+  const meta = config.sdks[kind];
+  const base = getSiteUrl();
+  const versionedPath = (meta.versionedDownloadPath ?? "").replace("{version}", meta.version);
+  return {
+    ...meta,
+    get installBaseUrl() {
+      return base;
+    },
+    get versionedDownloadUrl() {
+      return `${base}${versionedPath}`;
+    },
+    get downloadUrl() {
+      return `${base}${meta.downloadPath}`;
+    },
+    get composerRepositoryUrl() {
+      return "composerRepoPath" in meta ? `${base}${meta.composerRepoPath}` : undefined;
+    },
+    get npmInstallCommand() {
+      return `npm install ${base}${meta.downloadPath}`;
+    },
+  };
+}
+
+export const sdkPackages = {
+  javascript: sdkArtifact("javascript"),
+  php: sdkArtifact("php"),
+  flutter: sdkArtifact("flutter"),
+};
+
+export const sdkManifestUrl = () => `${getSiteUrl()}/sdk/manifest.json`;
+
 export { config as siteConfig };

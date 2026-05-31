@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { initialCountryState } from "@/lib/auth/initial-country-state";
 import { requestPhoneAuthAction } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CountrySelect } from "@/components/auth/country-select";
 import type { SignupCountryOption } from "@/lib/signup-countries";
-import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
-import { detectCountryFromLocale } from "@/lib/country-detect";
 import { ArrowRight, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,20 +22,10 @@ export function PhoneAuthForm({
   intent = "login",
   submitLabel,
 }: PhoneAuthFormProps) {
-  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
-  const [dialCode, setDialCode] = useState("+233");
+  const initial = initialCountryState(countries);
+  const [countryCode, setCountryCode] = useState(initial.countryCode);
+  const [dialCode, setDialCode] = useState(initial.dialCode);
   const [phoneLocal, setPhoneLocal] = useState("");
-
-  useEffect(() => {
-    const detected = detectCountryFromLocale(
-      typeof navigator !== "undefined" ? navigator.language : undefined,
-    );
-    const match = countries.find((c) => c.code === detected);
-    if (match) {
-      setCountryCode(match.code);
-      setDialCode(match.dialCode);
-    }
-  }, [countries]);
 
   function onCountryChange(code: string, country: SignupCountryOption) {
     setCountryCode(code);

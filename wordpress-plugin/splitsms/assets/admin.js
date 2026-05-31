@@ -119,4 +119,28 @@
         });
     });
   }
+
+  var copyWebhookBtn = qs('#splitsms-copy-webhook');
+  var webhookEl = qs('#splitsms-paystack-webhook-url');
+  if (copyWebhookBtn && webhookEl) {
+    copyWebhookBtn.addEventListener('click', function () {
+      var url = webhookEl.textContent.trim();
+      if (!url) {
+        return;
+      }
+      function onCopied() {
+        copyWebhookBtn.textContent = 'Copied';
+        setTimeout(function () {
+          copyWebhookBtn.textContent = 'Copy webhook URL';
+        }, 2000);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(onCopied).catch(function () {
+          window.prompt('Copy webhook URL:', url);
+        });
+      } else {
+        window.prompt('Copy webhook URL:', url);
+      }
+    });
+  }
 })();

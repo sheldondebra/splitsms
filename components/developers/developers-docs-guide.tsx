@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { CopyButton } from "@/components/developers/copy-button";
+import { SdkNpmInstallNotice } from "@/components/marketing/sdk-npm-install-notice";
 import { wordpressPlugin } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +29,9 @@ const PERMISSIONS = [
   { key: "contacts.read", desc: "List contacts" },
   { key: "contacts.write", desc: "Create and update contacts" },
   { key: "campaigns.read", desc: "Read campaign status" },
+  { key: "connect.customers", desc: "Provision and list Connect customers" },
+  { key: "sender_ids.read", desc: "List sender IDs (own or Connect customer)" },
+  { key: "sender_ids.write", desc: "Register sender IDs for approval" },
 ];
 
 export function DevelopersDocsGuide({ baseUrl }: DevelopersDocsGuideProps) {
@@ -44,11 +48,11 @@ export function DevelopersDocsGuide({ baseUrl }: DevelopersDocsGuideProps) {
           <div className="flex-1 min-w-0">
             <h2 className="text-xl font-bold tracking-tight">SplitSMS REST API</h2>
             <p className="text-sm text-muted-foreground mt-2 max-w-2xl leading-relaxed">
-              All API traffic goes through a single production base URL. Create API keys in the
-              developer portal, use{" "}
+              All API traffic goes through a single production base URL. Create scoped API keys in
+              the developer portal, use{" "}
               <code className="text-xs bg-muted px-1 rounded font-mono">sk_test_</code> keys for
-              sandbox testing, and connect WordPress with the official plugin — no third-party SMS
-              gateways.
+              sandbox testing, provision embedded customers with Connect, and wire WordPress v
+              {wordpressPlugin.version} with the official plugin.
             </p>
           </div>
         </div>
@@ -64,11 +68,12 @@ export function DevelopersDocsGuide({ baseUrl }: DevelopersDocsGuideProps) {
           <CopyButton value={baseUrl} label="Copy base URL" />
         </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { icon: Key, label: "Bearer auth", sub: "Authorization header" },
             { icon: Wallet, label: "Wallet + credits", sub: "Pay-as-you-go" },
             { icon: Webhook, label: "Webhooks", sub: "HMAC-signed events" },
+            { icon: Send, label: "Connect + Sender IDs", sub: "Partner APIs" },
           ].map(({ icon: Icon, label, sub }) => (
             <div
               key={label}
@@ -113,6 +118,12 @@ export function DevelopersDocsGuide({ baseUrl }: DevelopersDocsGuideProps) {
               title: "Add webhooks",
               body: "Receive delivery events at your HTTPS endpoint.",
               href: "/developers/webhooks",
+            },
+            {
+              n: 5,
+              title: "Connect (optional)",
+              body: `POST ${apiPrefix}/connect/customers to provision embedded sub-accounts.`,
+              href: "/docs/connect",
             },
           ].map((step) => (
             <li key={step.n}>
@@ -185,6 +196,44 @@ export function DevelopersDocsGuide({ baseUrl }: DevelopersDocsGuideProps) {
         </div>
       </section>
 
+      {/* Connect */}
+      <section
+        id="connect"
+        className="rounded-2xl border bg-card p-6 sm:p-8 space-y-4 shadow-sm scroll-mt-24"
+      >
+        <h2 className="text-xl font-bold">SplitSMS Connect</h2>
+        <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
+          Partners and SaaS platforms can provision embedded customers with their own wallet and SMS
+          credits. Requires the <code className="text-xs bg-muted px-1 rounded font-mono">connect.customers</code>{" "}
+          permission on your API key.
+        </p>
+        <pre className="rounded-xl bg-zinc-950 text-zinc-300 p-3 text-[11px] font-mono overflow-x-auto leading-relaxed">{`POST ${apiPrefix}/connect/customers
+Authorization: Bearer YOUR_PARTNER_KEY
+
+{
+  "full_name": "Jane Doe",
+  "phone": "233201234567",
+  "country_code": "GH",
+  "external_ref": "your-user-42",
+  "initial_sms_credits": 25
+}`}</pre>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/docs/connect"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            Connect guide
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link
+            href="/dashboard/connect"
+            className="inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-semibold hover:bg-muted/50 transition-colors"
+          >
+            Partner dashboard
+          </Link>
+        </div>
+      </section>
+
       {/* WordPress */}
       <section
         id="wordpress"
@@ -216,6 +265,19 @@ export function DevelopersDocsGuide({ baseUrl }: DevelopersDocsGuideProps) {
             Download plugin (v{wordpressPlugin.version})
           </a>
           <Link
+            href="/docs"
+            className="inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-semibold hover:bg-muted/50 transition-colors"
+          >
+            Full documentation
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link
+            href="/changelog"
+            className="inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-semibold hover:bg-muted/50 transition-colors"
+          >
+            Changelog
+          </Link>
+          <Link
             href="/integrations"
             className="inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-semibold hover:bg-muted/50 transition-colors"
           >
@@ -242,7 +304,7 @@ export function DevelopersDocsGuide({ baseUrl }: DevelopersDocsGuideProps) {
                 "Create an API key at App connections (live or sandbox for testing).",
                 "Paste the key, set Sender ID and admin phone, then click Test connection.",
                 "Send a test SMS from the plugin header to confirm delivery.",
-                "Enable WooCommerce, Contact Form 7, or WPForms under SplitSMS → Integrations.",
+                "Enable WooCommerce, WordPress core, CF7, WPForms, Elementor Pro, or Crocoblock under SplitSMS → Integrations.",
               ].map((text, i) => (
                 <li key={i} className="flex gap-3">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-bold">
@@ -265,15 +327,19 @@ export function DevelopersDocsGuide({ baseUrl }: DevelopersDocsGuideProps) {
               </li>
               <li className="flex gap-2">
                 <span className="text-primary">•</span>
-                WooCommerce: order placed, payment, processing, completed, cancelled
+                WooCommerce: placed, payment, processing, completed, failed, refunded, shipped
               </li>
               <li className="flex gap-2">
                 <span className="text-primary">•</span>
-                WordPress: new user registration, optional password-reset SMS
+                WordPress core: registration welcome SMS, optional password-reset SMS
               </li>
               <li className="flex gap-2">
                 <span className="text-primary">•</span>
-                CF7 & WPForms: SMS after successful form submit
+                CF7, WPForms, Elementor Pro — after submit with skip logs to dashboard
+              </li>
+              <li className="flex gap-2">
+                <span className="text-primary">•</span>
+                JetFormBuilder native Send SMS Post Submit Action + Crocoblock modules
               </li>
               <li className="flex gap-2">
                 <span className="text-primary">•</span>
@@ -281,17 +347,19 @@ export function DevelopersDocsGuide({ baseUrl }: DevelopersDocsGuideProps) {
               </li>
               <li className="flex gap-2">
                 <span className="text-primary">•</span>
-                Auto-updates from {baseUrl}/api/plugin/update
+                Auto-updates from {baseUrl}/api/plugin/update (v{wordpressPlugin.version})
               </li>
             </ul>
 
             <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground pt-2">
               Plugin → API calls
             </h3>
-            <pre className="rounded-xl bg-zinc-950 text-zinc-300 p-3 text-[11px] font-mono overflow-x-auto leading-relaxed">{`POST ${apiPrefix}/wordpress/connect   # on save key
+            <pre className="mt-4 rounded-xl bg-zinc-950 text-zinc-300 p-3 text-[11px] font-mono overflow-x-auto leading-relaxed">{`POST ${apiPrefix}/wordpress/connect   # on save key
 GET  ${apiPrefix}/account/status      # dashboard header
 POST ${apiPrefix}/sms/send            # all outbound SMS
-POST ${apiPrefix}/wordpress/logs      # event sync`}</pre>
+POST ${apiPrefix}/wordpress/logs      # SMS event sync
+POST ${apiPrefix}/wordpress/events    # generic plugin events`}
+            </pre>
           </div>
         </div>
 
@@ -316,7 +384,7 @@ POST ${apiPrefix}/wordpress/logs      # event sync`}</pre>
         </h2>
         <div className="grid gap-4 sm:grid-cols-3 text-sm">
           {[
-            { name: "JavaScript / TypeScript", pkg: "npm install @splitsms/sdk", href: "/sdk" },
+            { name: "JavaScript", pkg: `npm install ${baseUrl}/sdk/javascript/splitsms-sdk.tgz`, href: "/sdk" },
             { name: "PHP", pkg: "composer require splitsms/sdk", href: "/sdk" },
             { name: "Flutter", pkg: "splitsms_flutter", href: "/sdk" },
           ].map((sdk) => (
@@ -332,6 +400,9 @@ POST ${apiPrefix}/wordpress/logs      # event sync`}</pre>
               <p className="text-xs text-primary mt-2 font-medium">View docs →</p>
             </Link>
           ))}
+        </div>
+        <div className="mt-4">
+          <SdkNpmInstallNotice installUrl={`${baseUrl}/sdk/javascript/splitsms-sdk.tgz`} />
         </div>
         <pre className="mt-4 rounded-xl bg-zinc-950 text-zinc-300 p-4 text-xs font-mono overflow-x-auto">{`import { SplitSMS } from "@splitsms/sdk";
 
