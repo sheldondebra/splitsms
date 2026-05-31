@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { SiteHeader } from "@/components/layout/site-header";
+import { SiteHeaderWithAccount } from "@/components/layout/site-header-with-account";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { PublicPricingExplorer } from "@/components/marketing/public-pricing-explorer";
 import { PublicPricingHeroPrice } from "@/components/marketing/public-pricing-hero";
@@ -42,7 +42,7 @@ export default async function PricingPage({
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <SiteHeader />
+      <SiteHeaderWithAccount />
       <main className="flex-1">
         {/* Hero */}
         <section className="relative overflow-hidden border-b border-border/60 bg-gradient-to-b from-muted/40 to-background">

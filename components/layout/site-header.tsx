@@ -6,6 +6,11 @@ import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { buttonVariants } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  HeaderAccountMenu,
+  HeaderAccountMobileLinks,
+} from "@/components/layout/header-account-menu";
+import type { HeaderAccountProfile } from "@/lib/user/header-account-types";
 import { cn } from "@/lib/utils";
 import { Menu, X } from "lucide-react";
 
@@ -23,7 +28,7 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function SiteHeader() {
+export function SiteHeader({ account = null }: { account?: HeaderAccountProfile | null }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -64,28 +69,37 @@ export function SiteHeader() {
 
           <div className="hidden lg:flex items-center gap-2 shrink-0">
             <ThemeToggle className="rounded-lg text-foreground hover:bg-muted" />
-            <Link
-              href="/login"
-              className={cn(
-                buttonVariants({ variant: "ghost", size: "sm" }),
-                "rounded-lg font-medium text-foreground/80",
-              )}
-            >
-              Log in
-            </Link>
-            <Link
-              href="/signup"
-              className={cn(
-                buttonVariants({ size: "sm" }),
-                "rounded-lg font-semibold px-4",
-              )}
-            >
-              Get started
-            </Link>
+            {account ? (
+              <HeaderAccountMenu profile={account} variant="pill" />
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className={cn(
+                    buttonVariants({ variant: "ghost", size: "sm" }),
+                    "rounded-lg font-medium text-foreground/80",
+                  )}
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/signup"
+                  className={cn(
+                    buttonVariants({ size: "sm" }),
+                    "rounded-lg font-semibold px-4",
+                  )}
+                >
+                  Get started
+                </Link>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-1 lg:hidden shrink-0">
             <ThemeToggle className="rounded-lg text-foreground hover:bg-muted" />
+            {account && (
+              <HeaderAccountMenu profile={account} variant="compact" showChevron={false} />
+            )}
             <button
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
@@ -152,21 +166,39 @@ export function SiteHeader() {
           </nav>
 
           <div className="shrink-0 space-y-2 border-t border-border p-4 safe-bottom">
-            <Link
-              href="/signup"
-              className={cn(buttonVariants({ size: "lg" }), "w-full rounded-xl font-semibold")}
-            >
-              Get started free
-            </Link>
-            <Link
-              href="/login"
-              className={cn(
-                buttonVariants({ variant: "outline", size: "lg" }),
-                "w-full rounded-xl font-medium",
-              )}
-            >
-              Log in
-            </Link>
+            {account ? (
+              <>
+                <HeaderAccountMobileLinks
+                  profile={account}
+                  onNavigate={() => setMenuOpen(false)}
+                />
+                <Link
+                  href="/dashboard"
+                  className={cn(buttonVariants({ size: "lg" }), "w-full rounded-xl font-semibold mt-3")}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Open dashboard
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/signup"
+                  className={cn(buttonVariants({ size: "lg" }), "w-full rounded-xl font-semibold")}
+                >
+                  Get started free
+                </Link>
+                <Link
+                  href="/login"
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "lg" }),
+                    "w-full rounded-xl font-medium",
+                  )}
+                >
+                  Log in
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

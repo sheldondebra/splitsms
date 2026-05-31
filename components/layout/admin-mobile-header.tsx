@@ -4,17 +4,20 @@ import Link from "next/link";
 import { Menu, Shield } from "lucide-react";
 import { getAdminPageTitle } from "@/lib/navigation/admin-nav";
 import { usePathname } from "next/navigation";
-import { LogoutConfirmButton } from "@/components/auth/logout-confirm-button";
+import { HeaderAccountMenu } from "@/components/layout/header-account-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
+import type { HeaderAccountProfile } from "@/lib/user/header-account-types";
 import { cn } from "@/lib/utils";
 import type { AdminNavItem } from "@/lib/navigation/admin-nav";
 
 type AdminMobileHeaderProps = {
   onMenuOpen: () => void;
   subtitle?: string;
+  profile: HeaderAccountProfile;
   badges?: Partial<Record<NonNullable<AdminNavItem["badge"]>, number>>;
 };
 
-export function AdminMobileHeader({ onMenuOpen, subtitle, badges }: AdminMobileHeaderProps) {
+export function AdminMobileHeader({ onMenuOpen, subtitle, profile, badges }: AdminMobileHeaderProps) {
   const pathname = usePathname();
   const title = getAdminPageTitle(pathname);
   const pendingPayments = badges?.["pending-payments"] ?? 0;
@@ -46,7 +49,8 @@ export function AdminMobileHeader({ onMenuOpen, subtitle, badges }: AdminMobileH
             {attention}
           </span>
         )}
-        <LogoutConfirmButton variant="ghost" size="sm" label="Out" showIcon={false} />
+        <ThemeToggle className="h-8 w-8 shrink-0 rounded-lg" />
+        <HeaderAccountMenu profile={profile} variant="compact" showChevron={false} />
       </div>
       {(pendingPayments > 0 || pendingSender > 0) && (
         <div className="flex gap-2 overflow-x-auto px-4 pb-2.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

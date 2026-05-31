@@ -13,6 +13,6 @@
   "api_docs_url": "https://www.splitsms.com/api-docs",
   "integrations_url": "https://www.splitsms.com/integrations",
   "update_check_url": "https://www.splitsms.com/api/plugin/update",
-  "last_updated": "2026-05-29",
+  "last_updated": "2026-05-31",
   "changelog": "• Fix: Find customer phone from billing, shipping, user meta, and common order meta keys\n• New: Optional custom phone meta key on Integrations\n• Improve: Logs show Details column with skip reason (e.g. no phone on order)"
 }

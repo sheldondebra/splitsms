@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SiteHeader } from "@/components/layout/site-header";
+import { SiteHeaderWithAccount } from "@/components/layout/site-header-with-account";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { HomePageContent } from "@/components/marketing/home-page-content";
 import {
@@ -117,7 +117,7 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <SiteHeader />
+      <SiteHeaderWithAccount />
       <main className="flex-1">
         <HomePageContent />
       </main>

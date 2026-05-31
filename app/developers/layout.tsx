@@ -52,6 +52,7 @@ export default async function DevelopersLayout({
           fullName: user?.fullName ?? "Member",
           email: user?.email ?? null,
           phone: user?.phone ?? session.phone,
+          role: session.role,
         }}
         notifications={notifications}
         unreadCount={unreadCount}

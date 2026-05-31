@@ -18,6 +18,7 @@ import {
   syncTwilioSenderRegistration,
 } from "@/lib/sender-ids/providers/twilio";
 import { resolveSenderRegistrationProviders } from "@/lib/sms/routing-policy";
+import { reconcileSenderIdPlatformStatus } from "@/lib/sender-ids/reconcile-status";
 import type { SenderIdProviderType } from "@/lib/generated/prisma/client";
 
 export function mapMnotifyStatusToLocal(providerStatus: string | undefined): SenderIdStatus {
@@ -178,9 +179,56 @@ export async function syncSenderIdFromProviders(senderRecordId: string) {
   if (mnotifyResult.providerStatus) {
     await prisma.senderId.update({
       where: { id: senderRecordId },
-      data: { providerStatus: `mNotify: ${mnotifyResult.providerStatus}` },
+      data: {
+        providerStatus: [mnotifyResult, twilioResult, infobipResult]
+          .filter((r) => r.status !== "SKIPPED" && r.providerStatus)
+          .map((r) => r.providerStatus)
+          .join(" · "),
+      },
     });
   }
+
+  await reconcileSenderIdPlatformStatus(senderRecordId);
+}
+
+/** Re-submit a sender ID to all configured providers (after denial or deletion). */
+export async function resubmitSenderIdToProviders(senderRecordId: string) {
+  const sender = await prisma.senderId.findUnique({
+    where: { id: senderRecordId },
+    select: {
+      id: true,
+      userId: true,
+      value: true,
+      countryCode: true,
+      adminNote: true,
+      user: { select: { fullName: true } },
+    },
+  });
+  if (!sender) return { ok: false as const, error: "Sender ID not found" };
+
+  const purpose =
+    sender.adminNote?.trim() ||
+    `SplitSMS sender ID (${sender.value}) for ${sender.user.fullName}`;
+
+  await prisma.senderId.update({
+    where: { id: senderRecordId },
+    data: {
+      status: "PENDING",
+      isDefault: false,
+      adminNote: "Re-submitted to providers — awaiting provider and platform approval.",
+    },
+  });
+
+  const result = await registerSenderIdWithAllProviders({
+    senderRecordId: sender.id,
+    userId: sender.userId,
+    value: sender.value,
+    purpose,
+    countryCode: sender.countryCode,
+  });
+
+  await reconcileSenderIdPlatformStatus(senderRecordId);
+  return { ok: true as const, result };
 }
 
 export async function syncUserSenderIdsFromMnotify(userId: string) {

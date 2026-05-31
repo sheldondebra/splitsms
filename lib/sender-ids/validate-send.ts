@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { senderHasProviderApproval } from "@/lib/sender-ids/reconcile-status";
 
 export class SenderIdValidationError extends Error {
   constructor(message: string) {
@@ -15,11 +16,18 @@ export async function assertApprovedSenderForUser(userId: string, senderValue: s
       value: normalized,
       status: "APPROVED",
     },
+    include: { providerRegistrations: true },
   });
 
   if (!sender) {
     throw new SenderIdValidationError(
       `Sender ID "${normalized}" is not approved for this account. Register and approve it in Sender IDs first.`,
+    );
+  }
+
+  if (!senderHasProviderApproval(sender.providerRegistrations)) {
+    throw new SenderIdValidationError(
+      `Sender ID "${normalized}" is not approved by any SMS provider yet. Sync status or re-submit from Sender IDs.`,
     );
   }
 

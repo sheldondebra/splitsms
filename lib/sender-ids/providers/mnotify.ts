@@ -57,14 +57,41 @@ export async function syncMnotifySenderRegistration(
 
   const status = await checkMnotifySenderIdStatus(value);
   if (!status.ok) {
+    const err = (status.error ?? "").toLowerCase();
+    const deleted =
+      err.includes("not found") ||
+      err.includes("does not exist") ||
+      err.includes("no sender") ||
+      err.includes("invalid");
+
+    if (deleted) {
+      return {
+        status: "REJECTED",
+        providerStatus: status.providerStatus ?? "Deleted / not found at mNotify",
+        error: status.error,
+      };
+    }
+
     return {
       status: "FAILED",
       error: status.error ?? "Could not check mNotify status",
+      providerStatus: status.providerStatus,
     };
   }
 
+  const mapped = mapProviderStatusText(status.providerStatus);
+  if (mapped === "PENDING" && status.providerStatus) {
+    const s = status.providerStatus.toLowerCase();
+    if (s.includes("not found") || s.includes("delete") || s.includes("removed")) {
+      return {
+        status: "REJECTED",
+        providerStatus: status.providerStatus,
+      };
+    }
+  }
+
   return {
-    status: mapProviderStatusText(status.providerStatus),
+    status: mapped,
     providerStatus: status.providerStatus,
   };
 }

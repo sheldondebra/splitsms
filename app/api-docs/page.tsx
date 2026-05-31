@@ -1,23 +1,25 @@
-import Link from "next/link";
-import { getSiteUrl } from "@/lib/site-config";
-import { SiteHeader } from "@/components/layout/site-header";
-import { SiteFooter } from "@/components/layout/site-footer";
+import { MarketingPageShell } from "@/components/marketing/marketing-page-shell";
 import { ApiDocsHero } from "@/components/marketing/api-docs-hero";
 import { DevelopersDocsGuide } from "@/components/developers/developers-docs-guide";
 import { ApiDocsExtras } from "@/components/marketing/api-docs-extras";
 import { ApiDocsView } from "@/components/developers/api-docs-view";
+import { getSiteUrl } from "@/lib/site-config";
+import Link from "next/link";
 import { Braces, BookOpen } from "lucide-react";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export default function ApiDocsPage() {
   const baseUrl = getSiteUrl();
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <SiteHeader />
+    <MarketingPageShell>
       <ApiDocsHero baseUrl={baseUrl} />
 
-      <main className="flex-1">
-        <div className="mx-auto max-w-6xl px-4 py-10 md:py-14">
+      <div className="mx-auto max-w-[1600px] px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20 py-10 md:py-14">
+        <div className="max-w-6xl mx-auto">
           <DevelopersDocsGuide baseUrl={baseUrl} />
 
           <div id="api-reference" className="scroll-mt-24 mt-14 pt-12 border-t border-border/60 space-y-8">
@@ -47,26 +49,6 @@ export default function ApiDocsPage() {
               </div>
             </div>
 
-            <Link
-              href="/developers/postman"
-              className="group flex items-center justify-between gap-4 rounded-2xl border border-[#FF6C37]/25 bg-[#FF6C37]/5 px-5 py-4 transition-all hover:border-[#FF6C37]/40 hover:shadow-md hover:shadow-[#FF6C37]/5"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FF6C37]/15 text-[#FF6C37]">
-                  <Braces className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-sm group-hover:text-[#FF6C37] transition-colors">
-                    Import the Postman collection
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                    baseUrl preset to {baseUrl}
-                  </p>
-                </div>
-              </div>
-              <span className="text-sm font-semibold text-[#FF6C37] shrink-0">Open →</span>
-            </Link>
-
             <div className="rounded-2xl border border-border/60 bg-card/50 p-4 sm:p-6 md:p-8 shadow-sm">
               <ApiDocsView baseUrl={baseUrl} />
             </div>
@@ -74,9 +56,7 @@ export default function ApiDocsPage() {
 
           <ApiDocsExtras />
         </div>
-      </main>
-
-      <SiteFooter />
-    </div>
+      </div>
+    </MarketingPageShell>
   );
 }

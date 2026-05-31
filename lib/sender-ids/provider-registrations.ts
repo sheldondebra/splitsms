@@ -92,9 +92,28 @@ export function mapProviderStatusText(
   text: string | undefined,
 ): SenderIdProviderStatus {
   const s = (text ?? "").toLowerCase();
-  if (s.includes("approve") || s.includes("active") || s.includes("complete"))
+  if (
+    s.includes("approve") ||
+    s.includes("active") ||
+    s.includes("complete") ||
+    s.includes("provisioned")
+  )
     return "APPROVED";
-  if (s.includes("reject") || s.includes("deny") || s.includes("denied"))
+  if (
+    s.includes("reject") ||
+    s.includes("deny") ||
+    s.includes("denied") ||
+    s.includes("declin")
+  )
+    return "REJECTED";
+  if (
+    s.includes("delete") ||
+    s.includes("removed") ||
+    s.includes("not found") ||
+    s.includes("does not exist") ||
+    s.includes("no sender") ||
+    s.includes("invalid sender")
+  )
     return "REJECTED";
   if (s.includes("fail") || s.includes("error")) return "FAILED";
   return "PENDING";

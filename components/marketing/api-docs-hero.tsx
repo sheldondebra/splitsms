@@ -20,7 +20,8 @@ export function ApiDocsHero({ baseUrl }: ApiDocsHeroProps) {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,oklch(0.72_0.19_45/0.14),transparent)]" />
       <div className="absolute top-0 right-0 w-72 h-72 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
 
-      <div className="relative mx-auto max-w-6xl px-4 pt-14 pb-12 md:pt-20 md:pb-16">
+      <div className="relative mx-auto max-w-[1600px] px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20 pt-14 pb-12 md:pt-20 md:pb-16">
+        <div className="max-w-6xl mx-auto">
         <div className="grid gap-10 lg:grid-cols-[1fr,min(420px,42%)] lg:items-center">
           <div className="min-w-0">
             <p className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
@@ -106,6 +107,7 @@ export function ApiDocsHero({ baseUrl }: ApiDocsHeroProps) {
               <CopyButton value={quickCurl(baseUrl)} label="Copy sample cURL" className="w-full" />
             </div>
           </div>
+        </div>
         </div>
       </div>
     </section>

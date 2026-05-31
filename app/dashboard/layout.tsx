@@ -71,6 +71,7 @@ export default async function DashboardLayout({
           fullName: user?.fullName ?? "Member",
           email: user?.email ?? null,
           phone: user?.phone ?? session.phone,
+          role: session.role,
         }}
         notifications={notifications}
         unreadCount={unreadCount}

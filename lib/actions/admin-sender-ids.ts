@@ -11,7 +11,9 @@ import {
 import {
   registerSenderIdWithAllProviders,
   syncSenderIdFromProviders,
+  resubmitSenderIdToProviders,
 } from "@/lib/sender-ids/provider-sync";
+import { senderHasProviderApproval } from "@/lib/sender-ids/reconcile-status";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -31,12 +33,34 @@ async function requireAdminSession() {
 export async function approveSenderIdAction(formData: FormData) {
   await requireAdminSession();
   const id = String(formData.get("id"));
+  const returnTo = String(formData.get("returnTo") ?? "/admin/sender-ids");
   const isDefault = formData.get("setDefault") === "1";
-  const userId = (
-    await prisma.senderId.findUnique({ where: { id }, select: { userId: true } })
-  )?.userId;
 
-  if (userId && isDefault) {
+  const row = await prisma.senderId.findUnique({
+    where: { id },
+    include: { providerRegistrations: true },
+  });
+  if (!row) redirect(`${returnTo}&error=notfound`);
+
+  await syncSenderIdFromProviders(id);
+
+  const refreshed = await prisma.senderId.findUnique({
+    where: { id },
+    include: { providerRegistrations: true },
+  });
+  if (!refreshed) redirect(`${returnTo}&error=notfound`);
+
+  const active = refreshed.providerRegistrations.filter((r) => r.status !== "SKIPPED");
+  const anyRejected = active.some((r) => r.status === "REJECTED" || r.status === "FAILED");
+  const anyApproved = senderHasProviderApproval(refreshed.providerRegistrations);
+
+  if (anyRejected && !anyApproved) {
+    redirect(`${returnTo}&error=provider_denied`);
+  }
+
+  const userId = refreshed.userId;
+
+  if (isDefault) {
     await prisma.senderId.updateMany({
       where: { userId },
       data: { isDefault: false },
@@ -48,14 +72,19 @@ export async function approveSenderIdAction(formData: FormData) {
     data: {
       status: "APPROVED",
       ...(isDefault ? { isDefault: true } : {}),
+      adminNote: anyApproved
+        ? "Approved on SplitSMS — provider confirmed."
+        : "Approved on SplitSMS — provider approval still pending.",
     },
   });
   revalidateSenderPaths(userId);
+  redirect(`${returnTo}&saved=approved`);
 }
 
 export async function rejectSenderIdAction(formData: FormData) {
   await requireAdminSession();
   const id = String(formData.get("id"));
+  const returnTo = String(formData.get("returnTo") ?? "/admin/sender-ids");
   const userId = (
     await prisma.senderId.findUnique({ where: { id }, select: { userId: true } })
   )?.userId;
@@ -69,6 +98,7 @@ export async function rejectSenderIdAction(formData: FormData) {
     },
   });
   revalidateSenderPaths(userId);
+  redirect(`${returnTo}&saved=rejected`);
 }
 
 export async function adminCreateSenderIdAction(formData: FormData) {
@@ -168,4 +198,38 @@ export async function adminSyncSenderProvidersAction(formData: FormData) {
   await syncSenderIdFromProviders(senderId);
   revalidateSenderPaths(sender.userId);
   redirect(`${returnTo}&saved=sync`);
+}
+
+export async function adminResubmitSenderProvidersAction(formData: FormData) {
+  await requireAdminSession();
+  const senderId = String(formData.get("senderId") ?? "");
+  const returnTo = String(formData.get("returnTo") ?? "/admin/sender-ids");
+
+  const result = await resubmitSenderIdToProviders(senderId);
+  if (!result.ok) redirect(`${returnTo}&error=notfound`);
+
+  const sender = await prisma.senderId.findUnique({
+    where: { id: senderId },
+    select: { userId: true },
+  });
+  revalidateSenderPaths(sender?.userId);
+  redirect(`${returnTo}&saved=resubmit`);
+}
+
+export async function adminSyncAllSenderProvidersAction(formData: FormData) {
+  await requireAdminSession();
+  const returnTo = String(formData.get("returnTo") ?? "/admin/sender-ids");
+
+  const senders = await prisma.senderId.findMany({
+    where: { status: { in: ["APPROVED", "PENDING"] } },
+    select: { id: true },
+    take: 200,
+  });
+
+  for (const s of senders) {
+    await syncSenderIdFromProviders(s.id);
+  }
+
+  revalidateSenderPaths();
+  redirect(`${returnTo}&saved=sync_all`);
 }

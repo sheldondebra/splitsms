@@ -6,7 +6,9 @@ import { usePathname } from "next/navigation";
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { AdminMobileHeader } from "@/components/layout/admin-mobile-header";
 import { AdminNavDrawer } from "@/components/layout/admin-nav-drawer";
-import { LogoutConfirmButton } from "@/components/auth/logout-confirm-button";
+import { HeaderAccountMenu } from "@/components/layout/header-account-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
+import type { HeaderAccountProfile } from "@/lib/user/header-account-types";
 import { getAdminPageTitle } from "@/lib/navigation/admin-nav";
 import { cn } from "@/lib/utils";
 import { Shield } from "lucide-react";
@@ -15,10 +17,11 @@ import type { AdminNavItem } from "@/lib/navigation/admin-nav";
 type AdminAppShellProps = {
   children: React.ReactNode;
   subtitle?: string;
+  profile: HeaderAccountProfile;
   badges?: Partial<Record<NonNullable<AdminNavItem["badge"]>, number>>;
 };
 
-export function AdminAppShell({ children, subtitle, badges }: AdminAppShellProps) {
+export function AdminAppShell({ children, subtitle, profile, badges }: AdminAppShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const title = getAdminPageTitle(pathname);
@@ -33,6 +36,7 @@ export function AdminAppShell({ children, subtitle, badges }: AdminAppShellProps
         <AdminMobileHeader
           onMenuOpen={() => setMenuOpen(true)}
           subtitle={subtitle}
+          profile={profile}
           badges={badges}
         />
 
@@ -70,13 +74,8 @@ export function AdminAppShell({ children, subtitle, badges }: AdminAppShellProps
                 )}
               </div>
             )}
-            <LogoutConfirmButton
-              variant="outline"
-              size="sm"
-              label="Sign out"
-              showIcon={false}
-              className="rounded-lg h-9"
-            />
+            <ThemeToggle className="h-9 w-9 rounded-lg shrink-0" />
+            <HeaderAccountMenu profile={profile} variant="pill" />
           </div>
         </header>
 

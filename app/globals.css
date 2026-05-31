@@ -187,7 +187,7 @@
     @apply bg-card/95 supports-[backdrop-filter]:bg-card/90;
   }
   .site-header-inner {
-    @apply mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6;
+    @apply mx-auto flex h-14 w-full max-w-[1600px] items-center justify-between gap-3 px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20;
   }
   .site-header-nav {
     @apply hidden lg:flex flex-1 items-center justify-center gap-0.5 px-1 min-w-0;
