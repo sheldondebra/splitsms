@@ -361,4 +361,82 @@
       window.addEventListener('scroll', updateActiveSection, { passive: true });
     }
   }
+
+  function initFormsManager() {
+    var page = qs('.splitsms-forms-page');
+    if (!page) {
+      return;
+    }
+
+    page.querySelectorAll('.splitsms-switch__input').forEach(function (input) {
+      input.addEventListener('change', function () {
+        var card = input.closest('.splitsms-form-card');
+        var label = input.parentElement.querySelector('.splitsms-switch__label');
+        if (card) {
+          card.classList.toggle('is-enabled', input.checked);
+          card.classList.toggle('is-disabled', !input.checked);
+        }
+        if (label) {
+          label.textContent = input.checked ? 'On' : 'Off';
+        }
+      });
+    });
+
+    page.querySelectorAll('.splitsms-form-card__toggle').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var card = btn.closest('.splitsms-form-card');
+        var body = card ? card.querySelector('.splitsms-form-card__body') : null;
+        if (!body) {
+          return;
+        }
+        var open = body.hasAttribute('hidden');
+        if (open) {
+          body.removeAttribute('hidden');
+          btn.setAttribute('aria-expanded', 'true');
+        } else {
+          body.setAttribute('hidden', 'hidden');
+          btn.setAttribute('aria-expanded', 'false');
+        }
+      });
+    });
+
+    page.querySelectorAll('.splitsms-forms-filter').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var filter = btn.getAttribute('data-filter') || 'all';
+        page.querySelectorAll('.splitsms-forms-filter').forEach(function (b) {
+          b.classList.toggle('is-active', b === btn);
+          b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+        });
+        page.querySelectorAll('.splitsms-form-card').forEach(function (card) {
+          var group = card.getAttribute('data-filter-group') || 'forms';
+          var show = filter === 'all' || group === filter;
+          card.classList.toggle('is-filter-hidden', !show);
+        });
+      });
+    });
+
+    var refreshBtn = qs('#splitsms-refresh-forms');
+    if (refreshBtn && window.SplitSMSAdmin) {
+      refreshBtn.addEventListener('click', function () {
+        refreshBtn.disabled = true;
+        var fd = new FormData();
+        fd.append('action', 'splitsms_refresh_forms');
+        fd.append('nonce', SplitSMSAdmin.nonceForms);
+        fetch(SplitSMSAdmin.ajaxUrl, { method: 'POST', body: fd, credentials: 'same-origin' })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (data.success && data.data && data.data.redirect) {
+              window.location.href = data.data.redirect;
+              return;
+            }
+            refreshBtn.disabled = false;
+          })
+          .catch(function () {
+            refreshBtn.disabled = false;
+          });
+      });
+    }
+  }
+
+  initFormsManager();
 })();

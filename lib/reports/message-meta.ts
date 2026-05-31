@@ -59,7 +59,7 @@ export type MessageStatusFilter = "all" | "PENDING" | "SENT" | "DELIVERED" | "FA
 export const MESSAGE_FILTER_OPTIONS: { value: MessageStatusFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "DELIVERED", label: "Delivered" },
-  { value: "SENT", label: "On the way" },
+  { value: "SENT", label: "Sent" },
   { value: "PENDING", label: "Pending" },
   { value: "FAILED", label: "Failed" },
 ];

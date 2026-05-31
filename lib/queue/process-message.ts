@@ -63,6 +63,11 @@ export async function processMessageJob(messageId: string, countryCode: string) 
       },
     });
     await dispatchUserWebhooks(message.userId, updated);
+
+    if (result.provider === "MNOTIFY" && result.providerRef) {
+      const { syncMnotifyDeliveryAfterSend } = await import("@/lib/sms/sync-mnotify-dlr");
+      void syncMnotifyDeliveryAfterSend(result.providerRef).catch(() => undefined);
+    }
     return;
   }
 

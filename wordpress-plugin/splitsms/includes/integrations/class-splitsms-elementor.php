@@ -51,7 +51,8 @@ class SplitSMS_Elementor {
         if (!SplitSMS_Settings::is_configured()) {
             return;
         }
-        if (!$this->settings->feature_enabled('elementor_enabled')) {
+        if (!SplitSMS_Forms_Manager::source_should_hook('elementor')
+            && !$this->settings->feature_enabled('elementor_enabled')) {
             return;
         }
 
@@ -103,8 +104,17 @@ class SplitSMS_Elementor {
         $form_id = method_exists($record, 'get_form_settings')
             ? (string) $record->get_form_settings('id')
             : '';
+        $post_id = function_exists('get_queried_object_id') ? (int) get_queried_object_id() : 0;
 
-        if (!$this->is_form_allowed($form_name, $form_id)) {
+        $candidates = array_filter(
+            array(
+                $post_id > 0 && '' !== $form_id ? $post_id . '-' . $form_id : '',
+                $form_id,
+                $form_name,
+            )
+        );
+
+        if (!SplitSMS_Forms_Manager::is_form_enabled_any('elementor', $candidates)) {
             return;
         }
 
@@ -126,7 +136,8 @@ class SplitSMS_Elementor {
             return;
         }
 
-        $template = $this->settings->get('elementor_message');
+        $config = SplitSMS_Forms_Manager::get_form_config_any('elementor', $candidates);
+        $template = $config['message'];
         if ('' === trim($template)) {
             $this->log_skip($form_name, $event, 'empty_template');
             return;
@@ -237,7 +248,16 @@ class SplitSMS_Elementor {
      * @param array{by_id:array<string,string>,by_type:array} $parsed
      */
     private function extract_phone($record, $parsed) {
-        $preferred = trim($this->settings->get('elementor_phone_field', 'phone'));
+        $form_id = method_exists($record, 'get_form_settings')
+            ? (string) $record->get_form_settings('id')
+            : '';
+        $post_id = function_exists('get_queried_object_id') ? (int) get_queried_object_id() : 0;
+        $candidates = array_filter(array(
+            $post_id > 0 && '' !== $form_id ? $post_id . '-' . $form_id : '',
+            $form_id,
+        ));
+        $config = SplitSMS_Forms_Manager::get_form_config_any('elementor', $candidates);
+        $preferred = trim($config['phone_field'] ?: $this->settings->get('elementor_phone_field', 'phone'));
 
         if ('' !== $preferred && method_exists($record, 'get_field')) {
             $match = $record->get_field(array('id' => $preferred));

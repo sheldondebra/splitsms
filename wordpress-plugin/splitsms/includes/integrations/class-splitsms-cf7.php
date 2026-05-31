@@ -50,7 +50,8 @@ class SplitSMS_CF7 {
         if (!SplitSMS_Settings::is_configured()) {
             return;
         }
-        if (!$this->settings->feature_enabled('cf7_enabled')) {
+        if (!SplitSMS_Forms_Manager::source_should_hook('cf7')
+            && !$this->settings->feature_enabled('cf7_enabled')) {
             return;
         }
 
@@ -107,7 +108,7 @@ class SplitSMS_CF7 {
         }
 
         $form_id = (int) $contact_form->id();
-        if (!$this->is_form_allowed($form_id)) {
+        if (!SplitSMS_Forms_Manager::is_form_enabled('cf7', (string) $form_id)) {
             return;
         }
 
@@ -140,7 +141,8 @@ class SplitSMS_CF7 {
             return;
         }
 
-        $template = $this->settings->get('cf7_message');
+        $config = SplitSMS_Forms_Manager::get_form_config('cf7', (string) $form_id);
+        $template = $config['message'];
         if ('' === trim($template)) {
             $this->log_skip($form_id, $event, 'empty_template');
             return;
@@ -181,7 +183,20 @@ class SplitSMS_CF7 {
      * @param array<string, mixed> $posted
      */
     private function extract_phone($posted) {
-        $preferred = trim($this->settings->get('cf7_phone_field', 'your-phone'));
+        $form_id = 0;
+        if (class_exists('WPCF7_Submission')) {
+            $sub = WPCF7_Submission::get_instance();
+            if ($sub && method_exists($sub, 'get_contact_form')) {
+                $cf = $sub->get_contact_form();
+                if ($cf && method_exists($cf, 'id')) {
+                    $form_id = (int) $cf->id();
+                }
+            }
+        }
+        $config = $form_id > 0
+            ? SplitSMS_Forms_Manager::get_form_config('cf7', (string) $form_id)
+            : array('phone_field' => $this->settings->get('cf7_phone_field', 'your-phone'));
+        $preferred = trim($config['phone_field'] ?: $this->settings->get('cf7_phone_field', 'your-phone'));
         $phone = $this->read_phone_field($posted, $preferred);
         if ('' !== $phone) {
             return apply_filters('splitsms_cf7_phone', $phone, $posted);

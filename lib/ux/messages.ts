@@ -31,7 +31,7 @@ export function friendlyError(code: string | undefined, fallback?: string) {
 
 export const STATUS_LABELS: Record<string, string> = {
   PENDING: "Pending",
-  SENT: "On the way",
+  SENT: "Sent",
   DELIVERED: "Delivered",
   FAILED: "Failed",
   REJECTED: "Not sent",

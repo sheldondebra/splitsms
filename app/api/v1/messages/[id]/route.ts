@@ -1,6 +1,7 @@
 import { withApi } from "@/lib/api/with-api";
 import { apiError, apiSuccess } from "@/lib/api/errors";
 import { prisma } from "@/lib/db";
+import { syncMnotifyCampaignDelivery } from "@/lib/sms/sync-mnotify-dlr";
 
 function messageIdFromUrl(request: Request) {
   const parts = new URL(request.url).pathname.split("/");
@@ -10,10 +11,25 @@ function messageIdFromUrl(request: Request) {
 export const GET = withApi(
   async (request, ctx) => {
     const id = messageIdFromUrl(request);
-    const message = await prisma.message.findFirst({
+    const sync = new URL(request.url).searchParams.get("sync") === "true";
+
+    let message = await prisma.message.findFirst({
       where: { id, userId: ctx.user.id },
     });
     if (!message) return apiError("NOT_FOUND", "Message not found", 404);
+
+    if (
+      sync &&
+      message.providerType === "MNOTIFY" &&
+      message.providerRef &&
+      (message.status === "SENT" || message.status === "PENDING")
+    ) {
+      await syncMnotifyCampaignDelivery(message.providerRef);
+      message =
+        (await prisma.message.findFirst({
+          where: { id, userId: ctx.user.id },
+        })) ?? message;
+    }
 
     return apiSuccess({
       data: {
@@ -29,6 +45,7 @@ export const GET = withApi(
         failure_reason: message.failureReason,
         sandbox: message.isSandbox,
       },
+      synced: sync,
     });
   },
   "/api/v1/messages/:id",

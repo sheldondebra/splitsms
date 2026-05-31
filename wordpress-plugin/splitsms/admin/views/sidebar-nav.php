@@ -4,9 +4,12 @@ if (!defined('ABSPATH')) {
 }
 
 $current = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : 'splitsms';
+$version_info = class_exists('SplitSMS_Plugin_Status') ? SplitSMS_Plugin_Status::version_info(false) : array('is_outdated' => false);
+$sidebar_version_class = !empty($version_info['is_outdated']) ? 'is-outdated' : '';
 $nav = array(
     'splitsms' => array(__('Dashboard', 'splitsms'), 'dashicons-dashboard'),
     'splitsms-send' => array(__('Send SMS', 'splitsms'), 'dashicons-email'),
+    'splitsms-forms' => array(__('Forms', 'splitsms'), 'dashicons-feedback'),
     'splitsms-integrations' => array(__('Integrations', 'splitsms'), 'dashicons-admin-plugins'),
     'splitsms-crocoblock' => array(__('Crocoblock', 'splitsms'), 'dashicons-calendar-alt'),
     'splitsms-automations' => array(__('Automations', 'splitsms'), 'dashicons-controls-repeat'),
@@ -24,7 +27,7 @@ $update_url = admin_url('admin.php?page=splitsms-help');
         <span class="splitsms-sidebar__logo" aria-hidden="true">SMS</span>
         <div>
             <strong>SplitSMS</strong>
-            <span class="splitsms-sidebar__version">v<?php echo esc_html(SPLITSMS_VERSION); ?></span>
+            <span class="splitsms-sidebar__version <?php echo esc_attr($sidebar_version_class); ?>">v<?php echo esc_html(SPLITSMS_VERSION); ?><?php if (!empty($version_info['is_outdated']) && !empty($version_info['latest'])) : ?> · <?php printf(esc_html__('update to v%s', 'splitsms'), esc_html($version_info['latest'])); ?><?php endif; ?></span>
         </div>
     </div>
     <nav class="splitsms-sidebar__nav">

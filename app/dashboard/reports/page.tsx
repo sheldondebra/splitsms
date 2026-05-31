@@ -5,6 +5,8 @@ import {
   getMessageLogs,
   getCampaignAnalytics,
 } from "@/lib/analytics/dashboard";
+import { syncUserPendingMnotifyDeliveries } from "@/lib/sms/sync-mnotify-dlr";
+import { DeliverySyncPoller } from "@/components/dashboard/delivery-sync-poller";
 import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
 import { ReportsDashboard } from "@/components/dashboard/reports-dashboard";
 import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
@@ -28,6 +30,8 @@ export default async function ReportsPage({
   if (!session) return null;
   const params = await searchParams;
   const page = parseInt(params.page ?? "1", 10) || 1;
+
+  await syncUserPendingMnotifyDeliveries(session.userId, 40).catch(() => undefined);
 
   const [overview, { items, total, totalPages }, campaigns, campaignAnalytics] =
     await Promise.all([
@@ -92,9 +96,13 @@ export default async function ReportsPage({
   }).toString()}`;
 
   const failedInView = messages.filter((m) => m.status === "FAILED").length;
+  const hasInTransit = messages.some(
+    (m) => m.status === "SENT" || m.status === "PENDING",
+  );
 
   return (
     <AppPage wide>
+      <DeliverySyncPoller active={hasInTransit} />
       <PageHeader
         title="Delivery reports"
         description="Detailed delivery analytics, filters, and per-message logs for every SMS you send."

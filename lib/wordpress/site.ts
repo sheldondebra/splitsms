@@ -1,4 +1,20 @@
 import { prisma } from "@/lib/db";
+import { wordpressPlugin } from "@/lib/site-config";
+
+export function wordpressPluginNeedsUpdate(installed: string | null | undefined) {
+  if (!installed) return false;
+  const latest = wordpressPlugin.version;
+  const normalize = (v: string) => v.replace(/^v/i, "").trim();
+  const a = normalize(installed).split(".").map((n) => parseInt(n, 10) || 0);
+  const b = normalize(latest).split(".").map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const x = a[i] ?? 0;
+    const y = b[i] ?? 0;
+    if (x < y) return true;
+    if (x > y) return false;
+  }
+  return false;
+}
 import type { Prisma } from "@/lib/generated/prisma/client";
 import type { ApiContext } from "@/lib/api/context";
 
@@ -87,7 +103,7 @@ export async function getWordPressDashboardStats(userId: string) {
   startOfDay.setHours(0, 0, 0, 0);
   const startOfMonth = new Date(startOfDay.getFullYear(), startOfDay.getMonth(), 1);
 
-  const [sites, sentToday, failedToday, sentMonth, failedMonth, crocoblock] = await Promise.all([
+  const [sitesRaw, sentToday, failedToday, sentMonth, failedMonth, crocoblock] = await Promise.all([
     prisma.wordPressSite.findMany({
       where: { userId, status: "connected" },
       orderBy: { lastSyncAt: "desc" },
@@ -106,6 +122,11 @@ export async function getWordPressDashboardStats(userId: string) {
     }),
     getCrocoblockStats(userId, startOfMonth),
   ]);
+
+  const sites = sitesRaw.map((site) => ({
+    ...site,
+    pluginUpdateAvailable: wordpressPluginNeedsUpdate(site.pluginVersion),
+  }));
 
   return { sites, sentToday, failedToday, sentMonth, failedMonth, crocoblock };
 }

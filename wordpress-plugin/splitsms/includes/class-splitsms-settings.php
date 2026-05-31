@@ -183,6 +183,7 @@ class SplitSMS_Settings {
             'cb_jetappointment_tpl_reminder' => 'Reminder: appointment with {provider_name} on {appointment_date} at {appointment_time}.',
             'cb_jetappointment_tpl_admin' => 'New appointment: {client_name} on {appointment_date}. Phone: {phone}.',
             'cb_jetappointment_tpl_provider' => 'New appointment booked by {client_name} for {appointment_date} at {appointment_time}.',
+            'forms_rules' => array(),
         );
     }
 

@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * JetFormBuilder — native Send SMS form action + optional global submit hook.
+ * JetFormBuilder — native SplitSMS Notification action + optional global submit hook.
  */
 class SplitSMS_JetFormBuilder {
     /** @var self|null */
@@ -31,9 +31,25 @@ class SplitSMS_JetFormBuilder {
         }
 
         add_action('jet-form-builder/actions/register', array($this, 'register_form_action'), 10, 1);
+        add_action('enqueue_block_editor_assets', array($this, 'register_editor_assets'), -9);
+        add_action('jet-form-builder/editor-assets/after', array($this, 'enqueue_editor_assets'));
 
-        $settings = SplitSMS_Settings::instance();
-        if (!$settings->feature_enabled('cb_jfb_enabled')) {
+        if (!SplitSMS_Settings::is_configured()) {
+            return;
+        }
+
+        add_action('plugins_loaded', array($this, 'maybe_register_global_hook'), 26);
+    }
+
+    /**
+     * Global after-submit SMS when enabled in Forms manager or Crocoblock settings.
+     */
+    public function maybe_register_global_hook() {
+        if (!SplitSMS_Settings::is_configured()) {
+            return;
+        }
+        if (!SplitSMS_Forms_Manager::source_should_hook('jfb')
+            && !SplitSMS_Settings::instance()->feature_enabled('cb_jfb_enabled')) {
             return;
         }
 
@@ -45,9 +61,6 @@ class SplitSMS_JetFormBuilder {
      * @param object $manager Jet_Form_Builder\Actions\Manager
      */
     public function register_form_action($manager) {
-        if (!SplitSMS_Settings::is_configured()) {
-            return;
-        }
         if (!class_exists('\Jet_Form_Builder\Actions\Types\Base')) {
             return;
         }
@@ -62,6 +75,49 @@ class SplitSMS_JetFormBuilder {
         }
 
         $manager->register_action_type(new SplitSMS_JFB_Send_Sms_Action());
+    }
+
+    /**
+     * Register editor script handle (mirrors JetFormBuilder action modules).
+     */
+    public function register_editor_assets() {
+        $asset_path = SPLITSMS_PLUGIN_DIR . 'assets/jfb-editor/build/editor.asset.php';
+        $script_path = SPLITSMS_PLUGIN_DIR . 'assets/jfb-editor/build/editor.js';
+
+        if (!is_readable($asset_path) || !is_readable($script_path)) {
+            return;
+        }
+
+        $script_asset = require $asset_path;
+        if (!is_array($script_asset)) {
+            return;
+        }
+
+        $dependencies = isset($script_asset['dependencies']) && is_array($script_asset['dependencies'])
+            ? $script_asset['dependencies']
+            : array();
+
+        $dependencies[] = 'jet-fb-components';
+        $dependencies[] = 'jet-fb-data';
+        $dependencies[] = 'jet-fb-actions-v2';
+        $dependencies[] = 'jet-fb-blocks-v2-to-actions-v2';
+
+        wp_register_script(
+            'splitsms-jfb-send-sms-editor',
+            plugins_url('assets/jfb-editor/build/editor.js', SPLITSMS_PLUGIN_FILE),
+            array_values(array_unique($dependencies)),
+            isset($script_asset['version']) ? $script_asset['version'] : SPLITSMS_VERSION,
+            true
+        );
+    }
+
+    /**
+     * Enqueue editor bundle when JetFormBuilder form editor loads.
+     */
+    public function enqueue_editor_assets() {
+        if (wp_script_is('splitsms-jfb-send-sms-editor', 'registered')) {
+            wp_enqueue_script('splitsms-jfb-send-sms-editor');
+        }
     }
 
     /**
@@ -116,13 +172,11 @@ class SplitSMS_JetFormBuilder {
             return;
         }
 
-        $allowed = $settings->get('cb_jfb_form_ids', '');
-        if ('' !== trim($allowed)) {
-            $ids = array_map('intval', array_map('trim', explode(',', $allowed)));
-            if (!in_array($form_id, $ids, true)) {
-                return;
-            }
+        if (!SplitSMS_Forms_Manager::is_form_enabled('jfb', (string) $form_id)) {
+            return;
         }
+
+        $config = SplitSMS_Forms_Manager::get_form_config('jfb', (string) $form_id);
 
         $vars = self::normalize_request_vars($fields);
         $vars['form_id'] = (string) $form_id;
@@ -133,12 +187,21 @@ class SplitSMS_JetFormBuilder {
             'integration' => 'jetformbuilder',
             'event' => 'form_submitted',
             'source' => 'JetFormBuilder',
-            'template' => $settings->get('cb_jfb_tpl_submitted'),
+            'template' => $config['message'],
             'vars' => $vars,
-            'phone_field' => $settings->get('cb_jfb_phone_field', $settings->get('cb_phone_field', 'phone')),
+            'phone_field' => $config['phone_field'],
         ));
 
-        if ($settings->feature_enabled('cb_jfb_admin_alert')) {
+        if ($settings->feature_enabled('cb_jfb_admin_alert') && '' !== trim($config['admin_message'])) {
+            $this->cb->send_event(array(
+                'integration' => 'jetformbuilder',
+                'event' => 'form_submitted_admin',
+                'source' => 'JetFormBuilder',
+                'template' => $config['admin_message'],
+                'vars' => $vars,
+                'admin_alert' => true,
+            ));
+        } elseif ($settings->feature_enabled('cb_jfb_admin_alert')) {
             $this->cb->send_event(array(
                 'integration' => 'jetformbuilder',
                 'event' => 'form_submitted_admin',

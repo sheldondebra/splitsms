@@ -28,6 +28,7 @@ class SplitSMS_Admin {
         add_action('wp_ajax_splitsms_test_connection', array($this, 'ajax_test_connection'));
         add_action('wp_ajax_splitsms_send_test', array($this, 'ajax_send_test'));
         add_action('wp_ajax_splitsms_list_sender_ids', array($this, 'ajax_list_sender_ids'));
+        add_action('wp_ajax_splitsms_refresh_forms', array($this, 'ajax_refresh_forms'));
         add_action('admin_post_splitsms_send_sms', array($this, 'handle_send_sms'));
         add_action('admin_bar_menu', array($this, 'admin_bar_balance'), 100);
     }
@@ -46,6 +47,7 @@ class SplitSMS_Admin {
         $pages = array(
             'splitsms' => array(__('Dashboard', 'splitsms'), 'render_dashboard'),
             'splitsms-send' => array(__('Send SMS', 'splitsms'), 'render_send'),
+            'splitsms-forms' => array(__('Forms', 'splitsms'), 'render_forms'),
             'splitsms-automations' => array(__('Automations', 'splitsms'), 'render_automations'),
             'splitsms-integrations' => array(__('Integrations', 'splitsms'), 'render_integrations'),
             'splitsms-crocoblock' => array(__('Crocoblock', 'splitsms'), 'render_crocoblock'),
@@ -94,6 +96,7 @@ class SplitSMS_Admin {
                 'nonceTest' => wp_create_nonce('splitsms_test'),
                 'nonceSend' => wp_create_nonce('splitsms_send_test'),
                 'nonceSenderIds' => wp_create_nonce('splitsms_sender_ids'),
+                'nonceForms' => wp_create_nonce('splitsms_forms'),
                 'walletUrl' => defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/wallet' : '',
                 'senderIdsUrl' => defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/sender-ids' : '',
                 'strings' => array(
@@ -103,6 +106,8 @@ class SplitSMS_Admin {
                     'loadingSenders' => __('Loading sender IDs…', 'splitsms'),
                     'noSenders' => __('No sender IDs found. Register one on SplitSMS.', 'splitsms'),
                     'searchSenders' => __('Search sender IDs…', 'splitsms'),
+                    'refreshingForms' => __('Scanning forms…', 'splitsms'),
+                    'formsRefreshed' => __('Form list updated.', 'splitsms'),
                 ),
             )
         );
@@ -127,6 +132,17 @@ class SplitSMS_Admin {
             }
             SplitSMS_Settings::instance()->update($input, $scope);
             wp_safe_redirect(add_query_arg(array('page' => $page, 'updated' => '1'), admin_url('admin.php')));
+            exit;
+        }
+
+        if (isset($_POST['splitsms_save_forms']) && isset($_GET['page']) && 'splitsms-forms' === $_GET['page']) {
+            check_admin_referer('splitsms_forms');
+            $input = isset($_POST['splitsms_form_rules']) && is_array($_POST['splitsms_form_rules'])
+                ? wp_unslash($_POST['splitsms_form_rules'])
+                : array();
+            SplitSMS_Forms_Manager::save_rules($input);
+            SplitSMS_Forms_Registry::clear_cache();
+            wp_safe_redirect(add_query_arg(array('page' => 'splitsms-forms', 'updated' => '1'), admin_url('admin.php')));
             exit;
         }
 
@@ -312,6 +328,7 @@ class SplitSMS_Admin {
             $active_count = count(array_filter($registry, function ($item) {
                 return !empty($item['active']);
             }));
+            SplitSMS_Logger::instance()->sync_pending_log_statuses(20);
             $recent = SplitSMS_Logger::instance()->get_logs(5);
             ?>
             <?php if ($account) : ?>
@@ -341,12 +358,13 @@ class SplitSMS_Admin {
                     <ol class="splitsms-steps">
                         <li><?php esc_html_e('Connect your API key in Settings.', 'splitsms'); ?></li>
                         <li><?php esc_html_e('Send a test SMS from the bar above.', 'splitsms'); ?></li>
-                        <li><?php esc_html_e('Enable integrations for WooCommerce and forms.', 'splitsms'); ?></li>
+                        <li><?php esc_html_e('Enable SMS per form under Forms — no custom code needed.', 'splitsms'); ?></li>
                     </ol>
                     <div class="splitsms-quick-actions">
                         <?php if (!$configured) : ?>
                             <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=splitsms-settings')); ?>"><?php esc_html_e('Connect API key', 'splitsms'); ?></a>
                         <?php endif; ?>
+                        <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=splitsms-forms')); ?>"><?php esc_html_e('Forms', 'splitsms'); ?></a>
                         <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=splitsms-integrations')); ?>"><?php esc_html_e('Integrations', 'splitsms'); ?></a>
                         <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=splitsms-logs')); ?>"><?php esc_html_e('View logs', 'splitsms'); ?></a>
                     </div>
@@ -378,7 +396,7 @@ class SplitSMS_Admin {
                             <tr>
                                 <td><?php echo esc_html($log->created_at); ?></td>
                                 <td><?php echo esc_html($log->event); ?></td>
-                                <td><span class="splitsms-badge splitsms-badge--<?php echo esc_attr($log->status); ?>"><?php echo esc_html($log->status); ?></span></td>
+                                <td><span class="splitsms-badge splitsms-badge--<?php echo esc_attr($log->status); ?>"><?php echo esc_html(SplitSMS_Logger::log_status_label($log->status)); ?></span></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -449,7 +467,39 @@ class SplitSMS_Admin {
         });
     }
 
+    public function render_forms() {
+        $forms = SplitSMS_Forms_Manager::forms_for_admin();
+        $configured = SplitSMS_Settings::is_configured();
+        $updated = isset($_GET['updated']);
+        $filter = isset($_GET['filter']) ? sanitize_key(wp_unslash($_GET['filter'])) : 'all';
+        if (!in_array($filter, array('all', 'elementor', 'crocoblock', 'forms'), true)) {
+            $filter = 'all';
+        }
+        $this->render_shell(__('Forms', 'splitsms'), function () use ($forms, $configured, $updated, $filter) {
+            include SPLITSMS_PLUGIN_DIR . 'admin/views/forms-page.php';
+        });
+    }
+
+    public function ajax_refresh_forms() {
+        check_ajax_referer('splitsms_forms', 'nonce');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Forbidden'), 403);
+        }
+
+        SplitSMS_Forms_Registry::clear_cache();
+        $forms = SplitSMS_Forms_Manager::forms_for_admin();
+
+        wp_send_json_success(
+            array(
+                'message' => __('Form list updated.', 'splitsms'),
+                'count' => count($forms),
+                'redirect' => admin_url('admin.php?page=splitsms-forms&refreshed=1'),
+            )
+        );
+    }
+
     public function render_logs() {
+        SplitSMS_Logger::instance()->sync_pending_log_statuses(100);
         $logs = SplitSMS_Logger::instance()->get_logs(100);
         $this->render_shell(__('Logs', 'splitsms'), function () use ($logs) {
             ?>
@@ -474,7 +524,7 @@ class SplitSMS_Admin {
                                     <td><?php echo esc_html($log->created_at); ?></td>
                                     <td><?php echo esc_html($log->event); ?></td>
                                     <td><?php echo esc_html($log->recipient ?: '—'); ?></td>
-                                    <td><span class="splitsms-badge splitsms-badge--<?php echo esc_attr($log->status); ?>"><?php echo esc_html($log->status); ?></span></td>
+                                    <td><span class="splitsms-badge splitsms-badge--<?php echo esc_attr($log->status); ?>"><?php echo esc_html(SplitSMS_Logger::log_status_label($log->status)); ?></span></td>
                                     <td class="splitsms-log-detail"><?php echo esc_html($log->body ?: '—'); ?></td>
                                     <td><?php echo esc_html($log->source); ?></td>
                                 </tr>
@@ -689,11 +739,40 @@ class SplitSMS_Admin {
             ? SPLITSMS_PLUGIN_DOWNLOAD_LATEST_URL
             : (defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/wordpress-plugin/splitsms.zip' : '');
         $check_url = defined('SPLITSMS_UPDATE_CHECK_URL') ? SPLITSMS_UPDATE_CHECK_URL : '';
-        $this->render_shell(__('Help', 'splitsms'), function () use ($docs, $update_url, $download, $check_url) {
+        $version = SplitSMS_Plugin_Status::version_info(false);
+        $env = SplitSMS_Plugin_Status::environment();
+        $forms_url = admin_url('admin.php?page=splitsms-forms');
+        $this->render_shell(__('Help', 'splitsms'), function () use ($docs, $update_url, $download, $check_url, $version, $env, $forms_url) {
             ?>
             <div class="splitsms-card">
+                <h2><?php esc_html_e('Quick start (no custom code)', 'splitsms'); ?></h2>
+                <ol class="splitsms-steps">
+                    <li><?php esc_html_e('SplitSMS → Settings — paste your API key and save.', 'splitsms'); ?></li>
+                    <li>
+                        <a href="<?php echo esc_url($forms_url); ?>"><?php esc_html_e('SplitSMS → Forms', 'splitsms'); ?></a>
+                        <?php esc_html_e('— turn SMS on for each form, pick the phone field, edit the message.', 'splitsms'); ?>
+                    </li>
+                    <li><?php esc_html_e('SplitSMS → Integrations — enable WooCommerce, WordPress core, or Crocoblock events with toggles and templates.', 'splitsms'); ?></li>
+                    <li><?php esc_html_e('SplitSMS → Dashboard — send a test SMS and confirm delivery in Logs.', 'splitsms'); ?></li>
+                </ol>
+                <p class="description"><?php esc_html_e('You never need to write PHP or add hooks — everything is configured in the plugin UI.', 'splitsms'); ?></p>
+            </div>
+            <div class="splitsms-card">
                 <h2><?php esc_html_e('Update plugin', 'splitsms'); ?></h2>
-                <p><?php esc_html_e('Live sites pull updates from splitsms.com automatically. Your API key and settings are kept when you update.', 'splitsms'); ?></p>
+                <?php if (!empty($version['is_outdated']) && !empty($version['latest'])) : ?>
+                    <p class="splitsms-help-update-warn">
+                        <strong><?php esc_html_e('Update available:', 'splitsms'); ?></strong>
+                        <?php
+                        printf(
+                            esc_html__('This site runs v%1$s — splitsms.com has v%2$s.', 'splitsms'),
+                            esc_html($version['installed']),
+                            esc_html($version['latest'])
+                        );
+                        ?>
+                    </p>
+                <?php else : ?>
+                    <p><?php esc_html_e('Live sites pull updates from splitsms.com automatically. Your API key and settings are kept when you update.', 'splitsms'); ?></p>
+                <?php endif; ?>
                 <ol class="splitsms-steps">
                     <li>
                         <a href="<?php echo esc_url($update_url); ?>"><?php esc_html_e('Dashboard → Updates', 'splitsms'); ?></a>
@@ -708,7 +787,13 @@ class SplitSMS_Admin {
                 </ol>
                 <p class="description">
                     <?php esc_html_e('Installed version:', 'splitsms'); ?>
-                    <strong><?php echo esc_html(SPLITSMS_VERSION); ?></strong>
+                    <strong><?php echo esc_html($version['installed']); ?></strong>
+                    <?php if (!empty($version['latest'])) : ?>
+                        · <?php esc_html_e('Latest on splitsms.com:', 'splitsms'); ?>
+                        <strong>v<?php echo esc_html($version['latest']); ?></strong>
+                    <?php endif; ?>
+                    · <?php esc_html_e('WordPress', 'splitsms'); ?> <?php echo esc_html($env['wp_version']); ?>
+                    · <?php esc_html_e('PHP', 'splitsms'); ?> <?php echo esc_html($env['php_version']); ?>
                     <?php if ('' !== $check_url) : ?>
                         · <?php esc_html_e('Update check:', 'splitsms'); ?>
                         <code><?php echo esc_html($check_url); ?></code>
@@ -737,49 +822,18 @@ class SplitSMS_Admin {
         }
         $configured = SplitSMS_Settings::is_configured();
         $account = $configured ? $this->get_account() : null;
+        $status = SplitSMS_Plugin_Status::summary($configured);
         ?>
         <div class="wrap splitsms-admin">
             <div class="splitsms-layout">
                 <?php include SPLITSMS_PLUGIN_DIR . 'admin/views/sidebar-nav.php'; ?>
                 <div class="splitsms-main">
-                    <?php $this->render_status_header($configured, $account); ?>
+                    <?php
+                    include SPLITSMS_PLUGIN_DIR . 'admin/views/system-status-banner.php';
+                    ?>
                     <h1 class="splitsms-page-title"><?php echo esc_html($title); ?></h1>
                     <?php call_user_func($body); ?>
                 </div>
-            </div>
-        </div>
-        <?php
-    }
-
-    /**
-     * @param bool                    $configured
-     * @param array<string,mixed>|null $account
-     */
-    private function render_status_header($configured, $account) {
-        $wallet_url = defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/wallet' : '#';
-        ?>
-        <div class="splitsms-status-header">
-            <div class="splitsms-status-header__main">
-                <strong><?php echo $configured ? esc_html__('SplitSMS Connected', 'splitsms') : esc_html__('Not connected', 'splitsms'); ?></strong>
-                <span class="splitsms-status-pill <?php echo $configured ? 'splitsms-status-pill--ok' : 'splitsms-status-pill--warn'; ?>">
-                    v<?php echo esc_html(SPLITSMS_VERSION); ?>
-                </span>
-                <?php if ($account) : ?>
-                    <?php
-                    $sms_credits = isset($account['sms_credits']) ? (int) $account['sms_credits'] : 0;
-                    $wallet_currency = isset($account['wallet_currency']) ? $account['wallet_currency'] : 'GHS';
-                    $wallet_balance = isset($account['wallet_balance']) ? (float) $account['wallet_balance'] : 0;
-                    $api_status = isset($account['status']) ? $account['status'] : 'active';
-                    ?>
-                    <span><?php printf(esc_html__('SMS Balance: %s SMS', 'splitsms'), esc_html(number_format_i18n($sms_credits))); ?></span>
-                    <span><?php printf(esc_html__('Wallet: %1$s %2$s', 'splitsms'), esc_html($wallet_currency), esc_html(number_format_i18n($wallet_balance, 2))); ?></span>
-                    <span><?php printf(esc_html__('API: %s', 'splitsms'), esc_html($api_status)); ?></span>
-                <?php endif; ?>
-            </div>
-            <div class="splitsms-status-header__actions">
-                <a class="button" href="<?php echo esc_url($wallet_url); ?>" target="_blank" rel="noopener"><?php esc_html_e('Add funds', 'splitsms'); ?></a>
-                <button type="button" class="button button-primary" id="splitsms-send-test-btn"><?php esc_html_e('Send test SMS', 'splitsms'); ?></button>
-                <span id="splitsms-send-test-result"></span>
             </div>
         </div>
         <?php

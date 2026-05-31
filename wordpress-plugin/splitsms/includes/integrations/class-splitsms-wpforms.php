@@ -46,7 +46,8 @@ class SplitSMS_WPForms {
         if (!SplitSMS_Settings::is_configured()) {
             return;
         }
-        if (!$this->settings->feature_enabled('wpforms_enabled')) {
+        if (!SplitSMS_Forms_Manager::source_should_hook('wpforms')
+            && !$this->settings->feature_enabled('wpforms_enabled')) {
             return;
         }
 
@@ -64,7 +65,7 @@ class SplitSMS_WPForms {
         unset($entry, $entry_id);
 
         $form_id = isset($form_data['id']) ? (int) $form_data['id'] : 0;
-        if (!$this->is_form_allowed($form_id)) {
+        if (!SplitSMS_Forms_Manager::is_form_enabled('wpforms', (string) $form_id)) {
             return;
         }
 
@@ -74,7 +75,8 @@ class SplitSMS_WPForms {
         }
         $this->request_dedupe[$dedupe_key] = true;
 
-        $field_key = strtolower($this->settings->get('wpforms_phone_field', 'phone'));
+        $config = SplitSMS_Forms_Manager::get_form_config('wpforms', (string) $form_id);
+        $field_key = strtolower($config['phone_field'] ?: $this->settings->get('wpforms_phone_field', 'phone'));
         $phone = $this->extract_phone($fields, $form_data, $field_key);
 
         if ('' === trim($phone)) {
@@ -83,7 +85,7 @@ class SplitSMS_WPForms {
         }
 
         $vars = $this->build_vars($fields, $form_data, $phone);
-        $template = $this->settings->get('wpforms_message');
+        $template = $config['message'];
         if ('' === trim($template)) {
             $this->log_skip($form_id, 'empty_template');
             return;

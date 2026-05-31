@@ -3,7 +3,7 @@
  * Plugin Name:       SplitSMS
  * Plugin URI:        https://www.splitsms.com/integrations
  * Description:       Send transactional SMS from WordPress and WooCommerce using your SplitSMS API key.
- * Version:           1.6.3
+ * Version:           1.6.7
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            SplitSMS
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('SPLITSMS_VERSION')) {
-    define('SPLITSMS_VERSION', '1.6.3');
+    define('SPLITSMS_VERSION', '1.6.7');
 }
 if (!defined('SPLITSMS_PLUGIN_FILE')) {
     define('SPLITSMS_PLUGIN_FILE', __FILE__);
@@ -67,10 +67,15 @@ $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-setti
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-logger.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-api.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-integrations-registry.php');
+$bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-forms-registry.php');
+$bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-forms-manager.php');
+$bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-plugin-status.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-paystack.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-reminders.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/integrations/class-splitsms-crocoblock.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/integrations/class-splitsms-jetengine.php');
+$bootstrap_ok = $bootstrap_ok && splitsms_require('includes/integrations/class-splitsms-form-sms-helper.php');
+$bootstrap_ok = $bootstrap_ok && splitsms_require('includes/integrations/class-splitsms-jetengine-forms.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/integrations/class-splitsms-jetformbuilder.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/integrations/class-splitsms-jetbooking.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/integrations/class-splitsms-jetappointment.php');
@@ -118,7 +123,12 @@ function splitsms_init() {
     SplitSMS_Logger::instance();
     SplitSMS_Admin::instance();
     SplitSMS_Updater::instance();
+    SplitSMS_Plugin_Status::register_admin_notices();
     SplitSMS_Reminders::register_cron_hooks();
+
+    // Register form builder actions even before API key is saved.
+    SplitSMS_JetFormBuilder::instance();
+    SplitSMS_JetEngine_Forms::instance();
 
     if (SplitSMS_Settings::is_configured()) {
         SplitSMS_WooCommerce::instance();
@@ -126,7 +136,6 @@ function splitsms_init() {
         SplitSMS_CF7::instance();
         SplitSMS_WPForms::instance();
         SplitSMS_JetEngine::instance();
-        SplitSMS_JetFormBuilder::instance();
         SplitSMS_JetBooking::instance();
         SplitSMS_JetAppointment::instance();
         SplitSMS_Elementor::instance();
@@ -174,7 +183,8 @@ function splitsms_after_plugin_update($upgrader, $options) {
     }
 
     if (class_exists('SplitSMS_Settings')) {
-        SplitSMS_Settings::maybe_upgrade();
-    }
+    SplitSMS_Settings::maybe_upgrade();
+    delete_transient('splitsms_remote_manifest');
+}
 }
 add_action('upgrader_process_complete', 'splitsms_after_plugin_update', 10, 2);

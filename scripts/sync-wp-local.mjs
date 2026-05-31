@@ -16,6 +16,9 @@ const defaultTarget =
 
 const target = (process.env.SPLITSMS_WP_LOCAL_PATH || defaultTarget).replace(/\/$/, "");
 
+/** Dev-only paths — runtime only needs jfb-editor/build */
+const SKIP_DIRS = new Set(["node_modules", ".git"]);
+
 if (!existsSync(source)) {
   console.error("Source plugin not found:", source);
   process.exit(1);
@@ -31,6 +34,7 @@ function copyDir(src, dest) {
     const from = join(src, entry.name);
     const to = join(dest, entry.name);
     if (entry.isDirectory()) {
+      if (SKIP_DIRS.has(entry.name)) continue;
       copyDir(from, to);
     } else {
       cpSync(from, to, { force: true });

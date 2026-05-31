@@ -110,6 +110,20 @@ $active_plugins = count(array_filter($registry, static function ($item) {
     <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Integrations saved.', 'splitsms'); ?></p></div>
 <?php endif; ?>
 
+<?php if ($has_form_plugins) : ?>
+    <div class="splitsms-card splitsms-forms-promo" style="margin-bottom:1rem;padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+        <div>
+            <strong><?php esc_html_e('Manage forms in one place', 'splitsms'); ?></strong>
+            <p class="description" style="margin:0.25rem 0 0;">
+                <?php esc_html_e('SplitSMS → Forms lists every Elementor and Crocoblock form with per-form toggles and custom messages.', 'splitsms'); ?>
+            </p>
+        </div>
+        <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=splitsms-forms')); ?>">
+            <?php esc_html_e('Open Forms manager', 'splitsms'); ?>
+        </a>
+    </div>
+<?php endif; ?>
+
 <div class="splitsms-intel-grid">
     <section class="splitsms-card splitsms-intel-summary">
         <div class="splitsms-intel-summary__head">

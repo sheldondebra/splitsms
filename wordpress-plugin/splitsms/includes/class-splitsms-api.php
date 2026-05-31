@@ -150,6 +150,43 @@ class SplitSMS_API {
     }
 
     /**
+     * Fetch live message status from SplitSMS (optionally sync mNotify DLR first).
+     *
+     * @param string $message_id
+     * @param bool   $sync
+     * @return array{ok:bool, error?:string, status?:string}
+     */
+    public function get_message_status($message_id, $sync = true) {
+        if (!SplitSMS_Settings::is_configured()) {
+            return array('ok' => false, 'error' => SplitSMS_Settings::configuration_error());
+        }
+
+        $message_id = sanitize_text_field((string) $message_id);
+        if ('' === $message_id) {
+            return array('ok' => false, 'error' => 'empty_message_id');
+        }
+
+        $url = $this->endpoint('/api/v1/messages/' . rawurlencode($message_id));
+        if ($sync) {
+            $url = add_query_arg('sync', 'true', $url);
+        }
+
+        $response = $this->request('GET', $url);
+        if (empty($response['ok'])) {
+            return array(
+                'ok' => false,
+                'error' => isset($response['error']) ? $response['error'] : 'status_failed',
+            );
+        }
+
+        $payload = isset($response['data']) && is_array($response['data']) ? $response['data'] : array();
+        $data = isset($payload['data']) && is_array($payload['data']) ? $payload['data'] : $payload;
+        $status = isset($data['status']) ? (string) $data['status'] : '';
+
+        return array('ok' => true, 'status' => $status);
+    }
+
+    /**
      * @param array<string,mixed> $row
      * @return array{ok:bool, error?:string}
      */

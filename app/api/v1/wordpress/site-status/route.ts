@@ -1,11 +1,14 @@
 import { withApi } from "@/lib/api/with-api";
 import { apiSuccess } from "@/lib/api/errors";
 import { prisma } from "@/lib/db";
+import { wordpressPlugin } from "@/lib/site-config";
+import { wordpressPluginNeedsUpdate } from "@/lib/wordpress/site";
 
 export const GET = withApi(
   async (request, ctx) => {
     const { searchParams } = new URL(request.url);
     const siteUrl = searchParams.get("site_url")?.replace(/\/$/, "");
+    const latestPluginVersion = wordpressPlugin.version;
 
     if (!siteUrl) {
       const sites = await prisma.wordPressSite.findMany({
@@ -13,7 +16,13 @@ export const GET = withApi(
         orderBy: { lastSyncAt: "desc" },
         take: 20,
       });
-      return apiSuccess({ sites });
+      return apiSuccess({
+        latest_plugin_version: latestPluginVersion,
+        sites: sites.map((site) => ({
+          ...site,
+          plugin_update_available: wordpressPluginNeedsUpdate(site.pluginVersion),
+        })),
+      });
     }
 
     const site = await prisma.wordPressSite.findUnique({
@@ -24,7 +33,11 @@ export const GET = withApi(
     });
 
     if (!site) {
-      return apiSuccess({ site: null, connected: false });
+      return apiSuccess({
+        site: null,
+        connected: false,
+        latest_plugin_version: latestPluginVersion,
+      });
     }
 
     const recentLogs = await prisma.wordPressLog.findMany({
@@ -33,8 +46,12 @@ export const GET = withApi(
       take: 10,
     });
 
+    const updateAvailable = wordpressPluginNeedsUpdate(site.pluginVersion);
+
     return apiSuccess({
       connected: true,
+      latest_plugin_version: latestPluginVersion,
+      plugin_update_available: updateAvailable,
       site: {
         id: site.id,
         site_url: site.siteUrl,
@@ -42,8 +59,10 @@ export const GET = withApi(
         status: site.status,
         plugin_version: site.pluginVersion,
         wp_version: site.wpVersion,
+        php_version: site.phpVersion,
         last_sync: site.lastSyncAt,
         log_count: site._count.logs,
+        plugin_update_available: updateAvailable,
       },
       recent_logs: recentLogs.map((l) => ({
         id: l.id,

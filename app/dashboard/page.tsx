@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { getDashboardOverview } from "@/lib/analytics/dashboard";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
+import { syncUserPendingMnotifyDeliveries } from "@/lib/sms/sync-mnotify-dlr";
 import { DashboardChartsPanel } from "@/components/dashboard/dashboard-charts-panel";
 import {
   SupportChatPanel,
@@ -10,12 +11,15 @@ import {
 import { buildSupportChatMessages } from "@/lib/support/chat";
 import { DashboardMetrics, DashboardAlert } from "@/components/dashboard/dashboard-metrics";
 import { RecentActivityList } from "@/components/dashboard/recent-activity-list";
+import { DeliverySyncPoller } from "@/components/dashboard/delivery-sync-poller";
 import { SetupStrip } from "@/components/dashboard/setup-strip";
 import { Send, Megaphone, Percent, BadgeCheck } from "lucide-react";
 
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session) return null;
+
+  await syncUserPendingMnotifyDeliveries(session.userId, 20).catch(() => undefined);
 
   const [data, balance, user, recentMessages, hasTopup, senderIds, tickets] =
     await Promise.all([
@@ -60,9 +64,13 @@ export default async function DashboardPage() {
     balance.walletBalance > 0 || balance.creditBalance > 0 || Boolean(hasTopup);
   const firstName = user?.fullName?.split(" ")[0] ?? "there";
   const chatMessages = buildSupportChatMessages(firstName, tickets);
+  const hasInTransit = recentMessages.some(
+    (m) => m.status === "SENT" || m.status === "PENDING",
+  );
 
   return (
     <div className="app-page space-y-5 md:space-y-6 pb-2">
+      <DeliverySyncPoller active={hasInTransit} />
       <div className="hidden md:flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-[1.65rem]">

@@ -3,7 +3,7 @@
  * Run: node scripts/sync-site-config.mjs
  * Also runs before build via package.json.
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, readdirSync, unlinkSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, readdirSync, unlinkSync, rmSync, cpSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { execSync } from "child_process";
@@ -115,22 +115,45 @@ if (existsSync(postmanPath)) {
 
 // Zip plugin — WordPress expects splitsms/splitsms.php inside the archive (single top-level folder).
 const pluginDir = join(root, "wordpress-plugin/splitsms");
-const pluginParent = join(root, "wordpress-plugin");
 const versionedZip = join(publicWpDir, `splitsms-${wp.version}.zip`);
 const latestZip = join(publicWpDir, "splitsms.zip");
+const SKIP_DIRS = new Set(["node_modules", ".git"]);
+const stagingDir = join(root, ".tmp-plugin-zip/splitsms");
+
+function copyPluginFiltered(src, dest) {
+  mkdirSync(dest, { recursive: true });
+  for (const entry of readdirSync(src, { withFileTypes: true })) {
+    const from = join(src, entry.name);
+    const to = join(dest, entry.name);
+    if (entry.isDirectory()) {
+      if (SKIP_DIRS.has(entry.name)) continue;
+      copyPluginFiltered(from, to);
+    } else {
+      cpSync(from, to);
+    }
+  }
+}
+
+function prepareStagingDir() {
+  rmSync(join(root, ".tmp-plugin-zip"), { recursive: true, force: true });
+  copyPluginFiltered(pluginDir, stagingDir);
+}
 
 function buildZip(outPath) {
+  prepareStagingDir();
+  const zipSource = join(root, ".tmp-plugin-zip");
   if (process.platform === "win32") {
     const psZip = [
-      `$src = '${pluginDir.replace(/'/g, "''")}'`,
+      `$src = '${zipSource.replace(/'/g, "''")}'`,
       `$out = '${outPath.replace(/'/g, "''")}'`,
       "if (Test-Path $out) { Remove-Item $out -Force }",
-      "Compress-Archive -Path $src -DestinationPath $out -Force",
+      "Compress-Archive -Path (Join-Path $src 'splitsms') -DestinationPath $out -Force",
     ].join("; ");
     execSync(`powershell -NoProfile -Command "${psZip}"`, { stdio: "inherit", cwd: root });
   } else {
-    execSync(`cd "${pluginParent}" && zip -r "${outPath}" splitsms -x "*.DS_Store"`, { stdio: "inherit" });
+    execSync(`cd "${zipSource}" && zip -r "${outPath}" splitsms -x "*.DS_Store"`, { stdio: "inherit" });
   }
+  rmSync(join(root, ".tmp-plugin-zip"), { recursive: true, force: true });
 }
 
 function validateZip(zipOut) {

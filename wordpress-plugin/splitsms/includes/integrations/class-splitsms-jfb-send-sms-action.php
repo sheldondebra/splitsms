@@ -22,15 +22,14 @@ class SplitSMS_JFB_Send_Sms_Action extends \Jet_Form_Builder\Actions\Types\Base 
      * @return string
      */
     public function get_name() {
-        return __('Send SMS (SplitSMS)', 'splitsms');
+        return __('SplitSMS Notification', 'splitsms');
     }
 
     /**
      * @return bool
      */
     public function dependence() {
-        return class_exists('\Jet_Form_Builder\Actions\Types\Base')
-            && SplitSMS_Settings::is_configured();
+        return class_exists('\Jet_Form_Builder\Actions\Types\Base');
     }
 
     /**
@@ -41,6 +40,13 @@ class SplitSMS_JFB_Send_Sms_Action extends \Jet_Form_Builder\Actions\Types\Base 
     }
 
     /**
+     * @return string
+     */
+    public function self_script_name() {
+        return 'splitsmsSendSmsData';
+    }
+
+    /**
      * @return array<string, string>
      */
     public function editor_labels() {
@@ -48,7 +54,25 @@ class SplitSMS_JFB_Send_Sms_Action extends \Jet_Form_Builder\Actions\Types\Base 
             'sms_to' => __('Send to:', 'splitsms'),
             'phone_field' => __('Phone field:', 'splitsms'),
             'custom_phone' => __('Custom phone:', 'splitsms'),
+            'country_code_field' => __('Country code field (optional):', 'splitsms'),
             'message' => __('Message:', 'splitsms'),
+            'sender_id' => __('Sender ID override (optional):', 'splitsms'),
+            'send_admin_copy' => __('Also notify admin:', 'splitsms'),
+            'admin_message' => __('Admin message:', 'splitsms'),
+        );
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function editor_labels_help() {
+        return array(
+            'phone_field' => __('Choose the form field that stores the recipient phone number.', 'splitsms'),
+            'custom_phone' => __('Use form field macros like %phone% or {field_name}.', 'splitsms'),
+            'country_code_field' => __('Optional field for ISO country code (e.g. GH). Falls back to plugin default.', 'splitsms'),
+            'message' => __('SMS body. Use %field_name% or {field_name} for submitted values.', 'splitsms'),
+            'sender_id' => __('Leave empty to use the Sender ID from SplitSMS settings.', 'splitsms'),
+            'admin_message' => __('Sent to the admin phone in SplitSMS Crocoblock settings.', 'splitsms'),
         );
     }
 
@@ -66,9 +90,57 @@ class SplitSMS_JFB_Send_Sms_Action extends \Jet_Form_Builder\Actions\Types\Base 
             'custom_phone' => array(
                 'default' => '',
             ),
-            'message' => array(
-                'default' => __('Hi %field_name%, thanks for your submission at {site_name}.', 'splitsms'),
+            'country_code_field' => array(
+                'default' => '',
             ),
+            'message' => array(
+                'default' => __('Hi {name}, thanks for your submission at {site_name}.', 'splitsms'),
+            ),
+            'sender_id' => array(
+                'default' => '',
+            ),
+            'send_admin_copy' => array(
+                'default' => '',
+            ),
+            'admin_message' => array(
+                'default' => __('New form submission from {name} ({phone}) on {site_name}.', 'splitsms'),
+            ),
+        );
+    }
+
+    /**
+     * Editor dropdown options (JetFormBuilder reads this server-side).
+     *
+     * @return array<string, mixed>
+     */
+    public function action_data() {
+        $sms_to = array(
+            array(
+                'value' => 'form',
+                'label' => __('Phone from submitted form field', 'splitsms'),
+            ),
+            array(
+                'value' => 'custom',
+                'label' => __('Custom phone / macro', 'splitsms'),
+            ),
+            array(
+                'value' => 'admin',
+                'label' => __('Admin phone (SplitSMS settings)', 'splitsms'),
+            ),
+        );
+
+        if (class_exists('\Jet_Form_Builder\Classes\Tools')) {
+            return array(
+                'smsTo' => \Jet_Form_Builder\Classes\Tools::with_placeholder($sms_to),
+                'configured' => SplitSMS_Settings::is_configured(),
+                'settingsUrl' => admin_url('admin.php?page=splitsms-settings'),
+            );
+        }
+
+        return array(
+            'smsTo' => $sms_to,
+            'configured' => SplitSMS_Settings::is_configured(),
+            'settingsUrl' => admin_url('admin.php?page=splitsms-settings'),
         );
     }
 
@@ -79,37 +151,26 @@ class SplitSMS_JFB_Send_Sms_Action extends \Jet_Form_Builder\Actions\Types\Base 
     public function do_action(array $request, \Jet_Form_Builder\Actions\Action_Handler $handler) {
         unset($handler);
 
-        $phone = $this->resolve_phone($request);
-        if ('' === trim($phone)) {
+        if (!SplitSMS_Settings::is_configured()) {
             throw new \Jet_Form_Builder\Exceptions\Action_Exception(
                 'failed',
-                esc_html__('SplitSMS: phone number is empty.', 'splitsms')
+                esc_html(SplitSMS_Settings::configuration_error())
             );
         }
 
-        $message = $this->render_message($request);
-        if ('' === trim($message)) {
-            throw new \Jet_Form_Builder\Exceptions\Action_Exception(
-                'failed',
-                esc_html__('SplitSMS: message is empty.', 'splitsms')
-            );
-        }
-
-        $form_id = 0;
-        if (function_exists('jet_fb_handler') && is_object(jet_fb_handler())) {
-            $form_id = (int) jet_fb_handler()->form_id;
-        }
-
+        $form_id = $this->current_form_id();
         SplitSMS_JetFormBuilder::note_action_sent($form_id);
 
-        $api = new SplitSMS_API(SplitSMS_Settings::instance());
-        $result = $api->send_sms(
-            $phone,
-            $message,
+        $result = SplitSMS_Form_Sms_Helper::dispatch(
+            $this->settings,
+            $request,
             array(
+                'form_id' => $form_id,
                 'source' => 'JetFormBuilder',
                 'event' => 'jfb_action',
-                'external_ref' => $form_id ? 'jfb:' . $form_id : null,
+                'macro_parser' => function ($content) use ($request) {
+                    return $this->rich_content($content, $request);
+                },
             )
         );
 
@@ -127,53 +188,13 @@ class SplitSMS_JFB_Send_Sms_Action extends \Jet_Form_Builder\Actions\Types\Base 
     }
 
     /**
-     * @param array<string, mixed> $request
-     * @return string
+     * @return int
      */
-    private function resolve_phone(array $request) {
-        $sms_to = isset($this->settings['sms_to']) ? sanitize_key($this->settings['sms_to']) : 'form';
-
-        if ('admin' === $sms_to) {
-            $settings = SplitSMS_Settings::instance();
-            $phone = $settings->get('cb_admin_phone');
-            if ('' === trim((string) $phone)) {
-                $phone = $settings->get('admin_phone');
-            }
-            return preg_replace('/\s+/', '', (string) $phone);
+    private function current_form_id() {
+        if (function_exists('jet_fb_handler') && is_object(jet_fb_handler())) {
+            return (int) jet_fb_handler()->form_id;
         }
-
-        if ('custom' === $sms_to) {
-            $raw = isset($this->settings['custom_phone']) ? (string) $this->settings['custom_phone'] : '';
-            return preg_replace('/\s+/', '', $this->rich_content($raw, $request));
-        }
-
-        $field = isset($this->settings['phone_field']) ? sanitize_key($this->settings['phone_field']) : 'phone';
-        if ('' === $field) {
-            $field = 'phone';
-        }
-
-        $value = '';
-        if (function_exists('jet_fb_context')) {
-            $value = jet_fb_context()->get_value($field);
-        }
-        if ('' === trim((string) $value) && isset($request[$field])) {
-            $value = $request[$field];
-        }
-
-        return preg_replace('/\s+/', '', (string) $value);
-    }
-
-    /**
-     * @param array<string, mixed> $request
-     * @return string
-     */
-    private function render_message(array $request) {
-        $template = isset($this->settings['message']) ? (string) $this->settings['message'] : '';
-        $rendered = $this->rich_content($template, $request);
-        $vars = SplitSMS_JetFormBuilder::normalize_request_vars($request);
-        $vars['site_name'] = get_bloginfo('name');
-
-        return SplitSMS_API::render_template($rendered, $vars);
+        return 0;
     }
 
     /**

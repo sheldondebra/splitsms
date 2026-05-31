@@ -32,7 +32,10 @@ type SiteRow = {
   siteUrl: string;
   status: string;
   pluginVersion: string | null;
+  wpVersion: string | null;
+  phpVersion: string | null;
   lastSyncAt: Date | null;
+  pluginUpdateAvailable?: boolean;
 };
 
 type LogRow = {
@@ -73,8 +76,8 @@ const setupSteps = [
   },
   {
     step: 4,
-    title: "Enable events",
-    desc: "Turn on WooCommerce, WordPress core, CF7, WPForms, Elementor Pro, or Crocoblock under Integrations.",
+    title: "Enable SMS (no custom code)",
+    desc: "SplitSMS → Forms for form plugins, or Integrations for WooCommerce, WordPress core, and Crocoblock — toggle each event on.",
   },
 ];
 
@@ -158,6 +161,7 @@ export function WordPressIntegrationPanel({
   const hasCrocoblock =
     crocoblock &&
     Object.entries(crocoblock).some(([k, v]) => k !== "failed" && v > 0);
+  const outdatedSites = sites.filter((s) => s.pluginUpdateAvailable);
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -206,6 +210,32 @@ export function WordPressIntegrationPanel({
           </AppCardBody>
         </div>
       </AppCard>
+
+      {outdatedSites.length > 0 && (
+        <AppCard className="border-amber-500/40 bg-amber-500/5">
+          <AppCardBody>
+            <AppCardTitle
+              title="Plugin update available"
+              description={`${outdatedSites.length} connected site${outdatedSites.length === 1 ? "" : "s"} run an older SplitSMS plugin than splitsms.com (v${wordpressPlugin.version}).`}
+              icon={RefreshCw}
+            />
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              {outdatedSites.map((site) => (
+                <li key={site.id}>
+                  <strong className="text-foreground">{siteDisplayName(site)}</strong>
+                  {" — "}
+                  plugin v{site.pluginVersion ?? "?"} · update to v{wordpressPlugin.version}
+                  {site.wpVersion && <> · WordPress {site.wpVersion}</>}
+                  {site.phpVersion && <> · PHP {site.phpVersion}</>}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-muted-foreground">
+              On each WordPress site: Dashboard → Updates, or SplitSMS → Help.
+            </p>
+          </AppCardBody>
+        </AppCard>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
@@ -303,13 +333,32 @@ export function WordPressIntegrationPanel({
                       {site.pluginVersion && (
                         <p className="text-xs text-muted-foreground mt-1">
                           Plugin v{site.pluginVersion}
+                          {site.pluginUpdateAvailable && (
+                            <span className="text-amber-700 dark:text-amber-400 font-medium">
+                              {" "}
+                              · Update to v{wordpressPlugin.version}
+                            </span>
+                          )}
+                        </p>
+                      )}
+                      {(site.wpVersion || site.phpVersion) && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {site.wpVersion && <>WordPress {site.wpVersion}</>}
+                          {site.wpVersion && site.phpVersion && " · "}
+                          {site.phpVersion && <>PHP {site.phpVersion}</>}
                         </p>
                       )}
                     </div>
                     <div className="flex flex-col items-start sm:items-end gap-1 shrink-0">
-                      <Badge variant="outline" className="capitalize">
-                        {site.status}
-                      </Badge>
+                      {site.pluginUpdateAvailable ? (
+                        <Badge variant="secondary" className="border-amber-500/40 text-amber-800 dark:text-amber-300">
+                          Out of date
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="capitalize">
+                          {site.status}
+                        </Badge>
+                      )}
                       {site.lastSyncAt && (
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                           <RefreshCw className="h-3 w-3" />

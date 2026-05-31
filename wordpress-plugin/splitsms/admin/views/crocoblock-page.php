@@ -88,10 +88,17 @@ $vars_hint = '{name}, {phone}, {email}, {booking_date}, {check_in}, {appointment
     </section>
     <?php endif; ?>
 
+    <?php if (!empty($detected['jetengine'])) : ?>
+    <section class="splitsms-card splitsms-automation-card">
+        <h3><?php esc_html_e('JetEngine legacy forms', 'splitsms'); ?></h3>
+        <p class="description"><?php esc_html_e('For forms under JetEngine → Forms (legacy booking forms), open Notifications Settings → Add Notification → choose SplitSMS Notification. Same options as JetFormBuilder: phone field, message macros, admin copy.', 'splitsms'); ?></p>
+    </section>
+    <?php endif; ?>
+
     <?php if (!empty($detected['jetformbuilder'])) : ?>
     <section class="splitsms-card splitsms-automation-card">
         <h3>JetFormBuilder</h3>
-        <p class="description"><?php esc_html_e('When SplitSMS is connected, “Send SMS (SplitSMS)” appears under JetFormBuilder → Post Submit Actions. Add it per form for custom messages, or rely on the global templates below.', 'splitsms'); ?></p>
+        <p class="description"><?php esc_html_e('Add “SplitSMS Notification” under Post-submit Actions / Notification Settings in each form. Choose the phone field, write your message with {field} macros, optional admin copy, and country code field. Global templates below still work when the per-form action is not used.', 'splitsms'); ?></p>
         <label><input type="checkbox" name="splitsms[cb_jfb_enabled]" value="1" <?php checked(SplitSMS_Settings::is_yes($s['cb_jfb_enabled'])); ?> /> <?php esc_html_e('Enable global auto-SMS on submit', 'splitsms'); ?></label>
         <p><label><?php esc_html_e('Form IDs (comma-separated, empty = all)', 'splitsms'); ?><br />
             <input type="text" class="regular-text" name="splitsms[cb_jfb_form_ids]" value="<?php echo esc_attr($s['cb_jfb_form_ids']); ?>" /></label></p>

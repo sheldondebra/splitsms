@@ -4,7 +4,7 @@ Tags: sms, woocommerce, notifications, api, transactional
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.6.3
+Stable tag: 1.6.7
 License: GPLv2 or later
 
 Send transactional SMS from WordPress and WooCommerce using your SplitSMS API key.
@@ -12,9 +12,10 @@ Send transactional SMS from WordPress and WooCommerce using your SplitSMS API ke
 == Description ==
 
 * **Dashboard** — balance, send test SMS, activity stats, and cloud log sync
+* **Forms** — one page for all form plugins: toggle SMS per form, pick phone field, edit message — no custom code
 * **WooCommerce** — order placed, payment complete, processing, completed, cancelled, failed, refunded, shipped (tracking), HPOS compatible, block checkout
 * **WordPress core** — welcome SMS on registration, optional password reset via SMS
-* **Forms** — Contact Form 7, WPForms, Elementor Pro Forms, JetFormBuilder native “Send SMS” action
+* **Forms** — Contact Form 7, WPForms, Elementor Pro Forms, JetFormBuilder **SplitSMS Notification** post-submit action
 * **Crocoblock** — JetEngine CPTs, JetFormBuilder, JetBooking, JetAppointment with reminders and admin alerts
 * **Payments** — Paystack / Flutterwave / Stripe via WooCommerce payment hooks (no direct gateway API)
 * Per-feature toggles, editable templates with placeholders, skip reasons in logs
@@ -42,9 +43,30 @@ The billing phone on the order (or shipping phone, custom meta key, or user meta
 
 = How do I add SMS to a JetFormBuilder form? =
 
-Connect SplitSMS, then in the form editor go to JetForm → Post Submit Actions → New Action → **Send SMS (SplitSMS)**.
+Connect SplitSMS, then add **SplitSMS Notification** under Post-submit Actions / Notification Settings — in JetFormBuilder block forms or JetEngine → Forms (legacy).
 
 == Changelog ==
+
+= 1.6.7 =
+* New: Plugin version check vs splitsms.com when API is connected — update banner, admin notice, and Site details (WordPress + PHP versions)
+* New: SplitSMS dashboard shows when connected sites run an outdated plugin, with WP and PHP versions
+* Improve: Cleaner admin shell — connection status, environment details, and update alerts on every page
+* Improve: Help page — quick start without custom code; point to Forms manager for form SMS
+
+= 1.6.6 =
+* New: **Forms** page — auto-detects Elementor Pro, JetFormBuilder, JetEngine Forms, Contact Form 7, and WPForms
+* New: Per-form toggle switches, custom SMS message, phone field, and optional admin copy
+* New: **Refresh list** rescans your site when new forms are added
+* Improve: Delivery status sync for dashboard and WordPress logs (Sent → Delivered)
+
+= 1.6.5 =
+* New: JetEngine legacy forms (JetEngine → Forms) — **SplitSMS Notification** in Notifications Settings Type dropdown with phone field, message, admin copy, country code, sender ID
+* Improve: Shared SMS helper for JetFormBuilder + JetEngine legacy forms
+
+= 1.6.4 =
+* New: JetFormBuilder **SplitSMS Notification** action in Post-submit Actions / Notification Settings — pick phone field, custom To, message macros, admin copy, country code field, sender ID override
+* Fix: Action appears in the form builder even before API key is saved (shows connect notice until configured)
+* Improve: Native form editor UI with field dropdowns (matches Send Email layout)
 
 = 1.6.3 =
 * Fix: Delete removes all splitsms* plugin folders from disk — fixes plugin reappearing after uninstall on some hosts

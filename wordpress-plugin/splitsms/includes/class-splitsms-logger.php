@@ -134,6 +134,92 @@ class SplitSMS_Logger {
         return $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} ORDER BY created_at DESC LIMIT %d", $limit));
     }
 
+    /**
+     * Refresh local log rows from SplitSMS when delivery completes.
+     *
+     * @param int $limit
+     */
+    public function sync_pending_log_statuses($limit = 50) {
+        if (!SplitSMS_Settings::is_configured()) {
+            return;
+        }
+
+        global $wpdb;
+        $table = self::table_name();
+        $limit = max(1, min(100, (int) $limit));
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, message_id, status FROM {$table}
+                WHERE message_id IS NOT NULL AND message_id != ''
+                AND status IN ('pending', 'sent')
+                ORDER BY created_at DESC LIMIT %d",
+                $limit
+            )
+        );
+
+        if (empty($rows)) {
+            return;
+        }
+
+        $api = new SplitSMS_API();
+        foreach ($rows as $row) {
+            $remote = $api->get_message_status((string) $row->message_id, true);
+            if (empty($remote['ok']) || empty($remote['status'])) {
+                continue;
+            }
+
+            $local = self::map_api_status_to_log($remote['status']);
+            if ($local === $row->status) {
+                continue;
+            }
+
+            $wpdb->update(
+                $table,
+                array('status' => $local),
+                array('id' => (int) $row->id),
+                array('%s'),
+                array('%d')
+            );
+        }
+    }
+
+    /**
+     * @param string $api_status SplitSMS message status (e.g. DELIVERED).
+     * @return string Local log status slug.
+     */
+    public static function map_api_status_to_log($api_status) {
+        $status = strtoupper(sanitize_text_field((string) $api_status));
+        if ('DELIVERED' === $status) {
+            return 'delivered';
+        }
+        if ('FAILED' === $status || 'REJECTED' === $status || 'EXPIRED' === $status) {
+            return 'failed';
+        }
+        if ('SENT' === $status) {
+            return 'sent';
+        }
+        return 'pending';
+    }
+
+    /**
+     * @param string $status Local log status slug.
+     */
+    public static function log_status_label($status) {
+        $status = strtolower((string) $status);
+        switch ($status) {
+            case 'delivered':
+                return __('Delivered', 'splitsms');
+            case 'sent':
+                return __('Sent', 'splitsms');
+            case 'failed':
+                return __('Failed', 'splitsms');
+            default:
+                return __('Pending', 'splitsms');
+        }
+    }
+
     public static function on_activate() {
         self::create_table();
     }
