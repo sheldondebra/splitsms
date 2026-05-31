@@ -32,6 +32,8 @@ class SplitSMS_Install {
      * Delete all plugin data (options, tables, cron, transients). WordPress deletes the plugin folder after uninstall.php.
      */
     public static function uninstall_data() {
+        self::unregister_from_wordpress();
+
         delete_option('splitsms_settings');
         delete_option('splitsms_db_version');
 
@@ -45,6 +47,38 @@ class SplitSMS_Install {
         $wpdb->query('DROP TABLE IF EXISTS ' . $wpdb->prefix . 'splitsms_logs');
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared
         $wpdb->query('DROP TABLE IF EXISTS ' . $wpdb->prefix . 'splitsms_reminders');
+
+        // Remove every splitsms* folder — hosts often leave files and WordPress lists the plugin again.
+        self::remove_stale_installations(true);
+    }
+
+    /**
+     * Remove SplitSMS from active lists, auto-updates, and update cache so it does not come back after delete.
+     */
+    private static function unregister_from_wordpress() {
+        $plugin = self::PLUGIN_SLUG;
+
+        $active = get_option('active_plugins', array());
+        if (is_array($active)) {
+            $active = array_values(array_diff($active, array($plugin)));
+            update_option('active_plugins', $active);
+        }
+
+        $auto = get_site_option('auto_update_plugins', array());
+        if (is_array($auto)) {
+            $auto = array_values(array_diff($auto, array($plugin)));
+            update_site_option('auto_update_plugins', $auto);
+        }
+
+        if (is_multisite()) {
+            $network = get_site_option('active_sitewide_plugins', array());
+            if (is_array($network) && isset($network[$plugin])) {
+                unset($network[$plugin]);
+                update_site_option('active_sitewide_plugins', $network);
+            }
+        }
+
+        delete_site_transient('update_plugins');
     }
 
     /**

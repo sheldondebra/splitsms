@@ -24,4 +24,25 @@ if (is_readable($install_file)) {
     $wpdb->query('DROP TABLE IF EXISTS ' . $wpdb->prefix . 'splitsms_logs');
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared
     $wpdb->query('DROP TABLE IF EXISTS ' . $wpdb->prefix . 'splitsms_reminders');
+
+    $plugins_dir = defined('WP_PLUGIN_DIR') ? WP_PLUGIN_DIR : dirname(dirname(__FILE__));
+    $matches = glob(trailingslashit($plugins_dir) . 'splitsms*', GLOB_ONLYDIR);
+    if (is_array($matches)) {
+        foreach ($matches as $dir) {
+            if (!is_readable($dir . '/splitsms.php')) {
+                continue;
+            }
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+            if (function_exists('WP_Filesystem')) {
+                require_once ABSPATH . 'wp-admin/includes/file.php';
+                global $wp_filesystem;
+                if (empty($wp_filesystem)) {
+                    WP_Filesystem();
+                }
+                if ($wp_filesystem) {
+                    $wp_filesystem->delete($dir, true);
+                }
+            }
+        }
+    }
 }

@@ -1,11 +1,11 @@
 {
   "name": "SplitSMS",
   "slug": "splitsms",
-  "version": "1.6.1",
+  "version": "1.6.3",
   "homepage": "https://www.splitsms.com",
-  "download_url": "https://www.splitsms.com/wordpress-plugin/splitsms-1.6.1.zip",
+  "download_url": "https://www.splitsms.com/wordpress-plugin/splitsms-1.6.3.zip",
   "download_url_latest": "https://www.splitsms.com/wordpress-plugin/splitsms.zip",
-  "download_filename": "splitsms-1.6.1.zip",
+  "download_filename": "splitsms-1.6.3.zip",
   "requires": "6.0",
   "tested": "6.7",
   "requires_php": "7.4",
@@ -14,5 +14,5 @@
   "integrations_url": "https://www.splitsms.com/integrations",
   "update_check_url": "https://www.splitsms.com/api/plugin/update",
   "last_updated": "2026-05-31",
-  "changelog": "• Fix: Plugin zip uses standard WordPress layout (splitsms/splitsms.php) so uploads and updates replace the folder correctly\n• New: uninstall.php — deleting the plugin removes all SplitSMS data; WordPress removes the full plugin folder\n• New: “Replace from splitsms.com” on Settings — reinstall without manual FTP when upload says folder exists\n• Fix: Removes leftover splitsms-1 folders and nested splitsms/splitsms/ installs on activation"
+  "changelog": "• Fix: Delete removes all splitsms* plugin folders from disk — fixes plugin reappearing after uninstall on some hosts\n• Fix: Clears auto-update and active-plugin entries on uninstall so WordPress does not restore SplitSMS from cache"
 }

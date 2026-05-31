@@ -4,7 +4,7 @@ Tags: sms, woocommerce, notifications, api, transactional
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.6.1
+Stable tag: 1.6.3
 License: GPLv2 or later
 
 Send transactional SMS from WordPress and WooCommerce using your SplitSMS API key.
@@ -45,6 +45,16 @@ The billing phone on the order (or shipping phone, custom meta key, or user meta
 Connect SplitSMS, then in the form editor go to JetForm → Post Submit Actions → New Action → **Send SMS (SplitSMS)**.
 
 == Changelog ==
+
+= 1.6.3 =
+* Fix: Delete removes all splitsms* plugin folders from disk — fixes plugin reappearing after uninstall on some hosts
+* Fix: Clears auto-update and active-plugin entries on uninstall so WordPress does not restore SplitSMS from cache
+
+= 1.6.2 =
+* Improve: Integrations page — overview dashboard, section navigation, cleaner WooCommerce / Paystack / forms layout
+* New: Sender ID picker — select from your SplitSMS account (search dropdown, status lights); no manual typing
+* Improve: Settings — API key shows “Connected” with masked key; sender_ids.read scope documented
+* Improve: Paystack panel two-column checklist + webhook layout
 
 = 1.6.1 =
 * Fix: Plugin zip uses standard WordPress layout (splitsms/splitsms.php) so uploads and updates replace the folder correctly
