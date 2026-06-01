@@ -4,7 +4,7 @@ Tags: sms, woocommerce, notifications, api, transactional
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.6.7
+Stable tag: 1.6.8
 License: GPLv2 or later
 
 Send transactional SMS from WordPress and WooCommerce using your SplitSMS API key.
@@ -15,7 +15,7 @@ Send transactional SMS from WordPress and WooCommerce using your SplitSMS API ke
 * **Forms** — one page for all form plugins: toggle SMS per form, pick phone field, edit message — no custom code
 * **WooCommerce** — order placed, payment complete, processing, completed, cancelled, failed, refunded, shipped (tracking), HPOS compatible, block checkout
 * **WordPress core** — welcome SMS on registration, optional password reset via SMS
-* **Forms** — Contact Form 7, WPForms, Elementor Pro Forms, JetFormBuilder **SplitSMS Notification** post-submit action
+* **Forms** — Contact Form 7, WPForms, Elementor Pro Forms, JetFormBuilder **Send SMS**, JetEngine **Send SMS**
 * **Crocoblock** — JetEngine CPTs, JetFormBuilder, JetBooking, JetAppointment with reminders and admin alerts
 * **Payments** — Paystack / Flutterwave / Stripe via WooCommerce payment hooks (no direct gateway API)
 * Per-feature toggles, editable templates with placeholders, skip reasons in logs
@@ -49,12 +49,54 @@ Cloud sync behavior:
 
 == Installation ==
 
-1. Install via Plugins → Add New → Upload `splitsms.zip` from splitsms.com (do not rename the zip).
-2. If WordPress says the folder already exists, update from WordPress plugin update flow or delete SplitSMS under Plugins first, then upload again.
-3. Activate the plugin.
-4. Open the **SplitSMS** menu in wp-admin.
-5. Enter your API key from the SplitSMS dashboard (Settings → SplitSMS).
-6. Enable integrations and save.
+1. Install from the WordPress plugin directory or upload the plugin zip.
+2. Activate SplitSMS.
+3. Open **SplitSMS** in wp-admin and click **Create free account** to sign up on splitsms.com (free starter SMS credits).
+4. Copy your API key from splitsms.com → Developers → API Keys.
+5. Paste the key under **SplitSMS → Settings** and save.
+6. Enable integrations or configure form actions.
+
+== How it works ==
+
+SplitSMS is a cloud SMS platform at splitsms.com. This plugin connects your WordPress site to your SplitSMS account using an API key.
+
+1. An event happens on your site (order placed, form submitted, user registered).
+2. The plugin builds a message from your template and sends it through the SplitSMS API.
+3. Your SplitSMS wallet is debited; delivery status syncs back to SplitSMS → Logs and your splitsms.com dashboard.
+
+You configure everything in wp-admin — no custom PHP or theme edits required.
+
+== User guide ==
+
+= SplitSMS admin menu =
+
+* **Dashboard** — balance, test SMS, stats, connection and update status
+* **Settings** — API key, Sender ID, admin phone, replace-from-cloud reinstall
+* **Forms** — auto-detected forms; toggle SMS, phone field, message per form
+* **Integrations** — WooCommerce, WordPress core, CF7/WPForms/Elementor toggles
+* **Crocoblock** — JetEngine, JetBooking, JetAppointment templates
+* **Logs** — every send, skip, failure; Sent → Delivered when carrier confirms
+* **Help** — quick start and full in-plugin documentation
+
+= Forms — two ways to enable SMS =
+
+**Forms manager (easiest):** SplitSMS → Forms → Refresh list → toggle Send SMS → pick phone field → edit message → Save.
+
+**Native form actions (per-form in builder):**
+
+* JetFormBuilder — Post Submit Actions → **Send SMS**
+* JetEngine legacy forms — Notifications → type **Send SMS**
+* Elementor Pro — Actions After Submit → **SplitSMS Notification**
+
+When a native action is configured, duplicate global hooks are skipped for that submission. Macros: %phone%, %post_id%, %user_id%.
+
+= WooCommerce =
+
+Enable events under SplitSMS → Integrations. SMS goes to billing phone (then shipping, custom meta, or user meta). Placeholders: {customer_name}, {order_id}, {order_total}, {order_status}, {payment_method}, {paystack_reference}, {tracking_number}, {refund_amount}, {site_name}.
+
+= Create account from WordPress =
+
+WordPress.org installs show **Create free account** links in the plugin sidebar, Settings, Dashboard banner, and Plugins list. Sign up on splitsms.com, then paste your API key under Settings.
 
 Deleting SplitSMS under **Plugins → Delete** removes the entire plugin folder and all SplitSMS data from your database.
 
@@ -62,15 +104,27 @@ Deleting SplitSMS under **Plugins → Delete** removes the entire plugin folder 
 
 = Where do I get an API key? =
 
-Sign in to SplitSMS → Developers → API Keys.
+Sign up at splitsms.com → log in → Developers → API Keys → Create key with **sms.send** permission. Copy the **full** secret (~56 characters) at creation — the dashboard only shows a prefix afterward.
 
 = Which phone number is used for WooCommerce? =
 
-The billing phone on the order (or shipping phone, custom meta key, or user meta as fallback).
+The billing phone on the order (or shipping phone, custom meta key, or user meta as fallback). Check SplitSMS → Logs for skip reasons if no SMS is sent.
 
-= How do I add SMS to a JetFormBuilder form? =
+= How do I add SMS to a form without code? =
 
-Connect SplitSMS, then add **SplitSMS Notification** under Post-submit Actions / Notification Settings — in JetFormBuilder block forms or JetEngine → Forms (legacy).
+Open **SplitSMS → Forms**, click Refresh list, toggle Send SMS for your form, select the phone field, and save. Or add **Send SMS** / **SplitSMS Notification** in JetFormBuilder, JetEngine, or Elementor Pro form builder.
+
+= How do delivery statuses work? =
+
+Messages start as Sent in Logs. When the carrier confirms delivery (DLR), status updates to Delivered in wp-admin and on splitsms.com Dashboard → Integrations → WordPress.
+
+= How do I update the plugin? =
+
+Use Dashboard → Updates or Plugins → Check for updates. Manual fallback: download the latest zip from splitsms.com/integrations/wordpress. Settings → Replace from splitsms.com reinstalls in place when upload fails.
+
+= Full documentation =
+
+https://www.splitsms.com/docs and https://www.splitsms.com/integrations/wordpress — also under SplitSMS → Help in wp-admin.
 
 == Privacy ==
 
@@ -81,6 +135,15 @@ This plugin integrates with WordPress privacy tools.
 * Removing the plugin via Plugins → Delete removes SplitSMS plugin data from your database.
 
 == Changelog ==
+
+= 1.6.8 =
+* New: Create free account — signup CTAs in plugin admin, Settings, sidebar, and Plugins list for WordPress.org users
+* New: Elementor Pro **SplitSMS Notification** under Actions After Submit (phone, message, sender ID, admin copy)
+* New: JetFormBuilder & JetEngine legacy **Send SMS** action with %phone%, %post_id%, %user_id% macros
+* Improve: In-plugin Help documentation — admin menu guide, Forms manager, native actions, troubleshooting
+* Improve: Delivery status sync — Sent → Delivered in Logs and splitsms.com dashboard
+* Improve: WordPress.org packaging — privacy policy hook, translation-ready, dev files excluded from release zip
+* Change: Versioned download filename SplitSMS-v{version}.zip on splitsms.com
 
 = 1.6.7 =
 * New: Plugin version check vs splitsms.com when API is connected — update banner, admin notice, and Site details (WordPress + PHP versions)

@@ -21,6 +21,8 @@ $nav = array(
 $wallet_url = defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/wallet' : '#';
 $docs_url = defined('SPLITSMS_INTEGRATIONS_URL') ? SPLITSMS_INTEGRATIONS_URL : '#';
 $update_url = admin_url('admin.php?page=splitsms-help');
+$signup_url = SplitSMS_Settings::signup_url('sidebar');
+$is_connected = SplitSMS_Settings::is_configured();
 ?>
 <aside class="splitsms-sidebar" aria-label="<?php esc_attr_e('SplitSMS navigation', 'splitsms'); ?>">
     <div class="splitsms-sidebar__brand">
@@ -42,15 +44,27 @@ $update_url = admin_url('admin.php?page=splitsms-help');
         <?php endforeach; ?>
     </nav>
     <div class="splitsms-sidebar__footer">
-        <a class="splitsms-sidebar__upgrade" href="<?php echo esc_url($wallet_url); ?>" target="_blank" rel="noopener">
-            <strong><?php esc_html_e('Add SMS credits', 'splitsms'); ?></strong>
-            <span><?php esc_html_e('Top up your SplitSMS wallet', 'splitsms'); ?></span>
-        </a>
+        <?php if ($is_connected) : ?>
+            <a class="splitsms-sidebar__upgrade" href="<?php echo esc_url($wallet_url); ?>" target="_blank" rel="noopener noreferrer">
+                <strong><?php esc_html_e('Add SMS credits', 'splitsms'); ?></strong>
+                <span><?php esc_html_e('Top up your SplitSMS wallet', 'splitsms'); ?></span>
+            </a>
+        <?php else : ?>
+            <a class="splitsms-sidebar__upgrade splitsms-sidebar__upgrade--signup" href="<?php echo esc_url($signup_url); ?>" target="_blank" rel="noopener noreferrer">
+                <strong><?php esc_html_e('Create free account', 'splitsms'); ?></strong>
+                <span><?php esc_html_e('Get starter SMS credits on splitsms.com', 'splitsms'); ?></span>
+            </a>
+        <?php endif; ?>
         <div class="splitsms-sidebar__footer-links">
+            <?php if (!$is_connected) : ?>
+                <a href="<?php echo esc_url(SplitSMS_Settings::login_url('sidebar')); ?>" target="_blank" rel="noopener noreferrer">
+                    <?php esc_html_e('Log in', 'splitsms'); ?>
+                </a>
+            <?php endif; ?>
             <a class="is-update" href="<?php echo esc_url($update_url); ?>">
                 <?php esc_html_e('Check for plugin updates', 'splitsms'); ?>
             </a>
-            <a href="<?php echo esc_url($docs_url); ?>" target="_blank" rel="noopener">
+            <a href="<?php echo esc_url($docs_url); ?>" target="_blank" rel="noopener noreferrer">
                 <?php esc_html_e('Documentation', 'splitsms'); ?>
             </a>
         </div>

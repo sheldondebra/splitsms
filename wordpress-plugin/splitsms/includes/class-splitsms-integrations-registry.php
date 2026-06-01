@@ -56,7 +56,7 @@ class SplitSMS_Integrations_Registry {
                 'label' => 'Elementor Pro Forms',
                 'active' => defined('ELEMENTOR_PRO_VERSION'),
                 'group' => 'forms',
-                'note' => __('SMS on elementor_pro/forms/new_record after form actions. Tel field required.', 'splitsms'),
+                'note' => __('Add SplitSMS Notification under Actions After Submit, or enable automatic SMS in Forms.', 'splitsms'),
             ),
             'jetengine' => array(
                 'label' => 'JetEngine',

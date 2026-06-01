@@ -6,14 +6,14 @@ import { ValidatedSelectControl, ValidatedTextControl } from 'jet-form-builder-a
 
 const SMS_TO_OPTIONS = [
 	{ value: 'form', label: __('Phone from submitted form field', 'splitsms') },
-	{ value: 'custom', label: __('Custom phone / macro', 'splitsms') },
+	{ value: 'custom', label: __('Custom phone / macros', 'splitsms') },
 	{ value: 'admin', label: __('Admin phone (SplitSMS settings)', 'splitsms') },
 ];
 
 const SMS_TO_HELP = {
 	form: __('Pick the form field that stores the recipient number.', 'splitsms'),
-	custom: __('Use a number or macros like %phone% or {phone}.', 'splitsms'),
-	admin: __('Uses the admin phone from SplitSMS → Crocoblock settings.', 'splitsms'),
+	custom: __('Use macros like %phone%, %post_id%, %user_id%, or {phone}.', 'splitsms'),
+	admin: __('Uses the admin phone from SplitSMS settings.', 'splitsms'),
 };
 
 function SendSmsRender({ settings, onChangeSettingObj, actionData }) {
@@ -39,7 +39,7 @@ function SendSmsRender({ settings, onChangeSettingObj, actionData }) {
 			)}
 
 			<ValidatedSelectControl
-				label={__('Send to', 'splitsms')}
+				label={__('Phone number / Send to', 'splitsms')}
 				value={smsTo}
 				options={SMS_TO_OPTIONS}
 				help={SMS_TO_HELP[smsTo]}
@@ -66,9 +66,9 @@ function SendSmsRender({ settings, onChangeSettingObj, actionData }) {
 				<>
 					<WideLine />
 					<ValidatedTextControl
-						label={__('Custom phone', 'splitsms')}
+						label={__('Phone number (macros)', 'splitsms')}
 						value={settings?.custom_phone || ''}
-						placeholder="+233XXXXXXXXX or %phone%"
+						placeholder="%phone% or %post_id% or +233XXXXXXXXX"
 						onChange={(val) => onChangeSettingObj({ custom_phone: val })}
 						isErrorSupported={(error) => error?.property === 'custom_phone'}
 						required
@@ -83,7 +83,7 @@ function SendSmsRender({ settings, onChangeSettingObj, actionData }) {
 				value={settings?.message || ''}
 				onChange={(val) => onChangeSettingObj({ message: val })}
 				rows={4}
-				help={__('Use %field_name% or {field_name} for submitted values.', 'splitsms')}
+				help={__('Supports all form macros: %field%, {field}, %post_id%, %user_id%.', 'splitsms')}
 				__nextHasNoMarginBottom
 			/>
 

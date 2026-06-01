@@ -22,7 +22,7 @@ class SplitSMS_JFB_Send_Sms_Action extends \Jet_Form_Builder\Actions\Types\Base 
      * @return string
      */
     public function get_name() {
-        return __('SplitSMS Notification', 'splitsms');
+        return __('Send SMS', 'splitsms');
     }
 
     /**
@@ -51,9 +51,9 @@ class SplitSMS_JFB_Send_Sms_Action extends \Jet_Form_Builder\Actions\Types\Base 
      */
     public function editor_labels() {
         return array(
-            'sms_to' => __('Send to:', 'splitsms'),
+            'sms_to' => __('Phone number / Send to:', 'splitsms'),
             'phone_field' => __('Phone field:', 'splitsms'),
-            'custom_phone' => __('Custom phone:', 'splitsms'),
+            'custom_phone' => __('Phone number (macros):', 'splitsms'),
             'country_code_field' => __('Country code field (optional):', 'splitsms'),
             'message' => __('Message:', 'splitsms'),
             'sender_id' => __('Sender ID override (optional):', 'splitsms'),
@@ -68,9 +68,9 @@ class SplitSMS_JFB_Send_Sms_Action extends \Jet_Form_Builder\Actions\Types\Base 
     public function editor_labels_help() {
         return array(
             'phone_field' => __('Choose the form field that stores the recipient phone number.', 'splitsms'),
-            'custom_phone' => __('Use form field macros like %phone% or {field_name}.', 'splitsms'),
+            'custom_phone' => __('Supports JetFormBuilder macros such as %phone%, %post_id%, %user_id%.', 'splitsms'),
             'country_code_field' => __('Optional field for ISO country code (e.g. GH). Falls back to plugin default.', 'splitsms'),
-            'message' => __('SMS body. Use %field_name% or {field_name} for submitted values.', 'splitsms'),
+            'message' => __('SMS body. Supports all form macros (%field%, {field}, %post_id%, %user_id%).', 'splitsms'),
             'sender_id' => __('Leave empty to use the Sender ID from SplitSMS settings.', 'splitsms'),
             'admin_message' => __('Sent to the admin phone in SplitSMS Crocoblock settings.', 'splitsms'),
         );
@@ -166,11 +166,9 @@ class SplitSMS_JFB_Send_Sms_Action extends \Jet_Form_Builder\Actions\Types\Base 
             $request,
             array(
                 'form_id' => $form_id,
+                'post_id' => $form_id,
                 'source' => 'JetFormBuilder',
-                'event' => 'jfb_action',
-                'macro_parser' => function ($content) use ($request) {
-                    return $this->rich_content($content, $request);
-                },
+                'event' => 'jfb_send_sms',
             )
         );
 
@@ -197,17 +195,4 @@ class SplitSMS_JFB_Send_Sms_Action extends \Jet_Form_Builder\Actions\Types\Base 
         return 0;
     }
 
-    /**
-     * @param string               $content
-     * @param array<string, mixed> $request
-     * @return string
-     */
-    private function rich_content($content, array $request) {
-        if (class_exists('JFB_Modules\Rich_Content\Module')) {
-            return (string) \JFB_Modules\Rich_Content\Module::rich($content);
-        }
-
-        $vars = SplitSMS_JetFormBuilder::normalize_request_vars($request);
-        return SplitSMS_API::render_template($content, $vars);
-    }
 }

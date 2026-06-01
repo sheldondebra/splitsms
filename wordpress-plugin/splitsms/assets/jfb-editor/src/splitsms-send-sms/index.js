@@ -3,7 +3,7 @@ import { __ } from '@wordpress/i18n';
 
 export default {
 	type: 'splitsms_send_sms',
-	label: __('SplitSMS Notification', 'splitsms'),
+	label: __('Send SMS', 'splitsms'),
 	edit: SendSmsRender,
 	icon: (
 		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">

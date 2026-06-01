@@ -16,6 +16,7 @@ import { CopyButton } from "@/components/developers/copy-button";
 import {
   wordpressIntegrationFeatureGroups,
   wordpressSetupSteps,
+  wordpressHowItWorksSteps,
   woocommerceTemplatePlaceholders,
 } from "@/lib/marketing/wordpress-integration-features";
 
@@ -89,7 +90,7 @@ export function WordPressIntegrationContent() {
             </a>
           </div>
 
-          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {wordpressIntegrationFeatureGroups.map(({ icon: Icon, title, items }) => (
               <div
                 key={title}
@@ -110,16 +111,39 @@ export function WordPressIntegrationContent() {
           </div>
 
           <div className="mt-12 rounded-2xl border border-border/60 bg-card p-6 md:p-8">
-            <h2 className="text-lg font-semibold">Setup in 5 minutes</h2>
+            <h2 className="text-lg font-semibold">How it works</h2>
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+              SplitSMS is a cloud SMS platform. The WordPress plugin connects your site to your
+              account — no SMS gateway configuration on the server. Everything runs through{" "}
+              <strong className="text-foreground">{baseUrl}</strong>.
+            </p>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              {wordpressHowItWorksSteps.map(({ title, body }, i) => (
+                <div
+                  key={title}
+                  className="rounded-xl border border-border/60 bg-muted/20 p-4"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                    Step {i + 1}
+                  </p>
+                  <h3 className="mt-1 font-semibold text-foreground">{title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-12 rounded-2xl border border-border/60 bg-card p-6 md:p-8">
+            <h2 className="text-lg font-semibold">Setup guide</h2>
             <ol className="mt-4 list-decimal list-inside space-y-2 text-sm text-muted-foreground">
               {wordpressSetupSteps(baseUrl).map((step, i) => (
                 <li key={i}>
                   {i === 0 ? (
                     <>
                       <Link href="/signup" className="text-primary font-medium hover:underline">
-                        Create a SplitSMS account
+                        Create a free SplitSMS account
                       </Link>{" "}
-                      and generate an API key with <strong>sms.send</strong> permission.
+                      at splitsms.com — starter SMS credits included.
                     </>
                   ) : (
                     step
@@ -127,6 +151,18 @@ export function WordPressIntegrationContent() {
                 </li>
               ))}
             </ol>
+            <h3 className="mt-8 text-base font-semibold">Forms — two ways to enable SMS</h3>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground list-disc list-inside">
+              <li>
+                <strong className="text-foreground">Forms manager</strong> — SplitSMS → Forms:
+                toggle SMS, pick phone field, edit message (CF7, WPForms, Elementor, JFB, JetEngine).
+              </li>
+              <li>
+                <strong className="text-foreground">Native actions</strong> — JetFormBuilder &
+                JetEngine: <strong>Send SMS</strong>; Elementor Pro:{" "}
+                <strong>SplitSMS Notification</strong> under Actions After Submit.
+              </li>
+            </ul>
             <p className="mt-4 text-xs text-muted-foreground">
               WooCommerce placeholders:{" "}
               <code className="bg-muted px-1 rounded text-[11px]">{woocommerceTemplatePlaceholders}</code>

@@ -3,7 +3,7 @@
  * Plugin Name:       SplitSMS
  * Plugin URI:        https://www.splitsms.com/integrations
  * Description:       Send transactional SMS from WordPress and WooCommerce using your SplitSMS API key.
- * Version:           1.6.7
+ * Version:           1.6.8
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            SplitSMS
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('SPLITSMS_VERSION')) {
-    define('SPLITSMS_VERSION', '1.6.7');
+    define('SPLITSMS_VERSION', '1.6.8');
 }
 if (!defined('SPLITSMS_PLUGIN_FILE')) {
     define('SPLITSMS_PLUGIN_FILE', __FILE__);
@@ -135,6 +135,7 @@ function splitsms_init() {
     // Register form builder actions even before API key is saved.
     SplitSMS_JetFormBuilder::instance();
     SplitSMS_JetEngine_Forms::instance();
+    SplitSMS_Elementor::instance();
 
     if (SplitSMS_Settings::is_configured()) {
         SplitSMS_WooCommerce::instance();
@@ -144,7 +145,6 @@ function splitsms_init() {
         SplitSMS_JetEngine::instance();
         SplitSMS_JetBooking::instance();
         SplitSMS_JetAppointment::instance();
-        SplitSMS_Elementor::instance();
     }
 }
 add_action('plugins_loaded', 'splitsms_init');

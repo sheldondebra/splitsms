@@ -56,6 +56,8 @@ if (!defined('ABSPATH')) {
 }
 
 define('SPLITSMS_APP_URL', '${siteUrl}');
+define('SPLITSMS_SIGNUP_URL', '${siteUrl}/signup');
+define('SPLITSMS_LOGIN_URL', '${siteUrl}/login');
 define('SPLITSMS_API_DOCS_URL', '${siteUrl}/api-docs');
 define('SPLITSMS_INTEGRATIONS_URL', '${siteUrl}/integrations');
 define('SPLITSMS_PLUGIN_DOWNLOAD_URL', '${versionedDownloadUrl}');

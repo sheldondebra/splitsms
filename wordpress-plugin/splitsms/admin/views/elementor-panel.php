@@ -14,8 +14,9 @@ $s = SplitSMS_Settings::instance()->all();
         <div>
             <h2><?php esc_html_e('Elementor Pro Forms', 'splitsms'); ?></h2>
             <p class="description">
-                <?php esc_html_e('SMS on elementor_pro/forms/new_record after form actions. Add a Tel field and set its Field ID in Advanced.', 'splitsms'); ?>
-                <a href="https://developers.elementor.com/docs/hooks/forms/" target="_blank" rel="noopener"><?php esc_html_e('Elementor hooks', 'splitsms'); ?></a>
+                <?php esc_html_e('Recommended: edit your form → Actions After Submit → add SplitSMS Notification for per-form control (phone field, message, admin copy).', 'splitsms'); ?>
+                <?php esc_html_e('Or enable below for automatic SMS from SplitSMS → Forms.', 'splitsms'); ?>
+                <a href="https://developers.elementor.com/docs/form-actions/add-new-action/" target="_blank" rel="noopener"><?php esc_html_e('Elementor form actions', 'splitsms'); ?></a>
             </p>
         </div>
         <label class="splitsms-toggle-label">

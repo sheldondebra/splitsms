@@ -8,10 +8,12 @@ if (!defined('ABSPATH')) {
 }
 
 define('SPLITSMS_APP_URL', 'https://www.splitsms.com');
+define('SPLITSMS_SIGNUP_URL', 'https://www.splitsms.com/signup');
+define('SPLITSMS_LOGIN_URL', 'https://www.splitsms.com/login');
 define('SPLITSMS_API_DOCS_URL', 'https://www.splitsms.com/api-docs');
 define('SPLITSMS_INTEGRATIONS_URL', 'https://www.splitsms.com/integrations');
-define('SPLITSMS_PLUGIN_DOWNLOAD_URL', 'https://www.splitsms.com/wordpress-plugin/SplitSMS-v1.6.7.zip');
+define('SPLITSMS_PLUGIN_DOWNLOAD_URL', 'https://www.splitsms.com/wordpress-plugin/SplitSMS-v1.6.8.zip');
 define('SPLITSMS_PLUGIN_DOWNLOAD_LATEST_URL', 'https://www.splitsms.com/wordpress-plugin/splitsms.zip');
 define('SPLITSMS_UPDATE_CHECK_URL', 'https://www.splitsms.com/api/plugin/update');
-define('SPLITSMS_PLUGIN_VERSION', '1.6.7');
+define('SPLITSMS_PLUGIN_VERSION', '1.6.8');
 define('SPLITSMS_ENABLE_CUSTOM_UPDATER', false);

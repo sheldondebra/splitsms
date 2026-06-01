@@ -208,6 +208,48 @@ class SplitSMS_Settings {
     }
 
     /**
+     * Signup URL for new users (WordPress.org installs, etc.).
+     *
+     * @param string $campaign UTM campaign slug.
+     * @return string
+     */
+    public static function signup_url($campaign = 'wordpress-plugin') {
+        $base = defined('SPLITSMS_SIGNUP_URL')
+            ? SPLITSMS_SIGNUP_URL
+            : (defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL : 'https://www.splitsms.com') . '/signup';
+
+        return add_query_arg(
+            array(
+                'utm_source' => 'wordpress',
+                'utm_medium' => 'plugin',
+                'utm_campaign' => sanitize_key($campaign),
+            ),
+            $base
+        );
+    }
+
+    /**
+     * Login URL for existing SplitSMS users.
+     *
+     * @param string $campaign UTM campaign slug.
+     * @return string
+     */
+    public static function login_url($campaign = 'wordpress-plugin') {
+        $base = defined('SPLITSMS_LOGIN_URL')
+            ? SPLITSMS_LOGIN_URL
+            : (defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL : 'https://www.splitsms.com') . '/login';
+
+        return add_query_arg(
+            array(
+                'utm_source' => 'wordpress',
+                'utm_medium' => 'plugin',
+                'utm_campaign' => sanitize_key($campaign),
+            ),
+            $base
+        );
+    }
+
+    /**
      * Full SplitSMS keys are sk_test_/sk_live_ plus 48 hex chars (~56 characters).
      */
     public static function validate_api_key_format($key) {

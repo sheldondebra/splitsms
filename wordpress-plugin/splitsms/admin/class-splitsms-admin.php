@@ -31,6 +31,25 @@ class SplitSMS_Admin {
         add_action('wp_ajax_splitsms_refresh_forms', array($this, 'ajax_refresh_forms'));
         add_action('admin_post_splitsms_send_sms', array($this, 'handle_send_sms'));
         add_action('admin_bar_menu', array($this, 'admin_bar_balance'), 100);
+        add_filter('plugin_action_links_' . plugin_basename(SPLITSMS_PLUGIN_FILE), array($this, 'plugin_action_links'));
+    }
+
+    /**
+     * Links on Plugins → Installed Plugins (WordPress.org installs).
+     *
+     * @param array<int, string> $links
+     * @return array<int, string>
+     */
+    public function plugin_action_links($links) {
+        $settings = '<a href="' . esc_url(admin_url('admin.php?page=splitsms-settings')) . '">' . esc_html__('Settings', 'splitsms') . '</a>';
+        array_unshift($links, $settings);
+
+        if (!SplitSMS_Settings::is_configured()) {
+            $signup = '<a href="' . esc_url(SplitSMS_Settings::signup_url('plugins-list')) . '" target="_blank" rel="noopener noreferrer">' . esc_html__('Create account', 'splitsms') . '</a>';
+            array_unshift($links, $signup);
+        }
+
+        return $links;
     }
 
     public function register_menu() {
@@ -354,17 +373,30 @@ class SplitSMS_Admin {
                 </div>
             <?php endif; ?>
 
+            <?php if (!$configured) : ?>
+                <?php
+                $context = 'dashboard';
+                include SPLITSMS_PLUGIN_DIR . 'admin/views/signup-callout.php';
+                ?>
+            <?php endif; ?>
+
             <div class="splitsms-grid">
                 <div class="splitsms-card splitsms-card--accent">
                     <h2><?php esc_html_e('Quick start', 'splitsms'); ?></h2>
                     <ol class="splitsms-steps">
-                        <li><?php esc_html_e('Connect your API key in Settings.', 'splitsms'); ?></li>
+                        <?php if (!$configured) : ?>
+                            <li><?php esc_html_e('Create a free SplitSMS account (starter SMS credits included).', 'splitsms'); ?></li>
+                            <li><?php esc_html_e('Paste your API key in Settings.', 'splitsms'); ?></li>
+                        <?php else : ?>
+                            <li><?php esc_html_e('Connect your API key in Settings.', 'splitsms'); ?></li>
+                        <?php endif; ?>
                         <li><?php esc_html_e('Send a test SMS from the bar above.', 'splitsms'); ?></li>
                         <li><?php esc_html_e('Enable SMS per form under Forms — no custom code needed.', 'splitsms'); ?></li>
                     </ol>
                     <div class="splitsms-quick-actions">
                         <?php if (!$configured) : ?>
-                            <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=splitsms-settings')); ?>"><?php esc_html_e('Connect API key', 'splitsms'); ?></a>
+                            <a class="button button-primary" href="<?php echo esc_url(SplitSMS_Settings::signup_url('dashboard')); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Create account', 'splitsms'); ?></a>
+                            <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=splitsms-settings')); ?>"><?php esc_html_e('Connect API key', 'splitsms'); ?></a>
                         <?php endif; ?>
                         <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=splitsms-forms')); ?>"><?php esc_html_e('Forms', 'splitsms'); ?></a>
                         <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=splitsms-integrations')); ?>"><?php esc_html_e('Integrations', 'splitsms'); ?></a>
@@ -582,6 +614,13 @@ class SplitSMS_Admin {
                 </div>
             <?php endif; ?>
 
+            <?php if (!$api_connected) : ?>
+                <?php
+                $context = 'settings';
+                include SPLITSMS_PLUGIN_DIR . 'admin/views/signup-callout.php';
+                ?>
+            <?php endif; ?>
+
             <form method="post" action="<?php echo esc_url(admin_url('admin.php?page=splitsms-settings')); ?>" class="splitsms-card splitsms-settings-card">
                 <?php wp_nonce_field('splitsms_settings'); ?>
                 <input type="hidden" name="splitsms_save" value="1" />
@@ -750,6 +789,12 @@ class SplitSMS_Admin {
             <div class="splitsms-card">
                 <h2><?php esc_html_e('Quick start (no custom code)', 'splitsms'); ?></h2>
                 <ol class="splitsms-steps">
+                    <?php if (!SplitSMS_Settings::is_configured()) : ?>
+                        <li>
+                            <a href="<?php echo esc_url(SplitSMS_Settings::signup_url('help')); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Create a free SplitSMS account', 'splitsms'); ?></a>
+                            <?php esc_html_e('— starter SMS credits included.', 'splitsms'); ?>
+                        </li>
+                    <?php endif; ?>
                     <li><?php esc_html_e('SplitSMS → Settings — paste your API key and save.', 'splitsms'); ?></li>
                     <li>
                         <a href="<?php echo esc_url($forms_url); ?>"><?php esc_html_e('SplitSMS → Forms', 'splitsms'); ?></a>
@@ -760,6 +805,7 @@ class SplitSMS_Admin {
                 </ol>
                 <p class="description"><?php esc_html_e('You never need to write PHP or add hooks — everything is configured in the plugin UI.', 'splitsms'); ?></p>
             </div>
+            <?php include SPLITSMS_PLUGIN_DIR . 'admin/views/help-documentation.php'; ?>
             <div class="splitsms-card">
                 <h2><?php esc_html_e('Update plugin', 'splitsms'); ?></h2>
                 <?php if ((defined('SPLITSMS_ENABLE_CUSTOM_UPDATER') && SPLITSMS_ENABLE_CUSTOM_UPDATER) && !empty($version['is_outdated']) && !empty($version['latest'])) : ?>

@@ -16,6 +16,89 @@ export type ChangelogRelease = {
 
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "1.6.8",
+    date: "2026-06-01",
+    product: "wordpress",
+    summary:
+      "Native form actions (JetFormBuilder, JetEngine, Elementor), Forms manager, create-account onboarding, delivery sync, and WordPress.org-ready packaging.",
+    changes: [
+      {
+        type: "added",
+        text: "Create free account — signup CTAs in plugin admin, Plugins list, Settings, and sidebar for WordPress.org installs.",
+      },
+      {
+        type: "added",
+        text: "Elementor Pro — SplitSMS Notification under Actions After Submit (phone, message, sender ID, admin copy per form).",
+      },
+      {
+        type: "added",
+        text: "JetFormBuilder & JetEngine legacy — Send SMS post-submit action with %phone%, %post_id%, %user_id% macro support.",
+      },
+      {
+        type: "added",
+        text: "SplitSMS → Forms — auto-detect forms, per-form toggles, phone field, and custom messages (no custom code).",
+      },
+      {
+        type: "changed",
+        text: "Delivery status sync — Sent → Delivered in WordPress logs and SplitSMS dashboard when carrier confirms DLR.",
+      },
+      {
+        type: "changed",
+        text: "WordPress.org packaging — dev files excluded from release zip; privacy policy integration; translation-ready labels.",
+      },
+      {
+        type: "changed",
+        text: "Versioned download filename: SplitSMS-v{version}.zip on splitsms.com.",
+      },
+    ],
+  },
+  {
+    version: "1.6.7",
+    date: "2026-05-31",
+    product: "wordpress",
+    summary: "Plugin version check vs splitsms.com, connected-site monitoring, and cleaner admin shell.",
+    changes: [
+      {
+        type: "added",
+        text: "Update banner and Site details (WordPress + PHP versions) when API is connected.",
+      },
+      {
+        type: "added",
+        text: "SplitSMS dashboard flags outdated connected sites with WP/PHP version details.",
+      },
+      {
+        type: "changed",
+        text: "Help page quick start — no custom code; points to Forms manager.",
+      },
+    ],
+  },
+  {
+    version: "2026.06",
+    date: "2026-06-01",
+    label: "Documentation",
+    product: "platform",
+    summary:
+      "Full documentation refresh — detailed WordPress plugin how-to, website dashboard guides, and changelog for v1.6.7–1.6.8.",
+    changes: [
+      {
+        type: "changed",
+        text: "/docs WordPress chapter — account setup, admin menu map, Forms manager, per-form actions, WooCommerce, and troubleshooting.",
+      },
+      {
+        type: "changed",
+        text: "/integrations/wordpress — expanded setup guide and how SplitSMS connects to splitsms.com.",
+      },
+      {
+        type: "added",
+        text: "Plugin Help page — in-wp-admin documentation mirroring website guides.",
+      },
+      {
+        type: "changed",
+        text: "/changelog — WordPress plugin releases 1.6.7 and 1.6.8 documented.",
+      },
+    ],
+  },
+  {
     version: "2.0.0",
     date: "2026-05-26",
     label: "Connect",

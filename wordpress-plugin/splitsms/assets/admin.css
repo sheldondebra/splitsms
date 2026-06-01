@@ -397,6 +397,47 @@
   border-left: 3px solid var(--splitsms-accent);
 }
 
+.splitsms-signup-callout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.25rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.02));
+}
+
+.splitsms-signup-callout h2 {
+  margin: 0 0 0.35rem;
+}
+
+.splitsms-signup-callout p {
+  margin: 0 0 0.75rem;
+}
+
+.splitsms-signup-callout__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.splitsms-steps--compact {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.splitsms-sidebar__upgrade--signup {
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.35);
+}
+
+@media (max-width: 782px) {
+  .splitsms-signup-callout {
+    grid-template-columns: 1fr;
+  }
+}
+
 .splitsms-section-title {
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -411,6 +452,20 @@
 }
 
 .splitsms-steps {
+  margin: 0.5rem 0 1rem 1.25rem;
+  line-height: 1.6;
+}
+
+.splitsms-help-table {
+  margin-top: 0.75rem;
+}
+
+.splitsms-help-table th,
+.splitsms-help-table td {
+  vertical-align: top;
+}
+
+.splitsms-help-list {
   margin: 0.5rem 0 1rem 1.25rem;
   line-height: 1.6;
 }

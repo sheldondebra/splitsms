@@ -28,6 +28,9 @@ class SplitSMS_Elementor {
     /** @var array<string, bool> */
     private $request_dedupe = array();
 
+    /** @var array<string, bool> */
+    private static $native_action_handled = array();
+
     public static function instance() {
         if (null === self::$instance) {
             self::$instance = new self();
@@ -38,7 +41,101 @@ class SplitSMS_Elementor {
     private function __construct() {
         $this->settings = SplitSMS_Settings::instance();
         $this->api = new SplitSMS_API($this->settings);
+        add_action('elementor_pro/forms/actions/register', array($this, 'register_form_action'));
         add_action('plugins_loaded', array($this, 'register_hooks'), 25);
+    }
+
+    /**
+     * Register native Elementor "Actions After Submit" entry (available before API key is saved).
+     *
+     * @param object $form_actions_registrar
+     */
+    public function register_form_action($form_actions_registrar) {
+        if (!class_exists('\ElementorPro\Modules\Forms\Classes\Action_Base')) {
+            return;
+        }
+        if (!is_object($form_actions_registrar) || !method_exists($form_actions_registrar, 'register')) {
+            return;
+        }
+
+        require_once SPLITSMS_PLUGIN_DIR . 'includes/integrations/class-splitsms-elementor-send-sms-action.php';
+
+        if (!class_exists('SplitSMS_Elementor_Send_Sms_Action')) {
+            return;
+        }
+
+        $form_actions_registrar->register(new SplitSMS_Elementor_Send_Sms_Action());
+    }
+
+    /**
+     * @param object $record
+     */
+    public static function note_native_action_handled($record) {
+        $key = self::record_key($record);
+        if ('' !== $key) {
+            self::$native_action_handled[$key] = true;
+        }
+    }
+
+    /**
+     * @param object $record
+     * @return bool
+     */
+    public static function native_action_handled($record) {
+        $key = self::record_key($record);
+        return '' !== $key && !empty(self::$native_action_handled[$key]);
+    }
+
+    /**
+     * @param object $record
+     * @return bool
+     */
+    public static function form_has_native_action($record) {
+        if (!is_object($record) || !method_exists($record, 'get')) {
+            return false;
+        }
+
+        $settings = (array) $record->get('form_settings');
+        $actions = isset($settings['submit_actions']) && is_array($settings['submit_actions'])
+            ? $settings['submit_actions']
+            : array();
+
+        return in_array('splitsms', $actions, true);
+    }
+
+    /**
+     * @param object $record
+     * @return array{by_id:array<string,string>,by_type:array<string,array<int,string>>,meta:array<string,string>}
+     */
+    public static function parse_record_fields($record) {
+        return self::instance()->parse_fields($record);
+    }
+
+    /**
+     * @param object                                             $record
+     * @param array{by_id:array<string,string>,by_type:array} $parsed
+     * @param string                                             $phone
+     * @param string                                             $form_name
+     * @param string                                             $form_id
+     * @return array<string, string>
+     */
+    public static function build_template_vars($record, $parsed, $phone, $form_name, $form_id) {
+        return self::instance()->template_vars($record, $parsed, $phone, $form_name, $form_id);
+    }
+
+    /**
+     * @param object $record
+     * @return string
+     */
+    private static function record_key($record) {
+        if (!is_object($record) || !method_exists($record, 'get_form_settings')) {
+            return '';
+        }
+
+        $form_id = (string) $record->get_form_settings('id');
+        $post_id = function_exists('get_queried_object_id') ? (int) get_queried_object_id() : 0;
+
+        return md5($post_id . ':' . $form_id);
     }
 
     public function register_hooks() {
@@ -90,6 +187,10 @@ class SplitSMS_Elementor {
     private function process_submission($record, $event) {
         if (!SplitSMS_Settings::is_configured()) {
             $this->log_skip('', $event, 'not_configured');
+            return;
+        }
+
+        if (self::form_has_native_action($record) || self::native_action_handled($record)) {
             return;
         }
 

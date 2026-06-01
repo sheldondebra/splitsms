@@ -26,8 +26,8 @@ export type DocChapter = {
 };
 
 export const docsMeta = {
-  version: "2.0",
-  lastUpdated: "2026-05-31",
+  version: "2.1",
+  lastUpdated: "2026-06-01",
   maintainer: "Tecunit",
   wordpressPluginVersion: site.wordpressPlugin.version,
 };
@@ -126,6 +126,32 @@ export const platformDocsChapters: DocChapter[] = [
             type: "p",
             text: "Delivery status appears in Dashboard → Message results and Transactions. Failed messages show the provider reason so you can fix balance, sender ID, or number format issues.",
           },
+          {
+            type: "note",
+            title: "Next: connect WordPress",
+            text: "Install the official plugin from [Integrations → WordPress](/integrations/wordpress), create an API key under Developers → API Keys with sms.send permission, and paste it under SplitSMS → Settings in wp-admin. Your site appears under Dashboard → Integrations → WordPress.",
+          },
+        ],
+      },
+      {
+        id: "wordpress-quick",
+        title: "Connect WordPress (overview)",
+        blocks: [
+          {
+            type: "ol",
+            items: [
+              "Download or install the plugin from the WordPress.org directory (search SplitSMS).",
+              "In wp-admin, click **Create free account** if you signed up from the website already, skip to API key.",
+              "Developers → API Keys — create key with **sms.send** and copy the full secret.",
+              "SplitSMS → Settings — paste key, select Sender ID, Test connection → Save.",
+              "SplitSMS → Forms or Integrations — enable the events you need.",
+              "Monitor sends on splitsms.com Dashboard → Integrations → WordPress.",
+            ],
+          },
+          {
+            type: "p",
+            text: "Full step-by-step instructions are in the [WordPress plugin](/docs#wordpress) chapter of this documentation.",
+          },
         ],
       },
     ],
@@ -150,7 +176,7 @@ export const platformDocsChapters: DocChapter[] = [
               "Wallet — top up credits, view transactions and invoices",
               "Reports — delivery stats, filters, and export",
               "API Keys — create live and sandbox keys with permissions",
-              "Integrations — WordPress connected sites and event logs",
+              "Integrations — WordPress connected sites, plugin/WP/PHP versions, skip logs, delivery sync",
               "Settings — profile, password, phone verification",
               "Support — tickets for logged-in users",
             ],
@@ -190,6 +216,25 @@ export const platformDocsChapters: DocChapter[] = [
               "Request a Sender ID from Dashboard → Sender IDs.",
               "Wait for admin approval (typically 1–2 business days).",
               "Use only approved IDs in the dashboard, API, and WordPress plugin.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "wordpress-dashboard",
+        title: "WordPress integration",
+        blocks: [
+          {
+            type: "p",
+            text: "When a WordPress site saves a valid API key, it registers under **Dashboard → Integrations → WordPress**. You see each connected site URL, plugin version, WordPress and PHP versions, and recent SMS activity synced from the plugin.",
+          },
+          {
+            type: "ul",
+            items: [
+              "Outdated plugin versions are flagged — update from wp-admin when a new release is available",
+              "Skip logs explain why an SMS was not sent (no phone, disabled event, insufficient balance)",
+              "Delivery status updates when the carrier confirms DLR (Sent → Delivered)",
+              "Create API keys under Developers → API Keys — one key per site or environment is recommended",
             ],
           },
         ],
@@ -425,23 +470,98 @@ if (expected !== signature) throw new Error("Invalid signature");`,
     description: `Official plugin (v${site.wordpressPlugin.version}) for WooCommerce, forms, WordPress core, and Crocoblock.`,
     subsections: [
       {
+        id: "wp-overview",
+        title: "How it works",
+        blocks: [
+          {
+            type: "p",
+            text: "SplitSMS is a cloud SMS platform at splitsms.com. The WordPress plugin connects your site to your SplitSMS account using an API key. When an event happens (order placed, form submitted, user registered), the plugin builds a message from your template, sends it through the SplitSMS API, and logs the result in wp-admin and your SplitSMS dashboard.",
+          },
+          {
+            type: "ol",
+            items: [
+              "Create a free account on splitsms.com — starter SMS credits included.",
+              "Generate an API key (Developers → API Keys) with **sms.send** permission.",
+              "Install the plugin on WordPress and paste the key under SplitSMS → Settings.",
+              "Enable integrations (WooCommerce, WordPress core, Crocoblock) or configure per-form SMS.",
+              "Messages debit your SplitSMS wallet; delivery status syncs back to SplitSMS → Logs and Dashboard → WordPress.",
+            ],
+          },
+          {
+            type: "note",
+            title: "No custom code required",
+            text: "Every feature is configured in the plugin admin — toggles, templates, form actions, and the Forms manager. You never need to add PHP hooks or edit theme files.",
+          },
+        ],
+      },
+      {
         id: "wp-install",
         title: "Installation",
         blocks: [
           {
             type: "ol",
             items: [
-              `Download splitsms.zip (v${site.wordpressPlugin.version}) from [Integrations → WordPress](/integrations/wordpress).`,
-              "If upgrading, deactivate and remove old splitsms* folders under wp-content/plugins/ first.",
+              `**WordPress.org:** Plugins → Add New → search “SplitSMS” → Install → Activate.`,
+              `**Manual:** Download [SplitSMS-v${site.wordpressPlugin.version}.zip](${SITE_URL}/wordpress-plugin/SplitSMS-v${site.wordpressPlugin.version}.zip) from [Integrations → WordPress](/integrations/wordpress).`,
               "Plugins → Add New → Upload Plugin → choose the zip → Activate.",
-              "Open the **SplitSMS** menu in wp-admin → **Settings** — paste your full API key (~56 chars), Sender ID, and admin phone.",
-              "Click Test connection, then Save. Send a test SMS to confirm delivery.",
+              "If upgrading from an old manual install, deactivate and remove any splitsms* folders under wp-content/plugins/ first.",
+              "Open **SplitSMS** in wp-admin. If you do not have an account yet, click **Create free account**.",
+              "Paste your API key under **Settings** → Test connection → Save → send a test SMS on **Dashboard**.",
             ],
           },
           {
             type: "warning",
             title: "Plugin file not found?",
-            text: "WordPress extracted the zip into a nested folder because an old version existed. Delete every splitsms* folder under wp-content/plugins/, then upload a fresh zip from splitsms.com.",
+            text: "WordPress extracted the zip into a nested folder because an old version existed. Delete every splitsms* folder under wp-content/plugins/, then upload a fresh zip from splitsms.com. Or use **Replace from splitsms.com** on Settings when available.",
+          },
+        ],
+      },
+      {
+        id: "wp-account",
+        title: "Create account & API key",
+        blocks: [
+          {
+            type: "p",
+            text: "WordPress.org installs show **Create free account** links in the plugin sidebar, Settings page, Dashboard banner, and Plugins list. These open splitsms.com/signup with UTM tracking so you can return and paste your API key.",
+          },
+          {
+            type: "ol",
+            items: [
+              "Sign up at splitsms.com — verify email and log in.",
+              "Dashboard → Wallet — add credits or use starter balance.",
+              "Dashboard → Sender IDs — register or select your sender name (required for most routes).",
+              "Developers → API Keys → Create key — enable **sms.send** (and **sender_ids.read** for the sender picker).",
+              "Copy the **full** key at creation (~56 characters). The dashboard only shows a prefix afterward.",
+              "WordPress → SplitSMS → Settings — paste key, pick Sender ID, set admin phone → Test connection → Save.",
+            ],
+          },
+          {
+            type: "warning",
+            title: "Partial API keys fail",
+            text: "Pasting only the visible prefix (e.g. sk_test_99a064) causes not_configured errors. Always paste the complete secret from the creation screen.",
+          },
+        ],
+      },
+      {
+        id: "wp-admin-menu",
+        title: "Plugin admin menu",
+        blocks: [
+          {
+            type: "table",
+            headers: ["Page", "Purpose"],
+            rows: [
+              ["Dashboard", "Balance, send test SMS, activity stats, connection status, update alerts"],
+              ["Settings", "API key, Sender ID, admin phone, country code, replace-from-cloud reinstall"],
+              ["Forms", "Auto-detected forms — toggle SMS, phone field, message, admin copy per form"],
+              ["Integrations", "WooCommerce events, WordPress core, CF7/WPForms/Elementor global toggles, Paystack tips"],
+              ["Crocoblock", "JetEngine CPTs, JetBooking, JetAppointment templates and reminders"],
+              ["Logs", "Every send, skip, and failure with delivery status (Sent → Delivered when DLR arrives)"],
+              ["Help", "Quick start, update guide, and in-plugin documentation"],
+            ],
+          },
+          {
+            type: "p",
+            text: "When connected, the top banner shows your SplitSMS account status, plugin version vs splitsms.com, WordPress version, and PHP version. Outdated plugin versions show an update notice.",
           },
         ],
       },
@@ -451,16 +571,120 @@ if (expected !== signature) throw new Error("Invalid signature");`,
         blocks: [
           {
             type: "p",
-            text: "Create a live API key under Dashboard → App connections with **sms.send** permission. Copy the entire key at creation — the dashboard only shows a prefix afterward. Partial keys (e.g. sk_test_99a064) will fail with not_configured errors.",
+            text: "The plugin stores your API key in WordPress options. On save, it validates against splitsms.com/account/status. Connected sites register with Dashboard → WordPress integration so you can monitor version and activity from the cloud.",
           },
           {
             type: "ul",
             items: [
               "Test connection before save — invalid keys are rejected",
               "Settings merge on plugin update — keys and templates are preserved",
-              "Connected sites appear in Dashboard → WordPress integration",
               "Skip reasons (no phone, disabled event) sync to your SplitSMS dashboard",
-              "Local dev: use http://127.0.0.1:3000 when running npm run dev on Local WP",
+              "Delivery status polls splitsms.com/messages/{id} — logs update from Sent to Delivered",
+              "Local dev: API base URL auto-suggests http://127.0.0.1:3000 on .local sites when WP_DEBUG is on",
+            ],
+          },
+        ],
+      },
+      {
+        id: "wp-forms-manager",
+        title: "Forms manager (no code)",
+        blocks: [
+          {
+            type: "p",
+            text: "**SplitSMS → Forms** scans your site for Contact Form 7, WPForms, Elementor Pro forms, JetFormBuilder, and JetEngine legacy forms. Each row shows the form title, plugin source, and controls to enable SMS without touching form builder code.",
+          },
+          {
+            type: "ol",
+            items: [
+              "Open SplitSMS → Forms → **Refresh list** after adding new forms.",
+              "Toggle **Send SMS** on for the form you want.",
+              "Select the **phone field** from the dropdown (tel fields are auto-detected).",
+              "Edit the **message template** — use {name}, {phone}, {form_title}, {site_name}, and field_* placeholders.",
+              "Optional: enable **Admin copy** to SMS your admin phone on every submission.",
+              "Save. Submit a test entry and check SplitSMS → Logs.",
+            ],
+          },
+          {
+            type: "note",
+            title: "When to use Forms vs form actions",
+            text: "Use the Forms manager for quick setup on CF7, WPForms, and global Elementor hooks. For JetFormBuilder, JetEngine, and Elementor Pro **Actions After Submit**, use the native actions below — they run per form in the builder and support macros like %phone%.",
+          },
+        ],
+      },
+      {
+        id: "wp-form-actions",
+        title: "Native form actions",
+        blocks: [
+          {
+            type: "table",
+            headers: ["Builder", "Where to add", "Action name"],
+            rows: [
+              [
+                "JetFormBuilder",
+                "Form → Post Submit Actions → Add Action",
+                "**Send SMS** — phone field, message, admin copy, sender ID",
+              ],
+              [
+                "JetEngine (legacy forms)",
+                "JetEngine → Forms → Notifications → Add Notification",
+                "**Send SMS** — same fields + %post_id%, %user_id% macros",
+              ],
+              [
+                "Elementor Pro",
+                "Form widget → Actions After Submit → Add Action",
+                "**SplitSMS Notification** — phone, message, sender ID, admin copy",
+              ],
+            ],
+          },
+          {
+            type: "p",
+            text: "When a native action is configured on a form, the plugin skips duplicate global hooks for that submission. Macros: **%phone%** (submitted phone), **%post_id%** (current post), **%user_id%** (logged-in user). Message templates also support {field_name} placeholders from form data.",
+          },
+          {
+            type: "ol",
+            items: [
+              "Connect API key first — actions show a connect notice until configured.",
+              "Add the action in your form builder (not in SplitSMS admin).",
+              "Pick the phone field from the dropdown populated from your form fields.",
+              "Write your SMS template; test with a real submission.",
+              "Check Logs — skip reasons explain missing phone or validation failures.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "wp-forms",
+        title: "Form plugins reference",
+        blocks: [
+          {
+            type: "table",
+            headers: ["Plugin", "Setup options", "Notes"],
+            rows: [
+              [
+                "Contact Form 7",
+                "Forms manager or Integrations toggle",
+                "Tel field e.g. [tel* your-phone]; per-form ID filter; skip logs",
+              ],
+              [
+                "WPForms",
+                "Forms manager or Integrations toggle",
+                "Phone field type or name; setup panel lists detected forms",
+              ],
+              [
+                "Elementor Pro",
+                "Forms manager, global hook, or Actions After Submit",
+                "Tel field → Advanced → Field ID; **SplitSMS Notification** action recommended",
+              ],
+              [
+                "JetFormBuilder",
+                "Post Submit Action: **Send SMS**",
+                "Per-form control; global auto-SMS skipped when action runs",
+              ],
+              [
+                "JetEngine Forms",
+                "Notification type: **Send SMS**",
+                "Legacy JetEngine form builder; shared helper with JFB",
+              ],
             ],
           },
         ],
@@ -522,42 +746,6 @@ if (expected !== signature) throw new Error("Invalid signature");`,
         ],
       },
       {
-        id: "wp-forms",
-        title: "Form plugins",
-        blocks: [
-          {
-            type: "table",
-            headers: ["Plugin", "Hook / action", "Setup"],
-            rows: [
-              [
-                "Contact Form 7",
-                "wpcf7_submit (mail_sent; optional mail_failed)",
-                "Tel field e.g. [tel* your-phone]; per-form IDs; skip logs",
-              ],
-              [
-                "WPForms",
-                "wpforms_process_complete",
-                "Phone field type or name; per-form IDs; setup panel lists forms",
-              ],
-              [
-                "Elementor Pro",
-                "elementor_pro/forms/new_record",
-                "Tel field → Advanced → Field ID; per-form name filter",
-              ],
-              [
-                "JetFormBuilder",
-                "Post Submit Action: Send SMS (SplitSMS)",
-                "Add action per form, or enable global auto-SMS under Crocoblock",
-              ],
-            ],
-          },
-          {
-            type: "p",
-            text: "All form integrations support custom message templates with placeholders like {name}, {phone}, {form_title}, and {site_name}.",
-          },
-        ],
-      },
-      {
         id: "wp-crocoblock",
         title: "Crocoblock",
         blocks: [
@@ -568,31 +756,61 @@ if (expected !== signature) throw new Error("Invalid signature");`,
           {
             type: "ul",
             items: [
-              "JetFormBuilder — native **Send SMS (SplitSMS)** in Post Submit Actions (recommended per-form control)",
+              "JetFormBuilder — native **Send SMS** in Post Submit Actions (recommended per-form control)",
+              "JetEngine legacy forms — **Send SMS** notification type in form builder",
               "JetBooking / JetAppointment — reminder SMS via WP-Cron before check-in or appointment",
               "Per-module toggles work independently of the master Crocoblock switch",
               "Activity tagged by source in WordPress logs and your SplitSMS dashboard",
-              `Requires plugin v1.2.0+; current release v${site.wordpressPlugin.version}`,
+            ],
+          },
+        ],
+      },
+      {
+        id: "wp-connected-sites",
+        title: "SplitSMS dashboard connection",
+        blocks: [
+          {
+            type: "p",
+            text: "When your API key is saved, the plugin registers your site with splitsms.com. Open **Dashboard → Integrations → WordPress** to see connected sites, plugin version, WordPress/PHP versions, recent activity, and skip logs.",
+          },
+          {
+            type: "ul",
+            items: [
+              "Outdated plugin versions are flagged so you know when to update",
+              "Cloud log sync sends send/skip/fail events to your SplitSMS account",
+              "Delivery status updates appear in both WordPress Logs and the dashboard",
+              "Disconnect by removing the API key in WordPress Settings",
             ],
           },
         ],
       },
       {
         id: "wp-updates",
-        title: "Plugin updates",
+        title: "Plugin updates & troubleshooting",
         blocks: [
           {
             type: "ol",
             items: [
-              "WordPress Admin → Dashboard → Updates → Update SplitSMS",
-              "Or Plugins → Installed Plugins → Check for updates",
-              `Manifest: ${SITE_URL}/api/plugin/update`,
-              `Manual fallback: download splitsms-${site.wordpressPlugin.version}.zip from ${SITE_URL}/wordpress-plugin/`,
+              "**WordPress.org:** Dashboard → Updates → Update SplitSMS when available.",
+              "**Manual:** Download latest zip from [Integrations → WordPress](/integrations/wordpress) → Plugins → Add New → Upload.",
+              "Settings → **Replace from splitsms.com** — reinstall in place when upload says folder exists.",
+              "API keys, templates, and toggles are preserved when you update.",
+            ],
+          },
+          {
+            type: "table",
+            headers: ["Problem", "Fix"],
+            rows: [
+              ["Plugin file not found", "Delete all splitsms* folders under wp-content/plugins/, re-upload zip"],
+              ["Could not move to upgrade-temp-backup", "Use Replace from splitsms.com or manual upload; host may block WP updater"],
+              ["not_configured / invalid key", "Paste full ~56-char API key; test connection on Settings"],
+              ["No SMS sent", "Check Logs skip reason; verify phone field and event toggle enabled"],
+              ["Sent but not Delivered", "Wait for carrier DLR; check wallet balance and sender ID approval"],
             ],
           },
           {
             type: "p",
-            text: "API keys, templates, and toggles are preserved when you update. See [Changelog](/changelog) for release notes and [Dashboard → WordPress](/dashboard/integrations/wordpress) for connected site stats.",
+            text: "See [Changelog](/changelog) for release notes. Plugin Help page in wp-admin mirrors this guide.",
           },
         ],
       },

@@ -25,7 +25,7 @@
     }
   },
   "wordpressPlugin": {
-    "version": "1.6.7",
+    "version": "1.6.8",
     "slug": "splitsms",
     "downloadPath": "/wordpress-plugin/splitsms.zip",
     "versionedDownloadPath": "/wordpress-plugin/SplitSMS-v{version}.zip",

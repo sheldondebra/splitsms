@@ -69,7 +69,11 @@ $wallet_url = defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/walle
         <?php endif; ?>
     </div>
     <div class="splitsms-status-header__actions">
-        <a class="button" href="<?php echo esc_url($wallet_url); ?>" target="_blank" rel="noopener"><?php esc_html_e('Add funds', 'splitsms'); ?></a>
+        <?php if (!$configured) : ?>
+            <a class="button button-primary" href="<?php echo esc_url(SplitSMS_Settings::signup_url('banner')); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Create account', 'splitsms'); ?></a>
+        <?php else : ?>
+            <a class="button" href="<?php echo esc_url($wallet_url); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Add funds', 'splitsms'); ?></a>
+        <?php endif; ?>
         <button type="button" class="button button-primary" id="splitsms-send-test-btn"><?php esc_html_e('Send test SMS', 'splitsms'); ?></button>
         <span id="splitsms-send-test-result"></span>
     </div>

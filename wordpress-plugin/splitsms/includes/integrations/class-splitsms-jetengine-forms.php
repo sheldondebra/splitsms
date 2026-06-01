@@ -37,7 +37,7 @@ class SplitSMS_JetEngine_Forms {
      * @return array<string, string>
      */
     public function register_notification_type($types) {
-        $types['splitsms_send_sms'] = __('SplitSMS Notification', 'splitsms');
+        $types['splitsms_send_sms'] = __('Send SMS', 'splitsms');
         return $types;
     }
 
@@ -58,8 +58,9 @@ class SplitSMS_JetEngine_Forms {
             $handler->data,
             array(
                 'form_id' => $form_id,
+                'post_id' => $form_id,
                 'source' => 'JetEngine Forms',
-                'event' => 'jetengine_form_sms',
+                'event' => 'jetengine_send_sms',
                 'macro_parser' => $macro,
                 'on_error' => function ($message) use ($handler) {
                     if (is_object($handler) && method_exists($handler, 'set_specific_status')) {

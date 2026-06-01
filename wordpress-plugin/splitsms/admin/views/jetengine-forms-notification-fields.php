@@ -26,7 +26,7 @@ $settings_url = admin_url('admin.php?page=splitsms-settings');
 </div>
 <?php endif; ?>
 <div class="jet-form-editor__row" v-if="'splitsms_send_sms' === currentItem.type">
-    <div class="jet-form-editor__row-label"><?php esc_html_e('Send to:', 'splitsms'); ?></div>
+    <div class="jet-form-editor__row-label"><?php esc_html_e('Phone number / Send to:', 'splitsms'); ?></div>
     <div class="jet-form-editor__row-control">
         <select v-model="currentItem.sms_to">
             <option value="form"><?php esc_html_e('Phone from submitted form field', 'splitsms'); ?></option>
@@ -46,14 +46,14 @@ $settings_url = admin_url('admin.php?page=splitsms-settings');
 <div class="jet-form-editor__row" v-if="'splitsms_send_sms' === currentItem.type && 'custom' === currentItem.sms_to">
     <div class="jet-form-editor__row-label"><?php esc_html_e('Custom phone:', 'splitsms'); ?></div>
     <div class="jet-form-editor__row-control">
-        <input type="text" v-model="currentItem.custom_phone" placeholder="+233XXXXXXXXX or %phone%">
+        <input type="text" v-model="currentItem.custom_phone" placeholder="+233XXXXXXXXX or %phone% or %user_id%">
     </div>
 </div>
 <div class="jet-form-editor__row" v-if="'splitsms_send_sms' === currentItem.type">
     <div class="jet-form-editor__row-label"><?php esc_html_e('Message:', 'splitsms'); ?></div>
     <div class="jet-form-editor__row-control">
         <textarea v-model="currentItem.message" rows="4"></textarea>
-        <p class="description"><?php esc_html_e('Use %field_name% macros (JetEngine) or {field_name} (SplitSMS).', 'splitsms'); ?></p>
+        <p class="description"><?php esc_html_e('Supports JetEngine macros: %field_name%, %post_id%, %user_id%, and SplitSMS {field_name}.', 'splitsms'); ?></p>
     </div>
 </div>
 <div class="jet-form-editor__row" v-if="'splitsms_send_sms' === currentItem.type">
