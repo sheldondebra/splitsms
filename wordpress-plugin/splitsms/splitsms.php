@@ -3,7 +3,7 @@
  * Plugin Name:       SplitSMS
  * Plugin URI:        https://www.splitsms.com/integrations
  * Description:       Send transactional SMS from WordPress and WooCommerce using your SplitSMS API key.
- * Version:           1.6.9
+ * Version:           1.7.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            SplitSMS
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('SPLITSMS_VERSION')) {
-    define('SPLITSMS_VERSION', '1.6.9');
+    define('SPLITSMS_VERSION', '1.7.0');
 }
 if (!defined('SPLITSMS_PLUGIN_FILE')) {
     define('SPLITSMS_PLUGIN_FILE', __FILE__);
@@ -64,6 +64,7 @@ function splitsms_require($relative) {
 $bootstrap_ok = true;
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/splitsms-config.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-install.php');
+$bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-bootstrap.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-settings.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-logger.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-api.php');
@@ -95,6 +96,16 @@ if (!$bootstrap_ok) {
     return;
 }
 
+add_action(
+    'plugins_loaded',
+    static function () {
+        if (class_exists('SplitSMS_Install')) {
+            SplitSMS_Install::init();
+        }
+    },
+    1
+);
+
 /**
  * Plugin activation — create tables and default options.
  */
@@ -113,41 +124,25 @@ if (!$bootstrap_ok) {
     return;
 }
 
-SplitSMS_Install::init();
-
 /**
  * Bootstrap plugin services.
  */
 function splitsms_init() {
+    if (class_exists('SplitSMS_Bootstrap')) {
+        SplitSMS_Bootstrap::init();
+        return;
+    }
     if (!class_exists('SplitSMS_Settings')) {
         return;
     }
 
     SplitSMS_Settings::instance();
     SplitSMS_Logger::instance();
-    SplitSMS_Admin::instance();
-    if (defined('SPLITSMS_ENABLE_CUSTOM_UPDATER') && SPLITSMS_ENABLE_CUSTOM_UPDATER && class_exists('SplitSMS_Updater')) {
-        SplitSMS_Updater::instance();
-    }
-    SplitSMS_Plugin_Status::register_admin_notices();
-    SplitSMS_Reminders::register_cron_hooks();
-
-    // Register form builder actions even before API key is saved.
-    SplitSMS_JetFormBuilder::instance();
-    SplitSMS_JetEngine_Forms::instance();
-    SplitSMS_Elementor::instance();
-
-    if (SplitSMS_Settings::is_configured()) {
-        SplitSMS_WooCommerce::instance();
-        SplitSMS_WordPress::instance();
-        SplitSMS_CF7::instance();
-        SplitSMS_WPForms::instance();
-        SplitSMS_JetEngine::instance();
-        SplitSMS_JetBooking::instance();
-        SplitSMS_JetAppointment::instance();
+    if (is_admin()) {
+        SplitSMS_Admin::instance();
     }
 }
-add_action('plugins_loaded', 'splitsms_init');
+add_action('plugins_loaded', 'splitsms_init', 10);
 
 /**
  * Load plugin translations.

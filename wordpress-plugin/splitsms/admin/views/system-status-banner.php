@@ -17,7 +17,6 @@ $is_outdated = !empty($version['is_outdated']);
 $latest = isset($version['latest']) ? $version['latest'] : null;
 $can_update = !empty($status['can_update']);
 $update_available = !empty($status['update_available']) || $is_outdated;
-$updates_url = isset($status['updates_url']) ? $status['updates_url'] : admin_url('update-core.php');
 $wallet_url = defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/wallet' : '#';
 ?>
 
@@ -37,7 +36,7 @@ $wallet_url = defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/walle
                 ?>
             </p>
         </div>
-        <button type="button" class="button button-primary" id="splitsms-update-plugin-btn" data-latest="<?php echo esc_attr($latest); ?>">
+        <button type="button" class="button button-primary" id="splitsms-update-plugin-btn">
             <?php esc_html_e('Update', 'splitsms'); ?>
         </button>
         <span id="splitsms-update-plugin-result" class="splitsms-inline-result" aria-live="polite"></span>
@@ -74,11 +73,6 @@ $wallet_url = defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/walle
         <?php else : ?>
             <a class="button" href="<?php echo esc_url($wallet_url); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Add funds', 'splitsms'); ?></a>
         <?php endif; ?>
-        <?php if ($update_available && $latest && $can_update) : ?>
-            <button type="button" class="button button-secondary" id="splitsms-update-plugin-btn-header">
-                <?php esc_html_e('Update plugin', 'splitsms'); ?>
-            </button>
-        <?php endif; ?>
         <button type="button" class="button button-primary" id="splitsms-send-test-btn"><?php esc_html_e('Send test SMS', 'splitsms'); ?></button>
         <span id="splitsms-send-test-result"></span>
     </div>
@@ -105,14 +99,7 @@ $wallet_url = defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/walle
         </div>
         <div>
             <dt><?php esc_html_e('Latest on splitsms.com', 'splitsms'); ?></dt>
-            <dd>
-                <?php echo $latest ? 'v' . esc_html($latest) : esc_html__('Could not check', 'splitsms'); ?>
-                <?php if ($update_available && $can_update) : ?>
-                    <button type="button" class="button button-small splitsms-env-update-btn" id="splitsms-update-plugin-btn-details">
-                        <?php esc_html_e('Update', 'splitsms'); ?>
-                    </button>
-                <?php endif; ?>
-            </dd>
+            <dd><?php echo $latest ? 'v' . esc_html($latest) : esc_html__('Could not check', 'splitsms'); ?></dd>
         </div>
         <div class="splitsms-env-details__wide">
             <dt><?php esc_html_e('Site URL', 'splitsms'); ?></dt>

@@ -1,11 +1,11 @@
 {
   "name": "SplitSMS",
   "slug": "splitsms",
-  "version": "1.6.9",
+  "version": "1.7.0",
   "homepage": "https://www.splitsms.com",
-  "download_url": "https://www.splitsms.com/wordpress-plugin/SplitSMS-v1.6.9.zip",
+  "download_url": "https://www.splitsms.com/wordpress-plugin/SplitSMS-v1.7.0.zip",
   "download_url_latest": "https://www.splitsms.com/wordpress-plugin/splitsms.zip",
-  "download_filename": "SplitSMS-v1.6.9.zip",
+  "download_filename": "SplitSMS-v1.7.0.zip",
   "requires": "6.0",
   "tested": "6.7",
   "requires_php": "7.4",
@@ -14,5 +14,5 @@
   "integrations_url": "https://www.splitsms.com/integrations",
   "update_check_url": "https://www.splitsms.com/api/plugin/update",
   "last_updated": "2026-06-01",
-  "changelog": "• Fix: Critical error when Elementor/JetFormBuilder action files load before their parent classes exist.\n• Fix: Safer plugin update (load WordPress upgrader APIs correctly, guard filesystem cache clear).\n• Fix: Correct settings merge hook after plugin update.\n• Improve: Plugin zip always includes VERSION file and SplitSMS-v{version}.zip (+ splitsms-plugin-v{version}.zip alias)."
+  "changelog": "• Fix: Safer bootstrap — integrations load only when WooCommerce, Elementor Pro, CF7, WPForms, or JetEngine are active.\n• Fix: Elementor loads on elementor_pro/init (no more early fatal errors).\n• Fix: Fewer admin API calls — cloud sync only on Dashboard, not every admin page.\n• Improve: Simpler update UI (one Update button), update notices only on SplitSMS screens.\n• Improve: Try/catch around plugin update AJAX and JetFormBuilder macro parsing."
 }

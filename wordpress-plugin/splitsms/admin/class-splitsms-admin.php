@@ -349,6 +349,9 @@ class SplitSMS_Admin {
     public function render_dashboard() {
         $this->render_shell(__('Dashboard', 'splitsms'), function () {
             $configured = SplitSMS_Settings::is_configured();
+            if ($configured) {
+                SplitSMS_Plugin_Status::sync_with_cloud(false);
+            }
             $account = $configured ? $this->get_account() : null;
             $registry = SplitSMS_Integrations_Registry::all();
             $active_count = count(array_filter($registry, function ($item) {

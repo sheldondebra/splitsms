@@ -55,7 +55,11 @@ class SplitSMS_Form_Sms_Helper {
         if (isset($context['macro_parser']) && is_callable($context['macro_parser'])) {
             $content = (string) call_user_func($context['macro_parser'], $content);
         } elseif (class_exists('JFB_Modules\Rich_Content\Module')) {
-            $content = (string) \JFB_Modules\Rich_Content\Module::rich($content);
+            try {
+                $content = (string) \JFB_Modules\Rich_Content\Module::rich($content);
+            } catch (Throwable $e) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+                unset($e);
+            }
         }
 
         $vars = self::build_macro_vars($data, $context);

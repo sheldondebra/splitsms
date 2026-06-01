@@ -16,6 +16,30 @@ export type ChangelogRelease = {
 
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "1.7.0",
+    date: "2026-06-01",
+    product: "wordpress",
+    summary: "Stability release — safer bootstrap, fewer admin errors, conditional integrations.",
+    changes: [
+      {
+        type: "fixed",
+        text: "Critical errors from loading Elementor/JetFormBuilder classes before parent plugins.",
+      },
+      {
+        type: "fixed",
+        text: "Integrations only boot when WooCommerce, Elementor Pro, CF7, WPForms, or JetEngine is active.",
+      },
+      {
+        type: "changed",
+        text: "Cloud site sync runs on Dashboard only — faster, fewer failed admin requests.",
+      },
+      {
+        type: "changed",
+        text: "Simpler update UI and update notices limited to SplitSMS admin pages.",
+      },
+    ],
+  },
+  {
     version: "1.6.9",
     date: "2026-06-01",
     product: "wordpress",

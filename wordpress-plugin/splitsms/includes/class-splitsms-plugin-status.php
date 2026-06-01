@@ -116,10 +116,6 @@ class SplitSMS_Plugin_Status {
      * @return array<string, mixed>
      */
     public static function summary($configured) {
-        if ($configured) {
-            self::sync_with_cloud(false);
-        }
-
         $version = self::version_info(false);
         $env = self::environment();
 
@@ -139,7 +135,12 @@ class SplitSMS_Plugin_Status {
     }
 
     public static function render_outdated_notice() {
-        if (!current_user_can('update_plugins')) {
+        if (!is_admin() || !current_user_can('update_plugins')) {
+            return;
+        }
+
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+        if ($screen && false === strpos((string) $screen->id, 'splitsms')) {
             return;
         }
 

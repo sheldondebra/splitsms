@@ -347,7 +347,12 @@ class SplitSMS_Install {
     public static function ajax_update_plugin() {
         check_ajax_referer('splitsms_update_plugin', 'nonce');
 
-        $result = self::perform_plugin_update(false);
+        try {
+            $result = self::perform_plugin_update(false);
+        } catch (Throwable $e) {
+            wp_send_json_error(array('message' => $e->getMessage()));
+        }
+
         if (is_wp_error($result)) {
             wp_send_json_error(array('message' => $result->get_error_message()));
         }

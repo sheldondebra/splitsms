@@ -19,8 +19,8 @@ class SplitSMS_Elementor {
     /** @var SplitSMS_Settings */
     private $settings;
 
-    /** @var SplitSMS_API */
-    private $api;
+    /** @var SplitSMS_API|null */
+    private $api = null;
 
     /** @var bool */
     private $hooks_registered = false;
@@ -40,9 +40,18 @@ class SplitSMS_Elementor {
 
     private function __construct() {
         $this->settings = SplitSMS_Settings::instance();
-        $this->api = new SplitSMS_API($this->settings);
         add_action('elementor_pro/forms/actions/register', array($this, 'register_form_action'));
-        add_action('plugins_loaded', array($this, 'register_hooks'), 25);
+        $this->register_hooks();
+    }
+
+    /**
+     * @return SplitSMS_API
+     */
+    private function api_client() {
+        if (null === $this->api) {
+            $this->api = new SplitSMS_API($this->settings);
+        }
+        return $this->api;
     }
 
     /**
@@ -259,7 +268,7 @@ class SplitSMS_Elementor {
             $ref .= '-' . sanitize_key($form_name);
         }
 
-        $this->api->send_sms(
+        $this->api_client()->send_sms(
             $phone,
             $message,
             array(

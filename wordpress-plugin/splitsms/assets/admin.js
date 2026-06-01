@@ -125,7 +125,7 @@
       return;
     }
     var buttons = document.querySelectorAll(
-      '#splitsms-update-plugin-btn, #splitsms-update-plugin-btn-header, #splitsms-update-plugin-btn-details, #splitsms-update-plugin-btn-settings, #splitsms-update-plugin-btn-help'
+      '#splitsms-update-plugin-btn, #splitsms-update-plugin-btn-settings, #splitsms-update-plugin-btn-help'
     );
     buttons.forEach(function (b) {
       b.disabled = true;
@@ -163,8 +163,6 @@
           b.disabled = false;
           if (b.id === 'splitsms-update-plugin-btn') {
             b.textContent = 'Update';
-          } else if (b.id === 'splitsms-update-plugin-btn-header') {
-            b.textContent = 'Update plugin';
           } else {
             b.textContent = 'Update plugin';
           }
@@ -179,29 +177,15 @@
       });
   }
 
-  var updateBtn = qs('#splitsms-update-plugin-btn');
-  var updateOut = qs('#splitsms-update-plugin-result');
-  if (updateBtn) {
-    updateBtn.addEventListener('click', function () {
-      runPluginUpdate(updateBtn, updateOut);
-    });
-  }
+    var updateBtn = qs('#splitsms-update-plugin-btn');
+    var updateOut = qs('#splitsms-update-plugin-result');
+    if (updateBtn) {
+        updateBtn.addEventListener('click', function () {
+            runPluginUpdate(updateBtn, updateOut);
+        });
+    }
 
-  var updateBtnHeader = qs('#splitsms-update-plugin-btn-header');
-  if (updateBtnHeader) {
-    updateBtnHeader.addEventListener('click', function () {
-      runPluginUpdate(updateBtnHeader, updateOut || qs('#splitsms-update-plugin-result'));
-    });
-  }
-
-  var updateBtnDetails = qs('#splitsms-update-plugin-btn-details');
-  if (updateBtnDetails) {
-    updateBtnDetails.addEventListener('click', function () {
-      runPluginUpdate(updateBtnDetails, null);
-    });
-  }
-
-  var updateBtnSettings = qs('#splitsms-update-plugin-btn-settings');
+    var updateBtnSettings = qs('#splitsms-update-plugin-btn-settings');
   var updateOutSettings = qs('#splitsms-update-plugin-result-settings');
   if (updateBtnSettings) {
     updateBtnSettings.addEventListener('click', function () {

@@ -4,7 +4,7 @@ Tags: sms, woocommerce, notifications, api, transactional
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.6.9
+Stable tag: 1.7.0
 License: GPLv2 or later
 
 Send transactional SMS from WordPress and WooCommerce using your SplitSMS API key.
@@ -135,6 +135,13 @@ This plugin integrates with WordPress privacy tools.
 * Removing the plugin via Plugins → Delete removes SplitSMS plugin data from your database.
 
 == Changelog ==
+
+= 1.7.0 =
+* Fix: Safer bootstrap — integrations load only when WooCommerce, Elementor Pro, CF7, WPForms, or JetEngine are active.
+* Fix: Elementor loads on elementor_pro/init (no more early fatal errors).
+* Fix: Fewer admin API calls — cloud sync only on Dashboard, not every admin page.
+* Improve: Simpler update UI (one Update button), update notices only on SplitSMS screens.
+* Improve: Try/catch around plugin update AJAX and JetFormBuilder macro parsing.
 
 = 1.6.9 =
 * Fix: Critical error when Elementor/JetFormBuilder action files load before their parent classes exist.
