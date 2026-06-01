@@ -17,10 +17,6 @@ class SplitSMS_Plugin_Status {
      * @return array<string, mixed>|null
      */
     public static function remote_manifest($force = false) {
-        if (!(defined('SPLITSMS_ENABLE_CUSTOM_UPDATER') && SPLITSMS_ENABLE_CUSTOM_UPDATER)) {
-            return null;
-        }
-
         if (!$force) {
             $cached = get_transient(self::REMOTE_TRANSIENT);
             if (is_array($cached)) {
@@ -133,6 +129,8 @@ class SplitSMS_Plugin_Status {
             'environment' => $env,
             'updates_url' => admin_url('update-core.php'),
             'help_url' => admin_url('admin.php?page=splitsms-help'),
+            'can_update' => current_user_can('update_plugins'),
+            'update_available' => !empty($version['is_outdated']),
         );
     }
 
@@ -151,6 +149,10 @@ class SplitSMS_Plugin_Status {
         }
 
         $updates = admin_url('update-core.php');
+        $update_url = wp_nonce_url(
+            admin_url('admin-post.php?action=splitsms_update_plugin'),
+            'splitsms_update_plugin'
+        );
         ?>
         <div class="notice notice-warning splitsms-update-notice">
             <p>
@@ -158,12 +160,12 @@ class SplitSMS_Plugin_Status {
                 <?php
                 printf(
                     /* translators: 1: installed version 2: latest version */
-                    esc_html__('You have v%1$s — v%2$s is available on splitsms.com.', 'splitsms'),
+                    esc_html__('You have v%1$s — v%2$s is available.', 'splitsms'),
                     esc_html($version['installed']),
                     esc_html($version['latest'])
                 );
                 ?>
-                <a href="<?php echo esc_url($updates); ?>"><?php esc_html_e('Update now', 'splitsms'); ?></a>
+                <a href="<?php echo esc_url($update_url); ?>" class="splitsms-notice-update-link"><?php esc_html_e('Update now', 'splitsms'); ?></a>
             </p>
         </div>
         <?php

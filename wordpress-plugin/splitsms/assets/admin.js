@@ -120,6 +120,114 @@
     });
   }
 
+  function runPluginUpdate(btn, resultEl) {
+    if (!btn || !window.SplitSMSAdmin || !SplitSMSAdmin.nonceUpdate) {
+      return;
+    }
+    var buttons = document.querySelectorAll(
+      '#splitsms-update-plugin-btn, #splitsms-update-plugin-btn-header, #splitsms-update-plugin-btn-details, #splitsms-update-plugin-btn-settings, #splitsms-update-plugin-btn-help'
+    );
+    buttons.forEach(function (b) {
+      b.disabled = true;
+    });
+    if (resultEl) {
+      resultEl.textContent = SplitSMSAdmin.strings.updating || 'Updating…';
+      resultEl.style.color = '';
+    }
+    btn.textContent = SplitSMSAdmin.strings.updating || 'Updating…';
+
+    var fd = new FormData();
+    fd.append('action', 'splitsms_update_plugin');
+    fd.append('nonce', SplitSMSAdmin.nonceUpdate);
+
+    fetch(SplitSMSAdmin.ajaxUrl, { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          var msg = (data.data && data.data.message) ? data.data.message : (SplitSMSAdmin.strings.updateDone || 'Updated');
+          if (resultEl) {
+            resultEl.textContent = msg;
+            resultEl.style.color = '#0a7a0a';
+          }
+          window.setTimeout(function () {
+            window.location.reload();
+          }, 1200);
+          return;
+        }
+        var err = (data.data && data.data.message) ? data.data.message : 'Update failed';
+        if (resultEl) {
+          resultEl.textContent = err;
+          resultEl.style.color = '#b32d2e';
+        }
+        buttons.forEach(function (b) {
+          b.disabled = false;
+          if (b.id === 'splitsms-update-plugin-btn') {
+            b.textContent = 'Update';
+          } else if (b.id === 'splitsms-update-plugin-btn-header') {
+            b.textContent = 'Update plugin';
+          } else {
+            b.textContent = 'Update plugin';
+          }
+        });
+      })
+      .catch(function () {
+        if (resultEl) {
+          resultEl.textContent = 'Request failed';
+          resultEl.style.color = '#b32d2e';
+        }
+        buttons.forEach(function (b) { b.disabled = false; });
+      });
+  }
+
+  var updateBtn = qs('#splitsms-update-plugin-btn');
+  var updateOut = qs('#splitsms-update-plugin-result');
+  if (updateBtn) {
+    updateBtn.addEventListener('click', function () {
+      runPluginUpdate(updateBtn, updateOut);
+    });
+  }
+
+  var updateBtnHeader = qs('#splitsms-update-plugin-btn-header');
+  if (updateBtnHeader) {
+    updateBtnHeader.addEventListener('click', function () {
+      runPluginUpdate(updateBtnHeader, updateOut || qs('#splitsms-update-plugin-result'));
+    });
+  }
+
+  var updateBtnDetails = qs('#splitsms-update-plugin-btn-details');
+  if (updateBtnDetails) {
+    updateBtnDetails.addEventListener('click', function () {
+      runPluginUpdate(updateBtnDetails, null);
+    });
+  }
+
+  var updateBtnSettings = qs('#splitsms-update-plugin-btn-settings');
+  var updateOutSettings = qs('#splitsms-update-plugin-result-settings');
+  if (updateBtnSettings) {
+    updateBtnSettings.addEventListener('click', function () {
+      runPluginUpdate(updateBtnSettings, updateOutSettings);
+    });
+  }
+
+  var updateBtnHelp = qs('#splitsms-update-plugin-btn-help');
+  var updateOutHelp = qs('#splitsms-update-plugin-result-help');
+  if (updateBtnHelp) {
+    updateBtnHelp.addEventListener('click', function () {
+      runPluginUpdate(updateBtnHelp, updateOutHelp);
+    });
+  }
+
+  document.querySelectorAll('.splitsms-notice-update-link').forEach(function (link) {
+    link.addEventListener('click', function (e) {
+      if (!window.SplitSMSAdmin || !SplitSMSAdmin.nonceUpdate) {
+        return;
+      }
+      e.preventDefault();
+      var fakeBtn = document.createElement('button');
+      runPluginUpdate(fakeBtn, null);
+    });
+  });
+
   var copyWebhookBtn = qs('#splitsms-copy-webhook');
   var webhookEl = qs('#splitsms-paystack-webhook-url');
   if (copyWebhookBtn && webhookEl) {

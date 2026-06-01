@@ -1752,6 +1752,23 @@
   color: #78350f;
 }
 
+.splitsms-system-alert .splitsms-inline-result {
+  align-self: center;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.splitsms-inline-result {
+  margin-left: 0.5rem;
+  font-size: 13px;
+}
+
+.splitsms-env-update-btn {
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
 .splitsms-status-pill--muted {
   background: #f1f5f9;
   color: #475569;

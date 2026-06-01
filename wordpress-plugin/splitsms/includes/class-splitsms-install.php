@@ -17,9 +17,9 @@ class SplitSMS_Install {
         add_filter('upgrader_clear_destination', array(__CLASS__, 'clear_destination_on_update'), 10, 4);
         add_filter('upgrader_overwrite_package', array(__CLASS__, 'allow_overwrite_package'), 10, 2);
         add_filter('upgrader_package_options', array(__CLASS__, 'normalize_upgrader_options'), 10, 1);
-        if (defined('SPLITSMS_ENABLE_CUSTOM_UPDATER') && SPLITSMS_ENABLE_CUSTOM_UPDATER) {
-            add_action('admin_post_splitsms_reinstall', array(__CLASS__, 'handle_reinstall'));
-        }
+        add_action('admin_post_splitsms_update_plugin', array(__CLASS__, 'handle_update_plugin'));
+        add_action('admin_post_splitsms_reinstall', array(__CLASS__, 'handle_reinstall'));
+        add_action('wp_ajax_splitsms_update_plugin', array(__CLASS__, 'ajax_update_plugin'));
         add_action('admin_notices', array(__CLASS__, 'admin_notices'));
     }
 
@@ -168,6 +168,219 @@ class SplitSMS_Install {
     }
 
     /**
+     * Whether a newer release is available (splitsms.com or WordPress update API).
+     *
+     * @return bool
+     */
+    public static function is_update_available() {
+        $info = SplitSMS_Plugin_Status::version_info(false);
+        if (!empty($info['is_outdated'])) {
+            return true;
+        }
+
+        if (function_exists('wp_update_plugins')) {
+            wp_update_plugins();
+        }
+
+        $updates = get_site_transient('update_plugins');
+        if (is_object($updates) && isset($updates->response[ self::PLUGIN_SLUG ])) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Resolve download URL: WordPress.org / update transient first, then splitsms.com.
+     *
+     * @param bool $allow_same_version When true, return latest zip even if versions match (reinstall).
+     * @return string|null
+     */
+    public static function resolve_update_package_url($allow_same_version = false) {
+        if (function_exists('wp_update_plugins')) {
+            wp_update_plugins();
+        }
+
+        $updates = get_site_transient('update_plugins');
+        if (is_object($updates) && isset($updates->response[ self::PLUGIN_SLUG ])) {
+            $item = $updates->response[ self::PLUGIN_SLUG ];
+            if (!empty($item->package)) {
+                return (string) $item->package;
+            }
+        }
+
+        $remote = SplitSMS_Plugin_Status::remote_manifest(true);
+        $latest = is_array($remote) && !empty($remote['version']) ? (string) $remote['version'] : '';
+        $download = is_array($remote) && !empty($remote['download_url']) ? (string) $remote['download_url'] : '';
+
+        if ($download && ($allow_same_version || ($latest && version_compare(SPLITSMS_VERSION, $latest, '<')))) {
+            return $download;
+        }
+
+        if ($allow_same_version) {
+            if (defined('SPLITSMS_PLUGIN_DOWNLOAD_URL')) {
+                return SPLITSMS_PLUGIN_DOWNLOAD_URL;
+            }
+            $base = defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL : 'https://www.splitsms.com';
+            return $base . '/wordpress-plugin/splitsms.zip';
+        }
+
+        return null;
+    }
+
+    /**
+     * Download and install the latest plugin package.
+     *
+     * @param bool $allow_same_version Reinstall latest zip when already up to date.
+     * @return true|WP_Error
+     */
+    public static function perform_plugin_update($allow_same_version = false) {
+        if (!current_user_can('update_plugins')) {
+            return new WP_Error('forbidden', __('You do not have permission to update plugins.', 'splitsms'));
+        }
+
+        if (!$allow_same_version && !self::is_update_available()) {
+            return new WP_Error('up_to_date', __('SplitSMS is already up to date.', 'splitsms'));
+        }
+
+        $package = self::resolve_update_package_url($allow_same_version);
+        if (!$package) {
+            return new WP_Error('no_package', __('Could not find a download URL for the update.', 'splitsms'));
+        }
+
+        if (!function_exists('request_filesystem_credentials')) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+        if (!class_exists('Plugin_Upgrader')) {
+            require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+        }
+        if (!class_exists('Automatic_Upgrader_Skin')) {
+            require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader-skin.php';
+        }
+
+        self::remove_stale_installations(true);
+
+        $skin = new Automatic_Upgrader_Skin();
+        $upgrader = new Plugin_Upgrader($skin);
+
+        $result = $upgrader->run(
+            array(
+                'package'                     => $package,
+                'destination'                 => WP_PLUGIN_DIR,
+                'clear_destination'           => true,
+                'abort_if_destination_exists' => false,
+                'clear_working'               => true,
+                'hook_extra'                  => array(
+                    'plugin' => self::PLUGIN_SLUG,
+                    'type'   => 'plugin',
+                    'action' => 'update',
+                ),
+            )
+        );
+
+        delete_transient(SplitSMS_Plugin_Status::REMOTE_TRANSIENT);
+        delete_site_transient('update_plugins');
+        wp_clean_plugins_cache(true);
+
+        if (is_wp_error($result)) {
+            return $result;
+        }
+
+        if (false === $result) {
+            $errors = $skin->get_errors();
+            if (is_wp_error($errors) && $errors->has_errors()) {
+                return $errors;
+            }
+            return new WP_Error('update_failed', __('Plugin update failed. Check your filesystem permissions.', 'splitsms'));
+        }
+
+        if (!is_plugin_active(self::PLUGIN_SLUG)) {
+            activate_plugin(self::PLUGIN_SLUG);
+        }
+
+        return true;
+    }
+
+    /**
+     * @return string
+     */
+    private static function installed_version_after_update() {
+        if (!function_exists('get_plugin_data')) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+        $file = WP_PLUGIN_DIR . '/' . self::PLUGIN_SLUG;
+        if (!is_readable($file)) {
+            return SPLITSMS_VERSION;
+        }
+        $data = get_plugin_data($file, false, false);
+        return !empty($data['Version']) ? (string) $data['Version'] : SPLITSMS_VERSION;
+    }
+
+    /**
+     * AJAX: one-click update from SplitSMS admin.
+     */
+    public static function ajax_update_plugin() {
+        check_ajax_referer('splitsms_update_plugin', 'nonce');
+
+        $result = self::perform_plugin_update(false);
+        if (is_wp_error($result)) {
+            wp_send_json_error(array('message' => $result->get_error_message()));
+        }
+
+        wp_send_json_success(
+            array(
+                'message' => sprintf(
+                    /* translators: %s: plugin version */
+                    __('SplitSMS updated to v%s.', 'splitsms'),
+                    self::installed_version_after_update()
+                ),
+                'version' => self::installed_version_after_update(),
+            )
+        );
+    }
+
+    /**
+     * POST: update plugin (redirect back to referrer).
+     */
+    public static function handle_update_plugin() {
+        if (!current_user_can('update_plugins')) {
+            wp_die(esc_html__('You do not have permission to update plugins.', 'splitsms'));
+        }
+
+        check_admin_referer('splitsms_update_plugin');
+
+        $result = self::perform_plugin_update(false);
+        $redirect = wp_get_referer();
+        if (!$redirect) {
+            $redirect = admin_url('admin.php?page=splitsms-dashboard');
+        }
+
+        if (is_wp_error($result)) {
+            wp_safe_redirect(
+                add_query_arg(
+                    array(
+                        'splitsms_update' => 'error',
+                        'splitsms_msg'    => rawurlencode($result->get_error_message()),
+                    ),
+                    $redirect
+                )
+            );
+            exit;
+        }
+
+        wp_safe_redirect(
+            add_query_arg(
+                array(
+                    'splitsms_update' => 'success',
+                    'splitsms_ver'    => rawurlencode(self::installed_version_after_update()),
+                ),
+                $redirect
+            )
+        );
+        exit;
+    }
+
+    /**
      * Download latest zip from splitsms.com and replace the current installation (settings preserved in DB).
      */
     public static function handle_reinstall() {
@@ -177,47 +390,14 @@ class SplitSMS_Install {
 
         check_admin_referer('splitsms_reinstall');
 
-        if (!function_exists('request_filesystem_credentials')) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-        }
-        if (!class_exists('Plugin_Upgrader')) {
-            require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-        }
-        if (!class_exists('Plugin_Upgrader')) {
-            require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
-        }
-
-        $package = defined('SPLITSMS_PLUGIN_DOWNLOAD_URL')
-            ? SPLITSMS_PLUGIN_DOWNLOAD_URL
-            : (defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL : 'https://www.splitsms.com') . '/wordpress-plugin/splitsms.zip';
-
-        self::remove_stale_installations(true);
-
-        $skin = new Automatic_Upgrader_Skin();
-        $upgrader = new Plugin_Upgrader($skin);
-
-        $result = $upgrader->run(
-            array(
-                'package'                       => $package,
-                'destination'                   => WP_PLUGIN_DIR,
-                'clear_destination'             => true,
-                'abort_if_destination_exists'   => false,
-                'clear_working'                 => true,
-                'hook_extra'                    => array(
-                    'plugin' => self::PLUGIN_SLUG,
-                    'type'   => 'plugin',
-                    'action' => 'update',
-                ),
-            )
-        );
-
+        $result = self::perform_plugin_update(true);
         if (is_wp_error($result)) {
             wp_safe_redirect(
                 add_query_arg(
                     array(
-                        'page' => 'splitsms-settings',
+                        'page'             => 'splitsms-settings',
                         'splitsms_reinstall' => 'error',
-                        'splitsms_msg' => rawurlencode($result->get_error_message()),
+                        'splitsms_msg'     => rawurlencode($result->get_error_message()),
                     ),
                     admin_url('admin.php')
                 )
@@ -232,7 +412,7 @@ class SplitSMS_Install {
         wp_safe_redirect(
             add_query_arg(
                 array(
-                    'page' => 'splitsms-settings',
+                    'page'               => 'splitsms-settings',
                     'splitsms_reinstall' => 'success',
                 ),
                 admin_url('admin.php')
@@ -242,15 +422,32 @@ class SplitSMS_Install {
     }
 
     /**
-     * Admin notices for reinstall result and orphaned folders.
+     * Admin notices for update/reinstall result and orphaned folders.
      */
     public static function admin_notices() {
         if (!current_user_can('activate_plugins')) {
             return;
         }
 
-        if (!(defined('SPLITSMS_ENABLE_CUSTOM_UPDATER') && SPLITSMS_ENABLE_CUSTOM_UPDATER)) {
-            return;
+        if (isset($_GET['splitsms_update']) && 'success' === $_GET['splitsms_update']) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $ver = isset($_GET['splitsms_ver']) ? sanitize_text_field(wp_unslash($_GET['splitsms_ver'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            echo '<div class="notice notice-success is-dismissible"><p>';
+            if ('' !== $ver) {
+                printf(
+                    /* translators: %s: plugin version */
+                    esc_html__('SplitSMS updated to v%s. Your settings were kept.', 'splitsms'),
+                    esc_html(urldecode($ver))
+                );
+            } else {
+                esc_html_e('SplitSMS was updated successfully. Your settings were kept.', 'splitsms');
+            }
+            echo '</p></div>';
+        }
+
+        if (isset($_GET['splitsms_update']) && 'error' === $_GET['splitsms_update'] && !empty($_GET['splitsms_msg'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            echo '<div class="notice notice-error is-dismissible"><p>';
+            echo esc_html(urldecode(sanitize_text_field(wp_unslash($_GET['splitsms_msg'])))); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            echo '</p></div>';
         }
 
         if (isset($_GET['splitsms_reinstall']) && 'success' === $_GET['splitsms_reinstall']) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
