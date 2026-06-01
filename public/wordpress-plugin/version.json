@@ -14,5 +14,5 @@
   "integrations_url": "https://www.splitsms.com/integrations",
   "update_check_url": "https://www.splitsms.com/api/plugin/update",
   "last_updated": "2026-06-01",
-  "changelog": "• Fix: Critical error when Elementor/JetFormBuilder action files load before their parent classes exist.\n• Fix: Safer plugin update (load WordPress upgrader APIs correctly, guard filesystem cache clear).\n• Fix: Correct settings merge hook after plugin update.\n• Improve: Plugin zip always includes VERSION file and SplitSMS-v{version}.zip + splitsms-v{version}.zip filenames."
+  "changelog": "• Fix: Critical error when Elementor/JetFormBuilder action files load before their parent classes exist.\n• Fix: Safer plugin update (load WordPress upgrader APIs correctly, guard filesystem cache clear).\n• Fix: Correct settings merge hook after plugin update.\n• Improve: Plugin zip always includes VERSION file and SplitSMS-v{version}.zip (+ splitsms-plugin-v{version}.zip alias)."
 }

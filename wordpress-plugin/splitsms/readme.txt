@@ -140,7 +140,7 @@ This plugin integrates with WordPress privacy tools.
 * Fix: Critical error when Elementor/JetFormBuilder action files load before their parent classes exist.
 * Fix: Safer plugin update (load WordPress upgrader APIs correctly, guard filesystem cache clear).
 * Fix: Correct settings merge hook after plugin update.
-* Improve: Plugin zip always includes VERSION file and SplitSMS-v{version}.zip + splitsms-v{version}.zip filenames.
+* Improve: Plugin zip always includes VERSION file and SplitSMS-v{version}.zip (+ splitsms-plugin-v{version}.zip alias).
 
 = 1.6.8 =
 * New: Create free account — signup CTAs in plugin admin, Settings, sidebar, and Plugins list for WordPress.org users

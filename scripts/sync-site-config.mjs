@@ -223,8 +223,8 @@ try {
   validateZip(versionedZip);
   copyFileSync(versionedZip, latestZip);
 
-  const legacyVersioned = join(publicWpDir, `splitsms-v${wp.version}.zip`);
-  const legacyVersionedFilename = `splitsms-v${wp.version}.zip`;
+  const legacyVersioned = join(publicWpDir, `splitsms-plugin-v${wp.version}.zip`);
+  const legacyVersionedFilename = `splitsms-plugin-v${wp.version}.zip`;
   copyFileSync(versionedZip, legacyVersioned);
 
   const keepZips = new Set([versionedZipFilename, legacyVersionedFilename, "splitsms.zip"]);

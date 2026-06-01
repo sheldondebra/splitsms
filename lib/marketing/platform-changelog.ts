@@ -31,7 +31,7 @@ export const changelogReleases: ChangelogRelease[] = [
       },
       {
         type: "changed",
-        text: "Release zip always named SplitSMS-v{version}.zip and splitsms-v{version}.zip with VERSION file inside.",
+        text: "Release zip always named SplitSMS-v{version}.zip and splitsms-plugin-v{version}.zip with VERSION file inside.",
       },
     ],
   },
