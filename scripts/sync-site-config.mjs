@@ -10,9 +10,13 @@ import { execSync } from "child_process";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
+const wordpressOrg = process.argv.includes("--wordpress-org");
 const config = JSON.parse(readFileSync(join(root, "config/site.json"), "utf8"));
 const siteUrl = config.siteUrl.replace(/\/$/, "");
 const wp = config.wordpressPlugin;
+const allowCloudPackages = wordpressOrg ? false : wp.allowCloudPackages !== false;
+const enableCustomUpdater = wordpressOrg ? false : wp.enableCustomUpdater === true;
+const testedWp = wp.tested || "6.8";
 
 const versionedPath =
   (wp.versionedDownloadPath || "/wordpress-plugin/splitsms-{version}.zip").replace(
@@ -64,7 +68,20 @@ define('SPLITSMS_PLUGIN_DOWNLOAD_URL', '${versionedDownloadUrl}');
 define('SPLITSMS_PLUGIN_DOWNLOAD_LATEST_URL', '${latestDownloadUrl}');
 define('SPLITSMS_UPDATE_CHECK_URL', '${siteUrl}${wp.updateCheckPath}');
 define('SPLITSMS_PLUGIN_VERSION', '${wp.version}');
-define('SPLITSMS_ENABLE_CUSTOM_UPDATER', false);
+define('SPLITSMS_ALLOW_CLOUD_PACKAGES', ${allowCloudPackages ? "true" : "false"});
+define('SPLITSMS_ENABLE_CUSTOM_UPDATER', ${enableCustomUpdater ? "true" : "false"});
+
+if (!function_exists('splitsms_allow_cloud_packages')) {
+    function splitsms_allow_cloud_packages() {
+        return defined('SPLITSMS_ALLOW_CLOUD_PACKAGES') && SPLITSMS_ALLOW_CLOUD_PACKAGES;
+    }
+}
+
+if (!function_exists('splitsms_enable_custom_updater')) {
+    function splitsms_enable_custom_updater() {
+        return defined('SPLITSMS_ENABLE_CUSTOM_UPDATER') && SPLITSMS_ENABLE_CUSTOM_UPDATER;
+    }
+}
 `;
 
 writeFileSync(join(root, "wordpress-plugin/splitsms/includes/splitsms-config.php"), phpConfig);
@@ -80,6 +97,7 @@ const readmeTxt = join(root, "wordpress-plugin/splitsms/readme.txt");
 if (existsSync(readmeTxt)) {
   let readme = readFileSync(readmeTxt, "utf8");
   readme = readme.replace(/Stable tag: [\d.]+/, `Stable tag: ${wp.version}`);
+  readme = readme.replace(/Tested up to: [\d.]+/, `Tested up to: ${testedWp}`);
   writeFileSync(readmeTxt, readme);
 }
 
@@ -96,7 +114,7 @@ const versionManifest = {
   download_url_latest: latestDownloadUrl,
   download_filename: versionedZipFilename,
   requires: "6.0",
-  tested: "6.7",
+  tested: testedWp,
   requires_php: "7.4",
   api_base_url: siteUrl,
   api_docs_url: `${siteUrl}/api-docs`,
@@ -164,6 +182,7 @@ function prepareStagingDir() {
 
 const REQUIRED_ZIP_FILES = [
   "splitsms/splitsms.php",
+  "splitsms/license.txt",
   "splitsms/includes/splitsms-config.php",
   "splitsms/includes/class-splitsms-install.php",
   "splitsms/includes/class-splitsms-bootstrap.php",
@@ -254,4 +273,6 @@ try {
 console.log("Synced site config → WordPress plugin, public/wordpress-plugin/, Postman");
 console.log("Site URL:", siteUrl);
 console.log("Plugin version:", wp.version);
+console.log("Build:", wordpressOrg ? "wordpress.org (no cloud packages)" : "splitsms.com download");
+console.log("SPLITSMS_ALLOW_CLOUD_PACKAGES:", allowCloudPackages);
 console.log("Versioned download:", versionedDownloadUrl);

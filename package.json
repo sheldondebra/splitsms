@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "sync:site-config": "node scripts/sync-site-config.mjs",
+    "validate:wp-plugin": "node scripts/validate-wordpress-plugin.mjs",
     "release:wp-plugin": "node scripts/sync-site-config.mjs && node scripts/verify-wp-plugin-release.mjs",
+    "release:wp-plugin-org": "node scripts/sync-site-config.mjs --wordpress-org && node scripts/validate-wordpress-plugin.mjs --wordpress-org",
     "sync:wp-local": "node scripts/sync-wp-local.mjs",
     "watch:wp-local": "node scripts/sync-wp-local.mjs --watch",
     "prebuild": "node scripts/sync-site-config.mjs && node scripts/sync-sdks.mjs",

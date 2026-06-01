@@ -3,11 +3,12 @@
  * Plugin Name:       SplitSMS
  * Plugin URI:        https://www.splitsms.com/integrations
  * Description:       Send transactional SMS from WordPress and WooCommerce using your SplitSMS API key.
- * Version:           1.7.1
+ * Version:           1.7.2
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            SplitSMS
  * License:           GPL v2 or later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       splitsms
  * Domain Path:       /languages
  */
@@ -17,7 +18,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('SPLITSMS_VERSION')) {
-    define('SPLITSMS_VERSION', '1.7.1');
+    define('SPLITSMS_VERSION', '1.7.2');
 }
 if (!defined('SPLITSMS_PLUGIN_FILE')) {
     define('SPLITSMS_PLUGIN_FILE', __FILE__);

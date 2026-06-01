@@ -2,10 +2,11 @@
 Contributors: splitsms
 Tags: sms, woocommerce, notifications, api, transactional
 Requires at least: 6.0
-Tested up to: 6.7
+Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.7.1
+Stable tag: 1.7.2
 License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Send transactional SMS from WordPress and WooCommerce using your SplitSMS API key.
 
@@ -135,6 +136,11 @@ This plugin integrates with WordPress privacy tools.
 * Removing the plugin via Plugins → Delete removes SplitSMS plugin data from your database.
 
 == Changelog ==
+
+= 1.7.2 =
+* Improve: WordPress.org compliance — external update downloads only in splitsms.com builds; WordPress.org installs use Dashboard → Updates.
+* Improve: Release zip validation (layout, required files, no dev artifacts).
+* Add: license.txt and License URI for the plugin directory.
 
 = 1.7.1 =
 * Fix: Critical error on activate — lazy-load integrations (Elementor, JetFormBuilder, WooCommerce) instead of loading all PHP files at once.

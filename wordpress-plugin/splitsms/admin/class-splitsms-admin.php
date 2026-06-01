@@ -758,36 +758,58 @@ class SplitSMS_Admin {
                 <?php if (current_user_can('update_plugins')) : ?>
                     <?php
                     $version_info = SplitSMS_Plugin_Status::version_info(false);
-                    $has_update = !empty($version_info['is_outdated']) && !empty($version_info['latest']);
+                    $cloud_updates = !empty($version_info['cloud_updates']);
+                    $has_update = class_exists('SplitSMS_Install')
+                        ? SplitSMS_Install::is_update_available()
+                        : (!empty($version_info['is_outdated']) && !empty($version_info['latest']));
                     ?>
                     <p class="splitsms-section-title" style="margin-top:1.5rem;"><?php esc_html_e('Plugin update', 'splitsms'); ?></p>
                     <?php if ($has_update) : ?>
                         <p class="description">
                             <?php
                             printf(
-                                esc_html__('v%1$s is installed — v%2$s is available on splitsms.com.', 'splitsms'),
+                                $cloud_updates
+                                    /* translators: 1: installed version 2: latest version */
+                                    ? esc_html__('v%1$s is installed — v%2$s is available on splitsms.com.', 'splitsms')
+                                    : esc_html__('v%1$s is installed — v%2$s is available.', 'splitsms'),
                                 esc_html($version_info['installed']),
                                 esc_html($version_info['latest'])
                             );
                             ?>
                         </p>
-                        <p>
-                            <button type="button" class="button button-primary" id="splitsms-update-plugin-btn-settings">
-                                <?php esc_html_e('Update plugin', 'splitsms'); ?>
-                            </button>
-                            <span id="splitsms-update-plugin-result-settings" class="splitsms-inline-result" aria-live="polite"></span>
-                        </p>
+                        <?php if ($cloud_updates) : ?>
+                            <p>
+                                <button type="button" class="button button-primary" id="splitsms-update-plugin-btn-settings">
+                                    <?php esc_html_e('Update plugin', 'splitsms'); ?>
+                                </button>
+                                <span id="splitsms-update-plugin-result-settings" class="splitsms-inline-result" aria-live="polite"></span>
+                            </p>
+                        <?php else : ?>
+                            <p>
+                                <a class="button button-primary" href="<?php echo esc_url(admin_url('update-core.php')); ?>">
+                                    <?php esc_html_e('Go to Dashboard → Updates', 'splitsms'); ?>
+                                </a>
+                            </p>
+                        <?php endif; ?>
                     <?php else : ?>
-                        <p class="description"><?php esc_html_e('SplitSMS is up to date. You can still reinstall the latest files from splitsms.com if upload failed.', 'splitsms'); ?></p>
+                        <p class="description">
+                            <?php
+                            echo $cloud_updates
+                                ? esc_html__('SplitSMS is up to date. You can still reinstall the latest files from splitsms.com if upload failed.', 'splitsms')
+                                : esc_html__('SplitSMS is up to date. Use Dashboard → Updates when a new version is released.', 'splitsms');
+                            ?>
+                        </p>
                     <?php endif; ?>
-                    <p>
-                        <a class="button" href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=splitsms_reinstall'), 'splitsms_reinstall')); ?>">
-                            <?php esc_html_e('Replace from splitsms.com', 'splitsms'); ?>
-                        </a>
-                    </p>
-                    <p class="description">
-                        <?php esc_html_e('Downloads the latest zip and replaces wp-content/plugins/splitsms/ — use when re-uploading fails with “folder already exists”. Your API key and settings stay saved.', 'splitsms'); ?>
-                    </p>
+                    <?php if ($cloud_updates) : ?>
+                        <p>
+                            <a class="button" href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=splitsms_reinstall'), 'splitsms_reinstall')); ?>">
+                                <?php esc_html_e('Replace from splitsms.com', 'splitsms'); ?>
+                            </a>
+                        </p>
+                        <p class="description">
+                            <?php esc_html_e('Downloads the latest zip and replaces wp-content/plugins/splitsms/ — use when re-uploading fails with “folder already exists”. Your API key and settings stay saved.', 'splitsms'); ?>
+                        </p>
+                    <?php endif; ?>
                 <?php endif; ?>
             </form>
             <?php
@@ -813,9 +835,10 @@ class SplitSMS_Admin {
             : (defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/wordpress-plugin/splitsms.zip' : '');
         $check_url = defined('SPLITSMS_UPDATE_CHECK_URL') ? SPLITSMS_UPDATE_CHECK_URL : '';
         $version = SplitSMS_Plugin_Status::version_info(false);
+        $cloud_updates = !empty($version['cloud_updates']);
         $env = SplitSMS_Plugin_Status::environment();
         $forms_url = admin_url('admin.php?page=splitsms-forms');
-        $this->render_shell(__('Help', 'splitsms'), function () use ($docs, $update_url, $download, $check_url, $version, $env, $forms_url) {
+        $this->render_shell(__('Help', 'splitsms'), function () use ($docs, $update_url, $download, $check_url, $version, $env, $forms_url, $cloud_updates) {
             ?>
             <div class="splitsms-card">
                 <h2><?php esc_html_e('Quick start (no custom code)', 'splitsms'); ?></h2>
@@ -850,12 +873,18 @@ class SplitSMS_Admin {
                         );
                         ?>
                     </p>
-                    <?php if (current_user_can('update_plugins')) : ?>
+                    <?php if (current_user_can('update_plugins') && $cloud_updates) : ?>
                         <p>
                             <button type="button" class="button button-primary" id="splitsms-update-plugin-btn-help">
                                 <?php esc_html_e('Update plugin', 'splitsms'); ?>
                             </button>
                             <span id="splitsms-update-plugin-result-help" class="splitsms-inline-result" aria-live="polite"></span>
+                        </p>
+                    <?php elseif (current_user_can('update_plugins')) : ?>
+                        <p>
+                            <a class="button button-primary" href="<?php echo esc_url($update_url); ?>">
+                                <?php esc_html_e('Go to Dashboard → Updates', 'splitsms'); ?>
+                            </a>
                         </p>
                     <?php endif; ?>
                 <?php else : ?>
@@ -867,22 +896,24 @@ class SplitSMS_Admin {
                         <?php esc_html_e('— click Update now when SplitSMS appears.', 'splitsms'); ?>
                     </li>
                     <li><?php esc_html_e('Or: Plugins → Installed Plugins → Check for updates (top of page).', 'splitsms'); ?></li>
-                    <li>
-                        <?php esc_html_e('Manual install:', 'splitsms'); ?>
-                        <a href="<?php echo esc_url($download); ?>" target="_blank" rel="noopener"><?php esc_html_e('Download splitsms.zip', 'splitsms'); ?></a>
-                        <?php esc_html_e('→ Plugins → Add New → Upload (only if standard update fails).', 'splitsms'); ?>
-                    </li>
+                    <?php if ($cloud_updates && '' !== $download) : ?>
+                        <li>
+                            <?php esc_html_e('Manual install:', 'splitsms'); ?>
+                            <a href="<?php echo esc_url($download); ?>" target="_blank" rel="noopener"><?php esc_html_e('Download splitsms.zip', 'splitsms'); ?></a>
+                            <?php esc_html_e('→ Plugins → Add New → Upload (only if standard update fails).', 'splitsms'); ?>
+                        </li>
+                    <?php endif; ?>
                 </ol>
                 <p class="description">
                     <?php esc_html_e('Installed version:', 'splitsms'); ?>
                     <strong><?php echo esc_html($version['installed']); ?></strong>
                     <?php if (!empty($version['latest'])) : ?>
-                        · <?php esc_html_e('Latest on splitsms.com:', 'splitsms'); ?>
+                        · <?php echo $cloud_updates ? esc_html__('Latest on splitsms.com:', 'splitsms') : esc_html__('Latest available:', 'splitsms'); ?>
                         <strong>v<?php echo esc_html($version['latest']); ?></strong>
                     <?php endif; ?>
                     · <?php esc_html_e('WordPress', 'splitsms'); ?> <?php echo esc_html($env['wp_version']); ?>
                     · <?php esc_html_e('PHP', 'splitsms'); ?> <?php echo esc_html($env['php_version']); ?>
-                    <?php if ('' !== $check_url) : ?>
+                    <?php if ($cloud_updates && '' !== $check_url) : ?>
                         · <?php esc_html_e('Update check:', 'splitsms'); ?>
                         <code><?php echo esc_html($check_url); ?></code>
                     <?php endif; ?>

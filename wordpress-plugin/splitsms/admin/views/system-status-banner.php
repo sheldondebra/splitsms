@@ -16,7 +16,9 @@ $env = isset($status['environment']) && is_array($status['environment']) ? $stat
 $is_outdated = !empty($version['is_outdated']);
 $latest = isset($version['latest']) ? $version['latest'] : null;
 $can_update = !empty($status['can_update']);
-$update_available = !empty($status['update_available']) || $is_outdated;
+$cloud_updates = !empty($status['cloud_updates']);
+$update_available = !empty($status['update_available']);
+$updates_url = admin_url('update-core.php');
 $wallet_url = defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/wallet' : '#';
 ?>
 
@@ -36,10 +38,16 @@ $wallet_url = defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/walle
                 ?>
             </p>
         </div>
-        <button type="button" class="button button-primary" id="splitsms-update-plugin-btn">
-            <?php esc_html_e('Update', 'splitsms'); ?>
-        </button>
-        <span id="splitsms-update-plugin-result" class="splitsms-inline-result" aria-live="polite"></span>
+        <?php if ($cloud_updates) : ?>
+            <button type="button" class="button button-primary" id="splitsms-update-plugin-btn">
+                <?php esc_html_e('Update', 'splitsms'); ?>
+            </button>
+            <span id="splitsms-update-plugin-result" class="splitsms-inline-result" aria-live="polite"></span>
+        <?php else : ?>
+            <a class="button button-primary" href="<?php echo esc_url($updates_url); ?>">
+                <?php esc_html_e('Go to Updates', 'splitsms'); ?>
+            </a>
+        <?php endif; ?>
     </div>
 <?php endif; ?>
 
@@ -98,7 +106,7 @@ $wallet_url = defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/walle
             <dd>v<?php echo esc_html($version['installed'] ?? SPLITSMS_VERSION); ?></dd>
         </div>
         <div>
-            <dt><?php esc_html_e('Latest on splitsms.com', 'splitsms'); ?></dt>
+            <dt><?php echo $cloud_updates ? esc_html__('Latest on splitsms.com', 'splitsms') : esc_html__('Latest available', 'splitsms'); ?></dt>
             <dd><?php echo $latest ? 'v' . esc_html($latest) : esc_html__('Could not check', 'splitsms'); ?></dd>
         </div>
         <div class="splitsms-env-details__wide">

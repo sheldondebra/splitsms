@@ -1,18 +1,18 @@
 {
   "name": "SplitSMS",
   "slug": "splitsms",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "homepage": "https://www.splitsms.com",
-  "download_url": "https://www.splitsms.com/wordpress-plugin/SplitSMS-v1.7.1.zip",
+  "download_url": "https://www.splitsms.com/wordpress-plugin/SplitSMS-v1.7.2.zip",
   "download_url_latest": "https://www.splitsms.com/wordpress-plugin/splitsms.zip",
-  "download_filename": "SplitSMS-v1.7.1.zip",
+  "download_filename": "SplitSMS-v1.7.2.zip",
   "requires": "6.0",
-  "tested": "6.7",
+  "tested": "6.8",
   "requires_php": "7.4",
   "api_base_url": "https://www.splitsms.com",
   "api_docs_url": "https://www.splitsms.com/api-docs",
   "integrations_url": "https://www.splitsms.com/integrations",
   "update_check_url": "https://www.splitsms.com/api/plugin/update",
   "last_updated": "2026-06-01",
-  "changelog": "• Fix: Critical error on activate — lazy-load integrations (Elementor, JetFormBuilder, WooCommerce) instead of loading all PHP files at once.\n• Fix: Safer activation (no filesystem deletes when WP_Filesystem fails).\n• Fix: Bootstrap try/catch shows admin notice instead of white-screening the site."
+  "changelog": "• Improve: WordPress.org compliance — external update downloads only in splitsms.com builds; WordPress.org installs use Dashboard → Updates.\n• Improve: Release zip validation (layout, required files, no dev artifacts).\n• Add: license.txt and License URI for the plugin directory."
 }

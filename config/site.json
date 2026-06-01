@@ -25,10 +25,13 @@
     }
   },
   "wordpressPlugin": {
-    "version": "1.7.1",
+    "version": "1.7.2",
     "slug": "splitsms",
     "downloadPath": "/wordpress-plugin/splitsms.zip",
     "versionedDownloadPath": "/wordpress-plugin/SplitSMS-v{version}.zip",
-    "updateCheckPath": "/api/plugin/update"
+    "updateCheckPath": "/api/plugin/update",
+    "allowCloudPackages": true,
+    "enableCustomUpdater": false,
+    "tested": "6.8"
   }
 }

@@ -17,6 +17,10 @@ class SplitSMS_Plugin_Status {
      * @return array<string, mixed>|null
      */
     public static function remote_manifest($force = false) {
+        if (function_exists('splitsms_allow_cloud_packages') && !splitsms_allow_cloud_packages()) {
+            return null;
+        }
+
         if (!$force) {
             $cached = get_transient(self::REMOTE_TRANSIENT);
             if (is_array($cached)) {
@@ -62,15 +66,30 @@ class SplitSMS_Plugin_Status {
     public static function version_info($force_remote = false) {
         $remote = self::remote_manifest($force_remote);
         $latest = is_array($remote) && !empty($remote['version']) ? (string) $remote['version'] : null;
+        $is_outdated = $latest ? version_compare(SPLITSMS_VERSION, $latest, '<') : false;
+        $download_url = is_array($remote) && !empty($remote['download_url'])
+            ? (string) $remote['download_url']
+            : null;
+
+        if (!$is_outdated && class_exists('SplitSMS_Install')) {
+            $wp_item = SplitSMS_Install::wordpress_update_package();
+            if ($wp_item && !empty($wp_item->new_version)) {
+                $latest = (string) $wp_item->new_version;
+                $is_outdated = version_compare(SPLITSMS_VERSION, $latest, '<');
+            }
+        }
+
+        if (!$download_url && function_exists('splitsms_allow_cloud_packages') && splitsms_allow_cloud_packages()) {
+            $download_url = defined('SPLITSMS_PLUGIN_DOWNLOAD_URL') ? SPLITSMS_PLUGIN_DOWNLOAD_URL : null;
+        }
 
         return array(
             'installed' => SPLITSMS_VERSION,
             'latest' => $latest,
-            'is_outdated' => $latest ? version_compare(SPLITSMS_VERSION, $latest, '<') : false,
-            'download_url' => is_array($remote) && !empty($remote['download_url'])
-                ? (string) $remote['download_url']
-                : (defined('SPLITSMS_PLUGIN_DOWNLOAD_URL') ? SPLITSMS_PLUGIN_DOWNLOAD_URL : null),
+            'is_outdated' => $is_outdated,
+            'download_url' => $download_url,
             'changelog' => is_array($remote) && !empty($remote['changelog']) ? (string) $remote['changelog'] : null,
+            'cloud_updates' => function_exists('splitsms_allow_cloud_packages') && splitsms_allow_cloud_packages(),
         );
     }
 
@@ -126,7 +145,10 @@ class SplitSMS_Plugin_Status {
             'updates_url' => admin_url('update-core.php'),
             'help_url' => admin_url('admin.php?page=splitsms-help'),
             'can_update' => current_user_can('update_plugins'),
-            'update_available' => !empty($version['is_outdated']),
+            'update_available' => class_exists('SplitSMS_Install')
+                ? SplitSMS_Install::is_update_available()
+                : !empty($version['is_outdated']),
+            'cloud_updates' => !empty($version['cloud_updates']),
         );
     }
 
@@ -150,10 +172,13 @@ class SplitSMS_Plugin_Status {
         }
 
         $updates = admin_url('update-core.php');
-        $update_url = wp_nonce_url(
-            admin_url('admin-post.php?action=splitsms_update_plugin'),
-            'splitsms_update_plugin'
-        );
+        $use_cloud = function_exists('splitsms_allow_cloud_packages') && splitsms_allow_cloud_packages();
+        $update_url = $use_cloud
+            ? wp_nonce_url(
+                admin_url('admin-post.php?action=splitsms_update_plugin'),
+                'splitsms_update_plugin'
+            )
+            : $updates;
         ?>
         <div class="notice notice-warning splitsms-update-notice">
             <p>
@@ -166,7 +191,9 @@ class SplitSMS_Plugin_Status {
                     esc_html($version['latest'])
                 );
                 ?>
-                <a href="<?php echo esc_url($update_url); ?>" class="splitsms-notice-update-link"><?php esc_html_e('Update now', 'splitsms'); ?></a>
+                <a href="<?php echo esc_url($update_url); ?>" class="splitsms-notice-update-link">
+                    <?php echo $use_cloud ? esc_html__('Update now', 'splitsms') : esc_html__('Go to Updates', 'splitsms'); ?>
+                </a>
             </p>
         </div>
         <?php
