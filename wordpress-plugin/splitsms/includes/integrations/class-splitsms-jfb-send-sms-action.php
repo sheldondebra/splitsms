@@ -4,6 +4,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!class_exists('\Jet_Form_Builder\Actions\Types\Base')) {
+    return;
+}
+
 /**
  * JetFormBuilder post-submit action: Send SMS via SplitSMS.
  *

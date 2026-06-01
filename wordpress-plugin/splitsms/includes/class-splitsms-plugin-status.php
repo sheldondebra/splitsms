@@ -26,7 +26,7 @@ class SplitSMS_Plugin_Status {
 
         $url = defined('SPLITSMS_UPDATE_CHECK_URL')
             ? SPLITSMS_UPDATE_CHECK_URL
-            : SPLITSMS_APP_URL . '/api/plugin/update';
+            : (defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL : 'https://www.splitsms.com') . '/api/plugin/update';
 
         $response = wp_remote_get(
             $url,

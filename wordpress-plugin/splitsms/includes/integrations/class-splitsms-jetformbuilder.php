@@ -68,7 +68,12 @@ class SplitSMS_JetFormBuilder {
             return;
         }
 
-        require_once SPLITSMS_PLUGIN_DIR . 'includes/integrations/class-splitsms-jfb-send-sms-action.php';
+        $action_file = SPLITSMS_PLUGIN_DIR . 'includes/integrations/class-splitsms-jfb-send-sms-action.php';
+        if (!is_readable($action_file)) {
+            return;
+        }
+
+        require_once $action_file;
 
         if (!class_exists('SplitSMS_JFB_Send_Sms_Action')) {
             return;

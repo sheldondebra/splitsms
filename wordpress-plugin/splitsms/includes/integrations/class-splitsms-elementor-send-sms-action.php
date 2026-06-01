@@ -4,6 +4,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!class_exists('\ElementorPro\Modules\Forms\Classes\Action_Base')) {
+    return;
+}
+
 /**
  * Elementor Pro Forms — SplitSMS action under Actions After Submit.
  *

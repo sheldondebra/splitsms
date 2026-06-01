@@ -155,7 +155,23 @@ function copyPluginFiltered(src, dest) {
 function prepareStagingDir() {
   rmSync(join(root, ".tmp-plugin-zip"), { recursive: true, force: true });
   copyPluginFiltered(pluginDir, stagingDir);
+  writeFileSync(
+    join(stagingDir, "VERSION"),
+    `${wp.version}\n`,
+    "utf8",
+  );
 }
+
+const REQUIRED_ZIP_FILES = [
+  "splitsms/splitsms.php",
+  "splitsms/includes/splitsms-config.php",
+  "splitsms/includes/class-splitsms-install.php",
+  "splitsms/includes/class-splitsms-plugin-status.php",
+  "splitsms/includes/integrations/class-splitsms-elementor-send-sms-action.php",
+  "splitsms/includes/integrations/class-splitsms-jfb-send-sms-action.php",
+  "splitsms/admin/views/help-documentation.php",
+  "splitsms/VERSION",
+];
 
 function buildZip(outPath) {
   prepareStagingDir();
@@ -177,12 +193,22 @@ function buildZip(outPath) {
 function validateZip(zipOut) {
   const expect = "splitsms/splitsms.php";
   if (process.platform === "win32") {
+    const requiredList = REQUIRED_ZIP_FILES.map((f) => `'${f}'`).join(",");
+    execSync(
+      `powershell -NoProfile -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::OpenRead('${zipOut.replace(/'/g, "''")}'); $names=@($z.Entries | ForEach-Object { ($_.FullName -replace '\\\\','/').TrimEnd('/') }); $z.Dispose(); $required=@(${requiredList}); foreach ($r in $required) { if ($names -notcontains $r) { Write-Error \\"Missing $r\\"; exit 1 } }"`,
+      { encoding: "utf8" },
+    );
     execSync(
       `powershell -NoProfile -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::OpenRead('${zipOut.replace(/'/g, "''")}'); $ok=($z.Entries | Where-Object { $_.FullName -replace '\\\\','/' -eq '${expect}' }).Count -gt 0; $bad=($z.Entries | Where-Object { $_.FullName -replace '\\\\','/' -eq 'splitsms.php' }).Count -gt 0; $z.Dispose(); if (-not $ok -or $bad) { exit 1 }"`,
       { encoding: "utf8" },
     );
   } else {
     const listing = execSync(`unzip -l "${zipOut}"`, { encoding: "utf8" });
+    for (const required of REQUIRED_ZIP_FILES) {
+      if (!listing.includes(` ${required}`) && !listing.includes(required)) {
+        throw new Error(`Zip missing ${required}`);
+      }
+    }
     if (!listing.includes(` ${expect}`) && !listing.includes(`splitsms/splitsms.php`)) {
       throw new Error(`Zip missing ${expect}`);
     }
@@ -197,38 +223,19 @@ try {
   validateZip(versionedZip);
   copyFileSync(versionedZip, latestZip);
 
+  const legacyVersioned = join(publicWpDir, `splitsms-v${wp.version}.zip`);
+  const legacyVersionedFilename = `splitsms-v${wp.version}.zip`;
+  copyFileSync(versionedZip, legacyVersioned);
+
+  const keepZips = new Set([versionedZipFilename, legacyVersionedFilename, "splitsms.zip"]);
+
   for (const file of readdirSync(publicWpDir)) {
-    if (
-      /^splitsms-.*\.zip$/i.test(file) &&
-      file.endsWith(".zip") &&
-      file !== versionedZipFilename
-    ) {
-      unlinkSync(join(publicWpDir, file));
-      console.log("Removed stale zip:", file);
+    if (!file.endsWith(".zip") || keepZips.has(file)) {
       continue;
     }
     if (
-      /^splitsms-v.*\.zip$/i.test(file) &&
-      file.endsWith(".zip") &&
-      file !== versionedZipFilename
-    ) {
-      unlinkSync(join(publicWpDir, file));
-      console.log("Removed stale zip:", file);
-      continue;
-    }
-    if (
-      /^splitsms-v?\d.*\.zip$/i.test(file) &&
-      file.endsWith(".zip") &&
-      file !== versionedZipFilename
-    ) {
-      unlinkSync(join(publicWpDir, file));
-      console.log("Removed stale zip:", file);
-      continue;
-    }
-    if (
-      /^SplitSMS-v.*\.zip$/i.test(file) &&
-      file.endsWith(".zip") &&
-      file !== versionedZipFilename
+      /^splitsms/i.test(file) ||
+      /^SplitSMS-v/i.test(file)
     ) {
       unlinkSync(join(publicWpDir, file));
       console.log("Removed stale zip:", file);
@@ -236,6 +243,7 @@ try {
   }
 
   console.log("Wrote", versionedZip);
+  console.log("Wrote", legacyVersioned);
   console.log("Wrote", latestZip, "(latest alias)");
 } catch (e) {
   console.warn("Zip skipped:", e.message);

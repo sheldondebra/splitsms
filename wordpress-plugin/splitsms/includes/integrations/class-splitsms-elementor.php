@@ -58,7 +58,12 @@ class SplitSMS_Elementor {
             return;
         }
 
-        require_once SPLITSMS_PLUGIN_DIR . 'includes/integrations/class-splitsms-elementor-send-sms-action.php';
+        $action_file = SPLITSMS_PLUGIN_DIR . 'includes/integrations/class-splitsms-elementor-send-sms-action.php';
+        if (!is_readable($action_file)) {
+            return;
+        }
+
+        require_once $action_file;
 
         if (!class_exists('SplitSMS_Elementor_Send_Sms_Action')) {
             return;

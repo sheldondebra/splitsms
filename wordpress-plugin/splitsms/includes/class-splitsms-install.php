@@ -11,6 +11,30 @@ class SplitSMS_Install {
     const PLUGIN_SLUG = 'splitsms/splitsms.php';
 
     /**
+     * Load wp-admin update helpers when needed.
+     */
+    private static function load_update_api() {
+        if (!function_exists('wp_update_plugins')) {
+            require_once ABSPATH . 'wp-admin/includes/update.php';
+        }
+    }
+
+    /**
+     * Load plugin upgrader classes.
+     */
+    private static function load_upgrader() {
+        if (!function_exists('request_filesystem_credentials')) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+        if (!class_exists('WP_Upgrader')) {
+            require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+        }
+        if (!class_exists('Automatic_Upgrader_Skin')) {
+            require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader-skin.php';
+        }
+    }
+
+    /**
      * Register runtime hooks (upgrader + admin reinstall).
      */
     public static function init() {
@@ -178,16 +202,17 @@ class SplitSMS_Install {
             return true;
         }
 
+        if (!is_admin() || !current_user_can('update_plugins')) {
+            return false;
+        }
+
+        self::load_update_api();
         if (function_exists('wp_update_plugins')) {
             wp_update_plugins();
         }
 
         $updates = get_site_transient('update_plugins');
-        if (is_object($updates) && isset($updates->response[ self::PLUGIN_SLUG ])) {
-            return true;
-        }
-
-        return false;
+        return is_object($updates) && isset($updates->response[ self::PLUGIN_SLUG ]);
     }
 
     /**
@@ -197,8 +222,11 @@ class SplitSMS_Install {
      * @return string|null
      */
     public static function resolve_update_package_url($allow_same_version = false) {
-        if (function_exists('wp_update_plugins')) {
-            wp_update_plugins();
+        if (is_admin() && current_user_can('update_plugins')) {
+            self::load_update_api();
+            if (function_exists('wp_update_plugins')) {
+                wp_update_plugins();
+            }
         }
 
         $updates = get_site_transient('update_plugins');
@@ -248,15 +276,7 @@ class SplitSMS_Install {
             return new WP_Error('no_package', __('Could not find a download URL for the update.', 'splitsms'));
         }
 
-        if (!function_exists('request_filesystem_credentials')) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-        }
-        if (!class_exists('Plugin_Upgrader')) {
-            require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-        }
-        if (!class_exists('Automatic_Upgrader_Skin')) {
-            require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader-skin.php';
-        }
+        self::load_upgrader();
 
         self::remove_stale_installations(true);
 
@@ -280,18 +300,23 @@ class SplitSMS_Install {
 
         delete_transient(SplitSMS_Plugin_Status::REMOTE_TRANSIENT);
         delete_site_transient('update_plugins');
-        wp_clean_plugins_cache(true);
+        if (function_exists('wp_clean_plugins_cache')) {
+            wp_clean_plugins_cache(true);
+        }
 
         if (is_wp_error($result)) {
             return $result;
         }
 
         if (false === $result) {
-            $errors = $skin->get_errors();
-            if (is_wp_error($errors) && $errors->has_errors()) {
-                return $errors;
+            $message = __('Plugin update failed. Check your filesystem permissions.', 'splitsms');
+            if (is_object($skin) && method_exists($skin, 'get_errors')) {
+                $errors = $skin->get_errors();
+                if (is_wp_error($errors) && $errors->has_errors()) {
+                    return $errors;
+                }
             }
-            return new WP_Error('update_failed', __('Plugin update failed. Check your filesystem permissions.', 'splitsms'));
+            return new WP_Error('update_failed', $message);
         }
 
         if (!is_plugin_active(self::PLUGIN_SLUG)) {

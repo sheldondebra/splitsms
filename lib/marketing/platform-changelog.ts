@@ -16,6 +16,26 @@ export type ChangelogRelease = {
 
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "1.6.9",
+    date: "2026-06-01",
+    product: "wordpress",
+    summary: "Fix critical site error and ensure versioned plugin zip builds.",
+    changes: [
+      {
+        type: "fixed",
+        text: "Critical error when Elementor/JetFormBuilder action classes loaded before parent plugins.",
+      },
+      {
+        type: "fixed",
+        text: "One-click Update loads WordPress upgrader APIs safely.",
+      },
+      {
+        type: "changed",
+        text: "Release zip always named SplitSMS-v{version}.zip and splitsms-v{version}.zip with VERSION file inside.",
+      },
+    ],
+  },
+  {
     version: "1.6.8",
     date: "2026-06-01",
     product: "wordpress",

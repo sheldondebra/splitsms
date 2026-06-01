@@ -117,7 +117,8 @@ class SplitSMS_Admin {
                 'nonceSenderIds' => wp_create_nonce('splitsms_sender_ids'),
                 'nonceForms' => wp_create_nonce('splitsms_forms'),
                 'nonceUpdate' => wp_create_nonce('splitsms_update_plugin'),
-                'updateAvailable' => class_exists('SplitSMS_Install') && SplitSMS_Install::is_update_available(),
+                'updateAvailable' => class_exists('SplitSMS_Plugin_Status')
+                    && !empty(SplitSMS_Plugin_Status::version_info(false)['is_outdated']),
                 'walletUrl' => defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/wallet' : '',
                 'senderIdsUrl' => defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/sender-ids' : '',
                 'strings' => array(

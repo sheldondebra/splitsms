@@ -1,11 +1,11 @@
 {
   "name": "SplitSMS",
   "slug": "splitsms",
-  "version": "1.6.8",
+  "version": "1.6.9",
   "homepage": "https://www.splitsms.com",
-  "download_url": "https://www.splitsms.com/wordpress-plugin/SplitSMS-v1.6.8.zip",
+  "download_url": "https://www.splitsms.com/wordpress-plugin/SplitSMS-v1.6.9.zip",
   "download_url_latest": "https://www.splitsms.com/wordpress-plugin/splitsms.zip",
-  "download_filename": "SplitSMS-v1.6.8.zip",
+  "download_filename": "SplitSMS-v1.6.9.zip",
   "requires": "6.0",
   "tested": "6.7",
   "requires_php": "7.4",
@@ -14,5 +14,5 @@
   "integrations_url": "https://www.splitsms.com/integrations",
   "update_check_url": "https://www.splitsms.com/api/plugin/update",
   "last_updated": "2026-06-01",
-  "changelog": "• New: Create free account — signup CTAs in plugin admin, Settings, sidebar, and Plugins list for WordPress.org users\n• New: Elementor Pro **SplitSMS Notification** under Actions After Submit (phone, message, sender ID, admin copy)\n• New: JetFormBuilder & JetEngine legacy **Send SMS** action with %phone%, %post_id%, %user_id% macros\n• Improve: In-plugin Help documentation — admin menu guide, Forms manager, native actions, troubleshooting\n• Improve: Delivery status sync — Sent → Delivered in Logs and splitsms.com dashboard\n• Improve: WordPress.org packaging — privacy policy hook, translation-ready, dev files excluded from release zip\n• Change: Versioned download filename SplitSMS-v{version}.zip on splitsms.com"
+  "changelog": "• Fix: Critical error when Elementor/JetFormBuilder action files load before their parent classes exist.\n• Fix: Safer plugin update (load WordPress upgrader APIs correctly, guard filesystem cache clear).\n• Fix: Correct settings merge hook after plugin update.\n• Improve: Plugin zip always includes VERSION file and SplitSMS-v{version}.zip + splitsms-v{version}.zip filenames."
 }
