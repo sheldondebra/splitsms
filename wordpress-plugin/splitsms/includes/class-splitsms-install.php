@@ -16,7 +16,10 @@ class SplitSMS_Install {
     public static function init() {
         add_filter('upgrader_clear_destination', array(__CLASS__, 'clear_destination_on_update'), 10, 4);
         add_filter('upgrader_overwrite_package', array(__CLASS__, 'allow_overwrite_package'), 10, 2);
-        add_action('admin_post_splitsms_reinstall', array(__CLASS__, 'handle_reinstall'));
+        add_filter('upgrader_package_options', array(__CLASS__, 'normalize_upgrader_options'), 10, 1);
+        if (defined('SPLITSMS_ENABLE_CUSTOM_UPDATER') && SPLITSMS_ENABLE_CUSTOM_UPDATER) {
+            add_action('admin_post_splitsms_reinstall', array(__CLASS__, 'handle_reinstall'));
+        }
         add_action('admin_notices', array(__CLASS__, 'admin_notices'));
     }
 
@@ -137,6 +140,34 @@ class SplitSMS_Install {
     }
 
     /**
+     * Ensure SplitSMS updates replace in-place even on hosts where rollback temp backup move fails.
+     *
+     * @param array<string,mixed> $options
+     * @return array<string,mixed>
+     */
+    public static function normalize_upgrader_options($options) {
+        if (!is_array($options)) {
+            return $options;
+        }
+
+        $hook_extra = isset($options['hook_extra']) && is_array($options['hook_extra']) ? $options['hook_extra'] : array();
+        $plugin = isset($hook_extra['plugin']) ? (string) $hook_extra['plugin'] : '';
+        $plugins = isset($hook_extra['plugins']) && is_array($hook_extra['plugins']) ? $hook_extra['plugins'] : array();
+        $is_splitsms = (self::PLUGIN_SLUG === $plugin) || in_array(self::PLUGIN_SLUG, $plugins, true);
+
+        if (!$is_splitsms) {
+            return $options;
+        }
+
+        $options['clear_destination'] = true;
+        $options['abort_if_destination_exists'] = false;
+        // Avoid rollback-temp backup move on environments that cannot move plugin directories.
+        $options['temp_backup'] = array();
+
+        return $options;
+    }
+
+    /**
      * Download latest zip from splitsms.com and replace the current installation (settings preserved in DB).
      */
     public static function handle_reinstall() {
@@ -215,6 +246,10 @@ class SplitSMS_Install {
      */
     public static function admin_notices() {
         if (!current_user_can('activate_plugins')) {
+            return;
+        }
+
+        if (!(defined('SPLITSMS_ENABLE_CUSTOM_UPDATER') && SPLITSMS_ENABLE_CUSTOM_UPDATER)) {
             return;
         }
 

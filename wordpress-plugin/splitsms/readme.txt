@@ -20,10 +20,37 @@ Send transactional SMS from WordPress and WooCommerce using your SplitSMS API ke
 * **Payments** — Paystack / Flutterwave / Stripe via WooCommerce payment hooks (no direct gateway API)
 * Per-feature toggles, editable templates with placeholders, skip reasons in logs
 
+== External services ==
+
+SplitSMS connects to the SplitSMS API to send SMS and synchronize status/log data.
+
+Service endpoints used:
+* `https://www.splitsms.com/api/v1/sms/send` — send SMS
+* `https://www.splitsms.com/api/v1/account/status` and `https://www.splitsms.com/api/v1/balance` — account/balance checks
+* `https://www.splitsms.com/api/v1/sender-ids` — sender ID lookup
+* `https://www.splitsms.com/api/v1/messages/{id}` — delivery status sync
+* `https://www.splitsms.com/api/v1/wordpress/connect` — optional site connection metadata sync
+* `https://www.splitsms.com/api/v1/wordpress/logs` — optional cloud log sync
+
+Data sent to SplitSMS can include:
+* Recipient phone numbers
+* SMS message text and sender ID
+* Event/source labels (for example order status event)
+* Delivery status identifiers (for synced messages)
+* Site metadata when connection sync is enabled (site URL, site name, WordPress version, plugin version, PHP version)
+
+Data stored locally by this plugin:
+* SplitSMS settings/options
+* SMS activity logs in plugin tables (`splitsms_logs`, `splitsms_reminders`)
+
+Cloud sync behavior:
+* If an API key is configured, SplitSMS can sync selected logs and connection metadata to your SplitSMS account dashboard.
+* Site owners are responsible for consent, lawful basis, and retention settings for phone number processing.
+
 == Installation ==
 
 1. Install via Plugins → Add New → Upload `splitsms.zip` from splitsms.com (do not rename the zip).
-2. If WordPress says the folder already exists: open **SplitSMS → Settings** and click **Replace from splitsms.com**, or delete SplitSMS under Plugins first, then upload again.
+2. If WordPress says the folder already exists, update from WordPress plugin update flow or delete SplitSMS under Plugins first, then upload again.
 3. Activate the plugin.
 4. Open the **SplitSMS** menu in wp-admin.
 5. Enter your API key from the SplitSMS dashboard (Settings → SplitSMS).
@@ -44,6 +71,14 @@ The billing phone on the order (or shipping phone, custom meta key, or user meta
 = How do I add SMS to a JetFormBuilder form? =
 
 Connect SplitSMS, then add **SplitSMS Notification** under Post-submit Actions / Notification Settings — in JetFormBuilder block forms or JetEngine → Forms (legacy).
+
+== Privacy ==
+
+This plugin integrates with WordPress privacy tools.
+
+* It registers privacy policy helper content via `wp_add_privacy_policy_content()`.
+* You should describe why phone numbers and message content are processed, your retention period, and any third-party transfer obligations in your site privacy policy.
+* Removing the plugin via Plugins → Delete removes SplitSMS plugin data from your database.
 
 == Changelog ==
 

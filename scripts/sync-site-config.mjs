@@ -21,6 +21,7 @@ const versionedPath =
   );
 const versionedDownloadUrl = `${siteUrl}${versionedPath}`;
 const latestDownloadUrl = `${siteUrl}${wp.downloadPath}`;
+const versionedZipFilename = versionedPath.split("/").filter(Boolean).pop() || `SplitSMS-v${wp.version}.zip`;
 
 function extractChangelog(readmePath, targetVersion) {
   if (!existsSync(readmePath)) {
@@ -61,6 +62,7 @@ define('SPLITSMS_PLUGIN_DOWNLOAD_URL', '${versionedDownloadUrl}');
 define('SPLITSMS_PLUGIN_DOWNLOAD_LATEST_URL', '${latestDownloadUrl}');
 define('SPLITSMS_UPDATE_CHECK_URL', '${siteUrl}${wp.updateCheckPath}');
 define('SPLITSMS_PLUGIN_VERSION', '${wp.version}');
+define('SPLITSMS_ENABLE_CUSTOM_UPDATER', false);
 `;
 
 writeFileSync(join(root, "wordpress-plugin/splitsms/includes/splitsms-config.php"), phpConfig);
@@ -90,7 +92,7 @@ const versionManifest = {
   homepage: siteUrl,
   download_url: versionedDownloadUrl,
   download_url_latest: latestDownloadUrl,
-  download_filename: `splitsms-${wp.version}.zip`,
+  download_filename: versionedZipFilename,
   requires: "6.0",
   tested: "6.7",
   requires_php: "7.4",
@@ -115,9 +117,22 @@ if (existsSync(postmanPath)) {
 
 // Zip plugin — WordPress expects splitsms/splitsms.php inside the archive (single top-level folder).
 const pluginDir = join(root, "wordpress-plugin/splitsms");
-const versionedZip = join(publicWpDir, `splitsms-${wp.version}.zip`);
+const versionedZip = join(publicWpDir, versionedZipFilename);
 const latestZip = join(publicWpDir, "splitsms.zip");
-const SKIP_DIRS = new Set(["node_modules", ".git"]);
+const SKIP_DIRS = new Set(["node_modules", ".git", "src", ".github", ".vscode", "tests", "test"]);
+const SKIP_FILES = new Set([
+  ".gitignore",
+  ".babelrc",
+  "package.json",
+  "package-lock.json",
+  "webpack.config.js",
+  "composer.json",
+  "composer.lock",
+  "phpunit.xml",
+  "phpcs.xml",
+  "phpcs.xml.dist",
+  "class-splitsms-updater.php",
+]);
 const stagingDir = join(root, ".tmp-plugin-zip/splitsms");
 
 function copyPluginFiltered(src, dest) {
@@ -129,6 +144,7 @@ function copyPluginFiltered(src, dest) {
       if (SKIP_DIRS.has(entry.name)) continue;
       copyPluginFiltered(from, to);
     } else {
+      if (SKIP_FILES.has(entry.name)) continue;
       cpSync(from, to);
     }
   }
@@ -181,9 +197,36 @@ try {
 
   for (const file of readdirSync(publicWpDir)) {
     if (
-      file.startsWith("splitsms-") &&
+      /^splitsms-.*\.zip$/i.test(file) &&
       file.endsWith(".zip") &&
-      file !== `splitsms-${wp.version}.zip`
+      file !== versionedZipFilename
+    ) {
+      unlinkSync(join(publicWpDir, file));
+      console.log("Removed stale zip:", file);
+      continue;
+    }
+    if (
+      /^splitsms-v.*\.zip$/i.test(file) &&
+      file.endsWith(".zip") &&
+      file !== versionedZipFilename
+    ) {
+      unlinkSync(join(publicWpDir, file));
+      console.log("Removed stale zip:", file);
+      continue;
+    }
+    if (
+      /^splitsms-v?\d.*\.zip$/i.test(file) &&
+      file.endsWith(".zip") &&
+      file !== versionedZipFilename
+    ) {
+      unlinkSync(join(publicWpDir, file));
+      console.log("Removed stale zip:", file);
+      continue;
+    }
+    if (
+      /^SplitSMS-v.*\.zip$/i.test(file) &&
+      file.endsWith(".zip") &&
+      file !== versionedZipFilename
     ) {
       unlinkSync(join(publicWpDir, file));
       console.log("Removed stale zip:", file);

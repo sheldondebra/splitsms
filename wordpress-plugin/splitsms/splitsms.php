@@ -9,6 +9,7 @@
  * Author:            SplitSMS
  * License:           GPL v2 or later
  * Text Domain:       splitsms
+ * Domain Path:       /languages
  */
 
 if (!defined('ABSPATH')) {
@@ -85,7 +86,10 @@ $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/integrations/class-s
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-woocommerce.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-wordpress.php');
 $bootstrap_ok = $bootstrap_ok && splitsms_require('admin/class-splitsms-admin.php');
-$bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-updater.php');
+$custom_updater_enabled = defined('SPLITSMS_ENABLE_CUSTOM_UPDATER') && SPLITSMS_ENABLE_CUSTOM_UPDATER;
+if ($custom_updater_enabled) {
+    $bootstrap_ok = $bootstrap_ok && splitsms_require('includes/class-splitsms-updater.php');
+}
 
 if (!$bootstrap_ok) {
     return;
@@ -122,7 +126,9 @@ function splitsms_init() {
     SplitSMS_Settings::instance();
     SplitSMS_Logger::instance();
     SplitSMS_Admin::instance();
-    SplitSMS_Updater::instance();
+    if (defined('SPLITSMS_ENABLE_CUSTOM_UPDATER') && SPLITSMS_ENABLE_CUSTOM_UPDATER && class_exists('SplitSMS_Updater')) {
+        SplitSMS_Updater::instance();
+    }
     SplitSMS_Plugin_Status::register_admin_notices();
     SplitSMS_Reminders::register_cron_hooks();
 
@@ -142,6 +148,34 @@ function splitsms_init() {
     }
 }
 add_action('plugins_loaded', 'splitsms_init');
+
+/**
+ * Load plugin translations.
+ */
+function splitsms_load_textdomain() {
+    load_plugin_textdomain('splitsms', false, dirname(plugin_basename(__FILE__)) . '/languages');
+}
+add_action('plugins_loaded', 'splitsms_load_textdomain', 5);
+
+/**
+ * Add privacy policy guidance in wp-admin.
+ */
+function splitsms_add_privacy_policy_content() {
+    if (!function_exists('wp_add_privacy_policy_content')) {
+        return;
+    }
+
+    $content = '<p>' . esc_html__('SplitSMS sends SMS notifications through the SplitSMS API when you enable integrations.', 'splitsms') . '</p>';
+    $content .= '<p>' . esc_html__('Data sent to SplitSMS may include recipient phone numbers, message content, event names, delivery status, and technical metadata (site URL, WordPress version, plugin version, PHP version) when API connection/cloud sync is enabled.', 'splitsms') . '</p>';
+    $content .= '<p>' . esc_html__('SplitSMS stores local delivery logs in your WordPress database. If you uninstall SplitSMS from Plugins > Delete, plugin logs/settings are removed by the plugin uninstall routine.', 'splitsms') . '</p>';
+    $content .= '<p>' . esc_html__('Review your legal requirements for SMS consent, retention, and international data transfer before enabling automated messaging.', 'splitsms') . '</p>';
+
+    wp_add_privacy_policy_content(
+        __('SplitSMS', 'splitsms'),
+        wp_kses_post($content)
+    );
+}
+add_action('admin_init', 'splitsms_add_privacy_policy_content');
 
 /**
  * Declare compatibility with WooCommerce HPOS (custom order tables).

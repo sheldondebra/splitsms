@@ -118,12 +118,14 @@ class SplitSMS_Admin {
             return;
         }
 
-        if (isset($_POST['splitsms_save']) && isset($_GET['page']) && in_array($_GET['page'], array('splitsms-settings', 'splitsms-integrations', 'splitsms-crocoblock'), true)) {
+        $page_raw = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+
+        if (isset($_POST['splitsms_save']) && '' !== $page_raw && in_array($page_raw, array('splitsms-settings', 'splitsms-integrations', 'splitsms-crocoblock'), true)) {
             check_admin_referer('splitsms_settings');
             $input = isset($_POST['splitsms']) && is_array($_POST['splitsms'])
                 ? wp_unslash($_POST['splitsms'])
                 : array();
-            $page = sanitize_text_field(wp_unslash($_GET['page']));
+            $page = $page_raw;
             $scope = 'settings';
             if ('splitsms-integrations' === $page) {
                 $scope = 'integrations';
@@ -135,7 +137,7 @@ class SplitSMS_Admin {
             exit;
         }
 
-        if (isset($_POST['splitsms_save_forms']) && isset($_GET['page']) && 'splitsms-forms' === $_GET['page']) {
+        if (isset($_POST['splitsms_save_forms']) && 'splitsms-forms' === $page_raw) {
             check_admin_referer('splitsms_forms');
             $input = isset($_POST['splitsms_form_rules']) && is_array($_POST['splitsms_form_rules'])
                 ? wp_unslash($_POST['splitsms_form_rules'])
@@ -146,7 +148,7 @@ class SplitSMS_Admin {
             exit;
         }
 
-        if (isset($_GET['splitsms_remove_key']) && isset($_GET['page']) && 'splitsms-settings' === $_GET['page']) {
+        if (isset($_GET['splitsms_remove_key']) && 'splitsms-settings' === $page_raw) {
             check_admin_referer('splitsms_remove_key');
             SplitSMS_Settings::instance()->clear_api_key();
             wp_safe_redirect(add_query_arg(array('page' => 'splitsms-settings', 'removed' => '1'), admin_url('admin.php')));
@@ -414,9 +416,10 @@ class SplitSMS_Admin {
             }
             if (isset($_GET['error'])) {
                 $msg = isset($_GET['msg']) ? sanitize_text_field(wp_unslash($_GET['msg'])) : '';
-                if ('missing' === $_GET['error']) {
+                $error_code = sanitize_key(wp_unslash($_GET['error']));
+                if ('missing' === $error_code) {
                     $msg = __('Phone and message are required.', 'splitsms');
-                } elseif ('send' === $_GET['error'] && '' === $msg) {
+                } elseif ('send' === $error_code && '' === $msg) {
                     $msg = __('Send failed.', 'splitsms');
                 }
                 if ('' !== $msg) {
@@ -705,7 +708,7 @@ class SplitSMS_Admin {
                     <p><a class="button button-link-delete" href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=splitsms-settings&splitsms_remove_key=1'), 'splitsms_remove_key')); ?>"><?php esc_html_e('Remove API key', 'splitsms'); ?></a></p>
                 <?php endif; ?>
 
-                <?php if (current_user_can('update_plugins')) : ?>
+                <?php if (current_user_can('update_plugins') && defined('SPLITSMS_ENABLE_CUSTOM_UPDATER') && SPLITSMS_ENABLE_CUSTOM_UPDATER) : ?>
                     <p class="splitsms-section-title" style="margin-top:1.5rem;"><?php esc_html_e('Plugin files', 'splitsms'); ?></p>
                     <p>
                         <a class="button" href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=splitsms_reinstall'), 'splitsms_reinstall')); ?>">
@@ -759,7 +762,7 @@ class SplitSMS_Admin {
             </div>
             <div class="splitsms-card">
                 <h2><?php esc_html_e('Update plugin', 'splitsms'); ?></h2>
-                <?php if (!empty($version['is_outdated']) && !empty($version['latest'])) : ?>
+                <?php if ((defined('SPLITSMS_ENABLE_CUSTOM_UPDATER') && SPLITSMS_ENABLE_CUSTOM_UPDATER) && !empty($version['is_outdated']) && !empty($version['latest'])) : ?>
                     <p class="splitsms-help-update-warn">
                         <strong><?php esc_html_e('Update available:', 'splitsms'); ?></strong>
                         <?php
@@ -771,7 +774,7 @@ class SplitSMS_Admin {
                         ?>
                     </p>
                 <?php else : ?>
-                    <p><?php esc_html_e('Live sites pull updates from splitsms.com automatically. Your API key and settings are kept when you update.', 'splitsms'); ?></p>
+                    <p><?php esc_html_e('Use the WordPress Plugins/Updates screens to install plugin updates. Your settings are kept when you update.', 'splitsms'); ?></p>
                 <?php endif; ?>
                 <ol class="splitsms-steps">
                     <li>
@@ -782,7 +785,7 @@ class SplitSMS_Admin {
                     <li>
                         <?php esc_html_e('Manual install:', 'splitsms'); ?>
                         <a href="<?php echo esc_url($download); ?>" target="_blank" rel="noopener"><?php esc_html_e('Download splitsms.zip', 'splitsms'); ?></a>
-                        <?php esc_html_e('→ Plugins → Add New → Upload (only if auto-update fails).', 'splitsms'); ?>
+                        <?php esc_html_e('→ Plugins → Add New → Upload (only if standard update fails).', 'splitsms'); ?>
                     </li>
                 </ol>
                 <p class="description">

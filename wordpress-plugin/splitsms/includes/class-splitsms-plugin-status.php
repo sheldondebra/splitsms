@@ -17,6 +17,10 @@ class SplitSMS_Plugin_Status {
      * @return array<string, mixed>|null
      */
     public static function remote_manifest($force = false) {
+        if (!(defined('SPLITSMS_ENABLE_CUSTOM_UPDATER') && SPLITSMS_ENABLE_CUSTOM_UPDATER)) {
+            return null;
+        }
+
         if (!$force) {
             $cached = get_transient(self::REMOTE_TRANSIENT);
             if (is_array($cached)) {

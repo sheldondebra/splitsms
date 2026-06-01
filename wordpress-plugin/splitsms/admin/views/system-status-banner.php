@@ -15,11 +15,12 @@ $version = isset($status['version']) && is_array($status['version']) ? $status['
 $env = isset($status['environment']) && is_array($status['environment']) ? $status['environment'] : array();
 $is_outdated = !empty($version['is_outdated']);
 $latest = isset($version['latest']) ? $version['latest'] : null;
+$custom_updater_enabled = defined('SPLITSMS_ENABLE_CUSTOM_UPDATER') && SPLITSMS_ENABLE_CUSTOM_UPDATER;
 $updates_url = isset($status['updates_url']) ? $status['updates_url'] : admin_url('update-core.php');
 $wallet_url = defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/wallet' : '#';
 ?>
 
-<?php if ($is_outdated && $latest) : ?>
+<?php if ($custom_updater_enabled && $is_outdated && $latest) : ?>
     <div class="splitsms-system-alert splitsms-system-alert--update" role="status">
         <div class="splitsms-system-alert__icon dashicons dashicons-update" aria-hidden="true"></div>
         <div class="splitsms-system-alert__body">
@@ -94,8 +95,14 @@ $wallet_url = defined('SPLITSMS_APP_URL') ? SPLITSMS_APP_URL . '/dashboard/walle
             <dd>v<?php echo esc_html($version['installed'] ?? SPLITSMS_VERSION); ?></dd>
         </div>
         <div>
-            <dt><?php esc_html_e('Latest on splitsms.com', 'splitsms'); ?></dt>
-            <dd><?php echo $latest ? 'v' . esc_html($latest) : esc_html__('Could not check', 'splitsms'); ?></dd>
+            <dt><?php echo $custom_updater_enabled ? esc_html__('Latest on splitsms.com', 'splitsms') : esc_html__('Update source', 'splitsms'); ?></dt>
+            <dd>
+                <?php if ($custom_updater_enabled) : ?>
+                    <?php echo $latest ? 'v' . esc_html($latest) : esc_html__('Could not check', 'splitsms'); ?>
+                <?php else : ?>
+                    <?php esc_html_e('WordPress.org plugin updates', 'splitsms'); ?>
+                <?php endif; ?>
+            </dd>
         </div>
         <div class="splitsms-env-details__wide">
             <dt><?php esc_html_e('Site URL', 'splitsms'); ?></dt>

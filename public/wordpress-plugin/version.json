@@ -3,9 +3,9 @@
   "slug": "splitsms",
   "version": "1.6.7",
   "homepage": "https://www.splitsms.com",
-  "download_url": "https://www.splitsms.com/wordpress-plugin/splitsms-1.6.7.zip",
+  "download_url": "https://www.splitsms.com/wordpress-plugin/SplitSMS-v1.6.7.zip",
   "download_url_latest": "https://www.splitsms.com/wordpress-plugin/splitsms.zip",
-  "download_filename": "splitsms-1.6.7.zip",
+  "download_filename": "SplitSMS-v1.6.7.zip",
   "requires": "6.0",
   "tested": "6.7",
   "requires_php": "7.4",
@@ -13,6 +13,6 @@
   "api_docs_url": "https://www.splitsms.com/api-docs",
   "integrations_url": "https://www.splitsms.com/integrations",
   "update_check_url": "https://www.splitsms.com/api/plugin/update",
-  "last_updated": "2026-05-31",
+  "last_updated": "2026-06-01",
   "changelog": "• New: Plugin version check vs splitsms.com when API is connected — update banner, admin notice, and Site details (WordPress + PHP versions)\n• New: SplitSMS dashboard shows when connected sites run an outdated plugin, with WP and PHP versions\n• Improve: Cleaner admin shell — connection status, environment details, and update alerts on every page\n• Improve: Help page — quick start without custom code; point to Forms manager for form SMS"
 }
