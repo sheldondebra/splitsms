@@ -168,6 +168,7 @@ const REQUIRED_ZIP_FILES = [
   "splitsms/includes/class-splitsms-install.php",
   "splitsms/includes/class-splitsms-bootstrap.php",
   "splitsms/includes/class-splitsms-plugin-status.php",
+  "splitsms/includes/integrations/class-splitsms-form-sms-helper.php",
   "splitsms/includes/integrations/class-splitsms-elementor-send-sms-action.php",
   "splitsms/includes/integrations/class-splitsms-jfb-send-sms-action.php",
   "splitsms/admin/views/help-documentation.php",

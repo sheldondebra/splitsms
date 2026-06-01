@@ -94,6 +94,12 @@ class SplitSMS_Forms_Registry {
      * @return array<int, array<string, mixed>>
      */
     private static function discover_cf7() {
+        if (!defined('WPCF7_VERSION')) {
+            return array();
+        }
+        if (!class_exists('SplitSMS_CF7', false) && class_exists('SplitSMS_Bootstrap')) {
+            SplitSMS_Bootstrap::require_file('includes/integrations/class-splitsms-cf7.php');
+        }
         if (!class_exists('SplitSMS_CF7') || !SplitSMS_CF7::is_active()) {
             return array();
         }
@@ -117,6 +123,12 @@ class SplitSMS_Forms_Registry {
      * @return array<int, array<string, mixed>>
      */
     private static function discover_wpforms() {
+        if (!function_exists('wpforms') && !defined('WPFORMS_VERSION')) {
+            return array();
+        }
+        if (!class_exists('SplitSMS_WPForms', false) && class_exists('SplitSMS_Bootstrap')) {
+            SplitSMS_Bootstrap::require_file('includes/integrations/class-splitsms-wpforms.php');
+        }
         if (!class_exists('SplitSMS_WPForms') || !SplitSMS_WPForms::is_active()) {
             return array();
         }

@@ -51,8 +51,11 @@ class SplitSMS_Install {
      * On activation: remove duplicate splitsms-* folders and fix nested installs.
      */
     public static function on_activate() {
-        self::remove_stale_installations();
+        if (!defined('SPLITSMS_PLUGIN_DIR') || !is_readable(SPLITSMS_PLUGIN_DIR . 'splitsms.php')) {
+            return;
+        }
         self::repair_nested_installation();
+        self::remove_stale_installations(false);
     }
 
     /**
@@ -584,7 +587,9 @@ class SplitSMS_Install {
 
         global $wp_filesystem;
         if (empty($wp_filesystem)) {
-            WP_Filesystem();
+            if (!WP_Filesystem()) {
+                return;
+            }
         }
 
         if ($wp_filesystem && $wp_filesystem->exists($dir)) {
