@@ -125,6 +125,7 @@ class SplitSMS_Admin {
                     'testing' => __('Testing connection…', 'splitsms'),
                     'sending' => __('Sending test SMS…', 'splitsms'),
                     'connected' => __('Connected', 'splitsms'),
+                    'confirmDeleteKey' => __('Delete this API key permanently? This cannot be undone.', 'splitsms'),
                     'loadingSenders' => __('Loading sender IDs…', 'splitsms'),
                     'noSenders' => __('No sender IDs found. Register one on SplitSMS.', 'splitsms'),
                     'searchSenders' => __('Search sender IDs…', 'splitsms'),
@@ -176,6 +177,20 @@ class SplitSMS_Admin {
             check_admin_referer('splitsms_remove_key');
             SplitSMS_Settings::instance()->clear_api_key();
             wp_safe_redirect(add_query_arg(array('page' => 'splitsms-settings', 'removed' => '1'), admin_url('admin.php')));
+            exit;
+        }
+
+        if (isset($_GET['splitsms_revoke_key']) && 'splitsms-settings' === $page_raw) {
+            check_admin_referer('splitsms_revoke_key');
+            SplitSMS_Settings::instance()->revoke_api_key();
+            wp_safe_redirect(add_query_arg(array('page' => 'splitsms-settings', 'revoked' => '1'), admin_url('admin.php')));
+            exit;
+        }
+
+        if (isset($_GET['splitsms_restore_key']) && 'splitsms-settings' === $page_raw) {
+            check_admin_referer('splitsms_restore_key');
+            SplitSMS_Settings::instance()->restore_api_key();
+            wp_safe_redirect(add_query_arg(array('page' => 'splitsms-settings', 'restored' => '1'), admin_url('admin.php')));
             exit;
         }
     }
@@ -585,16 +600,27 @@ class SplitSMS_Admin {
         $opts = $s->all();
         $updated = isset($_GET['updated']);
         $removed = isset($_GET['removed']);
+        $revoked = isset($_GET['revoked']);
+        $restored = isset($_GET['restored']);
         $show_api_url = apply_filters(
             'splitsms_show_api_base_url_field',
             SplitSMS_Settings::is_local_wp_site() || (defined('WP_DEBUG') && WP_DEBUG)
         );
         $has_saved_key = '' !== $opts['api_key'];
         $saved_key_valid = $has_saved_key && SplitSMS_Settings::validate_api_key_format($opts['api_key']);
-        $api_connected = $saved_key_valid && SplitSMS_Settings::is_configured();
+        $key_revoked = SplitSMS_Settings::is_yes(isset($opts['api_key_revoked']) ? $opts['api_key_revoked'] : '0');
+        $api_connected = $saved_key_valid && !$key_revoked && SplitSMS_Settings::is_configured();
         $sender_ids = array();
         $sender_ids_error = '';
+        $account = null;
+        $account_error = '';
         if ($api_connected) {
+            $account_result = (new SplitSMS_API())->get_account_status();
+            if (!empty($account_result['ok']) && isset($account_result['account'])) {
+                $account = $account_result['account'];
+            } else {
+                $account_error = isset($account_result['error']) ? $account_result['error'] : '';
+            }
             $sender_result = (new SplitSMS_API())->list_sender_ids();
             if (!empty($sender_result['ok'])) {
                 $sender_ids = $sender_result['items'];
@@ -607,18 +633,25 @@ class SplitSMS_Admin {
         if ($settings_error) {
             delete_transient('splitsms_settings_error');
         }
-        $this->render_shell(__('Settings', 'splitsms'), function () use ($s, $opts, $updated, $removed, $show_api_url, $has_saved_key, $saved_key_valid, $api_connected, $sender_ids, $sender_ids_error, $selected_sender, $settings_error) {
+        $this->render_shell(__('Settings', 'splitsms'), function () use ($s, $opts, $updated, $removed, $revoked, $restored, $show_api_url, $has_saved_key, $saved_key_valid, $key_revoked, $api_connected, $sender_ids, $sender_ids_error, $selected_sender, $settings_error, $account, $account_error) {
             ?>
             <?php if ($settings_error) : ?>
                 <div class="notice notice-error"><p><?php echo esc_html($settings_error); ?></p></div>
             <?php endif; ?>
             <?php if ($updated) : ?><div class="splitsms-notice-inline"><?php esc_html_e('Settings saved. Your integrations and templates were not changed.', 'splitsms'); ?></div><?php endif; ?>
+            <?php if ($revoked) : ?><div class="splitsms-notice-inline"><?php esc_html_e('API key revoked. SMS sending is paused until you restore or replace the key.', 'splitsms'); ?></div><?php endif; ?>
+            <?php if ($restored) : ?><div class="splitsms-notice-inline"><?php esc_html_e('API key restored. SplitSMS connection is active again.', 'splitsms'); ?></div><?php endif; ?>
             <?php if ($removed) : ?><div class="splitsms-notice-inline"><?php esc_html_e('API key removed.', 'splitsms'); ?></div><?php endif; ?>
             <?php if ($has_saved_key && !$saved_key_valid) : ?>
                 <div class="notice notice-warning">
                     <p>
                         <?php esc_html_e('The saved value looks like a key prefix only, not the full secret. The plugin cannot call SplitSMS until you paste the complete key (~56 characters) from when the key was created, or rotate the key in SplitSMS and paste the new secret.', 'splitsms'); ?>
                     </p>
+                </div>
+            <?php endif; ?>
+            <?php if ($has_saved_key && $key_revoked) : ?>
+                <div class="notice notice-warning">
+                    <p><?php esc_html_e('This API key is currently revoked in WordPress. Restore it to resume sending without pasting the key again.', 'splitsms'); ?></p>
                 </div>
             <?php endif; ?>
 
@@ -664,6 +697,9 @@ class SplitSMS_Admin {
                                     <span class="splitsms-status-light splitsms-status-light--ok" aria-hidden="true"></span>
                                     <strong><?php esc_html_e('Connected', 'splitsms'); ?></strong>
                                     <span class="splitsms-api-mask"><?php echo esc_html($s->masked_api_key()); ?></span>
+                                    <button type="button" class="button button-link" id="splitsms-view-key">
+                                        <?php esc_html_e('View saved key', 'splitsms'); ?>
+                                    </button>
                                     <button type="button" class="button button-link" id="splitsms-replace-key">
                                         <?php esc_html_e('Replace key', 'splitsms'); ?>
                                     </button>
@@ -690,7 +726,31 @@ class SplitSMS_Admin {
                             <?php if ($api_connected) : ?>
                                 <p class="description">
                                     <?php esc_html_e('Your API key is saved securely. Click Replace key to paste a new one.', 'splitsms'); ?>
+                                    <?php esc_html_e('Click View saved key if you need to copy it again.', 'splitsms'); ?>
                                     <?php esc_html_e('Scopes: sms.send, wallet.read, sender_ids.read.', 'splitsms'); ?>
+                                </p>
+                                <?php if ($account) : ?>
+                                    <p class="description">
+                                        <?php
+                                        printf(
+                                            /* translators: 1: status 2: SMS credits 3: wallet amount 4: currency */
+                                            esc_html__('Account status: %1$s · SMS credits: %2$s · Wallet: %3$s %4$s', 'splitsms'),
+                                            esc_html(isset($account['status']) ? (string) $account['status'] : 'active'),
+                                            esc_html(number_format_i18n(isset($account['sms_credits']) ? (int) $account['sms_credits'] : 0)),
+                                            esc_html(number_format_i18n(isset($account['wallet_balance']) ? (float) $account['wallet_balance'] : 0, 2)),
+                                            esc_html(isset($account['wallet_currency']) ? (string) $account['wallet_currency'] : 'GHS')
+                                        );
+                                        ?>
+                                    </p>
+                                <?php elseif ($account_error) : ?>
+                                    <p class="description" style="color:#b45309;">
+                                        <?php esc_html_e('Connected with saved key, but account details could not be fetched right now:', 'splitsms'); ?>
+                                        <?php echo esc_html($account_error); ?>
+                                    </p>
+                                <?php endif; ?>
+                            <?php elseif ($has_saved_key && $key_revoked) : ?>
+                                <p class="description">
+                                    <?php esc_html_e('This key is revoked on this WordPress site. Restore it to reconnect instantly, or replace/delete it.', 'splitsms'); ?>
                                 </p>
                             <?php elseif ($has_saved_key && $saved_key_valid) : ?>
                                 <p class="description"><?php esc_html_e('Full key is saved. Click Show to reveal the complete secret, or paste a new key to replace.', 'splitsms'); ?></p>
@@ -752,7 +812,14 @@ class SplitSMS_Admin {
                 </p>
                 <?php submit_button(__('Save settings', 'splitsms')); ?>
                 <?php if ('' !== $opts['api_key']) : ?>
-                    <p><a class="button button-link-delete" href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=splitsms-settings&splitsms_remove_key=1'), 'splitsms_remove_key')); ?>"><?php esc_html_e('Remove API key', 'splitsms'); ?></a></p>
+                    <p>
+                        <?php if (!$key_revoked) : ?>
+                            <a class="button" href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=splitsms-settings&splitsms_revoke_key=1'), 'splitsms_revoke_key')); ?>"><?php esc_html_e('Revoke API key (pause sending)', 'splitsms'); ?></a>
+                        <?php else : ?>
+                            <a class="button" href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=splitsms-settings&splitsms_restore_key=1'), 'splitsms_restore_key')); ?>"><?php esc_html_e('Restore revoked key', 'splitsms'); ?></a>
+                        <?php endif; ?>
+                        <a class="button button-link-delete" id="splitsms-delete-key" href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=splitsms-settings&splitsms_remove_key=1'), 'splitsms_remove_key')); ?>"><?php esc_html_e('Delete key permanently', 'splitsms'); ?></a>
+                    </p>
                 <?php endif; ?>
 
                 <?php if (current_user_can('update_plugins')) : ?>

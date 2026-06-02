@@ -89,6 +89,7 @@ class SplitSMS_Settings {
             'api_base_url' => $app_url,
             'api_key' => '',
             'api_key_suffix' => '',
+            'api_key_revoked' => '0',
             'sender_id' => 'SplitSMS',
             'country_code' => 'GH',
             'admin_phone' => '',
@@ -203,6 +204,7 @@ class SplitSMS_Settings {
     public static function is_configured() {
         $s = self::instance();
         return self::is_yes($s->get('enabled'))
+            && !self::is_yes($s->get('api_key_revoked'))
             && '' !== trim($s->get('api_base_url'))
             && '' !== trim($s->get('api_key'));
     }
@@ -617,6 +619,7 @@ class SplitSMS_Settings {
                 if ('' === $value && isset($this->options['api_key'])) {
                     $clean[$key] = $this->options['api_key'];
                     $clean['api_key_suffix'] = isset($this->options['api_key_suffix']) ? $this->options['api_key_suffix'] : '';
+                    $clean['api_key_revoked'] = isset($this->options['api_key_revoked']) ? $this->options['api_key_revoked'] : '0';
                 } elseif ('' !== $value && !self::validate_api_key_format($value)) {
                     set_transient(
                         'splitsms_settings_error',
@@ -627,9 +630,11 @@ class SplitSMS_Settings {
                     );
                     $clean[$key] = isset($this->options['api_key']) ? $this->options['api_key'] : '';
                     $clean['api_key_suffix'] = isset($this->options['api_key_suffix']) ? $this->options['api_key_suffix'] : '';
+                    $clean['api_key_revoked'] = isset($this->options['api_key_revoked']) ? $this->options['api_key_revoked'] : '0';
                 } else {
                     $clean[$key] = $value;
                     $clean['api_key_suffix'] = strlen($value) >= 4 ? substr($value, -4) : '';
+                    $clean['api_key_revoked'] = '0';
                 }
             } elseif (strpos($key, '_tpl') !== false || strpos($key, 'tpl_') !== false || 'cb_rules' === $key || in_array($key, array('cf7_message', 'wpforms_message', 'elementor_message'), true)) {
                 $clean[$key] = sanitize_textarea_field($value);
@@ -642,6 +647,7 @@ class SplitSMS_Settings {
 
         if ('' !== trim((string) ($clean['api_key'] ?? ''))) {
             $clean['enabled'] = '1';
+            $clean['api_key_revoked'] = '0';
         }
 
         if ('settings' === $scope && isset($clean['sender_id']) && '' !== trim((string) $clean['sender_id'])) {
@@ -707,7 +713,32 @@ class SplitSMS_Settings {
     public function clear_api_key() {
         $this->options['api_key'] = '';
         $this->options['api_key_suffix'] = '';
+        $this->options['api_key_revoked'] = '0';
         $this->options['enabled'] = '0';
+        update_option(self::OPTION_KEY, $this->options);
+    }
+
+    /**
+     * Disable API usage but keep the key for later restore.
+     */
+    public function revoke_api_key() {
+        if ('' === trim((string) $this->get('api_key'))) {
+            return;
+        }
+        $this->options['api_key_revoked'] = '1';
+        $this->options['enabled'] = '0';
+        update_option(self::OPTION_KEY, $this->options);
+    }
+
+    /**
+     * Restore a previously revoked key.
+     */
+    public function restore_api_key() {
+        if (!self::validate_api_key_format((string) $this->get('api_key'))) {
+            return;
+        }
+        $this->options['api_key_revoked'] = '0';
+        $this->options['enabled'] = '1';
         update_option(self::OPTION_KEY, $this->options);
     }
 
@@ -718,6 +749,9 @@ class SplitSMS_Settings {
         $s = self::instance();
         if ('' === trim($s->get('api_key'))) {
             return __('API key is missing. Paste your key and click Save settings, then Test connection.', 'splitsms');
+        }
+        if (self::is_yes($s->get('api_key_revoked'))) {
+            return __('API key is revoked. Restore it in Settings or paste a new key to reconnect.', 'splitsms');
         }
         if (!self::is_yes($s->get('enabled'))) {
             return __('Plugin is disabled. Save settings again to re-enable, or update to the latest plugin version.', 'splitsms');

@@ -237,8 +237,22 @@
   }
 
   var replaceKeyBtn = qs('#splitsms-replace-key');
+  var viewKeyBtn = qs('#splitsms-view-key');
   var apiKeyRow = qs('#splitsms-api-key-row');
   var apiConnected = qs('#splitsms-api-connected');
+  if (viewKeyBtn && apiKeyRow) {
+    viewKeyBtn.addEventListener('click', function () {
+      apiKeyRow.hidden = false;
+      var input = getApiKeyInput();
+      var value = resolveApiKeyValue();
+      if (input && value) {
+        input.type = 'text';
+        input.value = value;
+        input.setAttribute('readonly', 'readonly');
+        input.focus();
+      }
+    });
+  }
   if (replaceKeyBtn && apiKeyRow) {
     replaceKeyBtn.addEventListener('click', function () {
       apiKeyRow.hidden = false;
@@ -250,7 +264,21 @@
       if (input) {
         input.focus();
         input.value = '';
+        input.type = 'password';
+        input.removeAttribute('readonly');
         input.dataset.userEdited = '1';
+      }
+    });
+  }
+
+  var deleteKeyBtn = qs('#splitsms-delete-key');
+  if (deleteKeyBtn) {
+    deleteKeyBtn.addEventListener('click', function (e) {
+      var msg = (window.SplitSMSAdmin && SplitSMSAdmin.strings && SplitSMSAdmin.strings.confirmDeleteKey)
+        ? SplitSMSAdmin.strings.confirmDeleteKey
+        : 'Delete this API key permanently? This cannot be undone.';
+      if (!window.confirm(msg)) {
+        e.preventDefault();
       }
     });
   }
