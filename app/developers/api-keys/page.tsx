@@ -10,16 +10,45 @@ import { cn } from "@/lib/utils";
 export default async function DevelopersApiKeysPage({
   searchParams,
 }: {
-  searchParams: Promise<{ created?: string }>;
+  searchParams: Promise<{ created?: string; keyId?: string; revoked?: string; restored?: string; deleted?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
-  const { created } = await searchParams;
+  const { created, keyId, revoked, restored, deleted } = await searchParams;
 
-  const keys = await prisma.apiKey.findMany({
-    where: { userId: session.userId },
-    orderBy: { createdAt: "desc" },
-  });
+  const [keys, wpSites] = await Promise.all([
+    prisma.apiKey.findMany({
+      where: { userId: session.userId },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.wordPressSite.findMany({
+      where: { userId: session.userId, status: "connected" },
+      select: {
+        apiKeyId: true,
+        siteUrl: true,
+        siteName: true,
+        pluginVersion: true,
+        lastSyncAt: true,
+      },
+      orderBy: { lastSyncAt: "desc" },
+    }),
+  ]);
+
+  const sitesByKeyId = new Map<
+    string,
+    { siteUrl: string; siteName: string | null; pluginVersion: string | null; lastSyncAt: string | null }[]
+  >();
+  for (const site of wpSites) {
+    if (!site.apiKeyId) continue;
+    const list = sitesByKeyId.get(site.apiKeyId) ?? [];
+    list.push({
+      siteUrl: site.siteUrl,
+      siteName: site.siteName,
+      pluginVersion: site.pluginVersion,
+      lastSyncAt: site.lastSyncAt?.toISOString() ?? null,
+    });
+    sitesByKeyId.set(site.apiKeyId, list);
+  }
 
   const rows = keys.map((k) => ({
     id: k.id,
@@ -31,13 +60,14 @@ export default async function DevelopersApiKeysPage({
     permissions: k.permissions,
     lastUsedAt: k.lastUsedAt?.toISOString() ?? null,
     createdAt: k.createdAt.toISOString(),
+    connectedSites: sitesByKeyId.get(k.id) ?? [],
   }));
 
   return (
     <AppPage wide>
       <PageHeader
         title="API Keys"
-        description="Create, rotate, and revoke keys. Filter active or revoked keys below."
+        description="Create keys, view saved secrets in this browser, revoke or restore, replace secrets, and see WordPress sites using each key."
         icon={Key}
         mobileDescription="Manage keys — view active and revoked."
         actions={
@@ -50,7 +80,12 @@ export default async function DevelopersApiKeysPage({
           </Link>
         }
       />
-      <ApiKeysManager keys={rows} createdFromUrl={created} />
+      <ApiKeysManager
+        keys={rows}
+        createdFromUrl={created}
+        createdKeyId={keyId}
+        flash={{ revoked: !!revoked, restored: !!restored, deleted: !!deleted }}
+      />
     </AppPage>
   );
 }
