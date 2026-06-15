@@ -2,6 +2,11 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
+  BarChart3,
+  FormInput,
+  QrCode,
+  Send,
+  Users,
   ArrowRight,
   BadgeCheck,
   ChevronDown,
@@ -11,7 +16,6 @@ import {
   Link2,
   Megaphone,
   Puzzle,
-  Send,
   ShoppingBag,
   UserPlus,
   Wallet,
@@ -74,6 +78,39 @@ const useCases = [
     title: "Connect API",
     desc: "Embed SMS in your SaaS — sub-accounts, credits, and sender IDs.",
     icon: Layers,
+  },
+] as const;
+
+const smartFormFeatures = [
+  {
+    title: "Custom form builder",
+    desc: "Phone numbers, emails, dropdowns, checkboxes, dates, and more.",
+    icon: FormInput,
+  },
+  {
+    title: "Short links & QR codes",
+    desc: "Share forms anywhere with generated links and downloadable QR codes.",
+    icon: QrCode,
+  },
+  {
+    title: "Website & WordPress embed",
+    desc: "Embed on landing pages and WordPress with iframe or shortcode.",
+    icon: Puzzle,
+  },
+  {
+    title: "SMS automation",
+    desc: "Send instant confirmation messages when someone submits a form.",
+    icon: Send,
+  },
+  {
+    title: "Contact group sync",
+    desc: "Save respondents into contact groups for future SMS campaigns.",
+    icon: Users,
+  },
+  {
+    title: "Advanced analytics",
+    desc: "Track views, submissions, QR scans, shares, and conversion rate.",
+    icon: BarChart3,
   },
 ] as const;
 
@@ -350,6 +387,67 @@ export function HomePageContent() {
             >
               View pricing before you top up
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Smart Forms */}
+      <section className="border-t bg-muted/25 py-16 md:py-24" aria-labelledby="smart-forms">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="max-w-3xl">
+            <p className="text-sm font-medium text-primary">New feature</p>
+            <h2
+              id="smart-forms"
+              className="mt-2 text-2xl font-bold tracking-tight md:text-3xl lg:text-4xl"
+            >
+              Introducing SplitSMS Smart Forms
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
+              Create beautiful forms, collect contacts, and send instant SMS replies automatically.
+            </p>
+            <p className="mt-3 text-muted-foreground leading-relaxed">
+              Build custom forms for registrations, feedback, surveys, events, orders, and lead
+              capture. Share with a short link, QR code, or website embed. Every submission can be
+              saved into a contact group and followed up with instant SMS automation.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-4">
+              <Link
+                href="/dashboard/forms/create"
+                className={cn(buttonVariants({ size: "lg" }), "font-semibold gap-2")}
+              >
+                Create your first form
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/dashboard/forms"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "lg" }),
+                  "font-semibold",
+                )}
+              >
+                Learn more
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {smartFormFeatures.map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <div
+                  key={feature.title}
+                  className="rounded-xl border bg-background p-6 shadow-sm"
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </span>
+                  <h3 className="mt-4 font-semibold">{feature.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                    {feature.desc}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

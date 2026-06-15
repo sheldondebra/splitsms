@@ -203,6 +203,10 @@ model User {
   memberAccount    MemberAccount?
   connectCustomersAsPartner ConnectCustomer[] @relation("ConnectPartner")
   connectCustomerProfile    ConnectCustomer?  @relation("ConnectCustomer")
+  smartForms                SmartForm[]
+  smartFormResponses        SmartFormResponse[]
+  smartFormAnalyticsEvents  SmartFormAnalyticsEvent[]
+  smartFormExports          SmartFormExport[]
 }
 
 model MemberAccount {
@@ -549,6 +553,7 @@ model ContactGroup {
   updatedAt   DateTime             @updatedAt
   members     ContactGroupMember[]
   campaigns   Campaign[]
+  smartForms  SmartForm[]
 }
 
 model SmsTemplate {
@@ -949,4 +954,208 @@ model WordPressLog {
   @@index([userId, createdAt])
   @@index([siteId, createdAt])
   @@index([status])
+}
+
+enum SmartFormStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum SmartFormFieldType {
+  TEXT
+  TEXTAREA
+  PHONE
+  EMAIL
+  NUMBER
+  SELECT
+  RADIO
+  CHECKBOX
+  DATE
+  TIME
+  CONSENT
+  SECTION
+  DIVIDER
+}
+
+enum SmartFormAnalyticsEventType {
+  VIEW
+  UNIQUE_VIEW
+  SHORTLINK_CLICK
+  OPEN
+  SHARE
+  QR_SCAN
+  SUBMIT
+  EXPORT
+  EMBED_LOAD
+  WORDPRESS_LOAD
+  SMS_SENT
+  SMS_FAILED
+  CONTACT_SAVED
+}
+
+enum SmartFormContactSaveStatus {
+  PENDING
+  SAVED
+  SKIPPED
+  FAILED
+}
+
+enum SmartFormSmsStatus {
+  NONE
+  SENT
+  FAILED
+  QUEUED
+}
+
+enum SmartFormExportType {
+  CSV
+  EXCEL
+  PDF
+}
+
+model SmartForm {
+  id                    String         @id @default(cuid())
+  userId                String
+  user                  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                  String
+  slug                  String
+  shortCode             String         @unique
+  description           String?
+  status                SmartFormStatus @default(DRAFT)
+  logoUrl               String?
+  bannerUrl             String?
+  themeSettings         Json?
+  layoutSettings        Json?
+  successSettings       Json?
+  contactGroupId        String?
+  contactGroup          ContactGroup?  @relation(fields: [contactGroupId], references: [id], onDelete: SetNull)
+  saveToContacts        Boolean        @default(false)
+  preventDuplicatePhone Boolean        @default(false)
+  preventDuplicateEmail Boolean        @default(false)
+  captchaEnabled        Boolean        @default(false)
+  startsAt              DateTime?
+  endsAt                DateTime?
+  submissionLimit       Int?
+  publishedAt           DateTime?
+  closedAt              DateTime?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  fields                SmartFormField[]
+  responses             SmartFormResponse[]
+  analyticsEvents       SmartFormAnalyticsEvent[]
+  smsAutomation         SmartFormSmsAutomation?
+  exports               SmartFormExport[]
+
+  @@unique([userId, slug])
+  @@index([userId, status])
+  @@index([userId, createdAt])
+}
+
+model SmartFormField {
+  id              String             @id @default(cuid())
+  formId          String
+  form            SmartForm          @relation(fields: [formId], references: [id], onDelete: Cascade)
+  label           String
+  fieldKey        String
+  fieldType       SmartFormFieldType
+  placeholder     String?
+  helperText      String?
+  defaultValue    String?
+  isRequired      Boolean            @default(false)
+  options         Json?
+  validationRules Json?
+  sortOrder       Int                @default(0)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  answers         SmartFormResponseAnswer[]
+
+  @@unique([formId, fieldKey])
+  @@index([formId, sortOrder])
+}
+
+model SmartFormResponse {
+  id                String                     @id @default(cuid())
+  formId            String
+  form              SmartForm                  @relation(fields: [formId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contactId         String?
+  source            String?
+  deviceType        String?
+  ipHash            String?
+  userAgent         String?
+  referrer          String?
+  submittedAt       DateTime                   @default(now())
+  contactSaveStatus SmartFormContactSaveStatus @default(PENDING)
+  smsStatus         SmartFormSmsStatus         @default(NONE)
+  smsError          String?
+  reviewedAt        DateTime?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  answers           SmartFormResponseAnswer[]
+
+  @@index([formId, submittedAt])
+  @@index([userId, submittedAt])
+}
+
+model SmartFormResponseAnswer {
+  id         String            @id @default(cuid())
+  responseId String
+  response   SmartFormResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  fieldId    String?
+  field      SmartFormField?   @relation(fields: [fieldId], references: [id], onDelete: SetNull)
+  fieldKey   String
+  fieldLabel String
+  value      String
+  createdAt  DateTime          @default(now())
+
+  @@index([responseId])
+}
+
+model SmartFormAnalyticsEvent {
+  id         String                      @id @default(cuid())
+  formId     String
+  form       SmartForm                   @relation(fields: [formId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventType  SmartFormAnalyticsEventType
+  source     String?
+  deviceType String?
+  referrer   String?
+  ipHash     String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime                    @default(now())
+
+  @@index([formId, eventType, createdAt])
+  @@index([userId, createdAt])
+}
+
+model SmartFormSmsAutomation {
+  id                        String    @id @default(cuid())
+  formId                    String    @unique
+  form                      SmartForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  sendToRespondent          Boolean   @default(false)
+  sendToAdmin               Boolean   @default(false)
+  adminPhone                String?
+  senderId                  String?
+  respondentMessageTemplate String?
+  adminMessageTemplate      String?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+}
+
+model SmartFormExport {
+  id         String              @id @default(cuid())
+  formId     String
+  form       SmartForm           @relation(fields: [formId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exportType SmartFormExportType
+  fileUrl    String?
+  rowCount   Int                 @default(0)
+  createdAt  DateTime            @default(now())
+
+  @@index([formId, createdAt])
 }
