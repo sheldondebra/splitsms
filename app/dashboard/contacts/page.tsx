@@ -125,36 +125,50 @@ export default async function ContactsPage({
       )}
 
       <Tabs defaultValue="list" className="w-full">
-        <TabsList className="tabs-list-mobile w-full h-auto p-1 grid grid-cols-4 gap-1 bg-muted/50 rounded-xl">
-          <TabsTrigger value="list" className="rounded-lg text-xs sm:text-sm gap-1.5 data-[state=active]:shadow-sm">
-            <Users className="h-3.5 w-3.5 hidden sm:inline" />
-            All
+        <TabsList className="tabs-list-mobile w-full !h-auto min-h-11 p-1.5 gap-1.5 grid grid-cols-2 sm:grid-cols-4 bg-muted/50 rounded-xl border border-border/50">
+          <TabsTrigger
+            value="list"
+            className="!h-auto min-h-10 rounded-lg px-3 py-2.5 text-sm font-medium gap-2 data-[state=active]:shadow-sm"
+          >
+            <Users className="h-4 w-4 shrink-0" />
+            <span>All</span>
           </TabsTrigger>
-          <TabsTrigger value="import" className="rounded-lg text-xs sm:text-sm gap-1.5 data-[state=active]:shadow-sm">
-            <Upload className="h-3.5 w-3.5 hidden sm:inline" />
-            Import
+          <TabsTrigger
+            value="import"
+            className="!h-auto min-h-10 rounded-lg px-3 py-2.5 text-sm font-medium gap-2 data-[state=active]:shadow-sm"
+          >
+            <Upload className="h-4 w-4 shrink-0" />
+            <span>Import</span>
           </TabsTrigger>
-          <TabsTrigger value="groups" className="rounded-lg text-xs sm:text-sm gap-1.5 data-[state=active]:shadow-sm">
-            <UsersRound className="h-3.5 w-3.5 hidden sm:inline" />
-            Groups
+          <TabsTrigger
+            value="groups"
+            className="!h-auto min-h-10 rounded-lg px-3 py-2.5 text-sm font-medium gap-2 data-[state=active]:shadow-sm"
+          >
+            <UsersRound className="h-4 w-4 shrink-0" />
+            <span>Groups</span>
           </TabsTrigger>
-          <TabsTrigger value="add" className="rounded-lg text-xs sm:text-sm gap-1.5 data-[state=active]:shadow-sm">
-            <UserPlus className="h-3.5 w-3.5 hidden sm:inline" />
-            Add
+          <TabsTrigger
+            value="add"
+            className="!h-auto min-h-10 rounded-lg px-3 py-2.5 text-sm font-medium gap-2 data-[state=active]:shadow-sm"
+          >
+            <UserPlus className="h-4 w-4 shrink-0" />
+            <span>Add</span>
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="list" className="mt-6">
-          <AppCard className="overflow-visible">
-            <CardContent className="p-4 sm:p-6">
-              <ContactsTable
-                contacts={contacts}
-                groups={groups}
-                total={total}
-                page={page}
-                perPage={perPage}
-                query={filterQuery}
-              />
+          <AppCard className="overflow-hidden border-border/60 shadow-sm">
+            <CardContent className="p-0 sm:p-0">
+              <div className="p-4 sm:p-6">
+                <ContactsTable
+                  contacts={contacts}
+                  groups={groups}
+                  total={total}
+                  page={page}
+                  perPage={perPage}
+                  query={filterQuery}
+                />
+              </div>
             </CardContent>
           </AppCard>
         </TabsContent>

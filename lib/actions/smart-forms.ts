@@ -5,7 +5,7 @@ import { getSession } from "@/lib/auth/session";
 import { getFormTemplate } from "@/lib/smart-forms/templates";
 import { generateUniqueShortCode, generateUniqueSlug } from "@/lib/smart-forms/short-code";
 import { serializeSmartForm } from "@/lib/smart-forms/serialize";
-import { getFieldTypeMeta } from "@/lib/smart-forms/field-meta";
+import { getFieldTypeMeta, toFieldValidationRules } from "@/lib/smart-forms/field-meta";
 import { assertCanCreateSmartForm } from "@/lib/smart-forms/limits";
 import type { SaveBuilderPayload, BuilderField } from "@/lib/smart-forms/types";
 import { revalidatePath } from "next/cache";
@@ -36,17 +36,42 @@ const fieldSchema = z.object({
   isRequired: z.boolean(),
   options: z.array(z.string()),
   sortOrder: z.number().int().min(0),
+  width: z.enum(["full", "half"]).optional(),
+  sectionColumns: z.union([z.literal(1), z.literal(2)]).optional(),
 });
 
 const saveBuilderSchema = z.object({
   name: z.string().min(1).max(120),
   description: z.string().max(2000),
+  bannerUrl: z
+    .string()
+    .max(800_000)
+    .nullable()
+    .optional()
+    .refine(
+      (v) =>
+        !v ||
+        v.startsWith("data:image/") ||
+        v.startsWith("http://") ||
+        v.startsWith("https://") ||
+        v.startsWith("/"),
+      { message: "Invalid banner image." },
+    ),
   themeSettings: z.object({
     primaryColor: z.string().optional(),
     buttonText: z.string().optional(),
     buttonRadius: z.string().optional(),
     backgroundColor: z.string().optional(),
     showBranding: z.boolean().optional(),
+  }),
+  layoutSettings: z.object({
+    welcomeMessage: z.string().max(2000).optional(),
+    bannerPosition: z
+      .object({
+        x: z.number().min(0).max(100),
+        y: z.number().min(0).max(100),
+      })
+      .optional(),
   }),
   successSettings: z.object({
     title: z.string().optional(),
@@ -195,6 +220,7 @@ export async function duplicateSmartFormAction(
       shortCode,
       description: source.description,
       status: "DRAFT",
+      bannerUrl: source.bannerUrl,
       themeSettings: source.themeSettings ?? undefined,
       layoutSettings: source.layoutSettings ?? undefined,
       successSettings: source.successSettings ?? undefined,
@@ -269,7 +295,9 @@ export async function saveSmartFormBuilderAction(
       data: {
         name: payload.name.trim(),
         description: payload.description.trim() || null,
+        bannerUrl: payload.bannerUrl?.trim() || null,
         themeSettings: payload.themeSettings,
+        layoutSettings: payload.layoutSettings,
         successSettings: payload.successSettings,
         saveToContacts: payload.saveToContacts,
         contactGroupId: payload.contactGroupId || null,
@@ -296,6 +324,7 @@ export async function saveSmartFormBuilderAction(
         helperText: field.helperText?.trim() || null,
         isRequired: field.isRequired,
         options: field.options.length > 0 ? field.options : undefined,
+        validationRules: toFieldValidationRules(field),
         sortOrder: field.sortOrder,
       };
 

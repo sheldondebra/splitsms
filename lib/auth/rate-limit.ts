@@ -74,3 +74,51 @@ export async function clearRateLimit(key: string) {
 export function rateLimitKey(scope: string, identifier: string) {
   return `${scope}:${identifier.toLowerCase()}`;
 }
+
+/** Increment a counter and block when max attempts are exceeded within the window. */
+export async function consumeRateLimitSlot(
+  key: string,
+  options: { maxAttempts: number; windowMs: number; lockoutMs?: number },
+): Promise<RateLimitResult> {
+  const lockoutMs = options.lockoutMs ?? LOCKOUT_MS;
+  const row = await authAttemptDelegate().findUnique({ where: { key } });
+  const now = Date.now();
+
+  if (row?.blockedUntil && row.blockedUntil.getTime() > now) {
+    return {
+      allowed: false,
+      retryAfterSec: Math.ceil((row.blockedUntil.getTime() - now) / 1000),
+      reason: "Too many attempts. Try again later.",
+    };
+  }
+
+  if (row) {
+    const windowStart = row.updatedAt.getTime();
+    if (now - windowStart < options.windowMs) {
+      if (row.attempts >= options.maxAttempts) {
+        await authAttemptDelegate().update({
+          where: { key },
+          data: { blockedUntil: new Date(now + lockoutMs) },
+        });
+        return {
+          allowed: false,
+          retryAfterSec: Math.ceil(lockoutMs / 1000),
+          reason: "Too many attempts. Try again later.",
+        };
+      }
+    } else {
+      await authAttemptDelegate().update({
+        where: { key },
+        data: { attempts: 0, blockedUntil: null },
+      });
+    }
+  }
+
+  await authAttemptDelegate().upsert({
+    where: { key },
+    create: { key, attempts: 1 },
+    update: { attempts: { increment: 1 } },
+  });
+
+  return { allowed: true };
+}

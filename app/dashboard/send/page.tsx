@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { getContactsForSendPicker } from "@/lib/contacts/send-picker";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
+import { parseSendToParam } from "@/lib/contacts/send-link";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
 import { SendSmsForm } from "@/components/sms/send-sms-form";
 import { SendPageToasts } from "@/components/sms/send-page-toasts";
@@ -15,7 +16,7 @@ import { buttonVariants } from "@/components/ui/button";
 export default async function SendSmsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; sent?: string; template?: string }>;
+  searchParams: Promise<{ error?: string; sent?: string; template?: string; to?: string; country?: string }>;
 }) {
   const session = await getSession();
   const params = await searchParams;
@@ -79,7 +80,8 @@ export default async function SendSmsPage({
             senderOptions={senderIds.map((s) => ({ value: s.value }))}
             templates={templates}
             initialTemplateId={params.template}
-            defaultCountryCode={user?.countryCode ?? DEFAULT_COUNTRY_CODE}
+            initialRecipients={parseSendToParam(params.to)}
+            defaultCountryCode={params.country ?? user?.countryCode ?? DEFAULT_COUNTRY_CODE}
             contacts={contactPicker.contacts}
             contactGroups={contactPicker.groups}
             totalContacts={contactPicker.totalContacts}

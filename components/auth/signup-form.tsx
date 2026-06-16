@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { initialCountryState } from "@/lib/auth/initial-country-state";
 import { signupAction } from "@/lib/actions/auth";
+import { AuthHoneypot } from "@/components/auth/auth-honeypot";
+import { AuthTurnstile } from "@/components/auth/auth-turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,7 +95,8 @@ function SignupFields({
   onPhoneLocalChange: (v: string) => void;
 }) {
   return (
-    <form action={signupAction} className="space-y-4">
+    <form action={signupAction} className="relative space-y-4">
+      <AuthHoneypot />
       <input type="hidden" name="signupMethod" value={method} />
       <input type="hidden" name="dialCode" value={dialCode} />
 
@@ -194,6 +197,8 @@ function SignupFields({
         <Label htmlFor={`referral-${method}`}>Referral code (optional)</Label>
         <Input id={`referral-${method}`} name="referralCode" placeholder="REF123" />
       </div>
+
+      <AuthTurnstile />
 
       <Button type="submit" className="w-full font-semibold">
         {method === "phone" ? "Sign up with phone" : "Sign up with email"}

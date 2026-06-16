@@ -18,6 +18,7 @@ import {
 
 const productLinks = [
   { href: "/features", label: "SMS features" },
+  { href: "/smart-forms", label: "Smart Forms" },
   { href: "/pricing", label: "SMS pricing" },
   { href: "/blog", label: "Blog" },
   { href: "/signup", label: "Sign up free" },

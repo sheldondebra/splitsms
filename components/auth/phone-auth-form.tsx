@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { initialCountryState } from "@/lib/auth/initial-country-state";
 import { requestPhoneAuthAction } from "@/lib/actions/auth";
+import { AuthHoneypot } from "@/components/auth/auth-honeypot";
+import { AuthTurnstile } from "@/components/auth/auth-turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,7 +39,8 @@ export function PhoneAuthForm({
     (intent === "signup" ? "Continue — send code" : "Continue with phone");
 
   return (
-    <form action={requestPhoneAuthAction} className="space-y-5">
+    <form action={requestPhoneAuthAction} className="relative space-y-5">
+      <AuthHoneypot />
       <input type="hidden" name="intent" value={intent} />
       <input type="hidden" name="dialCode" value={dialCode} />
 
@@ -74,6 +77,8 @@ export function PhoneAuthForm({
           We&apos;ll text you a 6-digit code. No password needed.
         </p>
       </div>
+
+      {intent === "signup" ? <AuthTurnstile /> : null}
 
       <Button type="submit" className="w-full h-11 font-semibold gap-2 text-base">
         <Phone className="h-4 w-4" />

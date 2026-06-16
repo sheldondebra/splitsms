@@ -46,6 +46,11 @@ import {
 import { logAuthEvent } from "@/lib/auth/audit";
 import { getMemberAccountForUser, isMemberSuspended } from "@/lib/admin/member-account";
 import { assertTenantLoginAllowed } from "@/lib/auth/tenant-login";
+import {
+  assertOtpRequestAllowed,
+  assertSignupAllowed,
+  readSignupGuardFields,
+} from "@/lib/auth/signup-guard";
 import { redirect } from "next/navigation";
 import type { OtpPurpose, UserRole } from "@/lib/generated/prisma/client";
 
@@ -121,10 +126,23 @@ async function finishLogin(user: {
   redirect("/dashboard");
 }
 
+async function grantWelcomeCredits(userId: string) {
+  await prisma.smsCredit.updateMany({
+    where: { userId, balance: 0 },
+    data: { balance: 5 },
+  });
+}
+
 /** Unified phone login / signup — sends OTP, creates account if new */
 export async function requestPhoneAuthAction(formData: FormData) {
   const intent = String(formData.get("intent") ?? "login");
   const returnPath = intent === "signup" ? "/signup" : "/login";
+  const guardFields = readSignupGuardFields(formData);
+
+  const otpGuard = await assertOtpRequestAllowed(guardFields);
+  if (!otpGuard.ok) {
+    authRedirect(returnPath, { error: "rate_limit" });
+  }
 
   const parsed = phoneAuthSchema.safeParse({
     phone: formData.get("phone"),
@@ -154,6 +172,11 @@ export async function requestPhoneAuthAction(formData: FormData) {
   let purposeParam = "login";
 
   if (!user) {
+    const signupGuard = await assertSignupAllowed(guardFields);
+    if (!signupGuard.ok) {
+      authRedirect(returnPath, { error: "rate_limit" });
+    }
+
     const passwordHash = await hashPassword(generateOtpOnlyPassword());
     user = await prisma.user.create({
       data: {
@@ -162,7 +185,7 @@ export async function requestPhoneAuthAction(formData: FormData) {
         countryCode,
         passwordHash,
         wallet: { create: { currency: countryCode === "GH" ? "GHS" : "USD" } },
-        smsCredit: { create: { balance: 5 } },
+        smsCredit: { create: { balance: 0 } },
         memberAccount: { create: {} },
       },
     });
@@ -212,6 +235,18 @@ export async function requestEmailAuthAction(formData: FormData) {
   const returnPath = intent === "signup" ? "/signup" : "/login";
 
   if (intent === "signup") {
+    const guardFields = readSignupGuardFields(formData);
+
+    const otpGuard = await assertOtpRequestAllowed(guardFields);
+    if (!otpGuard.ok) {
+      authRedirect(returnPath, { error: "rate_limit", method: "email" });
+    }
+
+    const signupGuard = await assertSignupAllowed(guardFields);
+    if (!signupGuard.ok) {
+      authRedirect(returnPath, { error: "rate_limit", method: "email" });
+    }
+
     const parsed = emailAuthSignupSchema.safeParse({
       email: formData.get("email"),
       phone: formData.get("phone"),
@@ -260,7 +295,7 @@ export async function requestEmailAuthAction(formData: FormData) {
         countryCode,
         passwordHash,
         wallet: { create: { currency: countryCode === "GH" ? "GHS" : "USD" } },
-        smsCredit: { create: { balance: 5 } },
+        smsCredit: { create: { balance: 0 } },
         memberAccount: { create: {} },
       },
     });
@@ -411,6 +446,17 @@ export async function signupAction(formData: FormData) {
   const signupMethod = String(formData.get("signupMethod") ?? "phone");
   const dialCode = String(formData.get("dialCode") ?? "+233");
   const countryCode = String(formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE).toUpperCase();
+  const guardFields = readSignupGuardFields(formData);
+
+  const otpGuard = await assertOtpRequestAllowed(guardFields);
+  if (!otpGuard.ok) {
+    authRedirect("/signup", { error: "rate_limit", method: signupMethod });
+  }
+
+  const signupGuard = await assertSignupAllowed(guardFields);
+  if (!signupGuard.ok) {
+    authRedirect("/signup", { error: "rate_limit", method: signupMethod });
+  }
 
   const parsed = signupSchema.safeParse({
     signupMethod,
@@ -470,7 +516,7 @@ export async function signupAction(formData: FormData) {
       referralCode,
       email: email || undefined,
       wallet: { create: { currency: countryCode === "GH" ? "GHS" : "USD" } },
-      smsCredit: { create: { balance: 5 } },
+      smsCredit: { create: { balance: 0 } },
       memberAccount: { create: {} },
     },
   });
@@ -561,6 +607,10 @@ export async function verifyOtpAction(formData: FormData) {
     where: { id: user!.id },
     data: { isVerified: true, failedLoginCount: 0, lockedUntil: null },
   });
+
+  if (otpPurpose === "SIGNUP_VERIFY") {
+    await grantWelcomeCredits(user!.id);
+  }
 
   await logAuthEvent("PHONE_VERIFIED", { phone }, user!.id);
 

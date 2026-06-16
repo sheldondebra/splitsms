@@ -2,6 +2,36 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
+const BRAND_ORANGE = "#FF6A00";
+
+function LogoMark({ height, className }: { height: number; className?: string }) {
+  const width = Math.round(height);
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden
+    >
+      <rect width="32" height="32" fill={BRAND_ORANGE} />
+      <text
+        x="16"
+        y="23"
+        fontFamily="Arial, Helvetica, sans-serif"
+        fontSize="20"
+        fontWeight="700"
+        fill="#FFFFFF"
+        textAnchor="middle"
+      >
+        S
+      </text>
+    </svg>
+  );
+}
+
 type LogoProps = {
   className?: string;
   href?: string;
@@ -23,21 +53,7 @@ export function Logo({
 }: LogoProps) {
   const h = heights[size];
   const img = (
-    <Image
-      src="/smslogo.png"
-      alt="SplitSMS"
-      width={Math.round(h * 3.2)}
-      height={h}
-      className={cn(
-        "h-auto w-auto object-contain transition-[filter] duration-300",
-        /* Explicit white for dark hero / dark surfaces */
-        variant === "white" && "brightness-0 invert",
-        /* Default: full-color on light backgrounds, inverted in dark mode */
-        variant === "default" && "dark:brightness-0 dark:invert",
-        className,
-      )}
-      priority
-    />
+    <LogoMark height={h} className={cn("shrink-0", className)} />
   );
 
   const content = showText ? (

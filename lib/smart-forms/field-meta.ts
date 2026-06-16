@@ -1,4 +1,5 @@
 import type { SmartFormFieldType } from "@/lib/generated/prisma/client";
+import type { BuilderField } from "@/lib/smart-forms/types";
 import type { LucideIcon } from "lucide-react";
 import {
   AlignLeft,
@@ -49,8 +50,12 @@ export function defaultLabelForType(type: SmartFormFieldType): string {
   return getFieldTypeMeta(type).label;
 }
 
+export function fieldKeyFromLabel(label: string): string {
+  return slugifyFormName(label).replace(/-/g, "_") || "field";
+}
+
 export function suggestFieldKey(label: string, existing: string[]): string {
-  const base = slugifyFormName(label).replace(/-/g, "_") || "field";
+  const base = fieldKeyFromLabel(label);
   if (!existing.includes(base)) return base;
   let i = 2;
   while (existing.includes(`${base}_${i}`)) i += 1;
@@ -73,4 +78,30 @@ export function parseFieldOptions(raw: unknown): string[] {
     }
   }
   return [];
+}
+
+export type FieldValidationRules = {
+  width?: "full" | "half";
+  sectionColumns?: 1 | 2;
+};
+
+export function parseFieldValidationRules(raw: unknown): FieldValidationRules {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const obj = raw as Record<string, unknown>;
+  const width = obj.width === "half" ? "half" : obj.width === "full" ? "full" : undefined;
+  const sectionColumns =
+    obj.sectionColumns === 2 ? 2 : obj.sectionColumns === 1 ? 1 : undefined;
+  return { width, sectionColumns };
+}
+
+export function toFieldValidationRules(
+  field: Pick<BuilderField, "width" | "sectionColumns" | "fieldType">,
+): FieldValidationRules | undefined {
+  const rules: FieldValidationRules = {};
+  if (field.fieldType === "SECTION" && field.sectionColumns === 2) {
+    rules.sectionColumns = 2;
+  }
+  if (field.width === "half") rules.width = "half";
+  if (Object.keys(rules).length === 0) return undefined;
+  return rules;
 }

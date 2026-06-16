@@ -35,7 +35,6 @@ export const metadata: Metadata = {
     "global SMS",
     "SplitSMS",
   ],
-  icons: { icon: "/smslogo.png" },
   metadataBase: new URL(getSiteUrl()),
 };
 

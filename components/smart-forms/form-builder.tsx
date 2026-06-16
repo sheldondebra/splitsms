@@ -16,7 +16,18 @@ import {
   newClientFieldId,
   suggestFieldKey,
 } from "@/lib/smart-forms/field-meta";
-import { FormFieldRender } from "@/components/smart-forms/form-field-render";
+import { FormFieldsLayout } from "@/components/smart-forms/form-fields-layout";
+import { FormHeaderBanner } from "@/components/smart-forms/form-header-banner";
+import { HeaderBannerEditor } from "@/components/smart-forms/header-banner-editor";
+import {
+  DEFAULT_BANNER_POSITION,
+  type BannerPosition,
+} from "@/lib/smart-forms/banner-image";
+import {
+  fieldCanBeHalfWidth,
+  getSectionColumnsForField,
+  getTrailingSectionColumns,
+} from "@/lib/smart-forms/field-layout";
 import type { BuilderField, SerializedSmartForm } from "@/lib/smart-forms/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +42,7 @@ import {
   Copy,
   ExternalLink,
   Eye,
+  ImageIcon,
   Loader2,
   Save,
   Trash2,
@@ -53,6 +65,8 @@ export function SmartFormBuilder({
   const [fields, setFields] = useState<BuilderField[]>(initial.fields);
   const [selectedId, setSelectedId] = useState<string | null>(fields[0]?.id ?? null);
   const [themeSettings, setThemeSettings] = useState(initial.themeSettings);
+  const [layoutSettings, setLayoutSettings] = useState(initial.layoutSettings);
+  const [bannerUrl, setBannerUrl] = useState(initial.bannerUrl ?? "");
   const [successSettings, setSuccessSettings] = useState(initial.successSettings);
   const [saveToContacts, setSaveToContacts] = useState(initial.saveToContacts);
   const [contactGroupId, setContactGroupId] = useState(initial.contactGroupId ?? "");
@@ -61,7 +75,9 @@ export function SmartFormBuilder({
   const [captchaEnabled, setCaptchaEnabled] = useState(initial.captchaEnabled);
   const [status, setStatus] = useState(initial.status);
   const [mobilePanel, setMobilePanel] = useState<"add" | "preview" | "settings">("preview");
+  const [settingsTab, setSettingsTab] = useState<"field" | "form">("form");
   const [isPending, startTransition] = useTransition();
+  const [manualFieldKeys, setManualFieldKeys] = useState<Set<string>>(() => new Set());
 
   const selected = useMemo(
     () => fields.find((f) => f.id === selectedId) ?? null,
@@ -75,7 +91,9 @@ export function SmartFormBuilder({
     return JSON.stringify({
       name,
       description,
+      bannerUrl: bannerUrl.trim() || null,
       themeSettings,
+      layoutSettings,
       successSettings,
       saveToContacts: saveToContacts || Boolean(contactGroupId),
       contactGroupId: contactGroupId || null,
@@ -99,9 +117,23 @@ export function SmartFormBuilder({
     });
   }
 
+  function openFormSettings() {
+    setSettingsTab("form");
+    setMobilePanel("settings");
+  }
+
   function addField(type: SmartFormFieldType) {
     const keys = fields.map((f) => f.fieldKey);
     const label = defaultLabelForType(type);
+    const inTwoColSection = getTrailingSectionColumns(fields) === 2;
+    const defaultWidth =
+      type !== "SECTION" &&
+      type !== "DIVIDER" &&
+      getFieldTypeMeta(type).isInput &&
+      type !== "TEXTAREA" &&
+      inTwoColSection
+        ? ("half" as const)
+        : ("full" as const);
     const field: BuilderField = {
       id: newClientFieldId(),
       label,
@@ -113,6 +145,8 @@ export function SmartFormBuilder({
           ? ["Option 1", "Option 2"]
           : [],
       sortOrder: fields.length,
+      ...(type === "SECTION" ? { sectionColumns: 1 as const } : {}),
+      width: defaultWidth,
     };
     setFields((prev) => [...prev, field]);
     setSelectedId(field.id);
@@ -121,6 +155,27 @@ export function SmartFormBuilder({
   function updateSelected(patch: Partial<BuilderField>) {
     if (!selectedId) return;
     setFields((prev) => prev.map((f) => (f.id === selectedId ? { ...f, ...patch } : f)));
+  }
+
+  function handleLabelChange(label: string) {
+    if (!selectedId) return;
+    setFields((prev) => {
+      const existingKeys = prev.filter((f) => f.id !== selectedId).map((f) => f.fieldKey);
+      return prev.map((f) => {
+        if (f.id !== selectedId) return f;
+        const next: BuilderField = { ...f, label };
+        if (!manualFieldKeys.has(selectedId)) {
+          next.fieldKey = suggestFieldKey(label, existingKeys);
+        }
+        return next;
+      });
+    });
+  }
+
+  function handleFieldKeyChange(fieldKey: string) {
+    if (!selectedId) return;
+    setManualFieldKeys((prev) => new Set(prev).add(selectedId));
+    updateSelected({ fieldKey });
   }
 
   function moveField(id: string, direction: -1 | 1) {
@@ -156,6 +211,11 @@ export function SmartFormBuilder({
   }
 
   function removeField(id: string) {
+    setManualFieldKeys((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
     setFields((prev) => {
       const next = prev.filter((f) => f.id !== id);
       if (selectedId === id) setSelectedId(next[0]?.id ?? null);
@@ -205,10 +265,15 @@ export function SmartFormBuilder({
     });
   }
 
-  const primary = themeSettings.primaryColor ?? "#0f172a";
+  const primary = themeSettings.primaryColor ?? "#18181b";
   const buttonText = themeSettings.buttonText ?? "Submit";
-  const buttonRadius = themeSettings.buttonRadius ?? "0.75rem";
-  const backgroundColor = themeSettings.backgroundColor ?? "#f8fafc";
+  const buttonRadius = themeSettings.buttonRadius ?? "0.625rem";
+  const selectedSectionColumns = selected
+    ? getSectionColumnsForField(fields, selected.id)
+    : 1;
+  const fieldKeyIsAuto = selected ? !manualFieldKeys.has(selected.id) : true;
+  const bannerPosition: BannerPosition =
+    layoutSettings.bannerPosition ?? DEFAULT_BANNER_POSITION;
 
   return (
     <div className="space-y-4">
@@ -330,65 +395,90 @@ export function SmartFormBuilder({
 
         <div
           className={cn(
-            "rounded-xl border p-4 sm:p-6 min-h-[480px]",
+            "rounded-xl border bg-[#f4f4f5] p-4 sm:p-6 min-h-[520px]",
             mobilePanel !== "preview" && "hidden xl:block",
           )}
-          style={{ backgroundColor }}
         >
           <div
-            className="mx-auto max-w-lg rounded-2xl border bg-background p-6 shadow-sm space-y-5"
+            className="mx-auto max-w-[440px] overflow-hidden rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.04]"
             style={{ ["--form-primary" as string]: primary }}
           >
-            <div className="space-y-1">
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="text-xl font-bold border-none shadow-none px-0 h-auto focus-visible:ring-0"
-                placeholder="Form title"
-              />
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={2}
-                placeholder="Form description (optional)"
-                className="border-none shadow-none px-0 resize-none focus-visible:ring-0 text-muted-foreground"
-              />
-            </div>
+            <div className="h-1 w-full" style={{ backgroundColor: primary }} aria-hidden />
 
-            {fields.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8 border border-dashed rounded-xl">
-                Add fields from the left panel to build your form.
-              </p>
+            {bannerUrl.trim() ? (
+              <FormHeaderBanner
+                src={bannerUrl.trim()}
+                position={bannerPosition}
+                onClick={openFormSettings}
+                heightClass="h-32"
+              />
             ) : (
-              <div className="space-y-4">
-                {fields.map((field) => (
-                  <div
-                    key={field.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelectedId(field.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") setSelectedId(field.id);
-                    }}
-                    className={cn(
-                      "rounded-lg p-2 -mx-2 transition-colors cursor-pointer",
-                      selectedId === field.id ? "ring-2 ring-primary/40 bg-primary/5" : "hover:bg-muted/40",
-                    )}
-                  >
-                    <FormFieldRender field={field} disabled />
-                  </div>
-                ))}
-              </div>
+              <button
+                type="button"
+                onClick={openFormSettings}
+                className="flex h-20 w-full items-center justify-center border-b border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-400 hover:bg-zinc-100/80 transition-colors"
+              >
+                <ImageIcon className="mr-1.5 h-4 w-4" />
+                Add header image (Form settings)
+              </button>
             )}
 
-            <button
-              type="button"
-              disabled
-              className="w-full h-11 font-semibold text-white"
-              style={{ backgroundColor: primary, borderRadius: buttonRadius }}
-            >
-              {buttonText}
-            </button>
+            <div className="space-y-5 p-5 sm:p-6">
+              <div className="space-y-1 border-b border-zinc-100 pb-4">
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="text-lg font-semibold border-none shadow-none px-0 h-auto focus-visible:ring-0 text-zinc-900"
+                  placeholder="Form title"
+                />
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={2}
+                  placeholder="Short description (optional)"
+                  className="border-none shadow-none px-0 resize-none focus-visible:ring-0 text-sm text-zinc-500"
+                />
+                {layoutSettings.welcomeMessage ? (
+                  <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+                    {layoutSettings.welcomeMessage}
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={openFormSettings}
+                    className="w-full rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 px-3 py-2 text-left text-xs text-zinc-400 hover:bg-zinc-50 transition-colors"
+                  >
+                    Add a welcome message for visitors (Form settings)
+                  </button>
+                )}
+              </div>
+
+              {fields.length === 0 ? (
+                <p className="text-sm text-zinc-400 text-center py-10 border border-dashed border-zinc-200 rounded-xl">
+                  Add fields from the left panel.
+                </p>
+              ) : (
+                <FormFieldsLayout
+                  fields={fields}
+                  disabled
+                  selectedId={selectedId}
+                  onSelectField={(id) => {
+                    setSelectedId(id);
+                    setSettingsTab("field");
+                    setMobilePanel("settings");
+                  }}
+                />
+              )}
+
+              <button
+                type="button"
+                disabled
+                className="w-full h-11 text-sm font-semibold text-white"
+                style={{ backgroundColor: primary, borderRadius: buttonRadius }}
+              >
+                {buttonText}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -398,7 +488,10 @@ export function SmartFormBuilder({
             mobilePanel !== "settings" && "hidden xl:block",
           )}
         >
-          <Tabs defaultValue={selected ? "field" : "form"}>
+          <Tabs
+            value={settingsTab}
+            onValueChange={(v) => setSettingsTab(v as "field" | "form")}
+          >
             <TabsList className="w-full">
               <TabsTrigger value="field" className="flex-1" disabled={!selected}>
                 Field
@@ -417,16 +510,21 @@ export function SmartFormBuilder({
                     <Label>Label</Label>
                     <Input
                       value={selected.label}
-                      onChange={(e) => updateSelected({ label: e.target.value })}
+                      onChange={(e) => handleLabelChange(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Field key</Label>
                     <Input
                       value={selected.fieldKey}
-                      onChange={(e) => updateSelected({ fieldKey: e.target.value })}
+                      onChange={(e) => handleFieldKeyChange(e.target.value)}
                       className="font-mono text-sm"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      {fieldKeyIsAuto
+                        ? "Generated from the label. Edit to set a custom key."
+                        : "Custom key — label changes will no longer update this."}
+                    </p>
                   </div>
                   {getFieldTypeMeta(selected.fieldType).isInput ? (
                     <>
@@ -467,6 +565,49 @@ export function SmartFormBuilder({
                         }
                       />
                     </div>
+                  ) : null}
+
+                  {selected.fieldType === "SECTION" ? (
+                    <div className="space-y-2">
+                      <Label>Section layout</Label>
+                      <select
+                        value={selected.sectionColumns ?? 1}
+                        onChange={(e) =>
+                          updateSelected({
+                            sectionColumns: Number(e.target.value) === 2 ? 2 : 1,
+                          })
+                        }
+                        className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                      >
+                        <option value={1}>Single column</option>
+                        <option value={2}>Two columns (side by side)</option>
+                      </select>
+                      <p className="text-xs text-muted-foreground">
+                        Set fields below to half width to place 2 per row.
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {fieldCanBeHalfWidth(selected) && selectedSectionColumns === 2 ? (
+                    <div className="space-y-2">
+                      <Label>Field width</Label>
+                      <select
+                        value={selected.width ?? "full"}
+                        onChange={(e) =>
+                          updateSelected({
+                            width: e.target.value === "half" ? "half" : "full",
+                          })
+                        }
+                        className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="full">Full width</option>
+                        <option value="half">Half width (2 per row)</option>
+                      </select>
+                    </div>
+                  ) : fieldCanBeHalfWidth(selected) ? (
+                    <p className="text-xs text-muted-foreground rounded-lg border bg-muted/30 px-3 py-2">
+                      Set the section above to two columns to place fields side by side.
+                    </p>
                   ) : null}
 
                   <div className="flex flex-wrap gap-2 pt-2 border-t">
@@ -513,6 +654,32 @@ export function SmartFormBuilder({
             </TabsContent>
 
             <TabsContent value="form" className="mt-4 space-y-4">
+              <HeaderBannerEditor
+                bannerUrl={bannerUrl}
+                position={bannerPosition}
+                onBannerUrlChange={setBannerUrl}
+                onPositionChange={(pos) =>
+                  setLayoutSettings((prev) => ({ ...prev, bannerPosition: pos }))
+                }
+              />
+              <div className="space-y-2">
+                <Label>Message for visitors</Label>
+                <Textarea
+                  rows={3}
+                  value={layoutSettings.welcomeMessage ?? ""}
+                  onChange={(e) =>
+                    setLayoutSettings((prev) => ({
+                      ...prev,
+                      welcomeMessage: e.target.value,
+                    }))
+                  }
+                  placeholder="Welcome! Please fill out this form and we'll get back to you shortly."
+                />
+                <p className="text-xs text-muted-foreground">
+                  A friendly note shown below the title on the live form.
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label>Theme color</Label>
                 <Input

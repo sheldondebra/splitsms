@@ -1,24 +1,33 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import {
   bulkDeleteContactsAction,
   bulkTagContactsAction,
   bulkMoveToGroupAction,
 } from "@/lib/actions/contacts";
+import { buildSendToContactsUrl } from "@/lib/contacts/send-link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X } from "lucide-react";
+import { Send, X } from "lucide-react";
 
 type Group = { id: string; name: string };
+
+type SelectedContact = {
+  phone: string;
+  countryCode?: string | null;
+};
 
 export function ContactsBulkActions({
   groups,
   selectedIds,
+  selectedContacts,
   onClear,
 }: {
   groups: Group[];
   selectedIds: string[];
+  selectedContacts: SelectedContact[];
   onClear: () => void;
 }) {
   const [tag, setTag] = useState("");
@@ -39,6 +48,14 @@ export function ContactsBulkActions({
       </div>
 
       <div className="flex flex-col sm:flex-row flex-wrap gap-2">
+        <Link
+          href={buildSendToContactsUrl(selectedContacts)}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+        >
+          <Send className="h-4 w-4" />
+          Send SMS to selected
+        </Link>
+
         <form action={bulkTagContactsAction} className="flex gap-2 flex-1 min-w-[200px]">
           <input type="hidden" name="ids" value={idsValue} />
           <Input

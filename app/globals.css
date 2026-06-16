@@ -364,7 +364,7 @@
       @apply w-full min-h-11 text-base font-semibold;
     }
     .app-page .tabs-list-mobile {
-      @apply w-full overflow-x-auto flex-nowrap justify-start max-w-full;
+      @apply w-full max-w-full h-auto overflow-x-auto flex-nowrap justify-start;
     }
     .app-page table {
       @apply text-sm;

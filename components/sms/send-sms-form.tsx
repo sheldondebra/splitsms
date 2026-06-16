@@ -53,6 +53,7 @@ type SendSmsFormProps = {
   senderOptions: { value: string }[];
   templates: SendTemplateOption[];
   initialTemplateId?: string;
+  initialRecipients?: string;
   defaultCountryCode?: string;
   contacts?: SendContactOption[];
   contactGroups?: SendContactGroupOption[];
@@ -85,6 +86,7 @@ export function SendSmsForm({
   senderOptions,
   templates,
   initialTemplateId,
+  initialRecipients = "",
   defaultCountryCode = DEFAULT_COUNTRY_CODE,
   contacts = [],
   contactGroups = [],
@@ -97,7 +99,7 @@ export function SendSmsForm({
   const initialTpl = initialTemplateId
     ? templates.find((t) => t.id === initialTemplateId)
     : undefined;
-  const [recipients, setRecipients] = useState("");
+  const [recipients, setRecipients] = useState(initialRecipients);
   const [recipientChips, setRecipientChips] = useState<RecipientChip[]>([]);
   const [body, setBody] = useState(initialTpl?.content ?? "");
   const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplateId ?? "");

@@ -5,6 +5,7 @@ import {
   addContactToGroupAction,
   updateContactAction,
 } from "@/lib/actions/contacts";
+import { ContactSendLink } from "@/components/contacts/contact-send-link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -44,13 +45,14 @@ export function ContactsMobileList({
   }
 
   return (
-    <MobileCardList>
+    <div className="md:hidden">
+      <MobileCardList>
       {contacts.map((c) => (
         <MobileCardItem key={c.id}>
           <div className="space-y-3">
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <p className="font-semibold truncate">{c.name || "No name"}</p>
+                <p className="font-semibold truncate">{c.name || "Unnamed contact"}</p>
                 <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
                   <Phone className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate font-mono text-xs sm:text-sm">{c.phone}</span>
@@ -61,9 +63,6 @@ export function ContactsMobileList({
                     <span className="truncate">{c.email}</span>
                   </p>
                 ) : null}
-                {c.tags ? (
-                  <p className="text-xs text-muted-foreground mt-1.5">Tags: {c.tags}</p>
-                ) : null}
               </div>
               {c.countryCode ? (
                 <Badge variant="outline" className="shrink-0 font-mono text-[10px]">
@@ -72,15 +71,37 @@ export function ContactsMobileList({
               ) : null}
             </div>
 
+            {c.tags ? (
+              <div className="flex flex-wrap gap-1">
+                {c.tags.split(/[,;]+/).map((tag) => {
+                  const trimmed = tag.trim();
+                  if (!trimmed) return null;
+                  return (
+                    <Badge key={trimmed} variant="secondary" className="text-[10px]">
+                      {trimmed}
+                    </Badge>
+                  );
+                })}
+              </div>
+            ) : null}
+
             {c.groups.length > 0 ? (
               <div className="flex flex-wrap gap-1">
                 {c.groups.map((g) => (
-                  <Badge key={g.group.id} variant="secondary" className="text-[10px]">
+                  <Badge key={g.group.id} variant="outline" className="text-[10px]">
                     {g.group.name}
                   </Badge>
                 ))}
               </div>
             ) : null}
+
+            <div className="flex gap-2 pt-1">
+              <ContactSendLink
+                phone={c.phone}
+                countryCode={c.countryCode}
+                className="flex-1 justify-center"
+              />
+            </div>
 
             <form action={updateContactAction} className="grid gap-2 pt-1 border-t border-border/50">
               <input type="hidden" name="id" value={c.id} />
@@ -131,6 +152,7 @@ export function ContactsMobileList({
           </div>
         </MobileCardItem>
       ))}
-    </MobileCardList>
+      </MobileCardList>
+    </div>
   );
 }

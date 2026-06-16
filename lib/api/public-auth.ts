@@ -1,13 +1,24 @@
 import { NextResponse } from "next/server";
 import { createAndSendOtp, verifyOtp } from "@/lib/auth/otp";
 import { checkRateLimit, recordFailedAttempt, rateLimitKey } from "@/lib/auth/rate-limit";
+import { assertOtpRequestAllowed } from "@/lib/auth/signup-guard";
 import { normalizePhone } from "@/lib/auth/validation";
 import { z } from "zod";
+
+function clientIp(request: Request) {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown"
+  );
+}
 
 const sendSchema = z.object({
   phone: z.string().min(10),
   countryCode: z.string().min(2).max(10).optional(),
   purpose: z.enum(["signup", "login", "reset"]).optional(),
+  company_website: z.string().optional(),
+  turnstileToken: z.string().optional(),
 });
 
 const verifySchema = z.object({
@@ -32,6 +43,14 @@ export async function handlePublicSendOtp(request: Request) {
   const phone = normalizePhone(body.data.phone);
   const countryCode = body.data.countryCode ?? "GH";
   const purpose = purposeMap[body.data.purpose ?? "signup"];
+
+  const otpGuard = await assertOtpRequestAllowed({
+    honeypot: body.data.company_website,
+    turnstileToken: body.data.turnstileToken,
+  });
+  if (!otpGuard.ok) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
 
   const limit = await checkRateLimit(rateLimitKey("otp_request", phone));
   if (!limit.allowed) {
