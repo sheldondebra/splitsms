@@ -38,7 +38,7 @@ export default async function AdminGeneralOfficePage({
     <AdminPage narrow>
       <AdminPageHeader
         title="General office"
-        description="Platform-wide settings — email delivery, branding defaults, and operational checks."
+        description="Platform-wide settings — email delivery and operational checks."
         icon={Settings}
       />
 

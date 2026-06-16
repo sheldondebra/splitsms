@@ -118,6 +118,40 @@ export async function approveManualPayment(paymentId: string, adminId: string) {
   });
 }
 
+export async function rejectManualPayment(
+  paymentId: string,
+  adminId: string,
+  reason?: string,
+) {
+  const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+  if (!payment || payment.method !== "MANUAL" || payment.status !== "PENDING") {
+    throw new Error("Invalid manual payment");
+  }
+
+  await prisma.payment.update({
+    where: { id: paymentId },
+    data: {
+      status: "CANCELLED",
+      metadata: {
+        ...((payment.metadata as object) ?? {}),
+        rejectedBy: adminId,
+        rejectedAt: new Date().toISOString(),
+        rejectReason: reason?.trim() || "Rejected by admin",
+      },
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      actorId: adminId,
+      action: "PAYMENT_REJECTED",
+      entityType: "Payment",
+      entityId: paymentId,
+      metadata: { reason: reason?.trim() || null },
+    },
+  });
+}
+
 export async function adminAdjustWallet(
   userId: string,
   amount: number,

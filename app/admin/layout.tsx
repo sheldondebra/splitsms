@@ -28,6 +28,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       badges={{
         "pending-payments": badges["pending-payments"],
         "pending-sender-ids": badges["pending-sender-ids"],
+        "open-support-tickets": badges["open-support-tickets"],
+        "operations-attention": badges["operations-attention"],
       }}
     >
       {children}

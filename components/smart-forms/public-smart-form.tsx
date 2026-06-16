@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { FormFieldsLayout } from "@/components/smart-forms/form-fields-layout";
 import { FormHeaderBanner } from "@/components/smart-forms/form-header-banner";
 import { DEFAULT_BANNER_POSITION } from "@/lib/smart-forms/banner-image";
+import { resolveFormBackground } from "@/lib/smart-forms/theme";
 import { getFieldTypeMeta } from "@/lib/smart-forms/field-meta";
 import type { PublicSmartForm } from "@/lib/smart-forms/types";
 import type { CaptchaChallenge } from "@/lib/smart-forms/captcha";
@@ -36,6 +37,7 @@ export function PublicSmartFormView({
   const buttonText = form.themeSettings.buttonText ?? "Submit";
   const buttonRadius = form.themeSettings.buttonRadius ?? "0.625rem";
   const showBranding = form.themeSettings.showBranding !== false;
+  const formBackground = resolveFormBackground(form.themeSettings);
 
   useEffect(() => {
     if (!embedMode || typeof window === "undefined") return;
@@ -113,16 +115,18 @@ export function PublicSmartFormView({
     });
   }
 
+  const shellStyle = { backgroundColor: formBackground };
+
   const shellClass = embedMode
-    ? "py-6 px-4 bg-white"
-    : "min-h-[100dvh] flex items-center justify-center px-4 py-10 sm:py-14 bg-[#f4f4f5]";
+    ? "py-6 px-4 min-h-[100dvh] flex items-center justify-center"
+    : "min-h-[100dvh] flex items-center justify-center px-4 py-10 sm:py-14";
 
   const cardClass =
     "w-full max-w-[440px] rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.04]";
 
   if (success) {
     return (
-      <div className={shellClass}>
+      <div className={shellClass} style={shellStyle}>
         <div className={cn(cardClass, "p-8 sm:p-10 text-center")}>
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50">
             <CheckCircle2 className="h-7 w-7 text-emerald-600" strokeWidth={2} />
@@ -135,7 +139,7 @@ export function PublicSmartFormView({
   }
 
   return (
-    <div className={shellClass}>
+    <div className={shellClass} style={shellStyle}>
       <form
         onSubmit={handleSubmit}
         className={cn(cardClass, "overflow-hidden")}

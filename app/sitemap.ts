@@ -24,8 +24,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/terms",
     "/data-protection",
     "/security",
-    "/signup",
-    "/login",
+    "/smart-forms",
+    "/contact",
   ];
 
   const blogRoutes = getAllBlogSlugs().map((slug) => `/blog/${slug}`);

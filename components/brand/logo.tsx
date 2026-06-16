@@ -26,8 +26,9 @@ export function Logo({
     <Image
       src="/smslogo.png"
       alt="SplitSMS"
-      width={Math.round(h * 3.2)}
+      width={Math.round(h * 2.98)}
       height={h}
+      unoptimized
       className={cn(
         "h-auto w-auto object-contain transition-[filter] duration-300",
         variant === "white" && "brightness-0 invert",

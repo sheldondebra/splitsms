@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -68,6 +69,7 @@ export function AdminStatCard({
   icon: Icon,
   variant = "default",
   className,
+  href,
 }: {
   label: string;
   value: ReactNode;
@@ -75,6 +77,7 @@ export function AdminStatCard({
   icon?: LucideIcon;
   variant?: "default" | "primary" | "danger" | "warning";
   className?: string;
+  href?: string;
 }) {
   const variants = {
     default: "border-border/60 bg-card",
@@ -83,14 +86,8 @@ export function AdminStatCard({
     warning: "border-amber-500/30 bg-amber-500/8",
   };
 
-  return (
-    <div
-      className={cn(
-        "rounded-2xl border p-5 shadow-sm transition-shadow hover:shadow-md",
-        variants[variant],
-        className,
-      )}
-    >
+  const inner = (
+    <>
       <div className="flex items-start justify-between gap-2">
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
           {label}
@@ -117,8 +114,25 @@ export function AdminStatCard({
         {value}
       </p>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
-    </div>
+    </>
   );
+
+  const cardClass = cn(
+    "rounded-2xl border p-5 shadow-sm transition-shadow hover:shadow-md block",
+    variants[variant],
+    href && "hover:border-primary/30 cursor-pointer",
+    className,
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={cardClass}>
+        {inner}
+      </Link>
+    );
+  }
+
+  return <div className={cardClass}>{inner}</div>;
 }
 
 export function AdminAlert({

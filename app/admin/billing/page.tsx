@@ -1,5 +1,6 @@
 import { getRevenueAnalytics } from "@/lib/analytics/revenue";
 import { createPromoCodeAction } from "@/lib/actions/pricing";
+import { adminTogglePromoCodeAction } from "@/lib/actions/admin-platform";
 import { prisma } from "@/lib/db";
 import {
   AdminPage,
@@ -20,7 +21,7 @@ import { cn } from "@/lib/utils";
 export default async function AdminBillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ promo?: string }>;
+  searchParams: Promise<{ promo?: string; saved?: string }>;
 }) {
   const params = await searchParams;
   const [revenue, promos, pendingPayments] = await Promise.all([
@@ -121,15 +122,36 @@ export default async function AdminBillingPage({
             Promo created
           </Badge>
         )}
+        {params.saved === "promo" && (
+          <Badge className="mt-4 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200">
+            Promo updated
+          </Badge>
+        )}
         {promos.length > 0 && (
           <div className="mt-6 -my-1 border-t border-border/50 pt-4">
             {promos.map((p) => (
               <AdminListRow key={p.id}>
-                <span className="font-mono text-sm font-medium">{p.code}</span>
-                <span className="text-sm text-muted-foreground">
-                  {p.type} · used {p.usedCount}
-                  {p.maxUses ? `/${p.maxUses}` : ""}
-                </span>
+                <div className="min-w-0">
+                  <span className="font-mono text-sm font-medium">{p.code}</span>
+                  {!p.isActive && (
+                    <Badge variant="secondary" className="ml-2 text-[10px]">
+                      Inactive
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground">
+                    {p.type} · used {p.usedCount}
+                    {p.maxUses ? `/${p.maxUses}` : ""}
+                  </span>
+                  <form action={adminTogglePromoCodeAction}>
+                    <input type="hidden" name="promoId" value={p.id} />
+                    <input type="hidden" name="isActive" value={p.isActive ? "0" : "1"} />
+                    <Button type="submit" size="sm" variant="outline">
+                      {p.isActive ? "Deactivate" : "Activate"}
+                    </Button>
+                  </form>
+                </div>
               </AdminListRow>
             ))}
           </div>

@@ -22,7 +22,8 @@ export function AdminMobileHeader({ onMenuOpen, subtitle, profile, badges }: Adm
   const title = getAdminPageTitle(pathname);
   const pendingPayments = badges?.["pending-payments"] ?? 0;
   const pendingSender = badges?.["pending-sender-ids"] ?? 0;
-  const attention = pendingPayments + pendingSender;
+  const openSupport = badges?.["open-support-tickets"] ?? 0;
+  const attention = badges?.["operations-attention"] ?? pendingPayments + pendingSender + openSupport;
 
   return (
     <header className="sticky top-0 z-30 shrink-0 border-b border-border/70 bg-background/95 backdrop-blur-lg safe-top md:hidden">
@@ -45,15 +46,24 @@ export function AdminMobileHeader({ onMenuOpen, subtitle, profile, badges }: Adm
           </div>
         </div>
         {attention > 0 && (
-          <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-200 tabular-nums">
+          <Link
+            href="/admin/operations"
+            className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-200 tabular-nums"
+          >
             {attention}
-          </span>
+          </Link>
         )}
         <ThemeToggle className="h-8 w-8 shrink-0 rounded-lg" />
         <HeaderAccountMenu profile={profile} variant="compact" showChevron={false} />
       </div>
-      {(pendingPayments > 0 || pendingSender > 0) && (
+      {(pendingPayments > 0 || pendingSender > 0 || openSupport > 0) && (
         <div className="flex gap-2 overflow-x-auto px-4 pb-2.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <Link
+            href="/admin/operations"
+            className="shrink-0 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary"
+          >
+            Operations ({attention})
+          </Link>
           {pendingPayments > 0 && (
             <Link
               href="/admin/payments"
@@ -68,6 +78,14 @@ export function AdminMobileHeader({ onMenuOpen, subtitle, profile, badges }: Adm
               className="shrink-0 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-800 dark:text-amber-200"
             >
               {pendingSender} sender IDs
+            </Link>
+          )}
+          {openSupport > 0 && (
+            <Link
+              href="/admin/support"
+              className="shrink-0 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-800 dark:text-amber-200"
+            >
+              {openSupport} support
             </Link>
           )}
         </div>

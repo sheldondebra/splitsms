@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getOrCreateMemberAccount } from "@/lib/admin/member-account";
+import { getAdminMemberProducts } from "@/lib/admin/platform-dashboard";
 import { resolveMemberSource } from "@/lib/admin/members-dashboard";
 import { getCountryByCode } from "@/lib/countries-data";
 import { parseUserAgent } from "@/lib/user-agent";
@@ -98,6 +99,7 @@ export async function getAdminMemberDetail(userId: string) {
     wordpressLogs,
     routingLogs,
     apiErrors24h,
+    products,
   ] = await Promise.all([
     prisma.apiLog.findMany({
       where: { userId },
@@ -187,6 +189,7 @@ export async function getAdminMemberDetail(userId: string) {
         statusCode: { gte: 400 },
       },
     }),
+    getAdminMemberProducts(userId),
   ]);
 
   const sessions = user.sessions.map((s) => ({
@@ -322,6 +325,7 @@ export async function getAdminMemberDetail(userId: string) {
     reseller: user.reseller,
     resellerMembership: user.resellerMembership,
     enterprise: user.enterpriseAccount,
+    products,
   };
 }
 

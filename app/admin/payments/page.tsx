@@ -1,4 +1,5 @@
 import { approvePaymentAction } from "@/lib/actions/wallet";
+import { rejectPaymentAction } from "@/lib/actions/admin-platform";
 import { prisma } from "@/lib/db";
 import {
   getPaymentGatewaysOverview,
@@ -11,6 +12,7 @@ import {
   AdminEmpty,
   AdminListRow,
   AdminStatCard,
+  AdminAlert,
 } from "@/components/admin/admin-page-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +20,12 @@ import { CreditCard } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 
-export default async function AdminPaymentsPage() {
+export default async function AdminPaymentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string; error?: string }>;
+}) {
+  const params = await searchParams;
   const [payments, pendingManual, pendingOnline, gateways, paystackTest, flutterwaveTest, stripeTest] =
     await Promise.all([
       prisma.payment.findMany({
@@ -60,6 +67,10 @@ export default async function AdminPaymentsPage() {
           </Link>
         }
       />
+
+      {params.saved === "rejected" && (
+        <AdminAlert variant="success">Payment rejected.</AdminAlert>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <AdminStatCard label="Pending total" value={payments.length} variant="primary" />
@@ -177,12 +188,20 @@ export default async function AdminPaymentsPage() {
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary">{p.status}</Badge>
                     {p.method === "MANUAL" && (
-                      <form action={approvePaymentAction}>
-                        <input type="hidden" name="paymentId" value={p.id} />
-                        <Button size="sm" type="submit">
-                          Approve
-                        </Button>
-                      </form>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <form action={approvePaymentAction}>
+                          <input type="hidden" name="paymentId" value={p.id} />
+                          <Button size="sm" type="submit">
+                            Approve
+                          </Button>
+                        </form>
+                        <form action={rejectPaymentAction} className="flex items-center gap-2">
+                          <input type="hidden" name="paymentId" value={p.id} />
+                          <Button size="sm" type="submit" variant="outline">
+                            Reject
+                          </Button>
+                        </form>
+                      </div>
                     )}
                   </div>
                 </AdminListRow>

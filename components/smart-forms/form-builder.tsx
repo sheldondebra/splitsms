@@ -29,6 +29,7 @@ import {
   getTrailingSectionColumns,
 } from "@/lib/smart-forms/field-layout";
 import type { BuilderField, SerializedSmartForm } from "@/lib/smart-forms/types";
+import { DEFAULT_FORM_BACKGROUND, resolveFormBackground } from "@/lib/smart-forms/theme";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -268,6 +269,7 @@ export function SmartFormBuilder({
   const primary = themeSettings.primaryColor ?? "#18181b";
   const buttonText = themeSettings.buttonText ?? "Submit";
   const buttonRadius = themeSettings.buttonRadius ?? "0.625rem";
+  const formBackground = resolveFormBackground(themeSettings);
   const selectedSectionColumns = selected
     ? getSectionColumnsForField(fields, selected.id)
     : 1;
@@ -395,9 +397,10 @@ export function SmartFormBuilder({
 
         <div
           className={cn(
-            "rounded-xl border bg-[#f4f4f5] p-4 sm:p-6 min-h-[520px]",
+            "rounded-xl border p-4 sm:p-6 min-h-[520px] flex items-start justify-center",
             mobilePanel !== "preview" && "hidden xl:block",
           )}
+          style={{ backgroundColor: formBackground }}
         >
           <div
             className="mx-auto max-w-[440px] overflow-hidden rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.04]"
@@ -695,12 +698,15 @@ export function SmartFormBuilder({
                 <Label>Background</Label>
                 <Input
                   type="color"
-                  value={themeSettings.backgroundColor ?? "#f8fafc"}
+                  value={themeSettings.backgroundColor ?? DEFAULT_FORM_BACKGROUND}
                   onChange={(e) =>
                     setThemeSettings((prev) => ({ ...prev, backgroundColor: e.target.value }))
                   }
                   className="h-11 p-1"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Page background behind your form card on the live form and preview.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Button text</Label>

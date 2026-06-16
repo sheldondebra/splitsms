@@ -14,13 +14,17 @@ import {
   BarChart3,
   ShieldAlert,
   Settings,
+  FileText,
+  Megaphone,
+  LifeBuoy,
+  Activity,
 } from "lucide-react";
 
 export type AdminNavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  badge?: "pending-payments" | "pending-sender-ids";
+  badge?: "pending-payments" | "pending-sender-ids" | "open-support-tickets" | "operations-attention";
 };
 
 export type AdminNavSection = {
@@ -35,6 +39,7 @@ export const adminNavSections: AdminNavSection[] = [
     label: "Main",
     items: [
       { href: "/admin", label: "Overview", icon: LayoutDashboard },
+      { href: "/admin/operations", label: "Operations", icon: Activity, badge: "operations-attention" },
       { href: "/admin/general", label: "General office", icon: Settings },
     ],
   },
@@ -64,6 +69,15 @@ export const adminNavSections: AdminNavSection[] = [
       { href: "/admin/sender-ids", label: "Sender IDs", icon: BadgeCheck, badge: "pending-sender-ids" },
       { href: "/admin/routes", label: "Routes", icon: Route },
       { href: "/admin/providers", label: "Providers", icon: Layers3 },
+    ],
+  },
+  {
+    id: "products",
+    label: "Products",
+    items: [
+      { href: "/admin/forms", label: "Smart Forms", icon: FileText },
+      { href: "/admin/campaigns", label: "Campaigns", icon: Megaphone },
+      { href: "/admin/support", label: "Support", icon: LifeBuoy, badge: "open-support-tickets" },
     ],
   },
   {

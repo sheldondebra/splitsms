@@ -27,6 +27,8 @@ export function AdminAppShell({ children, subtitle, profile, badges }: AdminAppS
   const title = getAdminPageTitle(pathname);
   const pendingPayments = badges?.["pending-payments"] ?? 0;
   const pendingSender = badges?.["pending-sender-ids"] ?? 0;
+  const openSupport = badges?.["open-support-tickets"] ?? 0;
+  const attention = badges?.["operations-attention"] ?? pendingPayments + pendingSender + openSupport;
 
   return (
     <div className="flex min-h-[100dvh] bg-background">
@@ -54,8 +56,14 @@ export function AdminAppShell({ children, subtitle, profile, badges }: AdminAppS
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            {(pendingPayments > 0 || pendingSender > 0) && (
+            {(attention > 0) && (
               <div className="hidden lg:flex items-center gap-2">
+                <Link
+                  href="/admin/operations"
+                  className="rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary hover:bg-primary/25 transition-colors"
+                >
+                  Operations · {attention}
+                </Link>
                 {pendingPayments > 0 && (
                   <Link
                     href="/admin/payments"
@@ -70,6 +78,14 @@ export function AdminAppShell({ children, subtitle, profile, badges }: AdminAppS
                     className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-800 dark:text-amber-200 hover:bg-amber-500/25 transition-colors"
                   >
                     {pendingSender} sender ID{pendingSender !== 1 ? "s" : ""}
+                  </Link>
+                )}
+                {openSupport > 0 && (
+                  <Link
+                    href="/admin/support"
+                    className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-800 dark:text-amber-200 hover:bg-amber-500/25 transition-colors"
+                  >
+                    {openSupport} support
                   </Link>
                 )}
               </div>

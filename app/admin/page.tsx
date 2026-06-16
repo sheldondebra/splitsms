@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { getAdminDashboardOverview } from "@/lib/analytics/admin-dashboard";
+import { getAdminOperationsDashboard } from "@/lib/admin/operations-dashboard";
+import { AdminOperationsPanel } from "@/components/admin/admin-operations-panel";
 import {
   AdminPage,
   AdminPageHeader,
@@ -22,24 +24,33 @@ import {
   Radio,
   ArrowRight,
   TrendingUp,
+  FileText,
+  Megaphone,
+  LifeBuoy,
 } from "lucide-react";
 
 const quickActions: {
   href: string;
   label: string;
   icon: typeof Users;
-  accent?: "pending-payments" | "pending-sender";
+  accent?: "pending-payments" | "pending-sender" | "open-support";
 }[] = [
   { href: "/admin/sender-ids", label: "Sender IDs", icon: BadgeCheck, accent: "pending-sender" },
   { href: "/admin/payments", label: "Payments", icon: CreditCard, accent: "pending-payments" },
+  { href: "/admin/support", label: "Support", icon: LifeBuoy, accent: "open-support" },
   { href: "/admin/members", label: "Members", icon: Users },
+  { href: "/admin/forms", label: "Smart Forms", icon: FileText },
+  { href: "/admin/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/admin/pricing", label: "SMS pricing", icon: DollarSign },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/providers", label: "Providers", icon: Radio },
 ];
 
 export default async function AdminDashboardPage() {
-  const stats = await getAdminDashboardOverview();
+  const [stats, operations] = await Promise.all([
+    getAdminDashboardOverview(),
+    getAdminOperationsDashboard(),
+  ]);
 
   return (
     <AdminPage wide>
@@ -47,7 +58,20 @@ export default async function AdminDashboardPage() {
         title="Overview"
         description="Platform health, revenue, messaging volume, and items needing attention."
         icon={LayoutDashboard}
+        actions={
+          operations.counts.attention > 0 ? (
+            <Link
+              href="/admin/operations"
+              className={cn(buttonVariants({ size: "sm" }), "gap-1")}
+            >
+              {operations.counts.attention} in queue
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          ) : undefined
+        }
       />
+
+      <AdminOperationsPanel data={operations} compact />
 
       {!stats.mnotify.configured && (
         <AdminAlert variant="warning">
@@ -92,21 +116,30 @@ export default async function AdminDashboardPage() {
         />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <AdminStatCard
+          label="Open support"
+          value={stats.openSupportTickets}
+          variant={stats.openSupportTickets > 0 ? "warning" : "default"}
+          href="/admin/support"
+        />
         <AdminStatCard
           label="Pending payments"
           value={stats.pendingPayments}
           variant={stats.pendingPayments > 0 ? "warning" : "default"}
+          href="/admin/payments"
         />
         <AdminStatCard
           label="Sender ID requests"
           value={stats.pendingSenderIds}
           variant={stats.pendingSenderIds > 0 ? "warning" : "default"}
+          href="/admin/sender-ids"
         />
         <AdminStatCard
           label="Active campaigns"
           value={stats.activeCampaigns}
           hint="Sending or scheduled"
+          href="/admin/campaigns"
         />
       </div>
 
@@ -124,7 +157,9 @@ export default async function AdminDashboardPage() {
                     ? stats.pendingPayments
                     : accent === "pending-sender"
                       ? stats.pendingSenderIds
-                      : 0;
+                      : accent === "open-support"
+                        ? stats.openSupportTickets
+                        : 0;
                 return (
                   <Link
                     key={href}

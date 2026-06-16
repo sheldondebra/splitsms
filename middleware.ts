@@ -6,6 +6,7 @@ import {
   fetchTenantForMiddleware,
 } from "@/lib/reseller/middleware-tenant";
 import { isPlatformHost, normalizeHost } from "@/lib/reseller/tenant-host";
+import { shouldBlockAuthBot } from "@/lib/auth/bot-guard";
 
 const COOKIE_NAME = "splitsms_session";
 const RESET_COOKIE = "splitsms_reset";
@@ -66,6 +67,15 @@ function externalResellerPortal(session: { userId: string; role: string }, tenan
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (
+    request.method === "POST" &&
+    (pathname.startsWith("/api/auth/") || pathname.startsWith("/api/v1/otp/"))
+  ) {
+    if (shouldBlockAuthBot(request.headers.get("user-agent"), "POST")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
 
   if (pathname === "/developers/sdk" || pathname.startsWith("/developers/sdk/")) {
     return NextResponse.redirect(new URL("/sdk", request.url));
@@ -164,6 +174,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/api/auth/:path*",
+    "/api/v1/otp/:path*",
     "/",
     "/dashboard/:path*",
     "/developers/:path*",

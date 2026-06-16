@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { getSiteUrl } from "@/lib/site-config";
+import { defaultOpenGraphImages } from "@/lib/seo/site";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -36,6 +37,16 @@ export const metadata: Metadata = {
     "SplitSMS",
   ],
   metadataBase: new URL(getSiteUrl()),
+  openGraph: {
+    type: "website",
+    siteName: "SplitSMS",
+    locale: "en",
+    images: defaultOpenGraphImages,
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: [defaultOpenGraphImages[0].url],
+  },
 };
 
 export default async function RootLayout({

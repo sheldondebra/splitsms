@@ -32,6 +32,7 @@ export async function getAdminDashboardOverview() {
     messagesToday,
     recentMembers,
     recentPayments,
+    openSupportTickets,
   ] = await Promise.all([
     prisma.user.count({ where: { role: "MEMBER" } }),
     prisma.message.count(),
@@ -69,6 +70,7 @@ export async function getAdminDashboardOverview() {
       take: 5,
       include: { user: { select: { fullName: true, phone: true } } },
     }),
+    prisma.supportTicket.count({ where: { status: "OPEN" } }),
   ]);
 
   const labels = Array.from({ length: 14 }, (_, i) => {
@@ -94,6 +96,7 @@ export async function getAdminDashboardOverview() {
     messages,
     pendingPayments: payments,
     pendingSenderIds,
+    openSupportTickets,
     messagesToday,
     recentMembers,
     recentPayments,
@@ -109,9 +112,15 @@ export async function getAdminDashboardOverview() {
 }
 
 export async function getAdminNavBadges() {
-  const [pendingPayments, pendingSenderIds] = await Promise.all([
+  const [pendingPayments, pendingSenderIds, openSupportTickets] = await Promise.all([
     prisma.payment.count({ where: { status: "PENDING" } }),
     prisma.senderId.count({ where: { status: "PENDING" } }),
+    prisma.supportTicket.count({ where: { status: "OPEN" } }),
   ]);
-  return { "pending-payments": pendingPayments, "pending-sender-ids": pendingSenderIds } as const;
+  return {
+    "pending-payments": pendingPayments,
+    "pending-sender-ids": pendingSenderIds,
+    "open-support-tickets": openSupportTickets,
+    "operations-attention": pendingPayments + pendingSenderIds + openSupportTickets,
+  } as const;
 }

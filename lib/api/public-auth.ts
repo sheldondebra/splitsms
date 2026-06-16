@@ -2,16 +2,9 @@ import { NextResponse } from "next/server";
 import { createAndSendOtp, verifyOtp } from "@/lib/auth/otp";
 import { checkRateLimit, recordFailedAttempt, rateLimitKey } from "@/lib/auth/rate-limit";
 import { assertOtpRequestAllowed } from "@/lib/auth/signup-guard";
+import { shouldBlockAuthBot } from "@/lib/auth/bot-guard";
 import { normalizePhone } from "@/lib/auth/validation";
 import { z } from "zod";
-
-function clientIp(request: Request) {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown"
-  );
-}
 
 const sendSchema = z.object({
   phone: z.string().min(10),
@@ -35,6 +28,10 @@ const purposeMap = {
 };
 
 export async function handlePublicSendOtp(request: Request) {
+  if (shouldBlockAuthBot(request.headers.get("user-agent"), request.method)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const body = sendSchema.safeParse(await request.json());
   if (!body.success) {
     return NextResponse.json({ error: "Invalid phone" }, { status: 400 });
@@ -69,6 +66,10 @@ export async function handlePublicSendOtp(request: Request) {
 }
 
 export async function handlePublicVerifyOtp(request: Request) {
+  if (shouldBlockAuthBot(request.headers.get("user-agent"), request.method)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const body = verifySchema.safeParse(await request.json());
   if (!body.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });

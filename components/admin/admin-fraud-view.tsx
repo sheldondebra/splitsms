@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
+import { adminQuickSuspendMemberAction } from "@/lib/actions/admin-platform";
 import {
   AdminPage,
   AdminPageHeader,
@@ -10,7 +11,7 @@ import {
 } from "@/components/admin/admin-page-shell";
 import type { getAdminFraudDashboard } from "@/lib/admin/fraud-dashboard";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   ShieldAlert,
@@ -268,6 +269,15 @@ export function AdminFraudView({ data }: { data: FraudData }) {
                     Review account
                     <ArrowRight className="h-3 w-3" />
                   </Link>
+                  {f.risk === "HIGH" && f.accountStatus === "ACTIVE" && (
+                    <form action={adminQuickSuspendMemberAction} className="mt-2">
+                      <input type="hidden" name="userId" value={f.userId} />
+                      <input type="hidden" name="returnTo" value="/admin/fraud" />
+                      <Button type="submit" size="sm" variant="destructive" className="h-8">
+                        Suspend account
+                      </Button>
+                    </form>
+                  )}
                 </li>
               ))}
             </ul>
@@ -349,12 +359,23 @@ export function AdminFraudView({ data }: { data: FraudData }) {
                           )}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <Link
-                            href={`/admin/members/${f.userId}`}
-                            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}
-                          >
-                            Review
-                          </Link>
+                          <div className="flex items-center justify-end gap-2">
+                            <Link
+                              href={`/admin/members/${f.userId}`}
+                              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}
+                            >
+                              Review
+                            </Link>
+                            {f.risk === "HIGH" && f.accountStatus === "ACTIVE" && (
+                              <form action={adminQuickSuspendMemberAction}>
+                                <input type="hidden" name="userId" value={f.userId} />
+                                <input type="hidden" name="returnTo" value="/admin/fraud" />
+                                <Button type="submit" size="sm" variant="destructive" className="h-8">
+                                  Suspend
+                                </Button>
+                              </form>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}

@@ -3,6 +3,7 @@ import { SiteHeaderWithAccount } from "@/components/layout/site-header-with-acco
 import { SiteFooter } from "@/components/layout/site-footer";
 import { HomePageContent } from "@/components/marketing/home-page-content";
 import {
+  defaultOpenGraphImages,
   organizationJsonLd,
   siteName,
   siteUrl,
@@ -24,12 +25,14 @@ export const metadata: Metadata = {
     siteName,
     type: "website",
     locale: "en",
+    images: defaultOpenGraphImages,
   },
   twitter: {
     card: "summary_large_image",
     title: "SplitSMS — Bulk SMS & SMS API Made Simple",
     description:
       "Affordable bulk SMS worldwide. Campaigns, OTP, API & 5 free credits.",
+    images: [defaultOpenGraphImages[0].url],
   },
   alternates: {
     canonical: "/",

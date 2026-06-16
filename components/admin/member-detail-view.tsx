@@ -44,6 +44,11 @@ import {
   adminBlockSenderIdAction,
 } from "@/lib/actions/admin-members";
 import {
+  adminUpdateSupportTicketAction,
+  adminUpdateSmartFormStatusAction,
+  adminUpdateCampaignStatusAction,
+} from "@/lib/actions/admin-platform";
+import {
   ArrowLeft,
   Monitor,
   Smartphone,
@@ -63,6 +68,9 @@ import {
   Lock,
   Copy,
   Check,
+  Users,
+  FileText,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
@@ -81,6 +89,7 @@ type Props = {
 const TAB_ITEMS = [
   { value: "overview", label: "Overview", icon: LayoutGrid },
   { value: "messaging", label: "SMS & logs", icon: MessageSquare },
+  { value: "products", label: "Products", icon: FileText },
   { value: "sessions", label: "Sessions", icon: Monitor },
   { value: "api", label: "API", icon: Key },
   { value: "senders", label: "Sender IDs", icon: BadgeCheck },
@@ -824,6 +833,136 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
           </div>
         </TabsContent>
 
+        <TabsContent value="products" className="space-y-4 mt-6">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <AdminStatCard label="Contacts" value={data.products.contactCount} icon={Users} />
+            <AdminStatCard label="Groups" value={data.products.groupCount} />
+            <AdminStatCard label="Templates" value={data.products.templateCount} />
+            <AdminStatCard
+              label="Automations"
+              value={data.products.automationCount}
+              icon={Zap}
+            />
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <AdminCard
+              title="Smart Forms"
+              actions={
+                <Link
+                  href="/admin/forms"
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  All forms →
+                </Link>
+              }
+            >
+              {data.products.forms.length === 0 ? (
+                <AdminEmpty>No forms.</AdminEmpty>
+              ) : (
+                <ul className="space-y-3">
+                  {data.products.forms.map((f) => (
+                    <li
+                      key={f.id}
+                      className="rounded-lg border border-border/50 p-3 space-y-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-medium text-sm">{f.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            /f/{f.shortCode} · {f._count.responses} responses
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] shrink-0">
+                          {f.status}
+                        </Badge>
+                      </div>
+                      <form action={adminUpdateSmartFormStatusAction} className="flex gap-2">
+                        <input type="hidden" name="formId" value={f.id} />
+                        <input
+                          type="hidden"
+                          name="returnTo"
+                          value={`/admin/members/${id}?tab=products`}
+                        />
+                        <select
+                          name="status"
+                          defaultValue={f.status}
+                          className="flex h-8 flex-1 rounded-md border border-input bg-background px-2 text-xs"
+                        >
+                          <option value="DRAFT">Draft</option>
+                          <option value="PUBLISHED">Published</option>
+                          <option value="CLOSED">Closed</option>
+                        </select>
+                        <Button type="submit" size="sm" variant="secondary">
+                          Set
+                        </Button>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </AdminCard>
+
+            <AdminCard
+              title="Campaigns"
+              actions={
+                <Link
+                  href="/admin/campaigns"
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  All campaigns →
+                </Link>
+              }
+            >
+              {data.products.campaigns.length === 0 ? (
+                <AdminEmpty>No campaigns.</AdminEmpty>
+              ) : (
+                <ul className="space-y-3">
+                  {data.products.campaigns.map((c) => (
+                    <li
+                      key={c.id}
+                      className="rounded-lg border border-border/50 p-3 space-y-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-medium text-sm">{c.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {c.recipientCount.toLocaleString()} recipients
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] shrink-0">
+                          {c.status}
+                        </Badge>
+                      </div>
+                      {["SCHEDULED", "SENDING", "PAUSED", "DRAFT"].includes(c.status) && (
+                        <form action={adminUpdateCampaignStatusAction} className="flex gap-2">
+                          <input type="hidden" name="campaignId" value={c.id} />
+                          <input
+                            type="hidden"
+                            name="returnTo"
+                            value={`/admin/members/${id}?tab=products`}
+                          />
+                          <select
+                            name="status"
+                            defaultValue="CANCELLED"
+                            className="flex h-8 flex-1 rounded-md border border-input bg-background px-2 text-xs"
+                          >
+                            {c.status !== "PAUSED" && <option value="PAUSED">Pause</option>}
+                            <option value="CANCELLED">Cancel</option>
+                          </select>
+                          <Button type="submit" size="sm" variant="secondary">
+                            Apply
+                          </Button>
+                        </form>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </AdminCard>
+          </div>
+        </TabsContent>
+
         <TabsContent value="activity" className="space-y-4 mt-6">
           <div className="grid gap-4 lg:grid-cols-2">
             <AdminCard title="Support tickets">
@@ -832,17 +971,38 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
               ) : (
                 <div className="space-y-3">
                   {data.supportTickets.map((t) => (
-                    <div key={t.id} className="rounded-lg border border-border/50 p-3">
+                    <div key={t.id} className="rounded-lg border border-border/50 p-3 space-y-2">
                       <div className="flex justify-between gap-2">
                         <p className="font-medium text-sm">{t.subject}</p>
                         <Badge variant="outline" className="text-[10px] shrink-0">
                           {t.status}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2 line-clamp-3">{t.message}</p>
-                      <p className="text-[10px] text-muted-foreground mt-2">
+                      <p className="text-xs text-muted-foreground line-clamp-3">{t.message}</p>
+                      <p className="text-[10px] text-muted-foreground">
                         {format(t.createdAt, "PPp")}
                       </p>
+                      <form action={adminUpdateSupportTicketAction} className="flex gap-2 pt-1">
+                        <input type="hidden" name="ticketId" value={t.id} />
+                        <input
+                          type="hidden"
+                          name="returnTo"
+                          value={`/admin/members/${id}?tab=activity`}
+                        />
+                        <select
+                          name="status"
+                          defaultValue={t.status}
+                          className="flex h-8 flex-1 rounded-md border border-input bg-background px-2 text-xs"
+                        >
+                          <option value="OPEN">Open</option>
+                          <option value="IN_PROGRESS">In progress</option>
+                          <option value="RESOLVED">Resolved</option>
+                          <option value="CLOSED">Closed</option>
+                        </select>
+                        <Button type="submit" size="sm" variant="secondary">
+                          Update
+                        </Button>
+                      </form>
                     </div>
                   ))}
                 </div>
