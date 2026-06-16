@@ -8,6 +8,7 @@ import { creditWalletFromPayment } from "@/lib/payments/wallet";
 import { PaymentMethod } from "@/lib/generated/prisma/client";
 import { redirect } from "next/navigation";
 import { purchaseCredits } from "@/lib/payments/wallet";
+import { resolveSmsPriceForUser } from "@/lib/reseller/pricing";
 
 export async function createTopUpAction(formData: FormData) {
   const session = await getSession();
@@ -60,16 +61,18 @@ export async function buyCreditsAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const credits = Number(formData.get("credits"));
-  const countryCode = String(formData.get("countryCode") ?? "GH");
-  const pricing = await prisma.smsPricing.findFirst({
-    where: { country: { code: countryCode } },
-  });
-  const unitPrice = pricing?.memberPrice.toNumber() ?? 0.05;
-  const cost = credits * unitPrice;
+  const credits = Math.floor(Number(formData.get("credits")));
+  const countryCode = String(formData.get("countryCode") ?? "GH").toUpperCase();
+
+  if (!credits || credits < 1) {
+    redirect("/dashboard/wallet?error=amount");
+  }
 
   const wallet = await prisma.wallet.findUnique({ where: { userId: session.userId } });
   if (!wallet) redirect("/dashboard/wallet?error=wallet");
+
+  const price = await resolveSmsPriceForUser(session.userId, countryCode);
+  const cost = Math.round(credits * price.sellPrice * 100) / 100;
 
   try {
     await purchaseCredits(session.userId, credits, cost, wallet.currency);
@@ -77,7 +80,7 @@ export async function buyCreditsAction(formData: FormData) {
     redirect("/dashboard/wallet?error=balance");
   }
 
-  redirect("/dashboard");
+  redirect("/dashboard/wallet?credits=purchased");
 }
 
 export async function approvePaymentAction(formData: FormData) {

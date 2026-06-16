@@ -1,3 +1,4 @@
+import { generateUniqueAccountNumber } from "@/lib/auth/account-number";
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
 import { randomBytes } from "crypto";
@@ -52,9 +53,11 @@ export async function provisionConnectCustomer(input: ProvisionConnectCustomerIn
     input.currency ??
     (countryCode === "GH" ? "GHS" : getCountryByCode(countryCode) ? "USD" : "GHS");
   const passwordHash = await hashPassword(randomBytes(32).toString("hex"));
+  const accountNumber = await generateUniqueAccountNumber();
 
   const customerUser = await prisma.user.create({
     data: {
+      accountNumber,
       fullName: input.fullName.trim(),
       phone,
       email: input.email?.trim() || null,

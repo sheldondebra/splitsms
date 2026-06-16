@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
+import { ensureUserAccountNumber, formatAccountNumber } from "@/lib/auth/account-number";
 import { SettingsAlerts } from "@/components/settings/settings-alerts";
 import { SettingsPanel } from "@/components/settings/settings-panel";
 import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
@@ -73,6 +74,9 @@ export default async function SettingsPage({
 
   if (!user) return null;
 
+  const accountNumber = await ensureUserAccountNumber(session.userId);
+  const accountId = formatAccountNumber(accountNumber);
+
   return (
     <AppPage medium>
       <PageHeader
@@ -91,7 +95,7 @@ export default async function SettingsPage({
           cooldown={params.cooldown}
         />
         <SettingsPanel
-          user={user}
+          user={{ ...user, accountId }}
           webhook={webhook}
           sessions={recentSessions}
           sessionCount={sessionCount}

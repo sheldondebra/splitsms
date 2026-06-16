@@ -35,6 +35,7 @@ import {
 export type SettingsPanelProps = {
   user: {
     id: string;
+    accountId: string;
     fullName: string;
     phone: string;
     email: string | null;
@@ -199,10 +200,13 @@ export function SettingsPanel({
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Account ID</Label>
-                  <div className="flex h-11 items-center gap-2 rounded-xl border bg-muted/20 px-3 font-mono text-xs text-muted-foreground">
-                    <span className="min-w-0 flex-1 truncate">{user.id}</span>
-                    <CopyValueButton value={user.id} label="Copy" />
+                  <div className="flex h-11 items-center gap-2 rounded-xl border bg-muted/20 px-3 font-mono text-sm tabular-nums">
+                    <span className="min-w-0 flex-1 tracking-widest">{user.accountId}</span>
+                    <CopyValueButton value={user.accountId} label="Copy" />
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Your 6-digit SplitSMS account number for support and billing.
+                  </p>
                 </div>
                 {user.referralCode && (
                   <div className="space-y-2">
@@ -340,6 +344,7 @@ export function SettingsPanel({
               />
               <dl className="divide-y divide-border/50 text-sm">
                 {[
+                  { label: "Account ID", value: user.accountId },
                   { label: "Member since", value: format(user.createdAt, "MMMM d, yyyy") },
                   { label: "Phone verified", value: user.isVerified ? "Yes" : "No" },
                   { label: "Country", value: user.countryCode },

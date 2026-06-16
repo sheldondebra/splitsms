@@ -269,7 +269,8 @@ export function WalletTopupClient({
       </Button>
 
       <p className="text-sm text-muted-foreground text-center leading-relaxed pt-1">
-        Funds appear in your wallet after payment is confirmed. Then buy SMS credits below.
+        Funds appear in your wallet after payment is confirmed. Then choose an SMS package on the
+        right.
       </p>
     </form>
   );

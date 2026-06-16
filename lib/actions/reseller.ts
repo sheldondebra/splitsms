@@ -1,5 +1,6 @@
 "use server";
 
+import { generateUniqueAccountNumber } from "@/lib/auth/account-number";
 import { prisma } from "@/lib/db";
 import { normalizeResellerDomain } from "@/lib/reseller/tenant";
 import { getSession } from "@/lib/auth/session";
@@ -31,9 +32,11 @@ export async function createSubUserAction(formData: FormData) {
   if (existing) redirect("/reseller/users?error=exists");
 
   const passwordHash = await bcrypt.hash(password, 12);
+  const accountNumber = await generateUniqueAccountNumber();
 
   const user = await prisma.user.create({
     data: {
+      accountNumber,
       fullName,
       phone,
       email,

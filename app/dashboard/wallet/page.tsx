@@ -10,6 +10,8 @@ import { Wallet, Plus, Coins } from "lucide-react";
 import { getPaymentMethodOptions } from "@/lib/payments/methods";
 import { getOfflineBankDetails } from "@/lib/payments/offline-config";
 import { verifyAndCreditPaymentForUser } from "@/lib/payments/verify";
+import { getWalletPricingOptions } from "@/lib/billing/wallet-pricing";
+import { resolveSmsPriceForUser } from "@/lib/reseller/pricing";
 
 export default async function WalletPage({
   searchParams,
@@ -17,6 +19,7 @@ export default async function WalletPage({
   searchParams: Promise<{
     funded?: string;
     promo?: string;
+    credits?: string;
     error?: string;
     msg?: string;
     payment?: string;
@@ -43,36 +46,49 @@ export default async function WalletPage({
       : { ok: false, error: verified.error ?? "payment" };
   }
 
-  const [wallet, credit, transactions, paymentMethods, offlineBankDetails] = await Promise.all([
-    prisma.wallet.findUnique({ where: { userId: session.userId } }),
-    prisma.smsCredit.findUnique({ where: { userId: session.userId } }),
-    prisma.transaction.findMany({
-      where: { userId: session.userId },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    }),
-    getPaymentMethodOptions() as Promise<PaymentMethodOption[]>,
-    getOfflineBankDetails(),
-  ]);
+  const [wallet, credit, transactions, paymentMethods, offlineBankDetails, user, pricingOptions] =
+    await Promise.all([
+      prisma.wallet.findUnique({ where: { userId: session.userId } }),
+      prisma.smsCredit.findUnique({ where: { userId: session.userId } }),
+      prisma.transaction.findMany({
+        where: { userId: session.userId },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      }),
+      getPaymentMethodOptions() as Promise<PaymentMethodOption[]>,
+      getOfflineBankDetails(),
+      prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { countryCode: true },
+      }),
+      getWalletPricingOptions(session.userId),
+    ]);
 
   const currency = wallet?.currency ?? "GHS";
   const walletBalance = wallet?.balance.toNumber() ?? 0;
   const smsCredits = credit?.balance ?? 0;
   const lowBalance = smsCredits <= 10;
+  const defaultCountryCode = user?.countryCode ?? pricingOptions[0]?.countryCode ?? "GH";
+  const activePrice = await resolveSmsPriceForUser(session.userId, defaultCountryCode);
 
   return (
     <AppPage wide>
       <PageHeader
-        title="Wallet"
-        description="Add money, buy SMS credits, and track your balance."
+        title="Wallet & SMS credits"
+        description="Top up your wallet, buy credit packages, and track spending."
         icon={Wallet}
-        mobileDescription="Top up, buy credits, and view recent activity."
+        mobileDescription="Add money, buy SMS packages, view activity."
       />
 
       {callbackResult?.ok || params.funded ? (
         <FriendlyAlert
           success="1"
           successMessage="Payment successful — your wallet balance has been updated."
+        />
+      ) : params.credits === "purchased" ? (
+        <FriendlyAlert
+          success="1"
+          successMessage="SMS credits purchased successfully. You can start sending right away."
         />
       ) : callbackResult && !callbackResult.ok ? (
         <FriendlyAlert error={callbackResult.error ?? "payment"} />
@@ -92,34 +108,41 @@ export default async function WalletPage({
         walletBalance={walletBalance}
         smsCredits={smsCredits}
         lowBalance={lowBalance}
+        pricePerCredit={activePrice.sellPrice}
+        pricingCurrency={activePrice.currency}
+        countryCode={activePrice.countryCode}
       />
 
-      <div className="grid gap-6 xl:grid-cols-2 xl:gap-10 xl:items-stretch">
-        <AppCard className="h-full flex flex-col overflow-visible">
-          <AppCardBody fill>
+      <div className="grid gap-6 xl:grid-cols-2 xl:gap-8 xl:items-start">
+        <AppCard className="overflow-visible">
+          <AppCardBody>
             <AppCardTitle
               icon={Plus}
-              title="Add money"
-              description="Pay online (Paystack, Flutterwave, Stripe) or submit offline transfer details"
+              title="Add money to wallet"
+              description="Pay online or submit offline transfer details — then buy SMS packages"
             />
-            <div className="flex-1 min-h-0">
-              <WalletTopupClient
-                currency={currency}
-                paymentMethods={paymentMethods}
-                offlineBankDetails={offlineBankDetails}
-              />
-            </div>
+            <WalletTopupClient
+              currency={currency}
+              paymentMethods={paymentMethods}
+              offlineBankDetails={offlineBankDetails}
+            />
           </AppCardBody>
         </AppCard>
 
-        <AppCard className="h-full flex flex-col">
-          <AppCardBody fill>
+        <AppCard>
+          <AppCardBody>
             <AppCardTitle
               icon={Coins}
-              title="SMS credits"
-              description="Credits are used when you send messages from the dashboard or API."
+              title="SMS credit packages"
+              description="Pick a package or enter a custom amount based on your pricing rate"
+              className="mb-2"
             />
-            <WalletCreditsPanel currency={currency} walletBalance={walletBalance} />
+            <WalletCreditsPanel
+              currency={currency}
+              walletBalance={walletBalance}
+              pricingOptions={pricingOptions}
+              defaultCountryCode={defaultCountryCode}
+            />
           </AppCardBody>
         </AppCard>
       </div>

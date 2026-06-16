@@ -24,6 +24,7 @@ import {
   userNeedsProfileCompletion,
   maskPhoneForDisplay,
 } from "@/lib/auth/phone-auth";
+import { generateUniqueAccountNumber } from "@/lib/auth/account-number";
 import { getSession } from "@/lib/auth/session";
 import { isMailjetConfigured } from "@/lib/email/config";
 import type { OtpDeliveryChannel } from "@/lib/auth/otp";
@@ -178,8 +179,10 @@ export async function requestPhoneAuthAction(formData: FormData) {
     }
 
     const passwordHash = await hashPassword(generateOtpOnlyPassword());
+    const accountNumber = await generateUniqueAccountNumber();
     user = await prisma.user.create({
       data: {
+        accountNumber,
         fullName: PLACEHOLDER_PROFILE_NAME,
         phone,
         countryCode,
@@ -287,8 +290,10 @@ export async function requestEmailAuthAction(formData: FormData) {
     }
 
     const passwordHash = await hashPassword(generateOtpOnlyPassword());
+    const accountNumber = await generateUniqueAccountNumber();
     const user = await prisma.user.create({
       data: {
+        accountNumber,
         fullName: PLACEHOLDER_PROFILE_NAME,
         phone,
         email,
@@ -507,8 +512,10 @@ export async function signupAction(formData: FormData) {
   }
 
   const passwordHash = await hashPassword(password);
+  const accountNumber = await generateUniqueAccountNumber();
   const user = await prisma.user.create({
     data: {
+      accountNumber,
       fullName,
       phone,
       countryCode,

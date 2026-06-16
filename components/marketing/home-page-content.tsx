@@ -419,7 +419,7 @@ export function HomePageContent() {
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
-                href="/dashboard/forms"
+                href="/smart-forms"
                 className={cn(
                   buttonVariants({ variant: "outline", size: "lg" }),
                   "font-semibold",

@@ -161,6 +161,7 @@ enum NotificationType {
 
 model User {
   id               String          @id @default(cuid())
+  accountNumber    Int?            @unique
   fullName         String
   phone            String          @unique
   countryCode      String

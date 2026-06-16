@@ -27,7 +27,7 @@ export const organizationJsonLd = {
   "@id": `${siteUrl}/#organization`,
   name: siteName,
   url: siteUrl,
-  logo: `${siteUrl}/icon.svg`,
+  logo: `${siteUrl}/smslogo.png`,
   email: supportEmail,
   description:
     "SplitSMS is a bulk SMS platform for 190+ countries — campaigns, OTP API, webhooks, and pay-as-you-go pricing.",
