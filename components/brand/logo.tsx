@@ -5,14 +5,20 @@ import { cn } from "@/lib/utils";
 type LogoProps = {
   className?: string;
   href?: string;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   /** true = always show wordmark; "desktop" = hide wordmark on small screens */
   showText?: boolean | "desktop";
   /** White logo for dark backgrounds (sidebar, hero, footer) */
   variant?: "default" | "white";
 };
 
-const heights = { sm: 28, md: 36, lg: 48 };
+const heights = { xs: 18, sm: 22, md: 26, lg: 32 };
+const heightClass = {
+  xs: "h-[18px]",
+  sm: "h-[22px]",
+  md: "h-[26px]",
+  lg: "h-[32px]",
+};
 
 export function Logo({
   className,
@@ -30,7 +36,8 @@ export function Logo({
       height={h}
       unoptimized
       className={cn(
-        "h-auto w-auto object-contain transition-[filter] duration-300",
+        "w-auto max-w-none shrink-0 object-contain object-left transition-[filter] duration-300",
+        heightClass[size],
         variant === "white" && "brightness-0 invert",
         variant === "default" && "dark:brightness-0 dark:invert",
         className,
