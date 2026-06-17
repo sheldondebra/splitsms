@@ -12,12 +12,13 @@ type LogoProps = {
   variant?: "default" | "white";
 };
 
-const heights = { xs: 18, sm: 22, md: 26, lg: 32 };
+/** Wordmark heights tuned for h-14 (56px) nav bars — ~60% of bar height at md */
+const heights = { xs: 26, sm: 30, md: 34, lg: 40 };
 const heightClass = {
-  xs: "h-[18px]",
-  sm: "h-[22px]",
-  md: "h-[26px]",
-  lg: "h-[32px]",
+  xs: "h-[26px]",
+  sm: "h-[30px]",
+  md: "h-[34px]",
+  lg: "h-[40px]",
 };
 
 export function Logo({

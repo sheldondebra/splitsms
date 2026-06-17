@@ -46,7 +46,7 @@ export function AuthLayout({
             <TenantLogo tenant={tenant} className="text-white" />
           </Link>
         ) : (
-          <Logo href="/" size="md" variant="white" />
+          <Logo href="/" size="lg" variant="white" />
         )}
         <div className="space-y-4 max-w-md">
           {sideBadge && (
@@ -88,7 +88,7 @@ export function AuthLayout({
               <TenantLogo tenant={tenant} />
             </Link>
           ) : (
-            <Logo href="/" size="sm" />
+            <Logo href="/" size="md" />
           )}
         </div>
         <div className="w-full max-w-md space-y-6">

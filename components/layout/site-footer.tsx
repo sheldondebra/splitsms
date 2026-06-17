@@ -182,7 +182,7 @@ export function SiteFooter() {
         <div className="max-w-[1600px] mx-auto border-t border-border dark:border-white/10 pt-14 pb-14">
           <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-6 xl:gap-8">
             <div className="col-span-2 sm:col-span-2 lg:col-span-1 min-w-0">
-              <Logo href="/" size="sm" variant="default" />
+              <Logo href="/" size="md" variant="default" />
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
                 Bulk SMS by{" "}
                 <Link href="/company" className="text-foreground font-medium hover:text-primary">

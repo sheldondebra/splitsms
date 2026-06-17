@@ -51,7 +51,7 @@ export function SiteHeader({ account = null }: { account?: HeaderAccountProfile 
     <>
       <header className="site-header site-header--solid">
         <div className="site-header-inner">
-          <Logo href="/" size="sm" />
+          <Logo href="/" size="md" />
 
           <nav className="site-header-nav" aria-label="Main">
             {navItems.map((item) => {
@@ -135,7 +135,7 @@ export function SiteHeader({ account = null }: { account?: HeaderAccountProfile 
           )}
         >
           <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
-            <Logo href="/" size="xs" />
+            <Logo href="/" size="sm" />
             <button
               type="button"
               onClick={() => setMenuOpen(false)}

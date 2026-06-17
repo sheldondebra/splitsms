@@ -12,7 +12,7 @@ export function DashboardSidebar() {
       <div className="flex h-14 shrink-0 items-center border-b border-sidebar-border/80 px-5">
         <Logo
           href="/dashboard"
-          size="sm"
+          size="md"
           variant={resolvedTheme === "dark" ? "white" : "default"}
         />
       </div>
