@@ -8,6 +8,7 @@ import {
   adminResubmitSenderProvidersAction,
   adminSyncAllSenderProvidersAction,
   rejectSenderIdAction,
+  blockSenderIdAction,
 } from "@/lib/actions/admin-sender-ids";
 import { SenderIdRegisterForm } from "@/components/admin/sender-id-register-form";
 import { SenderIdProviderBadges } from "@/components/admin/sender-id-provider-badges";
@@ -51,6 +52,7 @@ const SAVED_MESSAGES: Record<string, string> = {
   resubmit: "Re-submitted to providers — check status after sync.",
   approved: "Sender ID approved on SplitSMS.",
   rejected: "Sender ID denied.",
+  blocked: "Sender ID blocked.",
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -250,7 +252,7 @@ export function AdminSenderIdsView({
             ) : (
               <div className="-my-1 space-y-0">
                 {allSenders.map((s) => (
-                  <SenderIdAllRow key={s.id} sender={s} />
+                  <SenderIdAdminRow key={s.id} sender={s} returnTo="/admin/sender-ids?tab=all" />
                 ))}
               </div>
             )}
@@ -276,56 +278,6 @@ export function AdminSenderIdsView({
   );
 }
 
-function SenderIdAllRow({ sender: s }: { sender: SenderRow }) {
-  const returnTo = "/admin/sender-ids?tab=all";
-  const canResubmit =
-    s.status === "REJECTED" ||
-    s.providerRegistrations.some(
-      (r) => r.status === "REJECTED" || r.status === "FAILED",
-    );
-
-  return (
-    <AdminListRow>
-      <div className="min-w-0 space-y-2 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="font-semibold font-mono text-sm">{s.value}</p>
-          <Badge variant="outline" className="text-[10px]">
-            {s.status}
-          </Badge>
-          <Link
-            href={`/admin/members/${s.user.id}?tab=senders`}
-            className="text-xs text-primary hover:underline"
-          >
-            {s.user.fullName}
-          </Link>
-        </div>
-        {s.adminNote && <p className="text-xs text-muted-foreground">{s.adminNote}</p>}
-        <SenderIdProviderBadges registrations={s.providerRegistrations} />
-      </div>
-      <div className="flex flex-wrap gap-2 shrink-0">
-        <form action={adminSyncSenderProvidersAction}>
-          <input type="hidden" name="senderId" value={s.id} />
-          <input type="hidden" name="returnTo" value={returnTo} />
-          <Button size="sm" type="submit" variant="outline" className="gap-1">
-            <RefreshCw className="h-3 w-3" />
-            Sync
-          </Button>
-        </form>
-        {canResubmit && (
-          <form action={adminResubmitSenderProvidersAction}>
-            <input type="hidden" name="senderId" value={s.id} />
-            <input type="hidden" name="returnTo" value={returnTo} />
-            <Button size="sm" type="submit" variant="secondary" className="gap-1">
-              <RotateCcw className="h-3 w-3" />
-              Re-submit
-            </Button>
-          </form>
-        )}
-      </div>
-    </AdminListRow>
-  );
-}
-
 function SenderIdAdminRow({
   sender: s,
   returnTo,
@@ -336,6 +288,11 @@ function SenderIdAdminRow({
   const providerDenied = s.providerRegistrations.some(
     (r) => r.status === "REJECTED" || r.status === "FAILED",
   );
+  const canResubmit =
+    s.status === "REJECTED" ||
+    s.providerRegistrations.some(
+      (r) => r.status === "REJECTED" || r.status === "FAILED",
+    );
 
   return (
     <AdminListRow>
@@ -345,6 +302,15 @@ function SenderIdAdminRow({
           <Badge variant="outline" className="text-[10px]">
             {s.countryCode}
           </Badge>
+          <Badge variant="outline" className="text-[10px]">
+            {s.status}
+          </Badge>
+          <Link
+            href={`/admin/members/${s.user.id}?tab=senders`}
+            className="text-xs text-primary hover:underline"
+          >
+            {s.user.fullName}
+          </Link>
         </div>
         <p className="text-sm text-muted-foreground">{s.user.fullName}</p>
         <p className="text-xs text-muted-foreground">{s.user.phone}</p>
@@ -367,7 +333,7 @@ function SenderIdAdminRow({
             Sync providers
           </Button>
         </form>
-        {providerDenied && (
+        {canResubmit && (
           <form action={adminResubmitSenderProvidersAction}>
             <input type="hidden" name="senderId" value={s.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
@@ -377,24 +343,35 @@ function SenderIdAdminRow({
             </Button>
           </form>
         )}
-        <div className="flex flex-wrap gap-2 sm:justify-end">
-          <form action={approveSenderIdAction}>
+        {s.status === "PENDING" && (
+          <div className="flex flex-wrap gap-2 sm:justify-end">
+            <form action={approveSenderIdAction}>
+              <input type="hidden" name="id" value={s.id} />
+              <input type="hidden" name="setDefault" value="1" />
+              <input type="hidden" name="returnTo" value={returnTo} />
+              <Button size="sm" type="submit" disabled={providerDenied}>
+                Approve
+              </Button>
+            </form>
+            <form action={rejectSenderIdAction} className="flex gap-2 items-center">
+              <input type="hidden" name="id" value={s.id} />
+              <input type="hidden" name="returnTo" value={returnTo} />
+              <Input name="note" placeholder="Deny reason" className="h-8 w-36 text-xs" />
+              <Button size="sm" type="submit" variant="destructive">
+                Deny
+              </Button>
+            </form>
+          </div>
+        )}
+        {s.status !== "REJECTED" && (
+          <form action={blockSenderIdAction}>
             <input type="hidden" name="id" value={s.id} />
-            <input type="hidden" name="setDefault" value="1" />
             <input type="hidden" name="returnTo" value={returnTo} />
-            <Button size="sm" type="submit" disabled={providerDenied}>
-              Approve
+            <Button size="sm" type="submit" variant="outline" className="text-destructive">
+              Block
             </Button>
           </form>
-          <form action={rejectSenderIdAction} className="flex gap-2 items-center">
-            <input type="hidden" name="id" value={s.id} />
-            <input type="hidden" name="returnTo" value={returnTo} />
-            <Input name="note" placeholder="Deny reason" className="h-8 w-36 text-xs" />
-            <Button size="sm" type="submit" variant="destructive">
-              Deny
-            </Button>
-          </form>
-        </div>
+        )}
       </div>
     </AdminListRow>
   );

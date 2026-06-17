@@ -6,8 +6,8 @@ import { hashPassword } from "@/lib/auth/password";
 import { createAndSendOtp } from "@/lib/auth/otp";
 import { logAuthEvent } from "@/lib/auth/audit";
 import {
-  approveSenderIdAction,
-  rejectSenderIdAction,
+  approveSenderIdCore,
+  rejectSenderIdCore,
 } from "@/lib/actions/admin-sender-ids";
 import { getOrCreateMemberAccount } from "@/lib/admin/member-account";
 import { syncSenderIdFromProviders } from "@/lib/sender-ids/provider-sync";
@@ -298,15 +298,21 @@ export async function adminSyncSenderIdStatusAction(formData: FormData) {
 }
 
 export async function adminApproveSenderFromMemberAction(formData: FormData) {
-  await approveSenderIdAction(formData);
   const userId = String(formData.get("userId") ?? "");
-  if (userId) redirect(memberPath(userId, { saved: "sender_approved" }));
+  const result = await approveSenderIdCore(formData);
+  if (!result.ok) {
+    redirect(memberPath(userId, { error: result.error }));
+  }
+  redirect(memberPath(userId, { saved: "sender_approved" }));
 }
 
 export async function adminRejectSenderFromMemberAction(formData: FormData) {
-  await rejectSenderIdAction(formData);
   const userId = String(formData.get("userId") ?? "");
-  if (userId) redirect(memberPath(userId, { saved: "sender_rejected" }));
+  const result = await rejectSenderIdCore(formData);
+  if (!result.ok) {
+    redirect(memberPath(userId, { error: result.error }));
+  }
+  redirect(memberPath(userId, { saved: "sender_rejected" }));
 }
 
 export async function adminBlockSenderIdAction(formData: FormData) {

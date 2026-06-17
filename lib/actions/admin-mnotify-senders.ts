@@ -3,6 +3,7 @@
 import { getSession, isAdminRole } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { getOrCreateMemberAccount } from "@/lib/admin/member-account";
+import { withReturnParams } from "@/lib/admin/return-url";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import {
   deleteMnotifySenderId,
@@ -25,6 +26,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 const RETURN_BASE = "/admin/sender-ids?tab=mnotify";
+
+function adminRedirect(returnTo: string, params: Record<string, string | undefined>): never {
+  redirect(withReturnParams(returnTo, params));
+}
 
 async function requireAdminSession() {
   const session = await getSession();
@@ -74,11 +79,14 @@ export async function adminCreateMnotifySenderAction(formData: FormData) {
     .toUpperCase();
 
   const validation = validateSenderIdValue(value);
-  if (!validation.ok) redirect(`${returnTo}&error=invalid`);
+  if (!validation.ok) adminRedirect(returnTo, { error: "invalid" });
 
   const registered = await registerMnotifySenderId(value, purpose);
   if (!registered.ok) {
-    redirect(`${returnTo}&error=mnotify_register&detail=${encodeURIComponent(registered.error ?? "failed")}`);
+    adminRedirect(returnTo, {
+      error: "mnotify_register",
+      detail: encodeURIComponent(registered.error ?? "failed"),
+    });
   }
 
   await trackMnotifySender(value, purpose, session.userId, "Registered via admin mNotify panel");
@@ -88,13 +96,13 @@ export async function adminCreateMnotifySenderAction(formData: FormData) {
       where: { id: userId, role: "MEMBER" },
       select: { id: true, fullName: true },
     });
-    if (!member) redirect(`${returnTo}&error=user`);
+    if (!member) adminRedirect(returnTo, { error: "user" });
 
     const account = await getOrCreateMemberAccount(userId);
-    if (account.senderIdsBlocked) redirect(`${returnTo}&error=blocked`);
+    if (account.senderIdsBlocked) adminRedirect(returnTo, { error: "blocked" });
 
     const count = await prisma.senderId.count({ where: { userId } });
-    if (count >= account.maxSenderIds) redirect(`${returnTo}&error=limit`);
+    if (count >= account.maxSenderIds) adminRedirect(returnTo, { error: "limit" });
 
     const existing = await prisma.senderId.findFirst({ where: { userId, value } });
     if (!existing) {
@@ -131,7 +139,7 @@ export async function adminCreateMnotifySenderAction(formData: FormData) {
   });
 
   revalidateMnotifyPaths(userId || undefined);
-  redirect(`${returnTo}&saved=created`);
+  adminRedirect(returnTo, { saved: "created" });
 }
 
 /** Update purpose at mNotify (re-register) and tracker metadata. */
@@ -141,11 +149,14 @@ export async function adminUpdateMnotifySenderAction(formData: FormData) {
   const senderName = normalizeSenderIdValue(String(formData.get("senderName") ?? ""));
   const purpose = String(formData.get("purpose") ?? "").trim();
 
-  if (!senderName || !purpose) redirect(`${returnTo}&error=invalid`);
+  if (!senderName || !purpose) adminRedirect(returnTo, { error: "invalid" });
 
   const updated = await updateMnotifySenderIdPurpose(senderName, purpose);
   if (!updated.ok) {
-    redirect(`${returnTo}&error=mnotify_update&detail=${encodeURIComponent(updated.error ?? "failed")}`);
+    adminRedirect(returnTo, {
+      error: "mnotify_update",
+      detail: encodeURIComponent(updated.error ?? "failed"),
+    });
   }
 
   await trackMnotifySender(senderName, purpose, session.userId, "Purpose updated");
@@ -159,7 +170,7 @@ export async function adminUpdateMnotifySenderAction(formData: FormData) {
   }
 
   revalidateMnotifyPaths(platform?.userId);
-  redirect(`${returnTo}&saved=updated`);
+  adminRedirect(returnTo, { saved: "updated" });
 }
 
 /** Delete from mNotify (best effort) + platform + tracker. */
@@ -169,7 +180,7 @@ export async function adminDeleteMnotifySenderAction(formData: FormData) {
   const senderName = normalizeSenderIdValue(String(formData.get("senderName") ?? ""));
   const platformId = String(formData.get("platformId") ?? "").trim();
 
-  if (!senderName) redirect(`${returnTo}&error=invalid`);
+  if (!senderName) adminRedirect(returnTo, { error: "invalid" });
 
   const mnotifyDelete = await deleteMnotifySenderId(senderName);
 
@@ -212,9 +223,10 @@ export async function adminDeleteMnotifySenderAction(formData: FormData) {
   });
 
   revalidateMnotifyPaths(userId);
-  redirect(
-    `${returnTo}&saved=deleted${mnotifyDelete.ok ? "" : "&warn=mnotify_delete_manual"}`,
-  );
+  adminRedirect(returnTo, {
+    saved: "deleted",
+    ...(mnotifyDelete.ok ? {} : { warn: "mnotify_delete_manual" }),
+  });
 }
 
 /** Link mNotify-only sender to a member on SplitSMS. */
@@ -229,22 +241,22 @@ export async function adminImportMnotifySenderAction(formData: FormData) {
     .trim()
     .toUpperCase();
 
-  if (!value || !userId) redirect(`${returnTo}&error=invalid`);
+  if (!value || !userId) adminRedirect(returnTo, { error: "invalid" });
 
   const member = await prisma.user.findFirst({
     where: { id: userId, role: "MEMBER" },
     select: { id: true },
   });
-  if (!member) redirect(`${returnTo}&error=user`);
+  if (!member) adminRedirect(returnTo, { error: "user" });
 
   const account = await getOrCreateMemberAccount(userId);
-  if (account.senderIdsBlocked) redirect(`${returnTo}&error=blocked`);
+  if (account.senderIdsBlocked) adminRedirect(returnTo, { error: "blocked" });
 
   const count = await prisma.senderId.count({ where: { userId } });
-  if (count >= account.maxSenderIds) redirect(`${returnTo}&error=limit`);
+  if (count >= account.maxSenderIds) adminRedirect(returnTo, { error: "limit" });
 
   const dup = await prisma.senderId.findFirst({ where: { userId, value } });
-  if (dup) redirect(`${returnTo}&error=duplicate`);
+  if (dup) adminRedirect(returnTo, { error: "duplicate" });
 
   const sender = await prisma.senderId.create({
     data: {
@@ -268,7 +280,7 @@ export async function adminImportMnotifySenderAction(formData: FormData) {
   await trackMnotifySender(value, purpose, session.userId, "Imported to member");
 
   revalidateMnotifyPaths(userId);
-  redirect(`${returnTo}&saved=imported`);
+  adminRedirect(returnTo, { saved: "imported" });
 }
 
 /** Sync one platform sender from mNotify. */
@@ -281,11 +293,11 @@ export async function adminSyncMnotifySenderAction(formData: FormData) {
     where: { id: platformId },
     select: { userId: true },
   });
-  if (!sender) redirect(`${returnTo}&error=notfound`);
+  if (!sender) adminRedirect(returnTo, { error: "notfound" });
 
   await syncSenderIdFromProviders(platformId);
   revalidateMnotifyPaths(sender.userId);
-  redirect(`${returnTo}&saved=sync`);
+  adminRedirect(returnTo, { saved: "sync" });
 }
 
 /** Track a custom sender name for inventory (no register). */
@@ -295,7 +307,7 @@ export async function adminTrackMnotifySenderAction(formData: FormData) {
   const value = normalizeSenderIdValue(String(formData.get("senderName") ?? ""));
 
   const validation = validateSenderIdValue(value);
-  if (!validation.ok) redirect(`${returnTo}&error=invalid`);
+  if (!validation.ok) adminRedirect(returnTo, { error: "invalid" });
 
   await trackMnotifySender(
     value,
@@ -304,5 +316,5 @@ export async function adminTrackMnotifySenderAction(formData: FormData) {
     "Manually tracked",
   );
 
-  redirect(`${returnTo}&saved=tracked`);
+  adminRedirect(returnTo, { saved: "tracked" });
 }

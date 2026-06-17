@@ -3,6 +3,7 @@
 import { getSession, isAdminRole } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { getOrCreateMemberAccount } from "@/lib/admin/member-account";
+import { withReturnParams } from "@/lib/admin/return-url";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import {
   normalizeSenderIdValue,
@@ -17,6 +18,8 @@ import { senderHasProviderApproval } from "@/lib/sender-ids/reconcile-status";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+const DEFAULT_RETURN = "/admin/sender-ids?tab=pending";
+
 function revalidateSenderPaths(userId?: string) {
   revalidatePath("/admin/sender-ids");
   revalidatePath("/dashboard/sender-ids");
@@ -30,17 +33,19 @@ async function requireAdminSession() {
   return session;
 }
 
-export async function approveSenderIdAction(formData: FormData) {
+function adminRedirect(returnTo: string, params: Record<string, string | undefined>): never {
+  redirect(withReturnParams(returnTo, params));
+}
+
+export async function approveSenderIdCore(formData: FormData) {
   await requireAdminSession();
   const id = String(formData.get("id"));
-  const returnTo = String(formData.get("returnTo") ?? "/admin/sender-ids");
-  const isDefault = formData.get("setDefault") === "1";
 
   const row = await prisma.senderId.findUnique({
     where: { id },
     include: { providerRegistrations: true },
   });
-  if (!row) redirect(`${returnTo}&error=notfound`);
+  if (!row) return { ok: false as const, error: "notfound" as const };
 
   await syncSenderIdFromProviders(id);
 
@@ -48,16 +53,17 @@ export async function approveSenderIdAction(formData: FormData) {
     where: { id },
     include: { providerRegistrations: true },
   });
-  if (!refreshed) redirect(`${returnTo}&error=notfound`);
+  if (!refreshed) return { ok: false as const, error: "notfound" as const };
 
   const active = refreshed.providerRegistrations.filter((r) => r.status !== "SKIPPED");
   const anyRejected = active.some((r) => r.status === "REJECTED" || r.status === "FAILED");
   const anyApproved = senderHasProviderApproval(refreshed.providerRegistrations);
 
   if (anyRejected && !anyApproved) {
-    redirect(`${returnTo}&error=provider_denied`);
+    return { ok: false as const, error: "provider_denied" as const };
   }
 
+  const isDefault = formData.get("setDefault") === "1";
   const userId = refreshed.userId;
 
   if (isDefault) {
@@ -78,16 +84,26 @@ export async function approveSenderIdAction(formData: FormData) {
     },
   });
   revalidateSenderPaths(userId);
-  redirect(`${returnTo}&saved=approved`);
+  return { ok: true as const, userId };
 }
 
-export async function rejectSenderIdAction(formData: FormData) {
+export async function approveSenderIdAction(formData: FormData) {
+  const returnTo = String(formData.get("returnTo") ?? DEFAULT_RETURN);
+  const result = await approveSenderIdCore(formData);
+  if (!result.ok) {
+    adminRedirect(returnTo, { error: result.error });
+  }
+  adminRedirect(returnTo, { saved: "approved" });
+}
+
+export async function rejectSenderIdCore(formData: FormData) {
   await requireAdminSession();
   const id = String(formData.get("id"));
-  const returnTo = String(formData.get("returnTo") ?? "/admin/sender-ids");
   const userId = (
     await prisma.senderId.findUnique({ where: { id }, select: { userId: true } })
   )?.userId;
+
+  if (!userId) return { ok: false as const, error: "notfound" as const };
 
   await prisma.senderId.update({
     where: { id },
@@ -98,7 +114,41 @@ export async function rejectSenderIdAction(formData: FormData) {
     },
   });
   revalidateSenderPaths(userId);
-  redirect(`${returnTo}&saved=rejected`);
+  return { ok: true as const, userId };
+}
+
+export async function rejectSenderIdAction(formData: FormData) {
+  const returnTo = String(formData.get("returnTo") ?? DEFAULT_RETURN);
+  const result = await rejectSenderIdCore(formData);
+  if (!result.ok) {
+    adminRedirect(returnTo, { error: result.error });
+  }
+  adminRedirect(returnTo, { saved: "rejected" });
+}
+
+export async function blockSenderIdAction(formData: FormData) {
+  await requireAdminSession();
+  const id = String(formData.get("id") ?? formData.get("senderId") ?? "");
+  const returnTo = String(formData.get("returnTo") ?? DEFAULT_RETURN);
+
+  const sender = await prisma.senderId.findUnique({
+    where: { id },
+    select: { userId: true },
+  });
+  if (!sender) {
+    adminRedirect(returnTo, { error: "notfound" });
+  }
+
+  await prisma.senderId.update({
+    where: { id },
+    data: {
+      status: "REJECTED",
+      adminNote: String(formData.get("note") ?? "Blocked by admin").trim(),
+      isDefault: false,
+    },
+  });
+  revalidateSenderPaths(sender.userId);
+  adminRedirect(returnTo, { saved: "blocked" });
 }
 
 export async function adminCreateSenderIdAction(formData: FormData) {
@@ -115,28 +165,28 @@ export async function adminCreateSenderIdAction(formData: FormData) {
   const returnTo = String(formData.get("returnTo") ?? "/admin/sender-ids?tab=register");
 
   if (!userId) {
-    redirect(`${returnTo}&error=user`);
+    adminRedirect(returnTo, { error: "user" });
   }
 
   const validation = validateSenderIdValue(value);
   if (!validation.ok) {
-    redirect(`${returnTo}&error=invalid`);
+    adminRedirect(returnTo, { error: "invalid" });
   }
 
   const member = await prisma.user.findFirst({
     where: { id: userId, role: "MEMBER" },
     select: { id: true, fullName: true },
   });
-  if (!member) redirect(`${returnTo}&error=user`);
+  if (!member) adminRedirect(returnTo, { error: "user" });
 
   const account = await getOrCreateMemberAccount(userId);
-  if (account.senderIdsBlocked) redirect(`${returnTo}&error=blocked`);
+  if (account.senderIdsBlocked) adminRedirect(returnTo, { error: "blocked" });
 
   const senderCount = await prisma.senderId.count({ where: { userId } });
-  if (senderCount >= account.maxSenderIds) redirect(`${returnTo}&error=limit`);
+  if (senderCount >= account.maxSenderIds) adminRedirect(returnTo, { error: "limit" });
 
   const duplicate = await prisma.senderId.findFirst({ where: { userId, value } });
-  if (duplicate) redirect(`${returnTo}&error=duplicate`);
+  if (duplicate) adminRedirect(returnTo, { error: "duplicate" });
 
   if (setDefault) {
     await prisma.senderId.updateMany({
@@ -181,44 +231,44 @@ export async function adminCreateSenderIdAction(formData: FormData) {
   });
 
   revalidateSenderPaths(userId);
-  redirect(`${returnTo}&saved=created`);
+  adminRedirect(returnTo, { saved: "created" });
 }
 
 export async function adminSyncSenderProvidersAction(formData: FormData) {
   await requireAdminSession();
   const senderId = String(formData.get("senderId") ?? "");
-  const returnTo = String(formData.get("returnTo") ?? "/admin/sender-ids");
+  const returnTo = String(formData.get("returnTo") ?? DEFAULT_RETURN);
 
   const sender = await prisma.senderId.findUnique({
     where: { id: senderId },
     select: { userId: true },
   });
-  if (!sender) redirect(`${returnTo}&error=notfound`);
+  if (!sender) adminRedirect(returnTo, { error: "notfound" });
 
   await syncSenderIdFromProviders(senderId);
   revalidateSenderPaths(sender.userId);
-  redirect(`${returnTo}&saved=sync`);
+  adminRedirect(returnTo, { saved: "sync" });
 }
 
 export async function adminResubmitSenderProvidersAction(formData: FormData) {
   await requireAdminSession();
   const senderId = String(formData.get("senderId") ?? "");
-  const returnTo = String(formData.get("returnTo") ?? "/admin/sender-ids");
+  const returnTo = String(formData.get("returnTo") ?? DEFAULT_RETURN);
 
   const result = await resubmitSenderIdToProviders(senderId);
-  if (!result.ok) redirect(`${returnTo}&error=notfound`);
+  if (!result.ok) adminRedirect(returnTo, { error: "notfound" });
 
   const sender = await prisma.senderId.findUnique({
     where: { id: senderId },
     select: { userId: true },
   });
   revalidateSenderPaths(sender?.userId);
-  redirect(`${returnTo}&saved=resubmit`);
+  adminRedirect(returnTo, { saved: "resubmit" });
 }
 
 export async function adminSyncAllSenderProvidersAction(formData: FormData) {
   await requireAdminSession();
-  const returnTo = String(formData.get("returnTo") ?? "/admin/sender-ids");
+  const returnTo = String(formData.get("returnTo") ?? "/admin/sender-ids?tab=overview");
 
   const senders = await prisma.senderId.findMany({
     where: { status: { in: ["APPROVED", "PENDING"] } },
@@ -231,5 +281,5 @@ export async function adminSyncAllSenderProvidersAction(formData: FormData) {
   }
 
   revalidateSenderPaths();
-  redirect(`${returnTo}&saved=sync_all`);
+  adminRedirect(returnTo, { saved: "sync_all" });
 }
