@@ -61,7 +61,16 @@ export async function getAdminMemberDetail(userId: string) {
       },
       apiKeys: { orderBy: { createdAt: "desc" } },
       sessions: { orderBy: { lastActiveAt: "desc" }, take: 25 },
-      supportTickets: { orderBy: { createdAt: "desc" }, take: 20 },
+      supportTickets: {
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        include: {
+          replies: {
+            orderBy: { createdAt: "asc" },
+            include: { author: { select: { fullName: true } } },
+          },
+        },
+      },
       webhookEndpoints: { orderBy: { createdAt: "desc" }, take: 10 },
       wordpressSites: { orderBy: { createdAt: "desc" }, take: 10 },
       connectCustomerProfile: {

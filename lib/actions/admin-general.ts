@@ -4,8 +4,14 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getSession, isAdminRole } from "@/lib/auth/session";
 import { testMailjetConnection } from "@/lib/email/mailjet";
-import { sendEmail, isMailjetConfigured, getMailjetConfig } from "@/lib/email";
+import { sendEmail, isMailjetConfiguredAsync } from "@/lib/email";
 import { testEmailContent } from "@/lib/email/templates";
+import { saveMailjetOfficeConfig } from "@/lib/email/office-config";
+import {
+  parseNotifyEmails,
+  parseNotifyPhones,
+  saveGeneralOfficeConfig,
+} from "@/lib/general-office/config";
 import { saveGatewayLastTest } from "@/lib/payments/gateway-settings";
 
 async function requireAdmin() {
@@ -22,20 +28,56 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+export async function saveMailjetOfficeConfigAction(formData: FormData) {
+  const session = await requireAdmin();
+
+  await saveMailjetOfficeConfig(
+    {
+      apiKey: String(formData.get("apiKey") ?? "").trim() || undefined,
+      apiSecret: String(formData.get("apiSecret") ?? "").trim() || undefined,
+      fromEmail: String(formData.get("fromEmail") ?? "").trim(),
+      fromName: String(formData.get("fromName") ?? "").trim(),
+      sandbox: formData.get("sandbox") === "on",
+    },
+    session.userId,
+  );
+
+  revalidateGeneral();
+  redirect("/admin/general?saved=mailjet");
+}
+
+export async function saveGeneralOfficeConfigAction(formData: FormData) {
+  const session = await requireAdmin();
+
+  await saveGeneralOfficeConfig(
+    {
+      notifyEmails: parseNotifyEmails(String(formData.get("notifyEmails") ?? "")),
+      notifyPhones: parseNotifyPhones(String(formData.get("notifyPhones") ?? "")),
+      notifyAdminUsers: formData.get("notifyAdminUsers") === "on",
+    },
+    session.userId,
+  );
+
+  revalidateGeneral();
+  redirect("/admin/general?saved=alerts");
+}
+
 export async function testMailjetConnectionAction() {
   await requireAdmin();
 
-  if (!isMailjetConfigured()) {
+  if (!(await isMailjetConfiguredAsync())) {
     await saveGatewayLastTest("mailjet_connection_test", {
       ok: false,
-      error: "Set MAILJET_API_KEY and MAILJET_API_SECRET (or MAILJET_SECRET_KEY) in .env",
+      error:
+        "Set Mailjet API keys below or add MAILJET_API_KEY and MAILJET_API_SECRET to .env",
     });
     revalidateGeneral();
     redirect("/admin/general?test=connection&result=fail");
   }
 
   const result = await testMailjetConnection();
-  const config = getMailjetConfig();
+  const { loadMailjetOfficeConfig } = await import("@/lib/email/office-config");
+  const config = await loadMailjetOfficeConfig();
 
   await saveGatewayLastTest("mailjet_connection_test", {
     ok: result.ok,
@@ -61,7 +103,7 @@ export async function sendTestEmailAction(formData: FormData) {
     redirect("/admin/general?error=email");
   }
 
-  if (!isMailjetConfigured()) {
+  if (!(await isMailjetConfiguredAsync())) {
     redirect("/admin/general?error=not_configured");
   }
 

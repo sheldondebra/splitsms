@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { resolveConnectCustomerUserId } from "@/lib/connect/provision";
-import { normalizeSenderIdValue, validateSenderIdValue } from "@/lib/sender-ids/normalize";
-import { registerSenderIdWithAllProviders } from "@/lib/sender-ids/provider-sync";
+import { normalizeSenderIdValue, validateSenderIdForRegistration } from "@/lib/sender-ids/normalize";
+import { notifyAdminsNewSenderId } from "@/lib/sender-ids/notifications";
 import { getOrCreateMemberAccount } from "@/lib/admin/member-account";
 
 export async function listSenderIdsForApi(partnerUserId: string, customerId?: string | null) {
@@ -10,7 +10,6 @@ export async function listSenderIdsForApi(partnerUserId: string, customerId?: st
 
   const rows = await prisma.senderId.findMany({
     where: { userId: resolved.userId },
-    include: { providerRegistrations: true },
     orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
   });
 
@@ -21,12 +20,6 @@ export async function listSenderIdsForApi(partnerUserId: string, customerId?: st
       country_code: s.countryCode,
       status: s.status,
       is_default: s.isDefault,
-      providers: s.providerRegistrations.map((p) => ({
-        provider: p.provider,
-        status: p.status,
-        provider_status: p.providerStatus,
-        error: p.error,
-      })),
       created_at: s.createdAt.toISOString(),
     })),
   };
@@ -47,7 +40,9 @@ export async function createSenderIdForApi(
 
   const userId = resolved.userId;
   const value = normalizeSenderIdValue(input.value);
-  const validation = validateSenderIdValue(value);
+  const validation = await validateSenderIdForRegistration(value, {
+    countryCode: input.countryCode.toUpperCase(),
+  });
   if (!validation.ok) return { error: validation.error };
 
   const account = await getOrCreateMemberAccount(userId);
@@ -63,11 +58,6 @@ export async function createSenderIdForApi(
     await prisma.senderId.updateMany({ where: { userId }, data: { isDefault: false } });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { fullName: true },
-  });
-
   const sender = await prisma.senderId.create({
     data: {
       userId,
@@ -75,25 +65,14 @@ export async function createSenderIdForApi(
       countryCode: input.countryCode.toUpperCase(),
       status: "PENDING",
       isDefault: Boolean(input.setDefault),
+      adminNote: "Submitted for SplitSMS review.",
     },
-    include: { providerRegistrations: true },
   });
 
-  const purpose =
-    input.purpose ??
-    `SplitSMS Connect sender (${value}) for ${user?.fullName ?? "customer"}`;
-
-  await registerSenderIdWithAllProviders({
-    senderRecordId: sender.id,
-    userId,
-    value,
-    purpose,
-    countryCode: sender.countryCode,
-  });
+  void notifyAdminsNewSenderId(sender.id).catch(() => undefined);
 
   const refreshed = await prisma.senderId.findUnique({
     where: { id: sender.id },
-    include: { providerRegistrations: true },
   });
 
   return { data: refreshed };

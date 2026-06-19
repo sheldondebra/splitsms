@@ -4,7 +4,7 @@ import { useState } from "react";
 import { initialCountryState } from "@/lib/auth/initial-country-state";
 import { requestEmailAuthAction } from "@/lib/actions/auth";
 import { AuthHoneypot } from "@/components/auth/auth-honeypot";
-import { AuthTurnstile } from "@/components/auth/auth-turnstile";
+import { AuthCaptcha } from "@/components/auth/auth-captcha";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -91,7 +91,7 @@ export function EmailAuthForm({ countries, intent = "login" }: EmailAuthFormProp
         </>
       )}
 
-      {isSignup ? <AuthTurnstile /> : null}
+      {isSignup ? <AuthCaptcha /> : null}
 
       <Button type="submit" className="w-full h-11 font-semibold gap-2 text-base">
         <Mail className="h-4 w-4" />

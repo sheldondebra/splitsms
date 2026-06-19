@@ -335,12 +335,32 @@ export async function checkMnotifySenderIdStatus(senderName: string) {
     const providerStatus =
       data.summary?.status ??
       (data.summary as { status?: string; "sender name"?: string } | undefined)?.status;
+    const messageText = String(data.message ?? data.status ?? "").toLowerCase();
+    const statusText = (providerStatus ?? "").toLowerCase();
+
+    const deletedAtMnotify =
+      statusText.includes("not found") ||
+      statusText.includes("delete") ||
+      statusText.includes("removed") ||
+      messageText.includes("not found") ||
+      messageText.includes("does not exist") ||
+      messageText.includes("no sender") ||
+      messageText.includes("invalid sender");
 
     if (!res.ok) {
       return {
         ok: false as const,
         error: data.message ?? data.status ?? `mNotify HTTP ${res.status}`,
-        providerStatus,
+        providerStatus: deletedAtMnotify ? "Deleted / not found at mNotify" : providerStatus,
+        raw: data,
+      };
+    }
+
+    if (deletedAtMnotify || (!providerStatus && messageText.includes("not found"))) {
+      return {
+        ok: false as const,
+        error: data.message ?? "Sender ID not found at mNotify",
+        providerStatus: providerStatus ?? "Deleted / not found at mNotify",
         raw: data,
       };
     }

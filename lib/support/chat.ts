@@ -6,6 +6,13 @@ export type SupportTicketChatRow = {
   status: string;
   createdAt: Date | string;
   subject?: string;
+  replies?: {
+    id: string;
+    body: string;
+    isStaff: boolean;
+    createdAt: Date | string;
+    authorName?: string | null;
+  }[];
 };
 
 /** Human-readable ticket reference, e.g. SMS-20260526-A3F9K */
@@ -27,7 +34,7 @@ export function formatChatTime(date: Date | string): string {
 
 export function ticketAckMessage(ticket: SupportTicketChatRow): string {
   const ref = formatTicketNumber(ticket.id, ticket.createdAt);
-  return `Thanks — we've received your message. Your ticket number is ${ref}. Save this reference; our team will follow up by email or SMS.`;
+  return `Received (${ref}). We'll reply by email or SMS.`;
 }
 
 export function buildSupportChatMessages(
@@ -38,7 +45,7 @@ export function buildSupportChatMessages(
     {
       id: "welcome",
       role: "support",
-      body: `Hi ${firstName}! How can we help? Ask about billing, delivery reports, or Sender IDs.`,
+      body: `Hi ${firstName}! Ask about billing, delivery, or Sender IDs.`,
       time: "SplitSMS",
     },
   ];
@@ -49,21 +56,45 @@ export function buildSupportChatMessages(
 
   for (const t of chronological) {
     const ref = formatTicketNumber(t.id, t.createdAt);
+    const ticketStatus = t.status;
+
     messages.push({
       id: t.id,
       role: "user",
       body: t.message,
       time: formatChatTime(t.createdAt),
-      status: t.status === "OPEN" ? "Open" : t.status,
       ticketNumber: ref,
+      ticketId: t.id,
+      ticketStatus,
     });
-    messages.push({
-      id: `reply-${t.id}`,
-      role: "support",
-      body: ticketAckMessage(t),
-      time: "SplitSMS",
-      ticketNumber: ref,
-    });
+
+    const replies = [...(t.replies ?? [])].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+
+    if (replies.length === 0) {
+      messages.push({
+        id: `reply-${t.id}`,
+        role: "support",
+        body: ticketAckMessage(t),
+        time: "SplitSMS",
+        ticketNumber: ref,
+        ticketId: t.id,
+        ticketStatus,
+      });
+    } else {
+      for (const r of replies) {
+        messages.push({
+          id: r.id,
+          role: r.isStaff ? "support" : "user",
+          body: r.body,
+          time: r.isStaff ? formatChatTime(r.createdAt) : formatChatTime(r.createdAt),
+          ticketNumber: ref,
+          ticketId: t.id,
+          ticketStatus,
+        });
+      }
+    }
   }
 
   return messages;
@@ -75,6 +106,13 @@ export function ticketToChatRow(ticket: {
   status: string;
   createdAt: Date;
   subject?: string;
+  replies?: {
+    id: string;
+    body: string;
+    isStaff: boolean;
+    createdAt: Date;
+    author?: { fullName: string } | null;
+  }[];
 }): SupportTicketChatRow {
   return {
     id: ticket.id,
@@ -82,5 +120,12 @@ export function ticketToChatRow(ticket: {
     status: ticket.status,
     createdAt: ticket.createdAt.toISOString(),
     subject: ticket.subject,
+    replies: ticket.replies?.map((r) => ({
+      id: r.id,
+      body: r.body,
+      isStaff: r.isStaff,
+      createdAt: r.createdAt.toISOString(),
+      authorName: r.author?.fullName ?? null,
+    })),
   };
 }

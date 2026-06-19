@@ -27,6 +27,60 @@ async function logAdmin(
 
 const SUPPORT_STATUSES = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"] as const;
 
+export async function adminReplySupportTicketAction(formData: FormData) {
+  const session = await requireAdmin();
+  const ticketId = String(formData.get("ticketId") ?? "");
+  const body = String(formData.get("body") ?? "").trim();
+  const returnTo = String(formData.get("returnTo") ?? "/admin/support");
+  const statusRaw = String(formData.get("status") ?? "").trim().toUpperCase();
+
+  if (!ticketId || !body) {
+    redirect(`${returnTo}?error=reply`);
+  }
+
+  const ticket = await prisma.supportTicket.findUnique({
+    where: { id: ticketId },
+    select: { id: true, userId: true, status: true },
+  });
+  if (!ticket) redirect(`${returnTo}?error=ticket`);
+
+  const nextStatus =
+    statusRaw && SUPPORT_STATUSES.includes(statusRaw as (typeof SUPPORT_STATUSES)[number])
+      ? statusRaw
+      : ticket.status === "OPEN"
+        ? "IN_PROGRESS"
+        : ticket.status;
+
+  await prisma.$transaction([
+    prisma.supportTicketReply.create({
+      data: {
+        ticketId,
+        authorId: session.userId,
+        body,
+        isStaff: true,
+      },
+    }),
+    prisma.supportTicket.update({
+      where: { id: ticketId },
+      data: { status: nextStatus },
+    }),
+  ]);
+
+  const { notifyMemberSupportReply } = await import("@/lib/support/notify-reply");
+  void notifyMemberSupportReply(ticketId, body).catch(() => undefined);
+
+  await logAdmin("SUPPORT_TICKET_REPLY", "SupportTicket", ticketId, session.userId, {
+    userId: ticket.userId,
+    status: nextStatus,
+    preview: body.slice(0, 120),
+  });
+
+  revalidatePath("/admin/support");
+  revalidatePath("/dashboard/support");
+  revalidatePath(`/admin/members/${ticket.userId}`);
+  redirect(`${returnTo}?saved=reply`);
+}
+
 export async function adminUpdateSupportTicketAction(formData: FormData) {
   const session = await requireAdmin();
   const ticketId = String(formData.get("ticketId"));

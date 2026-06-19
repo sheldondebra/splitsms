@@ -1,8 +1,8 @@
-import { isMailjetConfigured, getMailjetConfig } from "@/lib/email/config";
+import { isMailjetConfigured, isMailjetConfiguredAsync, getMailjetConfig } from "@/lib/email/config";
 import { sendMailjetEmail, testMailjetConnection } from "@/lib/email/mailjet";
 import { otpEmailContent } from "@/lib/email/templates";
 
-export { isMailjetConfigured, getMailjetConfig, testMailjetConnection };
+export { isMailjetConfigured, isMailjetConfiguredAsync, getMailjetConfig, testMailjetConnection };
 
 export type OtpEmailPurpose = "login" | "signup" | "reset";
 
@@ -40,7 +40,7 @@ export async function sendEmail(params: {
   html?: string;
   toName?: string;
 }) {
-  if (!isMailjetConfigured()) {
+  if (!(await isMailjetConfiguredAsync())) {
     return { ok: false as const, error: "Mailjet is not configured" };
   }
   return sendMailjetEmail(params);

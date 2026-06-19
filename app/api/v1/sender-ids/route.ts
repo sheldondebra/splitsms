@@ -47,12 +47,6 @@ export const POST = withApi(
           country_code: s.countryCode,
           status: s.status,
           is_default: s.isDefault,
-          providers: s.providerRegistrations.map((p) => ({
-            provider: p.provider,
-            status: p.status,
-            provider_status: p.providerStatus,
-            error: p.error,
-          })),
         },
       },
       201,

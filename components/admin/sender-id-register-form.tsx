@@ -1,5 +1,6 @@
 import { adminCreateSenderIdAction } from "@/lib/actions/admin-sender-ids";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
+import { SENDER_ID_MAX_LENGTH, SENDER_ID_MIN_LENGTH } from "@/lib/sender-ids/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,12 +44,14 @@ export function SenderIdRegisterForm({
           id="value"
           name="value"
           placeholder="MYBRAND"
-          maxLength={11}
+          maxLength={SENDER_ID_MAX_LENGTH}
+          minLength={SENDER_ID_MIN_LENGTH}
           required
           className="font-mono uppercase"
         />
         <p className="text-xs text-muted-foreground">
-          Up to 11 characters, letters and numbers, at least one letter.
+          {SENDER_ID_MIN_LENGTH}–{SENDER_ID_MAX_LENGTH} characters, letters and numbers, at least one
+          letter.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -68,6 +71,10 @@ export function SenderIdRegisterForm({
         </div>
       </div>
       <label className="flex items-center gap-2 text-sm cursor-pointer">
+        <input type="checkbox" name="allowReserved" className="h-4 w-4 rounded accent-primary" />
+        Override reserved-name block (verified trademark authorization only)
+      </label>
+      <label className="flex items-center gap-2 text-sm cursor-pointer">
         <input type="checkbox" name="setDefault" className="h-4 w-4 rounded accent-primary" />
         Set as member default when approved
       </label>
@@ -75,10 +82,9 @@ export function SenderIdRegisterForm({
         <input
           type="checkbox"
           name="submitToProviders"
-          defaultChecked
           className="h-4 w-4 rounded accent-primary"
         />
-        Submit to mNotify, Twilio, and Infobip
+        Submit to carriers immediately (skip platform review queue)
       </label>
       <Button type="submit">Register sender ID</Button>
     </form>

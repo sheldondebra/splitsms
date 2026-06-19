@@ -7,14 +7,16 @@ import { withReturnParams } from "@/lib/admin/return-url";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import {
   normalizeSenderIdValue,
-  validateSenderIdValue,
+  validateSenderIdForRegistration,
 } from "@/lib/sender-ids/normalize";
 import {
   registerSenderIdWithAllProviders,
   syncSenderIdFromProviders,
   resubmitSenderIdToProviders,
+  maybeSetFirstDefault,
 } from "@/lib/sender-ids/provider-sync";
 import { senderHasProviderApproval } from "@/lib/sender-ids/reconcile-status";
+import { notifyUserSenderIdApproved } from "@/lib/sender-ids/notifications";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -37,17 +39,52 @@ function adminRedirect(returnTo: string, params: Record<string, string | undefin
   redirect(withReturnParams(returnTo, params));
 }
 
+async function finalizeSenderApproval(
+  senderRecordId: string,
+  userId: string,
+  setDefault: boolean,
+) {
+  if (setDefault) {
+    await prisma.senderId.updateMany({
+      where: { userId, id: { not: senderRecordId } },
+      data: { isDefault: false },
+    });
+  }
+
+  await maybeSetFirstDefault(userId, senderRecordId);
+  await notifyUserSenderIdApproved(senderRecordId).catch(() => undefined);
+}
+
 export async function approveSenderIdCore(formData: FormData) {
   await requireAdminSession();
   const id = String(formData.get("id"));
+  const setDefault = formData.get("setDefault") === "1";
 
   const row = await prisma.senderId.findUnique({
     where: { id },
-    include: { providerRegistrations: true },
+    include: {
+      providerRegistrations: true,
+      user: { select: { fullName: true } },
+    },
   });
   if (!row) return { ok: false as const, error: "notfound" as const };
 
-  await syncSenderIdFromProviders(id);
+  const purpose = `SplitSMS sender ID for ${row.user.fullName ?? "customer"} (${row.value})`;
+  const userId = row.userId;
+
+  if (!row.providerSubmittedAt) {
+    await registerSenderIdWithAllProviders({
+      senderRecordId: id,
+      userId,
+      value: row.value,
+      purpose,
+      countryCode: row.countryCode,
+      afterPlatformApproval: true,
+    });
+    await syncSenderIdFromProviders(id);
+  } else {
+    await syncSenderIdFromProviders(id);
+  }
 
   const refreshed = await prisma.senderId.findUnique({
     where: { id },
@@ -63,28 +100,30 @@ export async function approveSenderIdCore(formData: FormData) {
     return { ok: false as const, error: "provider_denied" as const };
   }
 
-  const isDefault = formData.get("setDefault") === "1";
-  const userId = refreshed.userId;
-
-  if (isDefault) {
-    await prisma.senderId.updateMany({
-      where: { userId },
-      data: { isDefault: false },
+  if (anyApproved || refreshed.status === "APPROVED") {
+    await prisma.senderId.update({
+      where: { id },
+      data: {
+        status: "APPROVED",
+        adminNote: "Approved on SplitSMS — ready to use when sending SMS.",
+        ...(setDefault ? { isDefault: true } : {}),
+      },
     });
+    await finalizeSenderApproval(id, userId, setDefault);
+    revalidateSenderPaths(userId);
+    return { ok: true as const, userId };
   }
 
   await prisma.senderId.update({
     where: { id },
     data: {
-      status: "APPROVED",
-      ...(isDefault ? { isDefault: true } : {}),
-      adminNote: anyApproved
-        ? "Approved on SplitSMS — provider confirmed."
-        : "Approved on SplitSMS — provider approval still pending.",
+      status: "PENDING",
+      adminNote: "Approved by SplitSMS — awaiting carrier registration.",
     },
   });
+
   revalidateSenderPaths(userId);
-  return { ok: true as const, userId };
+  return { ok: true as const, userId, pendingCarriers: true as const };
 }
 
 export async function approveSenderIdAction(formData: FormData) {
@@ -93,28 +132,37 @@ export async function approveSenderIdAction(formData: FormData) {
   if (!result.ok) {
     adminRedirect(returnTo, { error: result.error });
   }
-  adminRedirect(returnTo, { saved: "approved" });
+  adminRedirect(
+    returnTo,
+    result.pendingCarriers ? { saved: "submitted" } : { saved: "approved" },
+  );
 }
 
 export async function rejectSenderIdCore(formData: FormData) {
   await requireAdminSession();
   const id = String(formData.get("id"));
-  const userId = (
-    await prisma.senderId.findUnique({ where: { id }, select: { userId: true } })
-  )?.userId;
+  const sender = await prisma.senderId.findUnique({
+    where: { id },
+    select: { userId: true, value: true },
+  });
 
-  if (!userId) return { ok: false as const, error: "notfound" as const };
+  if (!sender) return { ok: false as const, error: "notfound" as const };
+
+  const note = String(formData.get("note") ?? "Does not meet naming requirements").trim();
 
   await prisma.senderId.update({
     where: { id },
     data: {
       status: "REJECTED",
-      adminNote: String(formData.get("note") ?? "Does not meet naming requirements").trim(),
+      adminNote: note,
       isDefault: false,
     },
   });
-  revalidateSenderPaths(userId);
-  return { ok: true as const, userId };
+
+  await maybeBanSenderFromAdminAction(id, sender.value, formData, "reject", note);
+
+  revalidateSenderPaths(sender.userId);
+  return { ok: true as const, userId: sender.userId };
 }
 
 export async function rejectSenderIdAction(formData: FormData) {
@@ -127,28 +175,63 @@ export async function rejectSenderIdAction(formData: FormData) {
 }
 
 export async function blockSenderIdAction(formData: FormData) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
   const id = String(formData.get("id") ?? formData.get("senderId") ?? "");
   const returnTo = String(formData.get("returnTo") ?? DEFAULT_RETURN);
 
   const sender = await prisma.senderId.findUnique({
     where: { id },
-    select: { userId: true },
+    select: { userId: true, value: true },
   });
   if (!sender) {
     adminRedirect(returnTo, { error: "notfound" });
   }
 
+  const note = String(formData.get("note") ?? "Blocked by admin").trim();
+
   await prisma.senderId.update({
     where: { id },
     data: {
       status: "REJECTED",
-      adminNote: String(formData.get("note") ?? "Blocked by admin").trim(),
+      adminNote: note,
       isDefault: false,
     },
   });
+
+  await maybeBanSenderFromAdminAction(id, sender.value, formData, "block", note, session);
+
   revalidateSenderPaths(sender.userId);
+  revalidatePath("/admin/sender-ids");
   adminRedirect(returnTo, { saved: "blocked" });
+}
+
+async function maybeBanSenderFromAdminAction(
+  senderRecordId: string,
+  value: string,
+  formData: FormData,
+  source: "reject" | "block",
+  note: string,
+  session?: { userId: string },
+) {
+  const addToBanList = formData.get("addToBanList") !== "off";
+  if (!addToBanList) return;
+
+  const actorSession = session ?? (await requireAdminSession());
+  const actor = await prisma.user.findUnique({
+    where: { id: actorSession.userId },
+    select: { fullName: true },
+  });
+
+  const { addBannedSenderId } = await import("@/lib/sender-ids/reserved-names");
+  await addBannedSenderId({
+    value,
+    reason: note || undefined,
+    source,
+    actorId: actorSession.userId,
+    actorName: actor?.fullName,
+    senderRecordId,
+  });
+  revalidatePath("/admin/sender-ids");
 }
 
 export async function adminCreateSenderIdAction(formData: FormData) {
@@ -161,16 +244,20 @@ export async function adminCreateSenderIdAction(formData: FormData) {
     .toUpperCase();
   const purposeRaw = String(formData.get("purpose") ?? "").trim();
   const setDefault = formData.get("setDefault") === "on" || formData.get("setDefault") === "1";
-  const submitToProviders = formData.get("submitToProviders") !== "off";
+  const submitToProviders = formData.get("submitToProviders") === "on";
+  const allowReserved = formData.get("allowReserved") === "on";
   const returnTo = String(formData.get("returnTo") ?? "/admin/sender-ids?tab=register");
 
   if (!userId) {
     adminRedirect(returnTo, { error: "user" });
   }
 
-  const validation = validateSenderIdValue(value);
+  const validation = await validateSenderIdForRegistration(value, {
+    countryCode,
+    allowReserved,
+  });
   if (!validation.ok) {
-    adminRedirect(returnTo, { error: "invalid" });
+    adminRedirect(returnTo, { error: validation.code === "reserved" ? "reserved" : "invalid" });
   }
 
   const member = await prisma.user.findFirst({
@@ -217,6 +304,7 @@ export async function adminCreateSenderIdAction(formData: FormData) {
       value,
       purpose,
       countryCode,
+      afterPlatformApproval: true,
     });
   }
 
@@ -282,4 +370,108 @@ export async function adminSyncAllSenderProvidersAction(formData: FormData) {
 
   revalidateSenderPaths();
   adminRedirect(returnTo, { saved: "sync_all" });
+}
+
+export async function saveSenderIdReservedConfigAction(formData: FormData) {
+  const session = await requireAdminSession();
+  const { parseReservedLines, saveSenderIdReservedConfig } = await import(
+    "@/lib/sender-ids/reserved-names"
+  );
+
+  await saveSenderIdReservedConfig(
+    {
+      extraExact: parseReservedLines(String(formData.get("extraExact") ?? "")),
+      extraPrefixes: parseReservedLines(String(formData.get("extraPrefixes") ?? "")),
+    },
+    session.userId,
+  );
+
+  revalidatePath("/admin/sender-ids");
+  adminRedirect("/admin/sender-ids?tab=register", { saved: "policy" });
+}
+
+export async function addBannedSenderIdAction(formData: FormData) {
+  const session = await requireAdminSession();
+  const returnTo = String(formData.get("returnTo") ?? "/admin/sender-ids?tab=banned");
+  const value = normalizeSenderIdValue(String(formData.get("value") ?? ""));
+  const reason = String(formData.get("reason") ?? "").trim();
+
+  if (!value) {
+    adminRedirect(returnTo, { error: "invalid" });
+  }
+
+  const format = await import("@/lib/sender-ids/normalize").then((m) =>
+    m.validateSenderIdFormat(value),
+  );
+  if (!format.ok) {
+    adminRedirect(returnTo, { error: "invalid" });
+  }
+
+  const actor = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { fullName: true },
+  });
+
+  const { addBannedSenderId } = await import("@/lib/sender-ids/reserved-names");
+  await addBannedSenderId({
+    value,
+    reason: reason || "Banned by admin",
+    source: "manual",
+    actorId: session.userId,
+    actorName: actor?.fullName,
+  });
+
+  revalidatePath("/admin/sender-ids");
+  adminRedirect(returnTo, { saved: "banned_added" });
+}
+
+export async function removeBannedSenderIdAction(formData: FormData) {
+  await requireAdminSession();
+  const returnTo = String(formData.get("returnTo") ?? "/admin/sender-ids?tab=banned");
+  const value = normalizeSenderIdValue(String(formData.get("value") ?? ""));
+
+  if (!value) {
+    adminRedirect(returnTo, { error: "invalid" });
+  }
+
+  const { removeBannedSenderId } = await import("@/lib/sender-ids/reserved-names");
+  const removed = await removeBannedSenderId(value);
+  if (!removed) {
+    adminRedirect(returnTo, { error: "notfound" });
+  }
+
+  revalidatePath("/admin/sender-ids");
+  adminRedirect(returnTo, { saved: "banned_removed" });
+}
+
+export async function banFlaggedSenderIdAction(formData: FormData) {
+  const session = await requireAdminSession();
+  const returnTo = String(formData.get("returnTo") ?? "/admin/sender-ids?tab=banned");
+  const senderId = String(formData.get("senderId") ?? "");
+
+  const sender = await prisma.senderId.findUnique({
+    where: { id: senderId },
+    select: { id: true, value: true, adminNote: true },
+  });
+  if (!sender) {
+    adminRedirect(returnTo, { error: "notfound" });
+  }
+
+  const actor = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { fullName: true },
+  });
+
+  const { addBannedSenderId } = await import("@/lib/sender-ids/reserved-names");
+  await addBannedSenderId({
+    value: sender.value,
+    reason: sender.adminNote ?? "Flagged from denied sender request",
+    source: "reject",
+    actorId: session.userId,
+    actorName: actor?.fullName,
+    senderRecordId: sender.id,
+  });
+
+  revalidatePath("/admin/sender-ids");
+  adminRedirect(returnTo, { saved: "banned_added" });
 }

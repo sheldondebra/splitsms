@@ -8,10 +8,22 @@ import {
 } from "@/components/admin/admin-page-shell";
 import { AdminSignupsChart } from "@/components/admin/admin-signups-chart";
 import { MembersSourceChart } from "@/components/admin/members-source-chart";
+import { AdminMembersFilters } from "@/components/admin/admin-members-filters";
 import type { AdminMembersDashboard } from "@/lib/admin/members-dashboard";
+import {
+  buildMembersListHref,
+  membersListParamsFromSearch,
+} from "@/lib/admin/members-list-url";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
@@ -23,25 +35,9 @@ import {
   Store,
   Globe,
   UserPlus,
-  Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-
-function buildHref(params: { q?: string; source?: string }) {
-  const sp = new URLSearchParams();
-  if (params.q) sp.set("q", params.q);
-  if (params.source && params.source !== "all") sp.set("source", params.source);
-  const qs = sp.toString();
-  return `/admin/members${qs ? `?${qs}` : ""}`;
-}
-
-const SOURCE_FILTERS = [
-  { id: "all", label: "All" },
-  { id: "external", label: "External" },
-  { id: "connect", label: "Connect" },
-  { id: "wordpress", label: "WordPress" },
-  { id: "reseller", label: "Reseller" },
-  { id: "direct", label: "Direct" },
-] as const;
 
 function SourceBadge({ source }: { source: AdminMembersDashboard["rows"][0]["source"] }) {
   const config = {
@@ -75,16 +71,69 @@ function SourceBadge({ source }: { source: AdminMembersDashboard["rows"][0]["sou
   );
 }
 
+function SortHeader({
+  label,
+  field,
+  currentSort,
+  listParams,
+}: {
+  label: string;
+  field: string;
+  currentSort: string;
+  listParams: ReturnType<typeof membersListParamsFromSearch>;
+}) {
+  const active = currentSort === field;
+  return (
+    <Link
+      href={buildMembersListHref({ ...listParams, sort: field, page: 1 })}
+      className={cn(
+        "inline-flex items-center gap-1 hover:text-foreground",
+        active && "text-foreground font-semibold",
+      )}
+    >
+      {label}
+    </Link>
+  );
+}
+
 export function AdminMembersView({ data }: { data: AdminMembersDashboard }) {
-  const { stats, signupChart, sourceChart, rows, query, source, recentConnect } = data;
+  const {
+    stats,
+    signupChart,
+    sourceChart,
+    rows,
+    query,
+    source,
+    status,
+    joined,
+    sort,
+    country,
+    page,
+    totalPages,
+    filteredTotal,
+    countries,
+    recentConnect,
+  } = data;
+
+  const listParams = membersListParamsFromSearch({
+    q: query,
+    source,
+    status,
+    country,
+    joined,
+    sort,
+    page: String(page),
+  });
 
   const chartSignups = signupChart.map((d) => ({ date: d.date, signups: d.signups }));
+  const rangeStart = filteredTotal === 0 ? 0 : (page - 1) * data.pageSize + 1;
+  const rangeEnd = Math.min(page * data.pageSize, filteredTotal);
 
   return (
     <AdminPage wide>
       <AdminPageHeader
         title="Members"
-        description="Member directory with signup trends and users from Connect, WordPress, and reseller platforms."
+        description="Search, filter, and manage member accounts from Connect, WordPress, reseller, and direct signups."
         icon={Users}
         actions={
           <Link href="/admin/analytics" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
@@ -94,11 +143,7 @@ export function AdminMembersView({ data }: { data: AdminMembersDashboard }) {
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <AdminStatCard
-          label="Total members"
-          value={stats.totalMembers.toLocaleString()}
-          variant="primary"
-        />
+        <AdminStatCard label="Total members" value={stats.totalMembers.toLocaleString()} variant="primary" />
         <AdminStatCard
           label="External platforms"
           value={stats.externalTotal.toLocaleString()}
@@ -150,24 +195,17 @@ export function AdminMembersView({ data }: { data: AdminMembersDashboard }) {
               <Link2 className="h-4 w-4 text-violet-600" />
               Recent Connect provisions
             </CardTitle>
-            <CardDescription>
-              Customers created via Connect API under a partner account
-            </CardDescription>
+            <CardDescription>Customers created via Connect API under a partner account</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {recentConnect.map((c) => (
-                <li
-                  key={c.id}
-                  className="rounded-lg border border-border/60 bg-card px-3 py-2.5 text-sm"
-                >
+                <li key={c.id} className="rounded-lg border border-border/60 bg-card px-3 py-2.5 text-sm">
                   <p className="font-medium truncate">{c.customerName}</p>
                   <p className="text-xs text-muted-foreground font-mono mt-0.5">{c.customerPhone}</p>
                   <div className="mt-2 flex flex-wrap gap-1 text-[10px] text-muted-foreground">
                     {c.externalRef && (
-                      <span className="rounded bg-muted px-1.5 py-0.5 font-mono">
-                        ref: {c.externalRef}
-                      </span>
+                      <span className="rounded bg-muted px-1.5 py-0.5 font-mono">ref: {c.externalRef}</span>
                     )}
                     <span>via {c.partnerName}</span>
                   </div>
@@ -178,162 +216,154 @@ export function AdminMembersView({ data }: { data: AdminMembersDashboard }) {
         </Card>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-1.5 rounded-xl border border-border/60 bg-muted/20 p-1">
-          {SOURCE_FILTERS.map((f) => (
-            <Link
-              key={f.id}
-              href={buildHref({ q: query, source: f.id })}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
-                source === f.id
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-muted/60",
-              )}
-            >
-              {f.label}
-            </Link>
-          ))}
-        </div>
-
-        <form className="flex gap-2 w-full sm:w-auto" action="/admin/members" method="get">
-          {source !== "all" && <input type="hidden" name="source" value={source} />}
-          <div className="relative flex-1 sm:w-56">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              name="q"
-              defaultValue={query}
-              placeholder="Name, phone, email, external ref…"
-              className="h-9 pl-8 text-sm"
-            />
-          </div>
-        </form>
-      </div>
+      <AdminMembersFilters params={listParams} countries={countries} filteredTotal={filteredTotal} />
 
       <AdminCard
         title="Member directory"
         description={
-          source === "all"
-            ? `Showing up to ${stats.listed} members · newest first`
-            : `Filtered: ${source} · ${stats.listed} shown`
+          filteredTotal === 0
+            ? "No members match your filters"
+            : `Showing ${rangeStart}–${rangeEnd} of ${filteredTotal.toLocaleString()}`
         }
       >
         {rows.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">No members match this filter.</p>
         ) : (
-          <div className="divide-y divide-border/50">
-            {rows.map((m) => {
-              const isHeld = m.accountStatus === "SUSPENDED" || m.accountStatus === "BLOCKED";
-              return (
-                <div
-                  key={m.id}
-                  className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between group hover:bg-muted/15 -mx-1 px-1 rounded-lg transition-colors"
-                >
-                  <div className="min-w-0 flex-1 space-y-1.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        href={`/admin/members/${m.id}`}
-                        className="font-semibold hover:text-primary truncate"
-                      >
-                        {m.fullName}
-                      </Link>
-                      <SourceBadge source={m.source} />
-                      {isHeld ? (
-                        <Badge variant="destructive" className="text-[10px]">
-                          {m.accountStatus}
-                        </Badge>
-                      ) : m.isVerified ? (
-                        <Badge
-                          variant="outline"
-                          className="gap-1 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-[10px]"
-                        >
-                          <CheckCircle2 className="h-3 w-3" />
-                          Verified
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-[10px]">
-                          Unverified
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      <span className="font-mono">{m.phone}</span>
-                      {m.email && <span className="truncate max-w-[200px]">{m.email}</span>}
-                      <span className="inline-flex items-center gap-1">
-                        <Globe className="h-3 w-3" />
-                        {m.countryName}
-                      </span>
-                      <span>
-                        Joined{" "}
-                        {formatDistanceToNow(m.createdAt, { addSuffix: true })}
-                      </span>
-                      {m.lastActiveAt && (
-                        <span>
-                          Active{" "}
-                          {formatDistanceToNow(m.lastActiveAt, { addSuffix: true })}
-                        </span>
-                      )}
-                    </div>
-
-                    {m.connect && (
-                      <p className="text-xs text-violet-700 dark:text-violet-300">
-                        Connect · partner{" "}
-                        <Link
-                          href={`/admin/members/${m.connect.partnerId}`}
-                          className="underline-offset-2 hover:underline"
-                        >
-                          {m.connect.partnerName}
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>
+                    <SortHeader label="Member" field="name" currentSort={sort} listParams={listParams} />
+                  </TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>
+                    <SortHeader label="Credits" field="credits" currentSort={sort} listParams={listParams} />
+                  </TableHead>
+                  <TableHead>
+                    <SortHeader label="Wallet" field="wallet" currentSort={sort} listParams={listParams} />
+                  </TableHead>
+                  <TableHead>Activity</TableHead>
+                  <TableHead className="w-10" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((m) => {
+                  const isHeld = m.accountStatus === "SUSPENDED" || m.accountStatus === "BLOCKED";
+                  return (
+                    <TableRow key={m.id}>
+                      <TableCell className="max-w-[180px]">
+                        <Link href={`/admin/members/${m.id}`} className="font-semibold hover:text-primary truncate block">
+                          {m.fullName}
                         </Link>
-                        {m.connect.externalRef && (
-                          <span className="font-mono ml-1.5 text-muted-foreground">
-                            ref {m.connect.externalRef}
-                          </span>
+                        <p className="text-[11px] text-muted-foreground mt-0.5 inline-flex items-center gap-1">
+                          <Globe className="h-3 w-3" />
+                          {m.countryName}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="font-mono text-xs">{m.phone}</p>
+                        {m.email && (
+                          <p className="text-[11px] text-muted-foreground truncate max-w-[160px]">{m.email}</p>
                         )}
-                        {m.connect.label && m.connect.label !== m.fullName && (
-                          <span className="text-muted-foreground"> · {m.connect.label}</span>
+                      </TableCell>
+                      <TableCell>
+                        <SourceBadge source={m.source} />
+                        {m.connect?.externalRef && (
+                          <p className="text-[10px] text-muted-foreground font-mono mt-1 truncate max-w-[120px]">
+                            {m.connect.externalRef}
+                          </p>
                         )}
-                      </p>
-                    )}
-
-                    {m.reseller && (
-                      <p className="text-xs text-amber-800 dark:text-amber-200">
-                        Reseller sub-account · {m.reseller.businessName}
-                      </p>
-                    )}
-
-                    {m.wordpressSites.length > 0 && (
-                      <p className="text-xs text-sky-800 dark:text-sky-200 truncate">
-                        WordPress · {m.wordpressSites.map((s) => s.siteUrl).join(", ")}
-                        {m.counts.wordpressSites > m.wordpressSites.length &&
-                          ` +${m.counts.wordpressSites - m.wordpressSites.length} more`}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-4 shrink-0">
-                    <div className="text-right text-sm">
-                      <p className="font-semibold tabular-nums">{m.credits} credits</p>
-                      <p className="text-xs text-muted-foreground tabular-nums">
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          {isHeld ? (
+                            <Badge variant="destructive" className="text-[10px] w-fit">
+                              {m.accountStatus}
+                            </Badge>
+                          ) : m.isVerified ? (
+                            <Badge
+                              variant="outline"
+                              className="gap-1 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-[10px] w-fit"
+                            >
+                              <CheckCircle2 className="h-3 w-3" />
+                              Verified
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-[10px] w-fit">
+                              Unverified
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="tabular-nums text-sm font-medium">{m.credits.toLocaleString()}</TableCell>
+                      <TableCell className="tabular-nums text-sm">
                         {m.walletCurrency} {m.walletBalance.toFixed(2)}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {m.counts.messages.toLocaleString()} SMS · {m.counts.apiKeys} keys ·{" "}
-                        {m.counts.senderIds} sender
-                      </p>
-                    </div>
+                      </TableCell>
+                      <TableCell className="text-[11px] text-muted-foreground">
+                        <p>Joined {formatDistanceToNow(m.createdAt, { addSuffix: true })}</p>
+                        {m.lastActiveAt && (
+                          <p>Active {formatDistanceToNow(m.lastActiveAt, { addSuffix: true })}</p>
+                        )}
+                        <p className="mt-0.5">
+                          {m.counts.messages.toLocaleString()} SMS · {m.counts.senderIds} senders
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/admin/members/${m.id}`}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent hover:border-border hover:bg-muted"
+                          aria-label={`Manage ${m.fullName}`}
+                        >
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+
+            {totalPages > 1 && (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
+                <p className="text-xs text-muted-foreground">
+                  Page {page} of {totalPages}
+                </p>
+                <div className="flex gap-2">
+                  {page > 1 ? (
                     <Link
-                      href={`/admin/members/${m.id}`}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-transparent opacity-70 group-hover:opacity-100 group-hover:border-border group-hover:bg-muted transition-all"
-                      aria-label={`Manage ${m.fullName}`}
+                      href={buildMembersListHref({ ...listParams, page: page - 1 })}
+                      className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1")}
                     >
-                      <ArrowRight className="h-4 w-4" />
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
                     </Link>
-                  </div>
+                  ) : (
+                    <span className={cn(buttonVariants({ variant: "outline", size: "sm" }), "opacity-40 pointer-events-none gap-1")}>
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </span>
+                  )}
+                  {page < totalPages ? (
+                    <Link
+                      href={buildMembersListHref({ ...listParams, page: page + 1 })}
+                      className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1")}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Link>
+                  ) : (
+                    <span className={cn(buttonVariants({ variant: "outline", size: "sm" }), "opacity-40 pointer-events-none gap-1")}>
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </span>
+                  )}
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            )}
+          </>
         )}
       </AdminCard>
     </AdminPage>

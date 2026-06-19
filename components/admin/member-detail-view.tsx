@@ -21,6 +21,7 @@ import { MemberMessagingPanel } from "@/components/admin/member-detail/member-me
 import { ProviderBadge } from "@/components/admin/provider-badge";
 import { SenderIdRegisterForm } from "@/components/admin/sender-id-register-form";
 import { SenderIdProviderBadges } from "@/components/admin/sender-id-provider-badges";
+import { AdminSupportTicketCard } from "@/components/admin/admin-support-ticket-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -44,7 +45,6 @@ import {
   adminBlockSenderIdAction,
 } from "@/lib/actions/admin-members";
 import {
-  adminUpdateSupportTicketAction,
   adminUpdateSmartFormStatusAction,
   adminUpdateCampaignStatusAction,
 } from "@/lib/actions/admin-platform";
@@ -102,6 +102,7 @@ const TAB_ITEMS = [
 function defaultTab(saved?: string) {
   if (!saved) return "overview";
   if (saved.startsWith("sender") || saved === "created") return "senders";
+  if (saved === "reply" || saved === "ticket") return "activity";
   if (saved === "api_key") return "api";
   if (saved === "credits" || saved === "wallet") return "billing";
   if (
@@ -586,15 +587,18 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
                             <input type="hidden" name="userId" value={id} />
                             <input type="hidden" name="setDefault" value="1" />
                             <Button type="submit" size="sm">
-                              Approve
+                              {s.providerSubmittedAt
+                                ? "Confirm approval"
+                                : "Approve & submit to carriers"}
                             </Button>
                           </form>
                           <form action={adminRejectSenderFromMemberAction} className="flex gap-2 items-center">
                             <input type="hidden" name="id" value={s.id} />
                             <input type="hidden" name="userId" value={id} />
+                            <input type="hidden" name="addToBanList" value="on" />
                             <Input name="note" placeholder="Reason" className="h-8 w-28 text-xs" />
                             <Button type="submit" size="sm" variant="destructive">
-                              Reject
+                              Deny & ban
                             </Button>
                           </form>
                         </>
@@ -604,7 +608,7 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
                           <input type="hidden" name="userId" value={id} />
                           <input type="hidden" name="senderId" value={s.id} />
                           <Button type="submit" size="sm" variant="ghost" className="text-destructive">
-                            Block
+                            Block & ban
                           </Button>
                         </form>
                       )}
@@ -969,41 +973,22 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
               {data.supportTickets.length === 0 ? (
                 <AdminEmpty>No tickets.</AdminEmpty>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {data.supportTickets.map((t) => (
-                    <div key={t.id} className="rounded-lg border border-border/50 p-3 space-y-2">
-                      <div className="flex justify-between gap-2">
-                        <p className="font-medium text-sm">{t.subject}</p>
-                        <Badge variant="outline" className="text-[10px] shrink-0">
-                          {t.status}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-3">{t.message}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {format(t.createdAt, "PPp")}
-                      </p>
-                      <form action={adminUpdateSupportTicketAction} className="flex gap-2 pt-1">
-                        <input type="hidden" name="ticketId" value={t.id} />
-                        <input
-                          type="hidden"
-                          name="returnTo"
-                          value={`/admin/members/${id}?tab=activity`}
-                        />
-                        <select
-                          name="status"
-                          defaultValue={t.status}
-                          className="flex h-8 flex-1 rounded-md border border-input bg-background px-2 text-xs"
-                        >
-                          <option value="OPEN">Open</option>
-                          <option value="IN_PROGRESS">In progress</option>
-                          <option value="RESOLVED">Resolved</option>
-                          <option value="CLOSED">Closed</option>
-                        </select>
-                        <Button type="submit" size="sm" variant="secondary">
-                          Update
-                        </Button>
-                      </form>
-                    </div>
+                    <AdminSupportTicketCard
+                      key={t.id}
+                      ticket={{
+                        ...t,
+                        user: {
+                          id: data.user.id,
+                          fullName: data.user.fullName,
+                          phone: data.user.phone,
+                          email: data.user.email,
+                        },
+                      }}
+                      returnTo={`/admin/members/${id}?tab=activity`}
+                      compact
+                    />
                   ))}
                 </div>
               )}
@@ -1129,6 +1114,8 @@ function flashMessage(saved: string, temp?: string) {
     sender_approved: "Sender ID approved.",
     sender_rejected: "Sender ID rejected.",
     sender_blocked: "Sender ID blocked.",
+    reply: "Support reply sent — member notified by email and SMS.",
+    ticket: "Ticket status updated.",
   };
   return map[saved] ?? "Changes saved.";
 }

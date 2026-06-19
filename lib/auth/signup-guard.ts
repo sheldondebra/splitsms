@@ -4,13 +4,45 @@ import { shouldBlockAuthBot } from "@/lib/auth/bot-guard";
 import {
   HONEYPOT_FIELD,
   isHoneypotTripped,
+  recaptchaSiteKey,
   turnstileSiteKey,
 } from "@/lib/auth/signup-guard-shared";
 
 export { HONEYPOT_FIELD } from "@/lib/auth/signup-guard-shared";
 
+function isRecaptchaEnabled(): boolean {
+  return Boolean(recaptchaSiteKey() && process.env.RECAPTCHA_SECRET_KEY?.trim());
+}
+
 function isTurnstileEnabled(): boolean {
   return Boolean(turnstileSiteKey() && process.env.TURNSTILE_SECRET_KEY?.trim());
+}
+
+async function verifyRecaptcha(token: string, ip: string): Promise<boolean> {
+  const secret = process.env.RECAPTCHA_SECRET_KEY?.trim();
+  if (!secret) return true;
+
+  const body = new URLSearchParams({ secret, response: token });
+  if (ip && ip !== "unknown") body.set("remoteip", ip);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4000);
+
+  try {
+    const res = await fetch("https://www.google.com/recaptcha/api/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+      signal: controller.signal,
+    });
+    if (!res.ok) return false;
+    const data = (await res.json()) as { success?: boolean };
+    return Boolean(data.success);
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function verifyTurnstile(token: string, ip: string): Promise<boolean> {
@@ -43,6 +75,7 @@ async function verifyTurnstile(token: string, ip: string): Promise<boolean> {
 type GuardInput = {
   honeypot?: FormDataEntryValue | null;
   turnstileToken?: FormDataEntryValue | null;
+  recaptchaToken?: FormDataEntryValue | null;
 };
 
 async function readRequestMeta() {
@@ -66,7 +99,12 @@ async function runSignupBotChecks(input: GuardInput): Promise<{ ok: true } | { o
   const { ip, userAgent } = await readRequestMeta();
   if (shouldBlockAuthBot(userAgent)) return { ok: false };
 
-  if (isTurnstileEnabled()) {
+  if (isRecaptchaEnabled()) {
+    const token = String(input.recaptchaToken ?? "").trim();
+    if (!token) return { ok: false };
+    const valid = await verifyRecaptcha(token, ip);
+    if (!valid) return { ok: false };
+  } else if (isTurnstileEnabled()) {
     const token = String(input.turnstileToken ?? "").trim();
     if (!token) return { ok: false };
     const valid = await verifyTurnstile(token, ip);
@@ -125,5 +163,6 @@ export function readSignupGuardFields(formData: FormData) {
   return {
     honeypot: formData.get(HONEYPOT_FIELD),
     turnstileToken: formData.get("cf-turnstile-response"),
+    recaptchaToken: formData.get("g-recaptcha-response"),
   };
 }

@@ -113,7 +113,7 @@ export function SenderIdsDashboard({ items, defaultId }: SenderIdsDashboardProps
                 Recipients see this name on SMS · {defaultId.countryCode}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 shrink-0">
               <Badge className="gap-1 bg-emerald-600 hover:bg-emerald-600">
                 <CheckCircle2 className="h-3 w-3" />
                 Approved
@@ -213,7 +213,7 @@ export function SenderIdsDashboard({ items, defaultId }: SenderIdsDashboardProps
             <AppCardBody className="space-y-5">
               <AppCardTitle
                 title="Register new"
-                description="1–11 characters, letters and numbers only"
+                description="3–11 characters, letters and numbers only"
                 icon={BadgeCheck}
                 className="mb-0"
               />
@@ -228,14 +228,14 @@ export function SenderIdsDashboard({ items, defaultId }: SenderIdsDashboardProps
                       <span className="font-mono font-semibold text-foreground">ACMEGH</span>
                     </p>
                     <p className="mt-2 text-xs leading-relaxed">
-                      After submit, status shows as pending with a loading indicator. You cannot send
-                      bulk SMS until approved.
+                      After submit, status shows as pending until SplitSMS approves your brand name.
+                      Tell us why you need the name — country is taken from your account.
                     </p>
                   </div>
                 </div>
               </div>
 
-              <SenderIdRequestForm />
+              <SenderIdRequestForm onRegistered={() => setStatusFilter("PENDING")} />
             </AppCardBody>
           </AppCard>
 
@@ -247,7 +247,7 @@ export function SenderIdsDashboard({ items, defaultId }: SenderIdsDashboardProps
                   {
                     icon: Clock,
                     title: "Pending",
-                    text: "Under review — usually 1–2 business days.",
+                    text: "Under SplitSMS review — usually 1–2 business days.",
                     className: "text-amber-700 dark:text-amber-400",
                   },
                   {

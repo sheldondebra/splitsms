@@ -11,10 +11,14 @@ import {
   blockSenderIdAction,
 } from "@/lib/actions/admin-sender-ids";
 import { SenderIdRegisterForm } from "@/components/admin/sender-id-register-form";
+import { SenderIdPolicyPanel } from "@/components/admin/sender-id-policy-panel";
+import { SenderIdBannedPanel } from "@/components/admin/sender-id-banned-panel";
+import type { AdminBannedSendersDashboard } from "@/lib/admin/sender-id-banned-types";
 import { SenderIdProviderBadges } from "@/components/admin/sender-id-provider-badges";
 import { SenderIdsDashboardCharts } from "@/components/admin/sender-ids-dashboard-charts";
 import { MnotifySenderIdsPanel } from "@/components/admin/mnotify-sender-ids-panel";
 import type { MnotifySenderInventoryRow } from "@/lib/sender-ids/mnotify-inventory";
+import type { SenderIdReservedConfig } from "@/lib/sender-ids/reserved-names";
 import {
   AdminAlert,
   AdminCard,
@@ -38,21 +42,26 @@ type SenderRow = {
   isDefault: boolean;
   adminNote: string | null;
   providerStatus: string | null;
+  providerSubmittedAt: Date | null;
   createdAt: Date;
   user: { id: string; fullName: string; phone: string };
   providerRegistrations: SenderIdProviderRegistration[];
 };
 
-type TabId = "overview" | "pending" | "register" | "all" | "mnotify";
+type TabId = "overview" | "pending" | "register" | "all" | "mnotify" | "banned";
 
 const SAVED_MESSAGES: Record<string, string> = {
-  created: "Sender ID created and submitted to configured providers.",
+  created: "Sender ID created for the member.",
+  policy: "Reserved sender name rules saved.",
+  submitted: "Approved on SplitSMS and submitted to carriers — awaiting carrier confirmation.",
   sync: "Provider statuses refreshed.",
   sync_all: "All active sender IDs synced with providers.",
   resubmit: "Re-submitted to providers — check status after sync.",
   approved: "Sender ID approved on SplitSMS.",
-  rejected: "Sender ID denied.",
-  blocked: "Sender ID blocked.",
+  rejected: "Sender ID denied and added to the ban list.",
+  blocked: "Sender ID blocked and added to the ban list.",
+  banned_added: "Name added to the ban list.",
+  banned_removed: "Name removed from the ban list.",
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -63,6 +72,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   limit: "Member has reached their sender ID limit.",
   blocked: "Sender ID registration is blocked for this member.",
   invalid: "Invalid sender ID value.",
+  reserved:
+    "Reserved or protected name — telcos, banks, government, and global brands are blocked. Use admin override only with verified authorization.",
   user: "Member not found.",
 };
 
@@ -72,6 +83,8 @@ export function AdminSenderIdsView({
   allSenders,
   members,
   mnotifyInventory,
+  reservedConfig,
+  bannedDashboard,
   initialTab,
   saved,
   error,
@@ -88,6 +101,8 @@ export function AdminSenderIdsView({
     listError?: string;
     checkedAt: string;
   } | null;
+  reservedConfig: SenderIdReservedConfig;
+  bannedDashboard: AdminBannedSendersDashboard;
   initialTab: TabId;
   saved?: string;
   error?: string;
@@ -100,7 +115,8 @@ export function AdminSenderIdsView({
     initialTab === "register" ||
     initialTab === "all" ||
     initialTab === "pending" ||
-    initialTab === "mnotify"
+    initialTab === "mnotify" ||
+    initialTab === "banned"
       ? initialTab
       : "overview";
 
@@ -160,6 +176,14 @@ export function AdminSenderIdsView({
           </TabsTrigger>
           <TabsTrigger value="mnotify" className="rounded-none px-4 py-2.5">
             mNotify
+          </TabsTrigger>
+          <TabsTrigger value="banned" className="rounded-none px-4 py-2.5">
+            Banned
+            {(bannedDashboard.config.bannedEntries.length ?? 0) > 0 && (
+              <Badge variant="secondary" className="ml-1.5 text-[10px]">
+                {bannedDashboard.config.bannedEntries.length}
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -233,16 +257,17 @@ export function AdminSenderIdsView({
           </AdminCard>
         </TabsContent>
 
-        <TabsContent value="register" className="mt-0">
+        <TabsContent value="register" className="mt-0 space-y-4">
           <AdminCard
             title="Register sender ID for a member"
-            description="Creates the sender and submits to mNotify, Twilio, and Infobip when configured."
+            description="Creates the sender for platform review before carrier submission."
           >
             <SenderIdRegisterForm
               members={members}
               returnTo="/admin/sender-ids?tab=register"
             />
           </AdminCard>
+          <SenderIdPolicyPanel config={reservedConfig} />
         </TabsContent>
 
         <TabsContent value="all" className="mt-0">
@@ -257,6 +282,10 @@ export function AdminSenderIdsView({
               </div>
             )}
           </AdminCard>
+        </TabsContent>
+
+        <TabsContent value="banned" className="mt-0">
+          <SenderIdBannedPanel dashboard={bannedDashboard} />
         </TabsContent>
 
         <TabsContent value="mnotify" className="mt-0">
@@ -305,6 +334,16 @@ function SenderIdAdminRow({
           <Badge variant="outline" className="text-[10px]">
             {s.status}
           </Badge>
+          {s.status === "PENDING" && !s.providerSubmittedAt && (
+            <Badge variant="secondary" className="text-[10px]">
+              Awaiting platform review
+            </Badge>
+          )}
+          {s.status === "PENDING" && s.providerSubmittedAt && (
+            <Badge variant="secondary" className="text-[10px]">
+              Awaiting carriers
+            </Badge>
+          )}
           <Link
             href={`/admin/members/${s.user.id}?tab=senders`}
             className="text-xs text-primary hover:underline"
@@ -350,15 +389,16 @@ function SenderIdAdminRow({
               <input type="hidden" name="setDefault" value="1" />
               <input type="hidden" name="returnTo" value={returnTo} />
               <Button size="sm" type="submit" disabled={providerDenied}>
-                Approve
+                {s.providerSubmittedAt ? "Confirm approval" : "Approve & submit to carriers"}
               </Button>
             </form>
-            <form action={rejectSenderIdAction} className="flex gap-2 items-center">
+            <form action={rejectSenderIdAction} className="flex flex-wrap gap-2 items-center">
               <input type="hidden" name="id" value={s.id} />
               <input type="hidden" name="returnTo" value={returnTo} />
+              <input type="hidden" name="addToBanList" value="on" />
               <Input name="note" placeholder="Deny reason" className="h-8 w-36 text-xs" />
               <Button size="sm" type="submit" variant="destructive">
-                Deny
+                Deny & ban
               </Button>
             </form>
           </div>
@@ -367,8 +407,10 @@ function SenderIdAdminRow({
           <form action={blockSenderIdAction}>
             <input type="hidden" name="id" value={s.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
+            <input type="hidden" name="addToBanList" value="on" />
+            <input type="hidden" name="note" value="Blocked by admin" />
             <Button size="sm" type="submit" variant="outline" className="text-destructive">
-              Block
+              Block & ban
             </Button>
           </form>
         )}

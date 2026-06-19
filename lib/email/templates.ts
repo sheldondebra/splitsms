@@ -63,3 +63,69 @@ If you received this, Mailjet is configured correctly for OTP and transactional 
 
   return { subject, text, html };
 }
+
+export function senderIdAdminAlertContent(params: {
+  value: string;
+  countryCode: string;
+  memberName: string;
+  memberPhone: string;
+  memberEmail?: string | null;
+}) {
+  const subject = `New sender ID request: ${params.value}`;
+  const text = `A member requested a new sender ID on ${siteName}.
+
+Sender ID: ${params.value}
+Country: ${params.countryCode}
+Member: ${params.memberName}
+Phone: ${params.memberPhone}
+${params.memberEmail ? `Email: ${params.memberEmail}` : ""}
+
+Review and approve in Admin → Sender IDs before it is submitted to carriers.
+
+— ${siteName}`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #171717; max-width: 520px; margin: 0 auto; padding: 24px;">
+  <p style="font-size: 15px;">A member requested a new <strong>sender ID</strong>.</p>
+  <table style="width:100%; font-size:14px; margin: 16px 0;">
+    <tr><td style="color:#737373;padding:4px 0;">Sender ID</td><td style="font-family:monospace;font-weight:700;">${params.value}</td></tr>
+    <tr><td style="color:#737373;padding:4px 0;">Country</td><td>${params.countryCode}</td></tr>
+    <tr><td style="color:#737373;padding:4px 0;">Member</td><td>${params.memberName}</td></tr>
+    <tr><td style="color:#737373;padding:4px 0;">Phone</td><td>${params.memberPhone}</td></tr>
+    ${params.memberEmail ? `<tr><td style="color:#737373;padding:4px 0;">Email</td><td>${params.memberEmail}</td></tr>` : ""}
+  </table>
+  <p style="font-size: 13px; color: #525252;">Approve in Admin → Sender IDs before it is submitted to carriers.</p>
+  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
+  <p style="font-size: 12px; color: #a3a3a3;">${siteName}</p>
+</body>
+</html>`.trim();
+
+  return { subject, text, html };
+}
+
+export function senderIdApprovedMemberContent(params: {
+  value: string;
+  memberName: string;
+}) {
+  const subject = `Sender ID approved: ${params.value}`;
+  const text = `Hi ${params.memberName},
+
+Your sender ID "${params.value}" is now approved on ${siteName} and ready to use when sending SMS.
+
+— ${siteName}`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #171717; max-width: 480px; margin: 0 auto; padding: 24px;">
+  <p style="font-size: 15px;">Hi ${params.memberName},</p>
+  <p style="font-size: 14px; color: #525252;">Your sender ID <strong style="font-family:monospace;">${params.value}</strong> is now <strong>approved</strong> and ready to use.</p>
+  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
+  <p style="font-size: 12px; color: #a3a3a3;">${siteName}</p>
+</body>
+</html>`.trim();
+
+  return { subject, text, html };
+}

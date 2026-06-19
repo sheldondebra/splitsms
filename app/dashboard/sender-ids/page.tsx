@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { syncUserSenderIdsFromMnotify } from "@/lib/sender-ids/provider-sync";
+import { memberSenderNote } from "@/lib/sms/member-facing";
 import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
 import {
   SenderIdsDashboard,
@@ -16,8 +17,7 @@ import type { SenderIdItem } from "@/components/dashboard/sender-id-list";
 
 const ALERT_MESSAGES: Record<string, { success?: string; error?: string }> = {
   requested: {
-    success:
-      "Sender ID submitted to your SMS provider. Status is pending until approved.",
+    success: "Sender ID submitted for approval. Status is pending until SplitSMS reviews it.",
   },
   approved: {
     success: "Sender ID approved — you can use it to send SMS now.",
@@ -27,6 +27,15 @@ const ALERT_MESSAGES: Record<string, { success?: string; error?: string }> = {
   },
   invalid: {
     error: "invalid_sender_id",
+  },
+  reserved: {
+    error: "reserved_sender_id",
+  },
+  banned: {
+    error: "banned_sender_id",
+  },
+  reason: {
+    error: "sender_reason_required",
   },
   duplicate: {
     error: "duplicate_sender_id",
@@ -57,7 +66,6 @@ export default async function SenderIdsPage({
 
   const senderIds = await prisma.senderId.findMany({
     where: { userId: session.userId },
-    include: { providerRegistrations: true },
     orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
   });
 
@@ -67,9 +75,9 @@ export default async function SenderIdsPage({
     countryCode: s.countryCode,
     status: s.status,
     isDefault: s.isDefault,
-    adminNote: s.adminNote,
+    adminNote: memberSenderNote(s.adminNote, s.status),
+    providerSubmittedAt: s.providerSubmittedAt?.toISOString() ?? null,
     createdAt: s.createdAt.toISOString(),
-    providerRegistrations: s.providerRegistrations,
   }));
 
   const approved = items.filter((s) => s.status === "APPROVED");

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import type { SenderIdStatus } from "@/lib/generated/prisma/client";
 import {
+  ALL_SENDER_PROVIDERS,
   backfillSenderProviderRegistrations,
   ensureSenderProviderRows,
   updateSenderProviderRegistration,
@@ -21,6 +22,34 @@ import { resolveSenderRegistrationProviders } from "@/lib/sms/routing-policy";
 import { reconcileSenderIdPlatformStatus } from "@/lib/sender-ids/reconcile-status";
 import type { SenderIdProviderType } from "@/lib/generated/prisma/client";
 
+/** Restore senders wrongly marked rejected before carrier submission. */
+async function healPlatformOnlySenderWronglyRejected(
+  senderRecordId: string,
+  adminNote: string | null,
+) {
+  const note =
+    adminNote?.startsWith("Purpose:") || adminNote?.includes("SplitSMS review")
+      ? adminNote
+      : "Submitted for SplitSMS review.";
+
+  await prisma.senderId.update({
+    where: { id: senderRecordId },
+    data: {
+      status: "PENDING",
+      isDefault: false,
+      adminNote: note,
+      providerStatus: null,
+    },
+  });
+
+  for (const provider of ALL_SENDER_PROVIDERS) {
+    await updateSenderProviderRegistration(senderRecordId, provider, {
+      status: "SKIPPED",
+      providerStatus: "Awaiting SplitSMS approval",
+    });
+  }
+}
+
 export function mapMnotifyStatusToLocal(providerStatus: string | undefined): SenderIdStatus {
   const s = (providerStatus ?? "").toLowerCase();
   if (s.includes("approve")) return "APPROVED";
@@ -28,7 +57,7 @@ export function mapMnotifyStatusToLocal(providerStatus: string | undefined): Sen
   return "PENDING";
 }
 
-async function maybeSetFirstDefault(userId: string, senderRecordId: string) {
+export async function maybeSetFirstDefault(userId: string, senderRecordId: string) {
   const approved = await prisma.senderId.count({
     where: { userId, status: "APPROVED" },
   });
@@ -63,6 +92,8 @@ export async function registerSenderIdWithAllProviders(params: {
   value: string;
   purpose: string;
   countryCode: string;
+  /** When true, sender was already approved on SplitSMS before carrier submission. */
+  afterPlatformApproval?: boolean;
 }) {
   await ensureSenderProviderRows(params.senderRecordId);
   await backfillSenderProviderRegistrations(params.senderRecordId);
@@ -121,7 +152,9 @@ export async function registerSenderIdWithAllProviders(params: {
     data: {
       providerStatus: `Registered: ${summary}`,
       providerSubmittedAt: new Date(),
-      adminNote: `Submitted to providers (${summary}). Platform approval still required in Admin.`,
+      adminNote: params.afterPlatformApproval
+        ? "Approved by SplitSMS — awaiting carrier registration."
+        : `Submitted to carriers (${summary}). Awaiting SplitSMS review.`,
     },
   });
 
@@ -144,6 +177,14 @@ export async function syncSenderIdFromProviders(senderRecordId: string) {
     include: { providerRegistrations: true },
   });
   if (!sender) return;
+
+  // SplitSMS review first — skip carrier sync until admin submits to providers.
+  if (!sender.providerSubmittedAt) {
+    if (sender.status === "REJECTED") {
+      await healPlatformOnlySenderWronglyRejected(senderRecordId, sender.adminNote);
+    }
+    return;
+  }
 
   await ensureSenderProviderRows(senderRecordId);
 

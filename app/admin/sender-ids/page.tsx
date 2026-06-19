@@ -7,6 +7,8 @@ import {
 } from "@/components/admin/admin-page-shell";
 import { AdminSenderIdsView } from "@/components/admin/admin-sender-ids-view";
 import { buildMnotifySenderInventory } from "@/lib/sender-ids/mnotify-inventory";
+import { getAdminBannedSendersDashboard } from "@/lib/admin/sender-id-banned-dashboard";
+import { loadSenderIdReservedConfig } from "@/lib/sender-ids/reserved-names";
 import { BadgeCheck } from "lucide-react";
 
 const senderInclude = {
@@ -14,10 +16,18 @@ const senderInclude = {
   providerRegistrations: true,
 } as const;
 
-type TabId = "overview" | "pending" | "register" | "all" | "mnotify";
+type TabId = "overview" | "pending" | "register" | "all" | "mnotify" | "banned";
 
 function parseTab(tab: string | undefined): TabId {
-  if (tab === "register" || tab === "all" || tab === "overview" || tab === "mnotify") return tab;
+  if (
+    tab === "register" ||
+    tab === "all" ||
+    tab === "overview" ||
+    tab === "mnotify" ||
+    tab === "banned"
+  ) {
+    return tab;
+  }
   return "pending";
 }
 
@@ -33,7 +43,8 @@ export default async function AdminSenderIdsPage({
 
   const loadMnotify = initialTab === "mnotify";
 
-  const [dashboard, pending, allSenders, members, mnotifyInventory] = await Promise.all([
+  const [dashboard, pending, allSenders, members, mnotifyInventory, reservedConfig, bannedDashboard] =
+    await Promise.all([
     getAdminSenderIdsDashboard(),
     prisma.senderId.findMany({
       where: { status: "PENDING" },
@@ -52,6 +63,8 @@ export default async function AdminSenderIdsPage({
       take: 500,
     }),
     loadMnotify ? buildMnotifySenderInventory() : Promise.resolve(null),
+    loadSenderIdReservedConfig(),
+    getAdminBannedSendersDashboard(),
   ]);
 
   const memberOptions = members.map((m) => ({
@@ -63,7 +76,7 @@ export default async function AdminSenderIdsPage({
     <AdminPage wide>
       <AdminPageHeader
         title="Sender IDs"
-        description="Register sender IDs, sync provider status (mNotify, Twilio, Infobip), and approve for sending."
+        description="Review member requests, approve before carrier submission, and sync provider status."
         icon={BadgeCheck}
       />
       <AdminSenderIdsView
@@ -72,6 +85,8 @@ export default async function AdminSenderIdsPage({
         allSenders={allSenders}
         members={memberOptions}
         mnotifyInventory={mnotifyInventory}
+        reservedConfig={reservedConfig}
+        bannedDashboard={bannedDashboard}
         initialTab={initialTab}
         saved={saved}
         error={error}

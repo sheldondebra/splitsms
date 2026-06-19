@@ -1,4 +1,9 @@
 import { getMailjetConfig } from "@/lib/email/config";
+import { loadMailjetOfficeConfig } from "@/lib/email/office-config";
+
+async function resolveMailjetConfig() {
+  return (await loadMailjetOfficeConfig()) ?? getMailjetConfig();
+}
 
 export type SendMailjetEmailParams = {
   to: string;
@@ -15,7 +20,7 @@ export type SendMailjetResult =
 export async function sendMailjetEmail(
   params: SendMailjetEmailParams,
 ): Promise<SendMailjetResult> {
-  const config = getMailjetConfig();
+  const config = await resolveMailjetConfig();
   if (!config) {
     return { ok: false, error: "Mailjet is not configured" };
   }
@@ -83,7 +88,7 @@ export async function testMailjetConnection(): Promise<{
   error?: string;
   fromEmail?: string;
 }> {
-  const config = getMailjetConfig();
+  const config = await resolveMailjetConfig();
   if (!config) {
     return { ok: false, error: "MAILJET_API_KEY and MAILJET_API_SECRET are required" };
   }

@@ -7,6 +7,8 @@ import {
   ticketToChatRow,
 } from "@/lib/support/chat";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const session = await getSession();
   if (!session) {
@@ -32,6 +34,16 @@ export async function GET() {
       status: true,
       createdAt: true,
       updatedAt: true,
+      replies: {
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          body: true,
+          isStaff: true,
+          createdAt: true,
+          author: { select: { fullName: true } },
+        },
+      },
     },
   });
 
@@ -39,13 +51,14 @@ export async function GET() {
   const rows = tickets.map((t) => ticketToChatRow(t));
   const messages = buildSupportChatMessages(firstName, rows);
 
-  const latestUpdate =
-    tickets.length > 0
-      ? tickets.reduce(
-          (max, t) => (t.updatedAt > max ? t.updatedAt : max),
-          tickets[0]!.updatedAt,
-        )
-      : new Date();
+  let latestUpdate = new Date(0);
+  for (const t of tickets) {
+    if (t.updatedAt > latestUpdate) latestUpdate = t.updatedAt;
+    for (const r of t.replies) {
+      if (r.createdAt > latestUpdate) latestUpdate = r.createdAt;
+    }
+  }
+  if (tickets.length === 0) latestUpdate = new Date();
 
   return NextResponse.json({
     messages,

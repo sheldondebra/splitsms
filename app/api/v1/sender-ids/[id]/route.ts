@@ -18,7 +18,6 @@ export const GET = withApi(
 
     const sender = await prisma.senderId.findFirst({
       where: { id, userId: resolved.userId },
-      include: { providerRegistrations: true },
     });
 
     if (!sender) return apiError("NOT_FOUND", "Sender ID not found", 404);
@@ -30,12 +29,6 @@ export const GET = withApi(
         country_code: sender.countryCode,
         status: sender.status,
         is_default: sender.isDefault,
-        providers: sender.providerRegistrations.map((p) => ({
-          provider: p.provider,
-          status: p.status,
-          provider_status: p.providerStatus,
-          error: p.error,
-        })),
       },
     });
   },

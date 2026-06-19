@@ -186,6 +186,7 @@ model User {
   apiKeys        ApiKey[]
   otpSessions    OtpSession[]
   supportTickets    SupportTicket[]
+  supportReplies    SupportTicketReply[] @relation("SupportReplies")
   auditLogs         AuditLog[]         @relation("AuditActor")
   webhookEndpoints  WebhookEndpoint[]
   apiLogs           ApiLog[]
@@ -728,14 +729,31 @@ model ApiKey {
 }
 
 model SupportTicket {
-  id        String   @id @default(cuid())
+  id        String               @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject   String
   message   String
-  status    String   @default("OPEN")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  status    String               @default("OPEN")
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  replies   SupportTicketReply[]
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+}
+
+model SupportTicketReply {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?         @relation("SupportReplies", fields: [authorId], references: [id])
+  body      String
+  isStaff   Boolean       @default(false)
+  createdAt DateTime      @default(now())
+
+  @@index([ticketId, createdAt])
 }
 
 model AuditLog {

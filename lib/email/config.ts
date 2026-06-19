@@ -31,6 +31,12 @@ export function isMailjetConfigured() {
   return getMailjetConfig() !== null;
 }
 
+/** Env or General office DB settings (use in server components / actions). */
+export async function isMailjetConfiguredAsync() {
+  const { loadMailjetOfficeConfig } = await import("@/lib/email/office-config");
+  return (await loadMailjetOfficeConfig()) !== null;
+}
+
 /** Which Mailjet env vars are present (for admin diagnostics — no secret values). */
 export function getMailjetEnvDiagnostics() {
   const hasApiKey = Boolean(process.env.MAILJET_API_KEY?.trim());

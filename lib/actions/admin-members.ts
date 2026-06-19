@@ -319,16 +319,38 @@ export async function adminBlockSenderIdAction(formData: FormData) {
   const session = await requireAdmin();
   const userId = String(formData.get("userId"));
   const senderId = String(formData.get("senderId"));
+  const note = String(formData.get("note") ?? "Blocked by admin").trim();
+
+  const sender = await prisma.senderId.findFirst({
+    where: { id: senderId, userId },
+    select: { value: true },
+  });
+  if (!sender) redirect(memberPath(userId, { error: "notfound" }));
 
   await prisma.senderId.updateMany({
     where: { id: senderId, userId },
     data: {
       status: "REJECTED",
-      adminNote: String(formData.get("note") ?? "Blocked by admin").trim(),
+      adminNote: note,
       isDefault: false,
     },
   });
 
+  const actor = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { fullName: true },
+  });
+  const { addBannedSenderId } = await import("@/lib/sender-ids/reserved-names");
+  await addBannedSenderId({
+    value: sender.value,
+    reason: note,
+    source: "block",
+    actorId: session.userId,
+    actorName: actor?.fullName,
+    senderRecordId: senderId,
+  });
+
   await logAdmin("ADMIN_BLOCK_SENDER_ID", userId, session.userId, { senderId });
+  revalidatePath("/admin/sender-ids");
   redirect(memberPath(userId, { saved: "sender_blocked" }));
 }

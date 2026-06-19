@@ -15,8 +15,16 @@ export const UX_ERRORS: Record<string, string> = {
   promo: "That promo code did not work. Check the code and try again.",
   automation_invalid: "Please fill in a name and message for your workflow.",
   no_sender: "Approve a Sender ID before creating live automations.",
-  invalid_sender_id: "Enter a valid Sender ID (1–11 characters, letters and numbers only).",
+  invalid_sender_id: "Enter a valid Sender ID (3–11 characters, letters and numbers only).",
+  reserved_sender_id:
+    "This name is reserved (telco, bank, government, or well-known brand). Use your own registered business name.",
+  banned_sender_id:
+    "This Sender ID is banned and cannot be registered. Choose a different name.",
+  sender_reason_required:
+    "Please explain why you need this Sender ID (at least 10 characters).",
   duplicate_sender_id: "You already registered this Sender ID.",
+  blocked: "Your account cannot register new Sender IDs right now. Contact support.",
+  limit: "You have reached the maximum number of Sender IDs on your account.",
   sender_not_found: "Sender ID not found or not approved yet.",
   sender_provider_failed:
     "We could not register your Sender ID with the SMS provider. Try again or contact support.",

@@ -3,47 +3,81 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
-import { normalizeSenderIdValue, validateSenderIdValue } from "@/lib/sender-ids/normalize";
-import { registerSenderIdWithAllProviders } from "@/lib/sender-ids/provider-sync";
+import { normalizeSenderIdValue, validateSenderIdForRegistration } from "@/lib/sender-ids/normalize";
+import { notifyAdminsNewSenderId } from "@/lib/sender-ids/notifications";
 import { getOrCreateMemberAccount } from "@/lib/admin/member-account";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-export async function requestSenderIdAction(formData: FormData) {
+const MIN_REASON_LENGTH = 10;
+const MAX_REASON_LENGTH = 500;
+
+async function memberCountryCode(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { countryCode: true },
+  });
+  const cc = user?.countryCode?.trim().toUpperCase();
+  return cc && cc.length === 2 ? cc : DEFAULT_COUNTRY_CODE;
+}
+
+/** Live check while the member types a sender ID (no redirect). */
+export async function previewSenderIdRegistrationAction(value: string) {
+  const session = await getSession();
+  if (!session) return { ok: false as const, error: "Sign in required", code: "invalid" as const };
+
+  const normalized = normalizeSenderIdValue(value);
+  if (!normalized) {
+    return { ok: true as const };
+  }
+
+  const countryCode = await memberCountryCode(session.userId);
+  return validateSenderIdForRegistration(normalized, { countryCode });
+}
+
+export type RequestSenderIdState = {
+  ok?: boolean;
+  value?: string;
+  id?: string;
+  errorCode?: string;
+};
+
+export async function requestSenderIdAction(
+  _prev: RequestSenderIdState,
+  formData: FormData,
+): Promise<RequestSenderIdState> {
   const session = await getSession();
   if (!session) redirect("/login");
 
   const value = normalizeSenderIdValue(String(formData.get("value") ?? ""));
-  const countryCode = String(formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE)
-    .trim()
-    .toUpperCase();
+  const reason = String(formData.get("reason") ?? "").trim();
+  const countryCode = await memberCountryCode(session.userId);
 
-  const validation = validateSenderIdValue(value);
+  if (!reason || reason.length < MIN_REASON_LENGTH || reason.length > MAX_REASON_LENGTH) {
+    return { errorCode: "reason" };
+  }
+
+  const validation = await validateSenderIdForRegistration(value, { countryCode });
   if (!validation.ok) {
-    redirect("/dashboard/sender-ids?error=invalid");
+    return { errorCode: validation.code };
   }
 
   const account = await getOrCreateMemberAccount(session.userId);
   if (account.senderIdsBlocked) {
-    redirect("/dashboard/sender-ids?error=blocked");
+    return { errorCode: "blocked" };
   }
 
   const senderCount = await prisma.senderId.count({ where: { userId: session.userId } });
   if (senderCount >= account.maxSenderIds) {
-    redirect("/dashboard/sender-ids?error=limit");
+    return { errorCode: "limit" };
   }
 
   const duplicate = await prisma.senderId.findFirst({
     where: { userId: session.userId, value },
   });
   if (duplicate) {
-    redirect("/dashboard/sender-ids?error=duplicate");
+    return { errorCode: "duplicate" };
   }
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: { fullName: true },
-  });
 
   const sender = await prisma.senderId.create({
     data: {
@@ -51,26 +85,16 @@ export async function requestSenderIdAction(formData: FormData) {
       value,
       countryCode,
       status: "PENDING",
+      adminNote: `Purpose: ${reason}`,
     },
   });
 
-  const purpose = `SplitSMS bulk SMS for ${user?.fullName ?? "customer"} (${value})`;
-  const provider = await registerSenderIdWithAllProviders({
-    senderRecordId: sender.id,
-    userId: session.userId,
-    value,
-    purpose,
-    countryCode,
-  });
+  void notifyAdminsNewSenderId(sender.id).catch(() => undefined);
 
   revalidatePath("/dashboard/sender-ids");
   revalidatePath("/dashboard/send");
 
-  if (provider.submitted) {
-    redirect("/dashboard/sender-ids?requested=1");
-  }
-
-  redirect("/dashboard/sender-ids?requested=1");
+  return { ok: true, value, id: sender.id };
 }
 
 export async function setDefaultSenderIdAction(formData: FormData) {

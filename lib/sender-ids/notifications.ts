@@ -1,0 +1,133 @@
+import { prisma } from "@/lib/db";
+import { sendEmail } from "@/lib/email";
+import {
+  senderIdAdminAlertContent,
+  senderIdApprovedMemberContent,
+} from "@/lib/email/templates";
+import { loadGeneralOfficeConfig } from "@/lib/general-office/config";
+import { createNotification } from "@/lib/notifications";
+import { sendPlatformAlertSms } from "@/lib/sms/platform-notify";
+import { getSiteUrl, siteName } from "@/lib/site-config";
+
+type AlertRecipient = { email?: string; phone?: string; name?: string };
+
+async function resolveAdminAlertRecipients(): Promise<AlertRecipient[]> {
+  const config = await loadGeneralOfficeConfig();
+  const recipients: AlertRecipient[] = [];
+
+  for (const email of config.notifyEmails) {
+    recipients.push({ email });
+  }
+  for (const phone of config.notifyPhones) {
+    recipients.push({ phone });
+  }
+
+  if (config.notifyAdminUsers) {
+    const admins = await prisma.user.findMany({
+      where: { role: { in: ["ADMIN", "SUPER_ADMIN"] } },
+      select: { email: true, phone: true, fullName: true },
+    });
+    for (const admin of admins) {
+      recipients.push({
+        email: admin.email ?? undefined,
+        phone: admin.phone,
+        name: admin.fullName,
+      });
+    }
+  }
+
+  const seenEmails = new Set<string>();
+  const seenPhones = new Set<string>();
+  return recipients.filter((r) => {
+    if (r.email) {
+      const key = r.email.toLowerCase();
+      if (seenEmails.has(key)) return false;
+      seenEmails.add(key);
+    }
+    if (r.phone) {
+      if (seenPhones.has(r.phone)) return false;
+      seenPhones.add(r.phone);
+    }
+    return Boolean(r.email || r.phone);
+  });
+}
+
+export async function notifyAdminsNewSenderId(senderRecordId: string) {
+  const sender = await prisma.senderId.findUnique({
+    where: { id: senderRecordId },
+    include: {
+      user: { select: { fullName: true, phone: true, email: true } },
+    },
+  });
+  if (!sender) return;
+
+  const adminUrl = `${getSiteUrl()}/admin/sender-ids?tab=pending`;
+  const smsText = `${siteName}: New sender ID "${sender.value}" from ${sender.user.fullName}. Review: ${adminUrl}`;
+  const { subject, text, html } = senderIdAdminAlertContent({
+    value: sender.value,
+    countryCode: sender.countryCode,
+    memberName: sender.user.fullName,
+    memberPhone: sender.user.phone,
+    memberEmail: sender.user.email,
+  });
+
+  const recipients = await resolveAdminAlertRecipients();
+  await Promise.allSettled(
+    recipients.map(async (r) => {
+      if (r.email) {
+        await sendEmail({ to: r.email, toName: r.name, subject, text, html });
+      }
+      if (r.phone) {
+        await sendPlatformAlertSms(r.phone, smsText);
+      }
+    }),
+  );
+}
+
+async function userAlreadyNotifiedApproved(userId: string, senderRecordId: string) {
+  const existing = await prisma.notification.findFirst({
+    where: {
+      userId,
+      type: "SYSTEM",
+      metadata: {
+        equals: { kind: "sender_id_approved", senderId: senderRecordId },
+      },
+    },
+  });
+  return Boolean(existing);
+}
+
+export async function notifyUserSenderIdApproved(senderRecordId: string) {
+  const sender = await prisma.senderId.findUnique({
+    where: { id: senderRecordId },
+    include: {
+      user: { select: { id: true, fullName: true, phone: true, email: true } },
+    },
+  });
+  if (!sender || sender.status !== "APPROVED") return;
+
+  if (await userAlreadyNotifiedApproved(sender.user.id, senderRecordId)) return;
+
+  const title = `Sender ID approved: ${sender.value}`;
+  const message = `Your sender ID "${sender.value}" is ready to use when sending SMS.`;
+  const smsText = `${siteName}: Your sender ID "${sender.value}" is approved and ready to use.`;
+
+  await createNotification(sender.user.id, "SYSTEM", title, message, {
+    kind: "sender_id_approved",
+    senderId: senderRecordId,
+    value: sender.value,
+  });
+
+  const tasks: Promise<unknown>[] = [];
+  if (sender.user.email) {
+    const { subject, text, html } = senderIdApprovedMemberContent({
+      value: sender.value,
+      memberName: sender.user.fullName,
+    });
+    tasks.push(sendEmail({ to: sender.user.email, subject, text, html }));
+  }
+  if (sender.user.phone) {
+    tasks.push(sendPlatformAlertSms(sender.user.phone, smsText));
+  }
+  await Promise.allSettled(tasks);
+}

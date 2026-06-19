@@ -12,6 +12,7 @@ function activeRegistrations(regs: SenderIdProviderRegistration[]) {
 export function derivePlatformStatusFromProviders(
   currentStatus: SenderIdStatus,
   regs: SenderIdProviderRegistration[],
+  options?: { submittedToProviders?: boolean },
 ): {
   status: SenderIdStatus;
   reason?: string;
@@ -20,6 +21,11 @@ export function derivePlatformStatusFromProviders(
   const active = activeRegistrations(regs);
   if (active.length === 0) {
     return { status: currentStatus };
+  }
+
+  // Platform-only pending — not submitted to carriers yet.
+  if (options?.submittedToProviders === false && currentStatus === "PENDING") {
+    return { status: "PENDING" };
   }
 
   const approved = active.filter((r) => r.status === "APPROVED");
@@ -31,6 +37,13 @@ export function derivePlatformStatusFromProviders(
       status: "REJECTED",
       reason: "Denied or removed by SMS provider(s). Re-submit to register again.",
       clearDefault: true,
+    };
+  }
+
+  if (currentStatus === "PENDING" && approved.length > 0) {
+    return {
+      status: "APPROVED",
+      reason: "Approved on SplitSMS — ready to use when sending SMS.",
     };
   }
 
@@ -60,7 +73,9 @@ export async function reconcileSenderIdPlatformStatus(senderRecordId: string) {
   });
   if (!sender) return;
 
-  const derived = derivePlatformStatusFromProviders(sender.status, sender.providerRegistrations);
+  const derived = derivePlatformStatusFromProviders(sender.status, sender.providerRegistrations, {
+    submittedToProviders: Boolean(sender.providerSubmittedAt),
+  });
 
   const providerSummary = sender.providerRegistrations
     .filter((r) => r.status !== "SKIPPED")
@@ -93,6 +108,13 @@ export async function reconcileSenderIdPlatformStatus(senderRecordId: string) {
     where: { id: senderRecordId },
     data: updates,
   });
+
+  if (updates.status === "APPROVED" && sender.status !== "APPROVED") {
+    const { maybeSetFirstDefault } = await import("@/lib/sender-ids/provider-sync");
+    const { notifyUserSenderIdApproved } = await import("@/lib/sender-ids/notifications");
+    await maybeSetFirstDefault(sender.userId, senderRecordId).catch(() => undefined);
+    await notifyUserSenderIdApproved(senderRecordId).catch(() => undefined);
+  }
 }
 
 export function senderHasProviderApproval(regs: SenderIdProviderRegistration[]) {

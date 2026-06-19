@@ -24,6 +24,10 @@ export async function getAdminSupportDashboard(q?: string, status?: string) {
       take: 100,
       include: {
         user: { select: { id: true, fullName: true, phone: true, email: true } },
+        replies: {
+          orderBy: { createdAt: "asc" },
+          include: { author: { select: { fullName: true } } },
+        },
       },
     }),
     prisma.supportTicket.groupBy({

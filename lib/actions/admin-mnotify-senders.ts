@@ -12,7 +12,7 @@ import {
 import { registerMnotifySenderId } from "@/lib/mnotify";
 import {
   normalizeSenderIdValue,
-  validateSenderIdValue,
+  validateSenderIdForRegistration,
 } from "@/lib/sender-ids/normalize";
 import {
   registerSenderIdWithAllProviders,
@@ -78,7 +78,10 @@ export async function adminCreateMnotifySenderAction(formData: FormData) {
     .trim()
     .toUpperCase();
 
-  const validation = validateSenderIdValue(value);
+  const validation = await validateSenderIdForRegistration(value, {
+    countryCode,
+    allowReserved: true,
+  });
   if (!validation.ok) adminRedirect(returnTo, { error: "invalid" });
 
   const registered = await registerMnotifySenderId(value, purpose);
@@ -306,7 +309,7 @@ export async function adminTrackMnotifySenderAction(formData: FormData) {
   const returnTo = String(formData.get("returnTo") ?? RETURN_BASE);
   const value = normalizeSenderIdValue(String(formData.get("senderName") ?? ""));
 
-  const validation = validateSenderIdValue(value);
+  const validation = await validateSenderIdForRegistration(value, { allowReserved: true });
   if (!validation.ok) adminRedirect(returnTo, { error: "invalid" });
 
   await trackMnotifySender(

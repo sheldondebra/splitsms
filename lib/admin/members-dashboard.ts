@@ -5,6 +5,20 @@ export type MemberSource = "direct" | "connect" | "wordpress" | "reseller";
 
 export type MemberSourceFilter = MemberSource | "all" | "external";
 
+export type MemberStatusFilter =
+  | "all"
+  | "active"
+  | "suspended"
+  | "blocked"
+  | "verified"
+  | "unverified";
+
+export type MemberJoinedFilter = "all" | "7" | "30" | "90";
+
+export type MemberSortFilter = "newest" | "oldest" | "name" | "credits" | "wallet" | "active";
+
+export const MEMBERS_PAGE_SIZE = 25;
+
 const SOURCE_COLORS: Record<MemberSource, string> = {
   connect: "#8b5cf6",
   wordpress: "#0ea5e9",
@@ -51,6 +65,96 @@ export function resolveMemberSource(user: {
   if (user._count.wordpressSites > 0) return "wordpress";
   if (user.resellerMembership) return "reseller";
   return "direct";
+}
+
+function statusWhere(status: MemberStatusFilter) {
+  if (status === "verified") return { isVerified: true };
+  if (status === "unverified") return { isVerified: false };
+  if (status === "suspended") return { memberAccount: { status: "SUSPENDED" as const } };
+  if (status === "blocked") return { memberAccount: { status: "BLOCKED" as const } };
+  if (status === "active") {
+    return {
+      OR: [{ memberAccount: null }, { memberAccount: { status: "ACTIVE" as const } }],
+    };
+  }
+  return {};
+}
+
+function joinedWhere(joined: MemberJoinedFilter) {
+  if (joined === "7") return { createdAt: { gte: daysAgo(7) } };
+  if (joined === "30") return { createdAt: { gte: daysAgo(30) } };
+  if (joined === "90") return { createdAt: { gte: daysAgo(90) } };
+  return {};
+}
+
+function resolveSortOrder(sort: MemberSortFilter) {
+  switch (sort) {
+    case "oldest":
+      return { createdAt: "asc" as const };
+    case "name":
+      return { fullName: "asc" as const };
+    case "credits":
+      return { smsCredit: { balance: "desc" as const } };
+    case "wallet":
+      return { wallet: { balance: "desc" as const } };
+    case "active":
+      return { updatedAt: "desc" as const };
+    case "newest":
+    default:
+      return { createdAt: "desc" as const };
+  }
+}
+
+function parseMemberFilters(params: {
+  q?: string;
+  source?: string;
+  status?: string;
+  country?: string;
+  joined?: string;
+  sort?: string;
+  page?: string;
+}) {
+  const query = params.q?.trim();
+  const sourceRaw = params.source?.toLowerCase();
+  const source: MemberSourceFilter =
+    sourceRaw === "connect" ||
+    sourceRaw === "wordpress" ||
+    sourceRaw === "reseller" ||
+    sourceRaw === "direct" ||
+    sourceRaw === "external"
+      ? sourceRaw
+      : "all";
+
+  const statusRaw = params.status?.toLowerCase();
+  const status: MemberStatusFilter =
+    statusRaw === "active" ||
+    statusRaw === "suspended" ||
+    statusRaw === "blocked" ||
+    statusRaw === "verified" ||
+    statusRaw === "unverified"
+      ? statusRaw
+      : "all";
+
+  const joinedRaw = params.joined;
+  const joined: MemberJoinedFilter =
+    joinedRaw === "7" || joinedRaw === "30" || joinedRaw === "90" ? joinedRaw : "all";
+
+  const sortRaw = params.sort?.toLowerCase();
+  const sort: MemberSortFilter =
+    sortRaw === "oldest" ||
+    sortRaw === "name" ||
+    sortRaw === "credits" ||
+    sortRaw === "wallet" ||
+    sortRaw === "active"
+      ? sortRaw
+      : "newest";
+
+  const country =
+    params.country && params.country !== "all" ? params.country.toUpperCase() : "all";
+
+  const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
+
+  return { query, source, status, joined, sort, country, page };
 }
 
 function sourceWhere(source: MemberSourceFilter) {
@@ -118,21 +222,20 @@ const memberInclude = {
 export async function getAdminMembersDashboard(params: {
   q?: string;
   source?: string;
+  status?: string;
+  country?: string;
+  joined?: string;
+  sort?: string;
+  page?: string;
 }) {
-  const query = params.q?.trim();
-  const sourceRaw = params.source?.toLowerCase();
-  const source: MemberSourceFilter =
-    sourceRaw === "connect" ||
-    sourceRaw === "wordpress" ||
-    sourceRaw === "reseller" ||
-    sourceRaw === "direct" ||
-    sourceRaw === "external"
-      ? sourceRaw
-      : "all";
+  const { query, source, status, joined, sort, country, page } = parseMemberFilters(params);
 
   const memberWhere = {
     role: "MEMBER" as const,
     ...sourceWhere(source),
+    ...statusWhere(status),
+    ...joinedWhere(joined),
+    ...(country !== "all" ? { countryCode: country } : {}),
     ...(query
       ? {
           OR: [
@@ -151,9 +254,11 @@ export async function getAdminMembersDashboard(params: {
 
   const since30 = daysAgo(30);
   const since7 = daysAgo(7);
+  const skip = (page - 1) * MEMBERS_PAGE_SIZE;
 
   const [
     members,
+    filteredTotal,
     totalMembers,
     verifiedMembers,
     suspendedMembers,
@@ -165,13 +270,16 @@ export async function getAdminMembersDashboard(params: {
     directCount,
     signupsForChart,
     connectLinksRecent,
+    countryRows,
   ] = await Promise.all([
     prisma.user.findMany({
       where: memberWhere,
-      orderBy: { createdAt: "desc" },
+      orderBy: resolveSortOrder(sort),
       include: memberInclude,
-      take: 100,
+      skip,
+      take: MEMBERS_PAGE_SIZE,
     }),
+    prisma.user.count({ where: memberWhere }),
     prisma.user.count({ where: { role: "MEMBER" } }),
     prisma.user.count({ where: { role: "MEMBER", isVerified: true } }),
     prisma.user.count({
@@ -220,6 +328,12 @@ export async function getAdminMembersDashboard(params: {
         customer: { select: { fullName: true, phone: true } },
       },
     }),
+    prisma.user.findMany({
+      where: { role: "MEMBER" },
+      select: { countryCode: true },
+      distinct: ["countryCode"],
+      orderBy: { countryCode: "asc" },
+    }),
   ]);
 
   const days = dayLabels(30);
@@ -261,6 +375,17 @@ export async function getAdminMembersDashboard(params: {
   );
 
   const externalTotal = connectCount + wordpressOnlyCount + resellerOnlyCount;
+  const totalPages = Math.max(1, Math.ceil(filteredTotal / MEMBERS_PAGE_SIZE));
+
+  const countries = countryRows
+    .map((r) => {
+      const meta = getCountryByCode(r.countryCode);
+      return {
+        code: r.countryCode,
+        name: meta?.name ?? r.countryCode,
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const rows = members.map((m) => {
     const src = resolveMemberSource(m);
@@ -303,6 +428,15 @@ export async function getAdminMembersDashboard(params: {
   return {
     query,
     source,
+    status,
+    joined,
+    sort,
+    country,
+    page,
+    pageSize: MEMBERS_PAGE_SIZE,
+    totalPages,
+    filteredTotal,
+    countries,
     stats: {
       totalMembers,
       verifiedMembers,
@@ -314,6 +448,7 @@ export async function getAdminMembersDashboard(params: {
       wordpressCount,
       resellerCount,
       listed: members.length,
+      filteredTotal,
     },
     signupChart,
     sourceChart,

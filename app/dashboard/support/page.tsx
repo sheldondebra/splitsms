@@ -5,6 +5,8 @@ import { buildSupportChatMessages, formatTicketNumber } from "@/lib/support/chat
 import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 import { LifeBuoy } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function SupportPage({
   searchParams,
 }: {
@@ -30,6 +32,16 @@ export default async function SupportPage({
         message: true,
         status: true,
         createdAt: true,
+        replies: {
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true,
+            body: true,
+            isStaff: true,
+            createdAt: true,
+            author: { select: { fullName: true } },
+          },
+        },
       },
     }),
   ]);
@@ -37,7 +49,23 @@ export default async function SupportPage({
   if (!user) return null;
 
   const firstName = user.fullName.split(" ")[0] ?? "there";
-  const chatMessages = buildSupportChatMessages(firstName, tickets);
+  const chatMessages = buildSupportChatMessages(
+    firstName,
+    tickets.map((t) => ({
+      id: t.id,
+      message: t.message,
+      status: t.status,
+      createdAt: t.createdAt,
+      subject: t.subject,
+      replies: t.replies.map((r) => ({
+        id: r.id,
+        body: r.body,
+        isStaff: r.isStaff,
+        createdAt: r.createdAt,
+        authorName: r.author?.fullName ?? null,
+      })),
+    })),
+  );
 
   const rows = tickets.map((t) => ({
     id: t.id,
@@ -46,6 +74,13 @@ export default async function SupportPage({
     message: t.message,
     status: t.status,
     createdAt: t.createdAt.toISOString(),
+    replies: t.replies.map((r) => ({
+      id: r.id,
+      body: r.body,
+      isStaff: r.isStaff,
+      createdAt: r.createdAt.toISOString(),
+      authorName: r.author?.fullName ?? null,
+    })),
   }));
 
   return (

@@ -91,21 +91,9 @@ export async function backfillSenderProviderRegistrations(senderId?: string) {
 export function mapProviderStatusText(
   text: string | undefined,
 ): SenderIdProviderStatus {
-  const s = (text ?? "").toLowerCase();
-  if (
-    s.includes("approve") ||
-    s.includes("active") ||
-    s.includes("complete") ||
-    s.includes("provisioned")
-  )
-    return "APPROVED";
-  if (
-    s.includes("reject") ||
-    s.includes("deny") ||
-    s.includes("denied") ||
-    s.includes("declin")
-  )
-    return "REJECTED";
+  const s = (text ?? "").toLowerCase().trim();
+  if (!s) return "PENDING";
+
   if (
     s.includes("delete") ||
     s.includes("removed") ||
@@ -113,8 +101,48 @@ export function mapProviderStatusText(
     s.includes("does not exist") ||
     s.includes("no sender") ||
     s.includes("invalid sender")
-  )
+  ) {
     return "REJECTED";
+  }
+
+  // Hold / review states must win over "approved" substrings (e.g. "approved on hold").
+  if (
+    s.includes("hold") ||
+    s.includes("await") ||
+    s.includes("review") ||
+    s.includes("processing") ||
+    s.includes("in progress") ||
+    s.includes("submitted") ||
+    s.includes("waiting") ||
+    s.includes("pending")
+  ) {
+    return "PENDING";
+  }
+
+  if (
+    s.includes("reject") ||
+    s.includes("deny") ||
+    s.includes("denied") ||
+    s.includes("declin")
+  ) {
+    return "REJECTED";
+  }
+
+  if (
+    s.includes("approve") ||
+    s.includes("active") ||
+    s.includes("complete") ||
+    s.includes("provisioned")
+  ) {
+    return "APPROVED";
+  }
+
   if (s.includes("fail") || s.includes("error")) return "FAILED";
   return "PENDING";
+}
+
+/** True when mNotify status text indicates the sender is on hold / awaiting review. */
+export function isMnotifyHoldStatus(text: string | null | undefined) {
+  const s = (text ?? "").toLowerCase();
+  return s.includes("hold") || s.includes("await") || s.includes("review");
 }

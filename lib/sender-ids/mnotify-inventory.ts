@@ -5,7 +5,7 @@ import {
   type MnotifySenderIdRecord,
 } from "@/lib/mnotify/sender-id-api";
 import { checkMnotifySenderIdStatus } from "@/lib/mnotify";
-import { mapProviderStatusText } from "@/lib/sender-ids/provider-registrations";
+import { mapProviderStatusText, isMnotifyHoldStatus } from "@/lib/sender-ids/provider-registrations";
 import type { SenderIdProviderStatus, SenderIdStatus } from "@/lib/generated/prisma/client";
 
 export const MNOTIFY_SENDER_TRACKER_KEY = "mnotify_sender_tracker";
@@ -26,7 +26,10 @@ export type MnotifySenderInventoryRow = {
   purpose: string | null;
   mnotifyStatus: string | null;
   mnotifyMapped: SenderIdProviderStatus | "UNKNOWN";
+  isOnHold: boolean;
   existsOnMnotify: boolean;
+  statusMismatch: boolean;
+  mismatchDetail: string | null;
   platform: {
     id: string;
     userId: string;
@@ -148,6 +151,49 @@ function mergeApiListIntoMap(
   }
 }
 
+function detectInventoryMismatch(
+  existsOnMnotify: boolean,
+  mnotifyMapped: SenderIdProviderStatus | "UNKNOWN",
+  isOnHold: boolean,
+  platform: MnotifySenderInventoryRow["platform"],
+): { statusMismatch: boolean; mismatchDetail: string | null } {
+  if (!platform) return { statusMismatch: false, mismatchDetail: null };
+
+  if (!existsOnMnotify && platform.platformStatus === "APPROVED") {
+    return {
+      statusMismatch: true,
+      mismatchDetail: "Approved on SplitSMS but deleted or missing at mNotify.",
+    };
+  }
+
+  if (mnotifyMapped === "REJECTED" && platform.platformStatus === "APPROVED") {
+    return {
+      statusMismatch: true,
+      mismatchDetail: "SplitSMS shows approved but mNotify reports denied or deleted.",
+    };
+  }
+
+  if (isOnHold && platform.platformStatus === "APPROVED") {
+    return {
+      statusMismatch: true,
+      mismatchDetail: "mNotify has this sender on hold — SplitSMS should stay pending.",
+    };
+  }
+
+  if (
+    mnotifyMapped === "PENDING" &&
+    platform.platformStatus === "APPROVED" &&
+    platform.mnotifyRegStatus !== "APPROVED"
+  ) {
+    return {
+      statusMismatch: true,
+      mismatchDetail: "mNotify is still pending but SplitSMS is approved.",
+    };
+  }
+
+  return { statusMismatch: false, mismatchDetail: null };
+}
+
 export async function buildMnotifySenderInventory(): Promise<{
   rows: MnotifySenderInventoryRow[];
   listSource: "api" | "discovered";
@@ -176,52 +222,81 @@ export async function buildMnotifySenderInventory(): Promise<{
     const key = senderName.toUpperCase();
     const apiRow = apiByName.get(key);
     const trackerEntry = tracker.entries[senderName] ?? tracker.entries[key];
-    const platform = platformMap.get(key) ?? null;
+    const platformRow = platformMap.get(key) ?? null;
     const statusResult = statusByName.get(key);
 
-    let mnotifyStatus: string | null = apiRow?.status ?? null;
-    let existsOnMnotify = Boolean(apiRow);
+    let mnotifyStatus: string | null = null;
+    let existsOnMnotify = false;
     let error: string | undefined;
 
     if (statusResult?.ok) {
-      mnotifyStatus = statusResult.providerStatus ?? mnotifyStatus;
+      mnotifyStatus = statusResult.providerStatus ?? apiRow?.status ?? null;
       existsOnMnotify = true;
     } else if (statusResult && !statusResult.ok) {
       const err = (statusResult.error ?? "").toLowerCase();
+      const statusText = (statusResult.providerStatus ?? "").toLowerCase();
       const notFound =
         err.includes("not found") ||
         err.includes("does not exist") ||
         err.includes("no sender") ||
-        err.includes("invalid");
+        err.includes("invalid") ||
+        statusText.includes("not found") ||
+        statusText.includes("delete") ||
+        statusText.includes("removed");
+
       if (notFound) {
         existsOnMnotify = false;
-        mnotifyStatus = statusResult.providerStatus ?? "Not found";
+        mnotifyStatus = statusResult.providerStatus ?? "Deleted / not found at mNotify";
       } else {
         error = statusResult.error;
-        existsOnMnotify = Boolean(apiRow);
+        mnotifyStatus = statusResult.providerStatus ?? apiRow?.status ?? null;
+        existsOnMnotify = Boolean(apiRow) || Boolean(mnotifyStatus);
       }
+    } else if (apiRow) {
+      mnotifyStatus = apiRow.status;
+      existsOnMnotify = true;
     }
 
+    const isOnHold = isMnotifyHoldStatus(mnotifyStatus);
     const mapped = mnotifyStatus
       ? mapProviderStatusText(mnotifyStatus)
       : existsOnMnotify
         ? "PENDING"
         : "UNKNOWN";
 
+    const { statusMismatch, mismatchDetail } = detectInventoryMismatch(
+      existsOnMnotify,
+      mapped === "PENDING" && !existsOnMnotify ? "UNKNOWN" : mapped,
+      isOnHold,
+      platformRow
+        ? {
+            id: platformRow.id,
+            userId: platformRow.userId,
+            memberName: platformRow.user.fullName,
+            memberPhone: platformRow.user.phone,
+            platformStatus: platformRow.status,
+            mnotifyRegStatus: platformRow.providerRegistrations[0]?.status ?? null,
+          }
+        : null,
+    );
+
     return {
       senderName,
       purpose: apiRow?.purpose ?? trackerEntry?.purpose ?? null,
       mnotifyStatus,
       mnotifyMapped: mapped === "PENDING" && !existsOnMnotify ? "UNKNOWN" : mapped,
+      isOnHold,
       existsOnMnotify,
-      platform: platform
+      statusMismatch,
+      mismatchDetail,
+      platform: platformRow
         ? {
-            id: platform.id,
-            userId: platform.userId,
-            memberName: platform.user.fullName,
-            memberPhone: platform.user.phone,
-            platformStatus: platform.status,
-            mnotifyRegStatus: platform.providerRegistrations[0]?.status ?? null,
+            id: platformRow.id,
+            userId: platformRow.userId,
+            memberName: platformRow.user.fullName,
+            memberPhone: platformRow.user.phone,
+            platformStatus: platformRow.status,
+            mnotifyRegStatus: platformRow.providerRegistrations[0]?.status ?? null,
           }
         : null,
       error,

@@ -12,6 +12,7 @@ import {
   exportRatesCsv,
 } from "@/lib/billing/pricing-format";
 import { countSmsUnits } from "@/lib/sms/units";
+import { publicRouteLabel } from "@/lib/sms/member-facing";
 import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
 import {
   AppCard,
@@ -113,7 +114,7 @@ export function MemberPricingDashboard({
       (r) =>
         r.countryName.toLowerCase().includes(q) ||
         r.countryCode.toLowerCase().includes(q) ||
-        r.provider.toLowerCase().includes(q),
+        r.dialCode.toLowerCase().includes(q),
     );
   }, [rows, query]);
 
@@ -285,7 +286,7 @@ export function MemberPricingDashboard({
                     </p>
                     <h2 className="mt-1 text-2xl font-bold">{selected.countryName}</h2>
                     <p className="text-sm text-muted-foreground">
-                      {selected.dialCode} · {selected.provider}
+                      {selected.dialCode} · {publicRouteLabel(selected.provider)}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -310,7 +311,7 @@ export function MemberPricingDashboard({
                   {[
                     { icon: Coins, label: "Credits", value: `${selected.creditsPerSms} per segment` },
                     { icon: MessageSquare, label: "Encoding", value: "GSM-7 or Unicode" },
-                    { icon: Server, label: "Route", value: selected.provider },
+                    { icon: Server, label: "Network", value: publicRouteLabel(selected.provider) },
                   ].map(({ icon: Icon, label, value }) => (
                     <div
                       key={label}
@@ -388,7 +389,7 @@ export function MemberPricingDashboard({
                       <th className="px-5 py-3 font-medium">Code</th>
                       <th className="px-5 py-3 font-medium text-right">Your rate</th>
                       <th className="px-5 py-3 font-medium text-right">Credits</th>
-                      <th className="hidden px-5 py-3 font-medium lg:table-cell">Provider</th>
+                      <th className="hidden px-5 py-3 font-medium lg:table-cell">Network</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -430,7 +431,7 @@ export function MemberPricingDashboard({
                             {r.creditsPerSms}
                           </td>
                           <td className="hidden px-5 py-3.5 text-muted-foreground lg:table-cell">
-                            {r.provider}
+                            {publicRouteLabel(r.provider)}
                           </td>
                         </tr>
                       );

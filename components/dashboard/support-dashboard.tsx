@@ -44,7 +44,43 @@ export type SupportTicketRow = {
   message: string;
   status: string;
   createdAt: string;
+  replies: {
+    id: string;
+    body: string;
+    isStaff: boolean;
+    createdAt: string;
+    authorName: string | null;
+  }[];
 };
+
+function TicketThread({ ticket }: { ticket: SupportTicketRow }) {
+  return (
+    <div className="mt-3 space-y-3 border-t border-border/50 pt-3">
+      <div className="rounded-lg bg-muted/30 px-3 py-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+          You
+        </p>
+        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{ticket.message}</p>
+      </div>
+      {ticket.replies.map((r) => (
+        <div
+          key={r.id}
+          className={
+            r.isStaff
+              ? "rounded-lg border border-primary/20 bg-primary/5 px-3 py-2"
+              : "rounded-lg bg-muted/30 px-3 py-2"
+          }
+        >
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+            {r.isStaff ? (r.authorName ?? "SplitSMS support") : "You"}
+            <span className="font-normal normal-case ml-2">{formatWhen(r.createdAt)}</span>
+          </p>
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{r.body}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export type SupportDashboardProps = {
   firstName: string;
@@ -273,11 +309,7 @@ export function SupportDashboard({
                               )}
                             </div>
                           </button>
-                          {expanded && (
-                            <p className="mt-3 border-t border-border/50 pt-3 text-sm text-muted-foreground">
-                              {t.message}
-                            </p>
-                          )}
+                          {expanded && <TicketThread ticket={t} />}
                         </MobileCardItem>
                       );
                     })}
@@ -315,14 +347,15 @@ export function SupportDashboard({
                               {meta.label}
                             </Badge>
                           </button>
-                          <p
-                            className={cn(
-                              "mt-2 text-sm text-muted-foreground",
-                              !expanded && "line-clamp-2",
-                            )}
-                          >
-                            {t.message}
-                          </p>
+                          {expanded ? (
+                            <TicketThread ticket={t} />
+                          ) : (
+                            <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                              {t.replies.length > 0
+                                ? t.replies[t.replies.length - 1]!.body
+                                : t.message}
+                            </p>
+                          )}
                         </li>
                       );
                     })}

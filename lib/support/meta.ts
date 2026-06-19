@@ -18,10 +18,24 @@ export function getTicketStatusMeta(status: string): TicketStatusMeta {
       icon: Clock,
     };
   }
-  if (upper === "CLOSED" || upper === "RESOLVED") {
+  if (upper === "IN_PROGRESS") {
     return {
-      label: upper === "RESOLVED" ? "Resolved" : "Closed",
+      label: "Processing",
+      className: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400",
+      icon: MessageSquare,
+    };
+  }
+  if (upper === "RESOLVED") {
+    return {
+      label: "Resolved",
       className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+      icon: CheckCircle2,
+    };
+  }
+  if (upper === "CLOSED") {
+    return {
+      label: "Closed",
+      className: "border-border/60 bg-muted/40 text-muted-foreground",
       icon: CheckCircle2,
     };
   }
@@ -30,6 +44,33 @@ export function getTicketStatusMeta(status: string): TicketStatusMeta {
     className: "border-border text-muted-foreground",
     icon: MessageSquare,
   };
+}
+
+/** Compact tag for support chat ticket threads. */
+export function getChatTicketTag(
+  status: string,
+  hasStaffReply: boolean,
+): TicketStatusMeta {
+  const upper = status.toUpperCase();
+  if (upper === "CLOSED" || upper === "RESOLVED") {
+    return getTicketStatusMeta(upper);
+  }
+  if (upper === "IN_PROGRESS") {
+    return getTicketStatusMeta("IN_PROGRESS");
+  }
+  if (upper === "OPEN" && hasStaffReply) {
+    return {
+      label: "Answered",
+      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+      icon: CheckCircle2,
+    };
+  }
+  return getTicketStatusMeta(upper === "OPEN" ? "OPEN" : status);
+}
+
+export function isTicketThreadClosed(status: string): boolean {
+  const upper = status.toUpperCase();
+  return upper === "CLOSED" || upper === "RESOLVED";
 }
 
 export const QUICK_TOPICS: { id: string; label: string; draft: string }[] = [

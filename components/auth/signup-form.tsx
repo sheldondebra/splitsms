@@ -4,7 +4,7 @@ import { useState } from "react";
 import { initialCountryState } from "@/lib/auth/initial-country-state";
 import { signupAction } from "@/lib/actions/auth";
 import { AuthHoneypot } from "@/components/auth/auth-honeypot";
-import { AuthTurnstile } from "@/components/auth/auth-turnstile";
+import { AuthCaptcha } from "@/components/auth/auth-captcha";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -198,7 +198,7 @@ function SignupFields({
         <Input id={`referral-${method}`} name="referralCode" placeholder="REF123" />
       </div>
 
-      <AuthTurnstile />
+      <AuthCaptcha />
 
       <Button type="submit" className="w-full font-semibold">
         {method === "phone" ? "Sign up with phone" : "Sign up with email"}
