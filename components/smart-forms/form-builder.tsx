@@ -153,6 +153,28 @@ export function SmartFormBuilder({
     setSelectedId(field.id);
   }
 
+  function addStep() {
+    const stepCount = fields.filter((f) => f.fieldType === "SECTION" && f.startsStep).length + 1;
+    const label = `Step ${stepCount}`;
+    const keys = fields.map((f) => f.fieldKey);
+    const field: BuilderField = {
+      id: newClientFieldId(),
+      label,
+      fieldKey: suggestFieldKey(label, keys),
+      fieldType: "SECTION",
+      isRequired: false,
+      options: [],
+      sortOrder: fields.length,
+      sectionColumns: 1,
+      startsStep: true,
+      width: "full",
+    };
+    setFields((prev) => [...prev, field]);
+    setSelectedId(field.id);
+    setSettingsTab("field");
+    setMobilePanel("settings");
+  }
+
   function updateSelected(patch: Partial<BuilderField>) {
     if (!selectedId) return;
     setFields((prev) => prev.map((f) => (f.id === selectedId ? { ...f, ...patch } : f)));
@@ -374,6 +396,17 @@ export function SmartFormBuilder({
           )}
         >
           <p className="text-sm font-semibold">Add fields</p>
+          <Button type="button" variant="outline" className="h-auto w-full justify-start gap-2 py-2.5" onClick={addStep}>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
+              +1
+            </span>
+            <span className="text-left">
+              <span className="block text-sm font-medium">Add step</span>
+              <span className="block text-xs font-normal text-muted-foreground">
+                Split the public form into pages
+              </span>
+            </span>
+          </Button>
           <div className="grid gap-2">
             {FIELD_TYPE_CATALOG.map((item) => {
               const Icon = item.icon;
@@ -403,7 +436,7 @@ export function SmartFormBuilder({
           style={{ backgroundColor: formBackground }}
         >
           <div
-            className="mx-auto max-w-[440px] overflow-hidden rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.04]"
+            className="mx-auto w-full max-w-[620px] overflow-hidden rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.04]"
             style={{ ["--form-primary" as string]: primary }}
           >
             <div className="h-1 w-full" style={{ backgroundColor: primary }} aria-hidden />
@@ -571,23 +604,40 @@ export function SmartFormBuilder({
                   ) : null}
 
                   {selected.fieldType === "SECTION" ? (
-                    <div className="space-y-2">
-                      <Label>Section layout</Label>
-                      <select
-                        value={selected.sectionColumns ?? 1}
-                        onChange={(e) =>
-                          updateSelected({
-                            sectionColumns: Number(e.target.value) === 2 ? 2 : 1,
-                          })
-                        }
-                        className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                      >
-                        <option value={1}>Single column</option>
-                        <option value={2}>Two columns (side by side)</option>
-                      </select>
-                      <p className="text-xs text-muted-foreground">
-                        Set fields below to half width to place 2 per row.
-                      </p>
+                    <div className="space-y-4 rounded-lg border bg-muted/20 p-3">
+                      <label className="flex items-start gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={selected.startsStep === true}
+                          onChange={(e) => updateSelected({ startsStep: e.target.checked })}
+                          className="mt-1"
+                        />
+                        <span>
+                          <span className="block font-medium">Start a new step here</span>
+                          <span className="block text-xs text-muted-foreground">
+                            Visitors will see fields below this section on a separate page.
+                          </span>
+                        </span>
+                      </label>
+
+                      <div className="space-y-2">
+                        <Label>Section layout</Label>
+                        <select
+                          value={selected.sectionColumns ?? 1}
+                          onChange={(e) =>
+                            updateSelected({
+                              sectionColumns: Number(e.target.value) === 2 ? 2 : 1,
+                            })
+                          }
+                          className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                        >
+                          <option value={1}>Single column</option>
+                          <option value={2}>Two columns (side by side)</option>
+                        </select>
+                        <p className="text-xs text-muted-foreground">
+                          Set fields below to half width to place 2 per row.
+                        </p>
+                      </div>
                     </div>
                   ) : null}
 

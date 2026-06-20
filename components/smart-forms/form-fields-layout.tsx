@@ -10,6 +10,7 @@ type FormFieldsLayoutProps = {
   variant?: "default" | "public";
   values?: Record<string, string | string[]>;
   errors?: Record<string, string>;
+  validationStates?: Record<string, "valid">;
   onChange?: (fieldKey: string, value: string | string[]) => void;
   disabled?: boolean;
   selectedId?: string | null;
@@ -21,6 +22,7 @@ export function FormFieldsLayout({
   variant = "default",
   values,
   errors,
+  validationStates,
   onChange,
   disabled,
   selectedId,
@@ -107,6 +109,7 @@ export function FormFieldsLayout({
                   value={values?.[field.fieldKey]}
                   onChange={onChange}
                   error={errors?.[field.fieldKey]}
+                  validationState={validationStates?.[field.fieldKey]}
                   disabled={disabled}
                   variant={variant}
                 />

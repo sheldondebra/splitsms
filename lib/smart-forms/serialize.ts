@@ -70,6 +70,7 @@ function serializeField(field: FormWithFields["fields"][number]): BuilderField {
     sortOrder: field.sortOrder,
     width: rules.width,
     sectionColumns: rules.sectionColumns,
+    startsStep: rules.startsStep,
   };
 }
 

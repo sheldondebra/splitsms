@@ -11,21 +11,23 @@ type FormFieldRenderProps = {
   value?: string | string[];
   onChange?: (fieldKey: string, value: string | string[]) => void;
   error?: string;
+  validationState?: "valid";
   disabled?: boolean;
   variant?: "default" | "public";
 };
 
 const publicInputClass =
-  "h-11 border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 shadow-none focus-visible:border-zinc-300 focus-visible:ring-2 focus-visible:ring-zinc-900/5";
+  "h-12 rounded-xl border-zinc-200 bg-zinc-50/80 text-zinc-900 placeholder:text-zinc-400 shadow-none transition-colors focus-visible:border-zinc-300 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-zinc-900/5";
 
 const publicSelectClass =
-  "flex h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 shadow-none outline-none transition-colors focus:border-zinc-300 focus:ring-2 focus:ring-zinc-900/5 disabled:opacity-50";
+  "flex h-12 w-full rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 text-sm text-zinc-900 shadow-none outline-none transition-colors focus:border-zinc-300 focus:bg-white focus:ring-2 focus:ring-zinc-900/5 disabled:opacity-50";
 
 export function FormFieldRender({
   field,
   value,
   onChange,
   error,
+  validationState,
   disabled,
   variant = "default",
 }: FormFieldRenderProps) {
@@ -41,6 +43,11 @@ export function FormFieldRender({
             isPublic ? "text-base text-zinc-900" : "text-lg",
           )}
         >
+          {field.startsStep ? (
+            <span className="mb-2 inline-flex rounded-full bg-[var(--form-primary)]/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--form-primary)]">
+              Step
+            </span>
+          ) : null}
           {field.label}
         </h3>
         {field.helperText ? (
@@ -83,12 +90,20 @@ export function FormFieldRender({
     <p className={cn("text-xs", isPublic ? "text-red-600" : "text-destructive")}>{error}</p>
   ) : null;
 
+  const validEl =
+    !error && validationState === "valid" ? (
+      <p className={cn("text-xs", isPublic ? "text-emerald-600" : "text-emerald-600")}>
+        Looks good.
+      </p>
+    ) : null;
+
   const wrap = (control: React.ReactNode) => (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {label}
       {control}
       {helper}
       {errorEl}
+      {validEl}
     </div>
   );
 
@@ -103,8 +118,9 @@ export function FormFieldRender({
         required={field.isRequired}
         onChange={(e) => onChange?.(field.fieldKey, e.target.value)}
         className={cn(
-          "min-h-[100px] resize-y",
-          isPublic && "border-zinc-200 bg-white shadow-none focus-visible:ring-zinc-900/5",
+          "min-h-[112px] resize-y",
+          isPublic &&
+            "rounded-xl border-zinc-200 bg-zinc-50/80 shadow-none transition-colors focus-visible:bg-white focus-visible:ring-zinc-900/5",
         )}
       />,
     );
@@ -147,10 +163,10 @@ export function FormFieldRender({
               <label
                 key={opt}
                 className={cn(
-                  "inline-flex cursor-pointer items-center justify-center rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors",
+                  "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-medium transition-all",
                   selected
-                    ? "border-[var(--form-primary)] bg-[var(--form-primary)] text-white shadow-sm"
-                    : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50",
+                    ? "border-[var(--form-primary)] bg-[var(--form-primary)] text-white shadow-md shadow-black/10"
+                    : "border-zinc-200 bg-zinc-50/80 text-zinc-700 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white",
                   disabled && "pointer-events-none opacity-50",
                 )}
               >
@@ -273,6 +289,10 @@ export function FormFieldRender({
       className={cn(
         isPublic ? publicInputClass : "h-11",
         field.fieldType === "PHONE" && "font-mono tracking-wide",
+        error &&
+          "border-red-300 bg-red-50/60 focus-visible:border-red-400 focus-visible:ring-red-500/10",
+        validationState === "valid" &&
+          "border-emerald-300 bg-emerald-50/50 focus-visible:border-emerald-400 focus-visible:ring-emerald-500/10",
       )}
       aria-invalid={Boolean(error)}
     />,

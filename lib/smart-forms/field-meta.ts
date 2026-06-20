@@ -38,7 +38,7 @@ export const FIELD_TYPE_CATALOG: FieldTypeMeta[] = [
   { type: "DATE", label: "Date", description: "Calendar date", icon: Calendar, hasOptions: false, isInput: true },
   { type: "TIME", label: "Time", description: "Time of day", icon: Clock, hasOptions: false, isInput: true },
   { type: "CONSENT", label: "Consent", description: "Agreement checkbox", icon: CheckSquare, hasOptions: false, isInput: true },
-  { type: "SECTION", label: "Section title", description: "Heading divider", icon: Type, hasOptions: false, isInput: false },
+  { type: "SECTION", label: "Section / step", description: "Heading or page break", icon: Type, hasOptions: false, isInput: false },
   { type: "DIVIDER", label: "Divider", description: "Visual separator", icon: Minus, hasOptions: false, isInput: false },
 ];
 
@@ -83,6 +83,7 @@ export function parseFieldOptions(raw: unknown): string[] {
 export type FieldValidationRules = {
   width?: "full" | "half";
   sectionColumns?: 1 | 2;
+  startsStep?: boolean;
 };
 
 export function parseFieldValidationRules(raw: unknown): FieldValidationRules {
@@ -91,15 +92,19 @@ export function parseFieldValidationRules(raw: unknown): FieldValidationRules {
   const width = obj.width === "half" ? "half" : obj.width === "full" ? "full" : undefined;
   const sectionColumns =
     obj.sectionColumns === 2 ? 2 : obj.sectionColumns === 1 ? 1 : undefined;
-  return { width, sectionColumns };
+  const startsStep = obj.startsStep === true ? true : undefined;
+  return { width, sectionColumns, startsStep };
 }
 
 export function toFieldValidationRules(
-  field: Pick<BuilderField, "width" | "sectionColumns" | "fieldType">,
+  field: Pick<BuilderField, "width" | "sectionColumns" | "startsStep" | "fieldType">,
 ): FieldValidationRules | undefined {
   const rules: FieldValidationRules = {};
   if (field.fieldType === "SECTION" && field.sectionColumns === 2) {
     rules.sectionColumns = 2;
+  }
+  if (field.fieldType === "SECTION" && field.startsStep) {
+    rules.startsStep = true;
   }
   if (field.width === "half") rules.width = "half";
   if (Object.keys(rules).length === 0) return undefined;

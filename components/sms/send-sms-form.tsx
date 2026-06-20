@@ -9,6 +9,11 @@ import { getMessagePreview } from "@/lib/sms/message-preview";
 import { SendCostPreview } from "@/components/sms/send-cost-preview";
 import { SmsPreview } from "@/components/sms/sms-preview";
 import {
+  SendSmsSenderField,
+  isApprovedSenderSelection,
+  type RegisteredSenderOption,
+} from "@/components/sms/send-sms-sender-field";
+import {
   RecipientChipInput,
   type RecipientChip,
 } from "@/components/sms/recipient-chip-input";
@@ -35,7 +40,6 @@ import {
   Loader2,
   MessageSquare,
   Phone,
-  BadgeCheck,
   Pencil,
   CheckCircle2,
   Send,
@@ -49,8 +53,7 @@ export type SendTemplateOption = {
 };
 
 type SendSmsFormProps = {
-  defaultSender: string;
-  senderOptions: { value: string }[];
+  registeredSenders: RegisteredSenderOption[];
   templates: SendTemplateOption[];
   initialTemplateId?: string;
   initialRecipients?: string;
@@ -82,8 +85,7 @@ function mergeRecipientPhones(existing: string, phones: string[]): string {
 }
 
 export function SendSmsForm({
-  defaultSender,
-  senderOptions,
+  registeredSenders,
   templates,
   initialTemplateId,
   initialRecipients = "",
@@ -103,7 +105,12 @@ export function SendSmsForm({
   const [recipientChips, setRecipientChips] = useState<RecipientChip[]>([]);
   const [body, setBody] = useState(initialTpl?.content ?? "");
   const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplateId ?? "");
-  const [senderId, setSenderId] = useState(senderOptions[0]?.value ?? defaultSender);
+  const [senderId, setSenderId] = useState(() => {
+    const approved = registeredSenders.filter((s) => s.status === "APPROVED");
+    const picked = approved.find((s) => s.isDefault)?.value ?? approved[0]?.value;
+    if (picked) return picked;
+    return registeredSenders.find((s) => s.status === "PENDING")?.value ?? "";
+  });
   const [countryCode, setCountryCode] = useState(defaultCountryCode);
 
   const selectedTemplate = useMemo(
@@ -127,7 +134,7 @@ export function SendSmsForm({
   const invalidRecipientCount = recipientChips.length - recipientCount;
   const hasInvalidRecipients = invalidRecipientCount > 0;
   const preview = useMemo(() => getMessagePreview(body), [body]);
-  const hasApprovedSender = senderOptions.length > 0;
+  const canUseSender = isApprovedSenderSelection(senderId, registeredSenders);
 
   function addContactsFromPicker(phones: string[]) {
     if (phones.length === 0) return;
@@ -241,52 +248,12 @@ export function SendSmsForm({
             </div>
           )}
 
-          {/* Sender */}
-          <div className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-5 space-y-3">
-            <div className="flex items-center gap-2">
-              <BadgeCheck className="h-4 w-4 text-primary shrink-0" />
-              <Label className="text-sm font-semibold">Sender name</Label>
-            </div>
-            <p className="text-xs text-muted-foreground -mt-1">
-              What recipients see as the message sender.
-            </p>
-            {hasApprovedSender ? (
-              <select
-                id="senderId"
-                value={senderId}
-                onChange={(e) => setSenderId(e.target.value)}
-                disabled={pending}
-                className={cn(
-                  "flex h-11 w-full rounded-lg border border-input bg-background px-3 text-base",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                )}
-              >
-                {senderOptions.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.value}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <div className="space-y-2">
-                <Input
-                  id="senderId"
-                  value={senderId}
-                  onChange={(e) => setSenderId(e.target.value)}
-                  disabled={pending}
-                  className="h-11 text-base"
-                  placeholder="e.g. MYBRAND"
-                />
-                <p className="text-xs text-muted-foreground">
-                  No approved sender yet.{" "}
-                  <Link href="/dashboard/sender-ids" className="text-primary font-medium hover:underline">
-                    Request a sender ID
-                  </Link>{" "}
-                  for production sends.
-                </p>
-              </div>
-            )}
-          </div>
+          <SendSmsSenderField
+            registeredSenders={registeredSenders}
+            value={senderId}
+            onChange={setSenderId}
+            disabled={pending}
+          />
 
           {/* Template */}
           <div className="rounded-xl border border-border/60 bg-card p-4 sm:p-5 space-y-3">
@@ -485,7 +452,7 @@ export function SendSmsForm({
 
           <Button
             type="submit"
-            disabled={pending || recipientCount === 0 || hasInvalidRecipients || !body.trim()}
+            disabled={pending || recipientCount === 0 || hasInvalidRecipients || !body.trim() || !canUseSender}
             className="h-12 w-full text-base font-semibold rounded-xl shadow-sm gap-2"
           >
             {pending ? (

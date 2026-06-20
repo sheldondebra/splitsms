@@ -34,6 +34,8 @@ export type BuilderField = {
   width?: "full" | "half";
   /** SECTION fields only — 1 or 2 columns for fields below */
   sectionColumns?: 1 | 2;
+  /** SECTION fields only — starts a new page in the public form */
+  startsStep?: boolean;
 };
 
 export type SerializedSmartForm = {

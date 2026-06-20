@@ -38,6 +38,7 @@ const fieldSchema = z.object({
   sortOrder: z.number().int().min(0),
   width: z.enum(["full", "half"]).optional(),
   sectionColumns: z.union([z.literal(1), z.literal(2)]).optional(),
+  startsStep: z.boolean().optional(),
 });
 
 const saveBuilderSchema = z.object({

@@ -20,10 +20,6 @@ export default async function SendSmsPage({
 }) {
   const session = await getSession();
   const params = await searchParams;
-  const defaultSender =
-    process.env.MNOTIFY_DEFAULT_SENDER_ID ??
-    process.env.MNOTIFY_SENDER_ID ??
-    "SplitSMS";
 
   const user = session
     ? await prisma.user.findUnique({
@@ -35,8 +31,9 @@ export default async function SendSmsPage({
   const [senderIds, balance, templates, contactPicker] = session
     ? await Promise.all([
         prisma.senderId.findMany({
-          where: { userId: session.userId, status: "APPROVED" },
-          orderBy: { createdAt: "desc" },
+          where: { userId: session.userId },
+          orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
+          select: { value: true, status: true, isDefault: true },
         }),
         getBalanceSnapshot(session.userId),
         prisma.smsTemplate.findMany({
@@ -76,8 +73,7 @@ export default async function SendSmsPage({
       <AppCard className="overflow-visible">
         <AppCardBody>
           <SendSmsForm
-            defaultSender={defaultSender}
-            senderOptions={senderIds.map((s) => ({ value: s.value }))}
+            registeredSenders={senderIds}
             templates={templates}
             initialTemplateId={params.template}
             initialRecipients={parseSendToParam(params.to)}
