@@ -36,6 +36,8 @@ export type BuilderField = {
   sectionColumns?: 1 | 2;
   /** SECTION fields only — starts a new page in the public form */
   startsStep?: boolean;
+  /** Optional merge-tag alias, e.g. name, first_name, phone, email */
+  dynamicValue?: string;
 };
 
 export type SerializedSmartForm = {

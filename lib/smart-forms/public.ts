@@ -12,6 +12,7 @@ import {
 import { getFieldTypeMeta } from "@/lib/smart-forms/field-meta";
 import { saveRespondentAsContact } from "@/lib/smart-forms/save-contact";
 import { runSmartFormSmsAutomation } from "@/lib/smart-forms/sms-automation";
+import { applySmartFormMergeTags } from "@/lib/smart-forms/merge-tags";
 import { isSubmissionRateLimited } from "@/lib/smart-forms/limits";
 import { verifyCaptchaChallenge } from "@/lib/smart-forms/captcha";
 import type { SmartFormAnalyticsEventType } from "@/lib/generated/prisma/client";
@@ -323,11 +324,25 @@ export async function submitSmartFormResponse(
   }
 
   const successSettings = publicForm.successSettings;
+  const mergeCtx = {
+    formName: form.name,
+    submittedAt,
+    fields: publicForm.fields,
+    answers: answerRows.map((answer) => ({
+      fieldKey: answer.fieldKey,
+      value: answer.value,
+    })),
+  };
+  const successTitle = applySmartFormMergeTags(successSettings.title ?? "Thank you", mergeCtx);
+  const successMessage = applySmartFormMergeTags(
+    successSettings.message ?? "Your submission has been received. We will be in touch soon.",
+    mergeCtx,
+  );
+
   return {
     ok: true,
-    successTitle: successSettings.title ?? "Thank you",
-    successMessage:
-      successSettings.message ?? "Your submission has been received. We will be in touch soon.",
+    successTitle,
+    successMessage,
     redirectUrl: successSettings.redirectUrl,
   };
 }

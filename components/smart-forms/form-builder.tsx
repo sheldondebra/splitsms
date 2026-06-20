@@ -52,6 +52,20 @@ import {
 } from "lucide-react";
 import type { SmartFormFieldType } from "@/lib/generated/prisma/client";
 
+const BASIC_DYNAMIC_VALUES = [
+  { key: "name", label: "Full name", tag: "{{name}}" },
+  { key: "first_name", label: "First name", tag: "{{first_name}}" },
+  { key: "last_name", label: "Last name", tag: "{{last_name}}" },
+  { key: "phone", label: "Phone number", tag: "{{phone}}" },
+  { key: "email", label: "Email address", tag: "{{email}}" },
+] as const;
+
+const FORM_DYNAMIC_VALUES = [
+  { key: "form_name", label: "Form name", tag: "{{form_name}}" },
+  { key: "submission_date", label: "Submission date", tag: "{{submission_date}}" },
+  { key: "submission_time", label: "Submission time", tag: "{{submission_time}}" },
+] as const;
+
 export function SmartFormBuilder({
   form: initial,
   siteUrl,
@@ -201,6 +215,21 @@ export function SmartFormBuilder({
     updateSelected({ fieldKey });
   }
 
+  function handleDynamicValueChange(dynamicValue: string) {
+    if (!selectedId) return;
+    setFields((prev) =>
+      prev.map((field) => {
+        if (field.id === selectedId) {
+          return { ...field, dynamicValue: dynamicValue || undefined };
+        }
+        if (dynamicValue && field.dynamicValue === dynamicValue) {
+          return { ...field, dynamicValue: undefined };
+        }
+        return field;
+      }),
+    );
+  }
+
   function moveField(id: string, direction: -1 | 1) {
     setFields((prev) => {
       const index = prev.findIndex((f) => f.id === id);
@@ -243,6 +272,14 @@ export function SmartFormBuilder({
       const next = prev.filter((f) => f.id !== id);
       if (selectedId === id) setSelectedId(next[0]?.id ?? null);
       return next;
+    });
+  }
+
+  function insertSuccessMessageTag(tag: string) {
+    setSuccessSettings((prev) => {
+      const current = prev.message ?? "";
+      const separator = current && !/\s$/.test(current) ? " " : "";
+      return { ...prev, message: `${current}${separator}${tag}` };
     });
   }
 
@@ -298,6 +335,56 @@ export function SmartFormBuilder({
   const fieldKeyIsAuto = selected ? !manualFieldKeys.has(selected.id) : true;
   const bannerPosition: BannerPosition =
     layoutSettings.bannerPosition ?? DEFAULT_BANNER_POSITION;
+  const selectedDynamicValueOptions =
+    selected?.fieldType === "PHONE"
+      ? BASIC_DYNAMIC_VALUES.filter((item) => item.key === "phone")
+      : selected?.fieldType === "EMAIL"
+        ? BASIC_DYNAMIC_VALUES.filter((item) => item.key === "email")
+        : BASIC_DYNAMIC_VALUES;
+  const successMessageTags = [
+    ...BASIC_DYNAMIC_VALUES.map((item) => ({
+      tag: item.tag,
+      label: item.label,
+      helper: "Basic",
+    })),
+    ...FORM_DYNAMIC_VALUES.map((item) => ({
+      tag: item.tag,
+      label: item.label,
+      helper: "Form",
+    })),
+    ...fields
+      .filter((field) => getFieldTypeMeta(field.fieldType).isInput)
+      .map((field) => ({
+        tag: `{{${field.fieldKey}}}`,
+        label: field.label,
+        helper: field.dynamicValue
+          ? BASIC_DYNAMIC_VALUES.find((item) => item.key === field.dynamicValue)?.label ?? "Mapped"
+          : "Field",
+      })),
+  ].filter((item, index, arr) => arr.findIndex((other) => other.tag === item.tag) === index);
+  const fieldGroups = [
+    {
+      label: "Contact",
+      types: ["TEXT", "PHONE", "EMAIL"] satisfies SmartFormFieldType[],
+    },
+    {
+      label: "Answers",
+      types: ["TEXTAREA", "SELECT", "RADIO", "CHECKBOX", "NUMBER"] satisfies SmartFormFieldType[],
+    },
+    {
+      label: "Schedule",
+      types: ["DATE", "TIME"] satisfies SmartFormFieldType[],
+    },
+    {
+      label: "Structure",
+      types: ["CONSENT", "SECTION", "DIVIDER"] satisfies SmartFormFieldType[],
+    },
+  ].map((group) => ({
+    ...group,
+    items: group.types
+      .map((type) => FIELD_TYPE_CATALOG.find((item) => item.type === type))
+      .filter((item): item is (typeof FIELD_TYPE_CATALOG)[number] => Boolean(item)),
+  }));
 
   return (
     <div className="space-y-4">
@@ -388,43 +475,76 @@ export function SmartFormBuilder({
         ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[220px_minmax(0,1fr)_300px]">
+      <div className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)_320px]">
         <aside
           className={cn(
-            "rounded-xl border bg-card p-4 space-y-3 h-fit",
+            "overflow-hidden rounded-2xl border bg-card shadow-sm xl:sticky xl:top-20 xl:max-h-[calc(100dvh-6rem)]",
             mobilePanel !== "add" && "hidden xl:block",
           )}
         >
-          <p className="text-sm font-semibold">Add fields</p>
-          <Button type="button" variant="outline" className="h-auto w-full justify-start gap-2 py-2.5" onClick={addStep}>
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
-              +1
-            </span>
-            <span className="text-left">
-              <span className="block text-sm font-medium">Add step</span>
-              <span className="block text-xs font-normal text-muted-foreground">
-                Split the public form into pages
-              </span>
-            </span>
-          </Button>
-          <div className="grid gap-2">
-            {FIELD_TYPE_CATALOG.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.type}
-                  type="button"
-                  onClick={() => addField(item.type)}
-                  className="flex items-start gap-2 rounded-lg border px-3 py-2 text-left text-sm hover:bg-muted/60 transition-colors"
-                >
-                  <Icon className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
-                  <span>
-                    <span className="font-medium block">{item.label}</span>
-                    <span className="text-xs text-muted-foreground">{item.description}</span>
+          <div className="border-b bg-muted/30 px-4 py-4">
+            <p className="text-sm font-semibold">Build your form</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Add steps, questions, and layout blocks to the preview.
+            </p>
+          </div>
+
+          <div className="max-h-[calc(100dvh-13rem)] space-y-4 overflow-y-auto p-4">
+            <button
+              type="button"
+              onClick={addStep}
+              className="group relative w-full overflow-hidden rounded-xl border border-primary/20 bg-primary/5 p-3 text-left transition-colors hover:bg-primary/10"
+            >
+              <div
+                className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/10"
+                aria-hidden
+              />
+              <div className="relative flex items-start gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-sm">
+                  +1
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold">Add step</span>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                    Split long forms into simple pages.
                   </span>
-                </button>
-              );
-            })}
+                </span>
+              </div>
+            </button>
+
+            {fieldGroups.map((group) => (
+              <div key={group.label} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    {group.label}
+                  </p>
+                  <span className="text-[11px] text-muted-foreground">{group.items.length}</span>
+                </div>
+                <div className="grid gap-2">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.type}
+                        type="button"
+                        onClick={() => addField(item.type)}
+                        className="group flex items-start gap-3 rounded-xl border bg-background px-3 py-2.5 text-left text-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted/40 hover:shadow-sm"
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium">{item.label}</span>
+                          <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                            {item.description}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </aside>
 
@@ -564,6 +684,24 @@ export function SmartFormBuilder({
                   </div>
                   {getFieldTypeMeta(selected.fieldType).isInput ? (
                     <>
+                      <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
+                        <Label>Dynamic value</Label>
+                        <select
+                          value={selected.dynamicValue ?? ""}
+                          onChange={(e) => handleDynamicValueChange(e.target.value)}
+                          className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                        >
+                          <option value="">No basic dynamic value</option>
+                          {selectedDynamicValueOptions.map((item) => (
+                            <option key={item.key} value={item.key}>
+                              {item.label} ({item.tag})
+                            </option>
+                          ))}
+                        </select>
+                        <p className="text-xs text-muted-foreground">
+                          Use this field as a basic merge value in success messages and SMS templates.
+                        </p>
+                      </div>
                       <div className="space-y-2">
                         <Label>Placeholder</Label>
                         <Input
@@ -787,6 +925,28 @@ export function SmartFormBuilder({
                   }
                   placeholder="Your submission has been received."
                 />
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <p className="text-xs font-medium text-foreground">Insert submitted value</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Click a dynamic value to personalize the thank-you message.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {successMessageTags.map((item) => (
+                      <button
+                        key={item.tag}
+                        type="button"
+                        onClick={() => insertSuccessMessageTag(item.tag)}
+                        className="rounded-lg border bg-background px-2.5 py-1.5 text-left text-[11px] transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                        title={item.tag}
+                      >
+                        <span className="block font-medium">{item.label}</span>
+                        <span className="block font-mono text-[10px] text-muted-foreground">
+                          {item.tag}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Redirect URL (optional)</Label>

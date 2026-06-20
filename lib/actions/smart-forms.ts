@@ -39,6 +39,7 @@ const fieldSchema = z.object({
   width: z.enum(["full", "half"]).optional(),
   sectionColumns: z.union([z.literal(1), z.literal(2)]).optional(),
   startsStep: z.boolean().optional(),
+  dynamicValue: z.string().optional(),
 });
 
 const saveBuilderSchema = z.object({

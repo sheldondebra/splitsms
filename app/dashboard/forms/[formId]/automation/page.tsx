@@ -7,6 +7,7 @@ import {
   DEFAULT_ADMIN_SMS,
   DEFAULT_RESPONDENT_SMS,
 } from "@/lib/smart-forms/merge-tags";
+import { parseFieldValidationRules } from "@/lib/smart-forms/field-meta";
 import { FormAutomationPanel } from "@/components/smart-forms/form-automation-panel";
 import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 import { buttonVariants } from "@/components/ui/button";
@@ -60,6 +61,14 @@ export default async function SmartFormAutomationPage({
       <FormAutomationPanel
         formId={form.id}
         formName={form.name}
+        fields={form.fields.map((field) => {
+          const rules = parseFieldValidationRules(field.validationRules);
+          return {
+            fieldKey: field.fieldKey,
+            label: field.label,
+            dynamicValue: rules.dynamicValue,
+          };
+        })}
         ownerPhone={user?.phone ?? ""}
         smsCredits={credit?.balance ?? 0}
         senders={senders.map((s) => ({

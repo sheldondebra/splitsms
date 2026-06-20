@@ -100,16 +100,16 @@ export function SidebarNavContent({
           <Link
             href="/dashboard/wallet"
             onClick={onNavigate}
-            className="group flex items-start gap-3 rounded-xl border border-sidebar-primary/20 bg-gradient-to-br from-sidebar-primary/12 to-sidebar-primary/5 px-3.5 py-3 transition-colors hover:border-sidebar-primary/35 hover:from-sidebar-primary/18"
+            className="group flex items-start gap-2.5 rounded-lg border border-sidebar-primary/20 bg-gradient-to-br from-sidebar-primary/12 to-sidebar-primary/5 px-3 py-2.5 transition-colors hover:border-sidebar-primary/35 hover:from-sidebar-primary/18"
           >
-            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary/15 text-sidebar-primary">
-              <Wallet className="h-4 w-4" aria-hidden />
+            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-sidebar-primary/15 text-sidebar-primary">
+              <Wallet className="h-3.5 w-3.5" aria-hidden />
             </span>
             <span className="min-w-0">
-              <span className="block text-sm font-semibold text-sidebar-foreground">
+              <span className="block text-[13px] font-semibold leading-4 text-sidebar-foreground">
                 Add SMS credits
               </span>
-              <span className="block text-xs text-sidebar-foreground/55 group-hover:text-sidebar-foreground/70">
+              <span className="block text-[11px] leading-4 text-sidebar-foreground/55 group-hover:text-sidebar-foreground/70">
                 Top up wallet &amp; keep sending
               </span>
             </span>

@@ -1,5 +1,6 @@
 import { splitFullName } from "@/lib/sms/personalize";
 import { personalizeMessage } from "@/lib/sms/personalize";
+import type { BuilderField } from "@/lib/smart-forms/types";
 
 export const SMART_FORM_MERGE_TAGS = [
   { tag: "{{name}}", desc: "Respondent full name" },
@@ -39,18 +40,26 @@ export function applySmartFormMergeTags(
     formName: string;
     submittedAt: Date;
     answers: { fieldKey: string; value: string }[];
+    fields?: Array<Pick<BuilderField, "fieldKey" | "dynamicValue">>;
   },
 ): string {
   const map = answerMap(ctx.answers);
-  const name = pickName(map);
+  const dynamicValues: Record<string, string> = {};
+  ctx.fields?.forEach((field) => {
+    if (!field.dynamicValue) return;
+    const value = map.get(field.fieldKey);
+    if (value) dynamicValues[field.dynamicValue] = value;
+  });
+
+  const name = dynamicValues.name ?? pickName(map);
   const { firstName, lastName } = splitFullName(name);
-  const phone = map.get("phone") ?? "";
-  const email = map.get("email") ?? "";
+  const phone = dynamicValues.phone ?? map.get("phone") ?? "";
+  const email = dynamicValues.email ?? map.get("email") ?? "";
 
   const base: Record<string, string> = {
     name,
-    first_name: firstName,
-    last_name: lastName,
+    first_name: dynamicValues.first_name ?? firstName,
+    last_name: dynamicValues.last_name ?? lastName,
     firstname: firstName,
     lastname: lastName,
     phone,
@@ -61,6 +70,9 @@ export function applySmartFormMergeTags(
   };
 
   for (const [key, value] of map.entries()) {
+    base[key] = value;
+  }
+  for (const [key, value] of Object.entries(dynamicValues)) {
     base[key] = value;
   }
 

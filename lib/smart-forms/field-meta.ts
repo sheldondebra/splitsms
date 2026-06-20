@@ -84,6 +84,7 @@ export type FieldValidationRules = {
   width?: "full" | "half";
   sectionColumns?: 1 | 2;
   startsStep?: boolean;
+  dynamicValue?: string;
 };
 
 export function parseFieldValidationRules(raw: unknown): FieldValidationRules {
@@ -93,11 +94,12 @@ export function parseFieldValidationRules(raw: unknown): FieldValidationRules {
   const sectionColumns =
     obj.sectionColumns === 2 ? 2 : obj.sectionColumns === 1 ? 1 : undefined;
   const startsStep = obj.startsStep === true ? true : undefined;
-  return { width, sectionColumns, startsStep };
+  const dynamicValue = typeof obj.dynamicValue === "string" ? obj.dynamicValue : undefined;
+  return { width, sectionColumns, startsStep, dynamicValue };
 }
 
 export function toFieldValidationRules(
-  field: Pick<BuilderField, "width" | "sectionColumns" | "startsStep" | "fieldType">,
+  field: Pick<BuilderField, "width" | "sectionColumns" | "startsStep" | "dynamicValue" | "fieldType">,
 ): FieldValidationRules | undefined {
   const rules: FieldValidationRules = {};
   if (field.fieldType === "SECTION" && field.sectionColumns === 2) {
@@ -106,6 +108,7 @@ export function toFieldValidationRules(
   if (field.fieldType === "SECTION" && field.startsStep) {
     rules.startsStep = true;
   }
+  if (field.dynamicValue) rules.dynamicValue = field.dynamicValue;
   if (field.width === "half") rules.width = "half";
   if (Object.keys(rules).length === 0) return undefined;
   return rules;

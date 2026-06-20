@@ -131,6 +131,7 @@ export async function runSmartFormSmsAutomation(params: {
   const mergeCtx = {
     formName: params.formName,
     submittedAt: params.submittedAt,
+    fields: params.fields,
     answers: params.answers,
   };
 

@@ -71,6 +71,7 @@ function serializeField(field: FormWithFields["fields"][number]): BuilderField {
     width: rules.width,
     sectionColumns: rules.sectionColumns,
     startsStep: rules.startsStep,
+    dynamicValue: rules.dynamicValue,
   };
 }
 
