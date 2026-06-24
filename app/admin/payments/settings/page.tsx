@@ -7,6 +7,8 @@ import {
   testPaystackConnectionAction,
   testFlutterwaveConnectionAction,
   testStripeConnectionAction,
+  saveDefaultPaymentProviderAction,
+  setGatewayAsDefaultAction,
 } from "@/lib/actions/admin-payment-settings";
 import { getOfflineBankDetails } from "@/lib/payments/offline-config";
 import {
@@ -15,6 +17,7 @@ import {
   loadStripeSettings,
   loadGatewayLastTest,
   getPaymentGatewaysOverview,
+  loadDefaultPaymentProvider,
 } from "@/lib/payments/gateway-settings";
 import { PaymentGatewayPanel } from "@/components/admin/payment-gateway-panel";
 import {
@@ -45,6 +48,7 @@ export default async function PaymentSettingsPage({
     error?: string;
     test?: string;
     result?: string;
+    provider?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -58,6 +62,7 @@ export default async function PaymentSettingsPage({
     paystackTest,
     flutterwaveTest,
     stripeTest,
+    defaultProvider,
   ] = await Promise.all([
     getOfflineBankDetails(),
     loadPaystackSettings(),
@@ -67,14 +72,19 @@ export default async function PaymentSettingsPage({
     loadGatewayLastTest("paystack_last_test"),
     loadGatewayLastTest("flutterwave_last_test"),
     loadGatewayLastTest("stripe_last_test"),
+    loadDefaultPaymentProvider(),
   ]);
+
+  const configuredGateways = overview.filter((g) => g.configured && g.enabled);
 
   const savedLabel =
     params.saved === "offline"
       ? "Offline bank details"
-      : params.saved
-        ? GATEWAY_LABELS[params.saved] ?? params.saved
-        : null;
+      : params.saved === "default"
+        ? "Default payment provider"
+        : params.saved
+          ? GATEWAY_LABELS[params.saved] ?? params.saved
+          : null;
 
   return (
     <AdminPage narrow>
@@ -101,6 +111,13 @@ export default async function PaymentSettingsPage({
         <AdminAlert variant="warning">Please fill all required offline bank fields.</AdminAlert>
       )}
 
+      {params.error === "default" && (
+        <AdminAlert variant="warning">
+          Choose a configured and enabled gateway as the default provider
+          {params.provider ? ` (${GATEWAY_LABELS[params.provider] ?? params.provider})` : ""}.
+        </AdminAlert>
+      )}
+
       {params.test && params.result && (
         <AdminAlert variant={params.result === "ok" ? "success" : "warning"}>
           {GATEWAY_LABELS[params.test] ?? params.test} connection test{" "}
@@ -124,22 +141,64 @@ export default async function PaymentSettingsPage({
             }
             hint={
               g.configured
-                ? `${g.source === "admin" ? "Dashboard" : "Env"} · ${g.defaultCurrency}${g.maskedSecret ? ` · ${g.maskedSecret}` : ""}`
+                ? `${g.source === "admin" ? "Dashboard" : "Env"} · ${g.defaultCurrency}${g.maskedSecret ? ` · ${g.maskedSecret}` : ""}${defaultProvider === g.id.toUpperCase() ? " · Default" : ""}`
                 : "Add secret key below"
             }
           />
         ))}
       </div>
 
+      <AdminCard
+        title="Default payment provider"
+        description="Pre-selected when users top up their wallet. Only enabled gateways with valid API keys can be set as default."
+      >
+        <form action={saveDefaultPaymentProviderAction} className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[220px] flex-1 space-y-2">
+            <Label htmlFor="default-provider">Provider</Label>
+            <select
+              id="default-provider"
+              name="provider"
+              defaultValue={defaultProvider ?? configuredGateways[0]?.id.toUpperCase() ?? "PAYSTACK"}
+              className="flex h-11 w-full rounded-xl border border-border/60 bg-background px-3 text-sm"
+              disabled={configuredGateways.length === 0}
+            >
+              {configuredGateways.length === 0 ? (
+                <option value="">No configured gateways</option>
+              ) : (
+                configuredGateways.map((g) => (
+                  <option key={g.id} value={g.id.toUpperCase()}>
+                    {g.label}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+          <Button type="submit" disabled={configuredGateways.length === 0}>
+            Save default
+          </Button>
+        </form>
+        {defaultProvider && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Current default:{" "}
+            <span className="font-medium text-foreground">
+              {GATEWAY_LABELS[defaultProvider.toLowerCase()] ?? defaultProvider}
+            </span>
+          </p>
+        )}
+      </AdminCard>
+
       <PaymentGatewayPanel
         title="Paystack"
         description="Cards, bank transfer, and mobile money for Ghana and Africa."
         gatewayId="paystack"
+        paymentMethod="PAYSTACK"
         config={paystack.config}
         source={paystack.source}
         lastTest={paystackTest}
+        isDefault={defaultProvider === "PAYSTACK"}
         saveAction={savePaystackSettingsAction}
         testAction={testPaystackConnectionAction}
+        setDefaultAction={setGatewayAsDefaultAction}
         currencyPlaceholder="GHS"
         secretPlaceholder="sk_live_... or sk_test_..."
         publicPlaceholder="pk_live_... or pk_test_..."
@@ -149,11 +208,14 @@ export default async function PaymentSettingsPage({
         title="Flutterwave"
         description="Cards, bank, and mobile money across African markets."
         gatewayId="flutterwave"
+        paymentMethod="FLUTTERWAVE"
         config={flutterwave.config}
         source={flutterwave.source}
         lastTest={flutterwaveTest}
+        isDefault={defaultProvider === "FLUTTERWAVE"}
         saveAction={saveFlutterwaveSettingsAction}
         testAction={testFlutterwaveConnectionAction}
+        setDefaultAction={setGatewayAsDefaultAction}
         currencyPlaceholder="NGN"
         secretPlaceholder="FLWSECK-..."
         publicPlaceholder="FLWPUBK-..."
@@ -163,11 +225,14 @@ export default async function PaymentSettingsPage({
         title="Stripe"
         description="International card payments (USD, EUR, GBP, and more)."
         gatewayId="stripe"
+        paymentMethod="STRIPE"
         config={stripe.config}
         source={stripe.source}
         lastTest={stripeTest}
+        isDefault={defaultProvider === "STRIPE"}
         saveAction={saveStripeSettingsAction}
         testAction={testStripeConnectionAction}
+        setDefaultAction={setGatewayAsDefaultAction}
         currencyPlaceholder="USD"
         secretPlaceholder="sk_live_... or sk_test_..."
         publicPlaceholder="pk_live_... or pk_test_..."

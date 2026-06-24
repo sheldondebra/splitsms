@@ -4,6 +4,9 @@ import type { Prisma } from "@/lib/generated/prisma/client";
 export const PAYSTACK_CONFIG_KEY = "paystack_config";
 export const FLUTTERWAVE_CONFIG_KEY = "flutterwave_config";
 export const STRIPE_CONFIG_KEY = "stripe_config";
+export const DEFAULT_PAYMENT_PROVIDER_KEY = "default_payment_provider";
+
+export type OnlinePaymentProvider = "PAYSTACK" | "FLUTTERWAVE" | "STRIPE";
 
 export type GatewayConfig = {
   enabled: boolean;
@@ -204,6 +207,50 @@ export async function isFlutterwaveConfigured() {
 export async function isStripeConfigured() {
   const { config } = await loadStripeSettings();
   return config.enabled && Boolean(config.secretKey);
+}
+
+export async function loadDefaultPaymentProvider(): Promise<OnlinePaymentProvider | null> {
+  const row = await prisma.platformSetting.findUnique({
+    where: { key: DEFAULT_PAYMENT_PROVIDER_KEY },
+  });
+  const value = row?.value;
+  if (value === "PAYSTACK" || value === "FLUTTERWAVE" || value === "STRIPE") {
+    return value;
+  }
+  return null;
+}
+
+export async function saveDefaultPaymentProvider(
+  provider: OnlinePaymentProvider,
+  actorId?: string,
+) {
+  await prisma.platformSetting.upsert({
+    where: { key: DEFAULT_PAYMENT_PROVIDER_KEY },
+    update: { value: provider },
+    create: { key: DEFAULT_PAYMENT_PROVIDER_KEY, value: provider },
+  });
+
+  if (actorId) {
+    await prisma.auditLog.create({
+      data: {
+        actorId,
+        action: "DEFAULT_PAYMENT_PROVIDER_UPDATED",
+        entityType: "PlatformSetting",
+        entityId: DEFAULT_PAYMENT_PROVIDER_KEY,
+        metadata: { provider },
+      },
+    });
+  }
+}
+
+export async function resolveDefaultPaymentMethod(
+  availableMethods: OnlinePaymentProvider[],
+): Promise<OnlinePaymentProvider | null> {
+  const stored = await loadDefaultPaymentProvider();
+  if (stored && availableMethods.includes(stored)) {
+    return stored;
+  }
+  return availableMethods[0] ?? null;
 }
 
 export type GatewayOverview = {

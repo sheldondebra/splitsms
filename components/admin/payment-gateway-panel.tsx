@@ -10,11 +10,14 @@ type PaymentGatewayPanelProps = {
   title: string;
   description: string;
   gatewayId: string;
+  paymentMethod: "PAYSTACK" | "FLUTTERWAVE" | "STRIPE";
   config: GatewayConfig;
   source: GatewayConfigSource;
   lastTest: GatewayLastTest | null;
+  isDefault: boolean;
   saveAction: (formData: FormData) => Promise<void>;
-  testAction: () => Promise<void>;
+  testAction: (formData: FormData) => Promise<void>;
+  setDefaultAction: (formData: FormData) => Promise<void>;
   currencyPlaceholder: string;
   secretPlaceholder: string;
   publicPlaceholder?: string;
@@ -33,11 +36,14 @@ export function PaymentGatewayPanel({
   title,
   description,
   gatewayId,
+  paymentMethod,
   config,
   source,
   lastTest,
+  isDefault,
   saveAction,
   testAction,
+  setDefaultAction,
   currencyPlaceholder,
   secretPlaceholder,
   publicPlaceholder,
@@ -49,9 +55,16 @@ export function PaymentGatewayPanel({
       title={title}
       description={description}
       actions={
-        <Badge variant={ready ? "default" : "secondary"}>
-          {ready ? "Ready" : "Not configured"}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          {isDefault && ready ? (
+            <Badge variant="outline" className="border-primary/40 text-primary">
+              Default
+            </Badge>
+          ) : null}
+          <Badge variant={ready ? "default" : "secondary"}>
+            {ready ? "Ready" : "Not configured"}
+          </Badge>
+        </div>
       }
     >
       <div className="mb-4 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
@@ -159,18 +172,26 @@ export function PaymentGatewayPanel({
 
         <div className="flex flex-wrap gap-2">
           <Button type="submit">Save {title}</Button>
+          <Button type="submit" variant="outline" size="sm" formAction={testAction}>
+            Save & test connection
+          </Button>
         </div>
       </form>
 
-      <form action={testAction} className="mt-3">
-        <Button type="submit" variant="outline" size="sm">
-          Test connection
-        </Button>
-        <p className="mt-1.5 text-[11px] text-muted-foreground">
-          Calls the {title} API to verify your secret key and fetch account balance details.
-        </p>
-        <input type="hidden" name="gateway" value={gatewayId} readOnly />
-      </form>
+      <div className="mt-3 flex flex-wrap items-start gap-3">
+        {ready && !isDefault ? (
+          <form action={setDefaultAction}>
+            <input type="hidden" name="gateway" value={paymentMethod} readOnly />
+            <Button type="submit" variant="secondary" size="sm">
+              Set as default
+            </Button>
+          </form>
+        ) : null}
+      </div>
+      <p className="mt-1.5 text-[11px] text-muted-foreground">
+        Save your keys first, then use &quot;Save &amp; test connection&quot; to verify with Stripe/Paystack.
+        Ensure &quot;Enable {title} for wallet top-ups&quot; is checked.
+      </p>
     </AdminCard>
   );
 }

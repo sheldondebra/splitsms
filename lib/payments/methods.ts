@@ -4,8 +4,9 @@ import {
   isFlutterwaveConfigured,
   isPaystackConfigured,
   isStripeConfigured,
+  resolveDefaultPaymentMethod,
+  type OnlinePaymentProvider,
 } from "@/lib/payments/gateway-settings";
-import { getOfflineBankDetails } from "@/lib/payments/offline-config";
 
 export type PaymentMethodOption = {
   value: PaymentMethod;
@@ -48,14 +49,14 @@ const ALL_METHODS: Omit<PaymentMethodOption, "available">[] = [
   },
 ];
 
-function isConfigured(method: PaymentMethod): boolean {
+async function isMethodAvailable(method: PaymentMethod): Promise<boolean> {
   switch (method) {
     case "PAYSTACK":
-      return Boolean(process.env.PAYSTACK_SECRET_KEY);
+      return isPaystackConfigured();
     case "FLUTTERWAVE":
-      return Boolean(process.env.FLUTTERWAVE_SECRET_KEY);
+      return isFlutterwaveConfigured();
     case "STRIPE":
-      return Boolean(process.env.STRIPE_SECRET_KEY);
+      return isStripeConfigured();
     case "MTN_MOMO":
       return Boolean(process.env.MTN_MOMO_SUBSCRIPTION_KEY);
     case "MANUAL":
@@ -78,10 +79,23 @@ export async function getPaymentMethodOptions(): Promise<PaymentMethodOption[]> 
   ];
 
   const methods = ALL_METHODS.filter((m) => enabled.includes(m.value));
-  const availability = await Promise.all(methods.map((m) => isConfigured(m.value)));
+  const availability = await Promise.all(methods.map((m) => isMethodAvailable(m.value)));
 
   return methods.map((m, i) => ({
     ...m,
     available: availability[i],
   }));
+}
+
+export async function getDefaultPaymentMethodForUser(): Promise<PaymentMethod | null> {
+  const methods = await getPaymentMethodOptions();
+  const availableOnline = methods
+    .filter((m) => m.available && m.category === "online")
+    .map((m) => m.value as OnlinePaymentProvider);
+
+  const resolved = await resolveDefaultPaymentMethod(availableOnline);
+  if (resolved) return resolved;
+
+  const firstAvailable = methods.find((m) => m.available);
+  return firstAvailable?.value ?? null;
 }

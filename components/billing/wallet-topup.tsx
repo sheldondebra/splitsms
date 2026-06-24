@@ -29,6 +29,7 @@ export function WalletTopupClient({
   currency,
   paymentMethods,
   offlineBankDetails,
+  defaultMethod,
 }: {
   currency: string;
   paymentMethods: PaymentMethodOption[];
@@ -40,13 +41,17 @@ export function WalletTopupClient({
     swiftCode?: string;
     instructions: string;
   };
+  defaultMethod?: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState(
-    paymentMethods.find((m) => m.available)?.value ?? "PAYSTACK",
-  );
+  const [method, setMethod] = useState(() => {
+    if (defaultMethod && paymentMethods.some((m) => m.value === defaultMethod && m.available)) {
+      return defaultMethod;
+    }
+    return paymentMethods.find((m) => m.available)?.value ?? "PAYSTACK";
+  });
   const [offline, setOffline] = useState({
     payerName: "",
     payerPhone: "",

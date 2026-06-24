@@ -10,6 +10,11 @@ import {
   savePaystackSettings,
   saveStripeSettings,
   saveGatewayLastTest,
+  saveDefaultPaymentProvider,
+  isPaystackConfigured,
+  isFlutterwaveConfigured,
+  isStripeConfigured,
+  type OnlinePaymentProvider,
 } from "@/lib/payments/gateway-settings";
 import {
   testFlutterwaveConnection,
@@ -27,6 +32,22 @@ function revalidatePaymentPaths() {
   revalidatePath("/admin/payments/settings");
   revalidatePath("/admin/payments");
   revalidatePath("/dashboard/wallet");
+}
+
+function gatewayEnabledFromForm(formData: FormData) {
+  const secretKey = String(formData.get("secretKey") ?? "").trim();
+  const enabledChecked = formData.get("enabled") === "on";
+  return enabledChecked || Boolean(secretKey);
+}
+
+function gatewayInputFromForm(formData: FormData, defaultCurrency: string) {
+  return {
+    enabled: gatewayEnabledFromForm(formData),
+    secretKey: String(formData.get("secretKey") ?? ""),
+    publicKey: String(formData.get("publicKey") ?? ""),
+    webhookSecret: String(formData.get("webhookSecret") ?? ""),
+    defaultCurrency: String(formData.get("defaultCurrency") ?? defaultCurrency),
+  };
 }
 
 export async function saveOfflinePaymentDetailsAction(formData: FormData) {
@@ -65,16 +86,7 @@ export async function saveOfflinePaymentDetailsAction(formData: FormData) {
 export async function savePaystackSettingsAction(formData: FormData) {
   const session = await requireAdmin();
 
-  await savePaystackSettings(
-    {
-      enabled: formData.get("enabled") === "on",
-      secretKey: String(formData.get("secretKey") ?? ""),
-      publicKey: String(formData.get("publicKey") ?? ""),
-      webhookSecret: String(formData.get("webhookSecret") ?? ""),
-      defaultCurrency: String(formData.get("defaultCurrency") ?? "GHS"),
-    },
-    session.userId,
-  );
+  await savePaystackSettings(gatewayInputFromForm(formData, "GHS"), session.userId);
 
   revalidatePaymentPaths();
   redirect("/admin/payments/settings?saved=paystack");
@@ -83,16 +95,7 @@ export async function savePaystackSettingsAction(formData: FormData) {
 export async function saveFlutterwaveSettingsAction(formData: FormData) {
   const session = await requireAdmin();
 
-  await saveFlutterwaveSettings(
-    {
-      enabled: formData.get("enabled") === "on",
-      secretKey: String(formData.get("secretKey") ?? ""),
-      publicKey: String(formData.get("publicKey") ?? ""),
-      webhookSecret: String(formData.get("webhookSecret") ?? ""),
-      defaultCurrency: String(formData.get("defaultCurrency") ?? "NGN"),
-    },
-    session.userId,
-  );
+  await saveFlutterwaveSettings(gatewayInputFromForm(formData, "NGN"), session.userId);
 
   revalidatePaymentPaths();
   redirect("/admin/payments/settings?saved=flutterwave");
@@ -101,23 +104,15 @@ export async function saveFlutterwaveSettingsAction(formData: FormData) {
 export async function saveStripeSettingsAction(formData: FormData) {
   const session = await requireAdmin();
 
-  await saveStripeSettings(
-    {
-      enabled: formData.get("enabled") === "on",
-      secretKey: String(formData.get("secretKey") ?? ""),
-      publicKey: String(formData.get("publicKey") ?? ""),
-      webhookSecret: String(formData.get("webhookSecret") ?? ""),
-      defaultCurrency: String(formData.get("defaultCurrency") ?? "USD"),
-    },
-    session.userId,
-  );
+  await saveStripeSettings(gatewayInputFromForm(formData, "USD"), session.userId);
 
   revalidatePaymentPaths();
   redirect("/admin/payments/settings?saved=stripe");
 }
 
-export async function testPaystackConnectionAction() {
-  await requireAdmin();
+export async function testPaystackConnectionAction(formData: FormData) {
+  const session = await requireAdmin();
+  await savePaystackSettings(gatewayInputFromForm(formData, "GHS"), session.userId);
   const result = await testPaystackConnection();
   await saveGatewayLastTest("paystack_last_test", {
     ok: result.ok,
@@ -128,8 +123,9 @@ export async function testPaystackConnectionAction() {
   redirect(`/admin/payments/settings?test=paystack&result=${result.ok ? "ok" : "fail"}`);
 }
 
-export async function testFlutterwaveConnectionAction() {
-  await requireAdmin();
+export async function testFlutterwaveConnectionAction(formData: FormData) {
+  const session = await requireAdmin();
+  await saveFlutterwaveSettings(gatewayInputFromForm(formData, "NGN"), session.userId);
   const result = await testFlutterwaveConnection();
   await saveGatewayLastTest("flutterwave_last_test", {
     ok: result.ok,
@@ -140,8 +136,9 @@ export async function testFlutterwaveConnectionAction() {
   redirect(`/admin/payments/settings?test=flutterwave&result=${result.ok ? "ok" : "fail"}`);
 }
 
-export async function testStripeConnectionAction() {
-  await requireAdmin();
+export async function testStripeConnectionAction(formData: FormData) {
+  const session = await requireAdmin();
+  await saveStripeSettings(gatewayInputFromForm(formData, "USD"), session.userId);
   const result = await testStripeConnection();
   await saveGatewayLastTest("stripe_last_test", {
     ok: result.ok,
@@ -150,4 +147,49 @@ export async function testStripeConnectionAction() {
   });
   revalidatePaymentPaths();
   redirect(`/admin/payments/settings?test=stripe&result=${result.ok ? "ok" : "fail"}`);
+}
+
+const PROVIDER_CONFIGURED: Record<
+  OnlinePaymentProvider,
+  () => Promise<boolean>
+> = {
+  PAYSTACK: isPaystackConfigured,
+  FLUTTERWAVE: isFlutterwaveConfigured,
+  STRIPE: isStripeConfigured,
+};
+
+export async function saveDefaultPaymentProviderAction(formData: FormData) {
+  const session = await requireAdmin();
+
+  const provider = String(formData.get("provider") ?? "").trim() as OnlinePaymentProvider;
+  if (!["PAYSTACK", "FLUTTERWAVE", "STRIPE"].includes(provider)) {
+    redirect("/admin/payments/settings?error=default");
+  }
+
+  const configured = await PROVIDER_CONFIGURED[provider]();
+  if (!configured) {
+    redirect(`/admin/payments/settings?error=default&provider=${provider.toLowerCase()}`);
+  }
+
+  await saveDefaultPaymentProvider(provider, session.userId);
+  revalidatePaymentPaths();
+  redirect("/admin/payments/settings?saved=default");
+}
+
+export async function setGatewayAsDefaultAction(formData: FormData) {
+  const session = await requireAdmin();
+
+  const gateway = String(formData.get("gateway") ?? "").trim().toUpperCase() as OnlinePaymentProvider;
+  if (!["PAYSTACK", "FLUTTERWAVE", "STRIPE"].includes(gateway)) {
+    redirect("/admin/payments/settings?error=default");
+  }
+
+  const configured = await PROVIDER_CONFIGURED[gateway]();
+  if (!configured) {
+    redirect(`/admin/payments/settings?error=default&provider=${gateway.toLowerCase()}`);
+  }
+
+  await saveDefaultPaymentProvider(gateway, session.userId);
+  revalidatePaymentPaths();
+  redirect(`/admin/payments/settings?saved=default&provider=${gateway.toLowerCase()}`);
 }

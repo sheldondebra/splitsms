@@ -7,7 +7,7 @@ import { WalletRecentActivity } from "@/components/billing/wallet-recent-activit
 import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
 import { AppPage, PageHeader, AppCard, AppCardBody, AppCardTitle } from "@/components/dashboard/page-shell";
 import { Wallet, Plus, Coins } from "lucide-react";
-import { getPaymentMethodOptions } from "@/lib/payments/methods";
+import { getPaymentMethodOptions, getDefaultPaymentMethodForUser } from "@/lib/payments/methods";
 import { getOfflineBankDetails } from "@/lib/payments/offline-config";
 import { verifyAndCreditPaymentForUser } from "@/lib/payments/verify";
 import { getWalletPricingOptions } from "@/lib/billing/wallet-pricing";
@@ -46,7 +46,7 @@ export default async function WalletPage({
       : { ok: false, error: verified.error ?? "payment" };
   }
 
-  const [wallet, credit, transactions, paymentMethods, offlineBankDetails, user, pricingOptions] =
+  const [wallet, credit, transactions, paymentMethods, offlineBankDetails, user, pricingOptions, defaultMethod] =
     await Promise.all([
       prisma.wallet.findUnique({ where: { userId: session.userId } }),
       prisma.smsCredit.findUnique({ where: { userId: session.userId } }),
@@ -62,6 +62,7 @@ export default async function WalletPage({
         select: { countryCode: true },
       }),
       getWalletPricingOptions(session.userId),
+      getDefaultPaymentMethodForUser(),
     ]);
 
   const currency = wallet?.currency ?? "GHS";
@@ -125,6 +126,7 @@ export default async function WalletPage({
               currency={currency}
               paymentMethods={paymentMethods}
               offlineBankDetails={offlineBankDetails}
+              defaultMethod={defaultMethod ?? undefined}
             />
           </AppCardBody>
         </AppCard>
