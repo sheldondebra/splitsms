@@ -223,7 +223,7 @@ export default async function PaymentSettingsPage({
 
       <PaymentGatewayPanel
         title="Stripe"
-        description="International card payments (USD, EUR, GBP, and more)."
+        description="International cards. GHS wallet top-ups are converted to USD at the live rate before checkout."
         gatewayId="stripe"
         paymentMethod="STRIPE"
         config={stripe.config}

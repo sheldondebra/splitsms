@@ -25,11 +25,20 @@ const METHOD_ICONS: Record<string, typeof CreditCard> = {
   STRIPE: CreditCard,
 };
 
+export type StripeFxPreview = {
+  walletCurrency: string;
+  chargeCurrency: string;
+  rate: number;
+  fetchedAt: string;
+  source: string;
+};
+
 export function WalletTopupClient({
   currency,
   paymentMethods,
   offlineBankDetails,
   defaultMethod,
+  stripeFxPreview,
 }: {
   currency: string;
   paymentMethods: PaymentMethodOption[];
@@ -42,6 +51,7 @@ export function WalletTopupClient({
     instructions: string;
   };
   defaultMethod?: string;
+  stripeFxPreview?: StripeFxPreview;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -62,6 +72,14 @@ export function WalletTopupClient({
   });
 
   const availableMethods = paymentMethods.filter((m) => m.available);
+  const numAmount = Number(amount);
+  const stripeChargePreview =
+    method === "STRIPE" &&
+    stripeFxPreview &&
+    numAmount > 0 &&
+    Number.isFinite(numAmount)
+      ? Math.round(numAmount * stripeFxPreview.rate * 100) / 100
+      : null;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -92,6 +110,10 @@ export function WalletTopupClient({
       }
       if (data.redirectUrl) {
         window.location.href = data.redirectUrl;
+        return;
+      }
+      if (data.instructions) {
+        setError(data.instructions);
         return;
       }
       if (method === "MANUAL") {
@@ -180,6 +202,26 @@ export function WalletTopupClient({
         )}
         <input type="hidden" name="method" value={method} />
       </div>
+
+      {method === "STRIPE" && stripeFxPreview && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm leading-relaxed">
+          <p className="font-medium text-foreground">Pay in Ghana Cedis, charged in USD</p>
+          <p className="text-muted-foreground mt-1">
+            Your wallet is credited in {currency}. Stripe checkout is in{" "}
+            {stripeFxPreview.chargeCurrency} using the live rate{" "}
+            <span className="font-mono tabular-nums">
+              1 {currency} = {stripeFxPreview.rate.toFixed(4)} {stripeFxPreview.chargeCurrency}
+            </span>
+            .
+          </p>
+          {stripeChargePreview != null && (
+            <p className="mt-2 font-medium tabular-nums">
+              {currency} {numAmount.toFixed(2)} ≈ {stripeFxPreview.chargeCurrency}{" "}
+              {stripeChargePreview.toFixed(2)}
+            </p>
+          )}
+        </div>
+      )}
 
       {method === "MANUAL" && (
         <div className="space-y-4 rounded-xl border border-border/60 bg-muted/20 p-4">

@@ -12,6 +12,8 @@ import { getOfflineBankDetails } from "@/lib/payments/offline-config";
 import { verifyAndCreditPaymentForUser } from "@/lib/payments/verify";
 import { getWalletPricingOptions } from "@/lib/billing/wallet-pricing";
 import { resolveSmsPriceForUser } from "@/lib/reseller/pricing";
+import { loadStripeSettings } from "@/lib/payments/gateway-settings";
+import { getStripeFxPreview } from "@/lib/payments/fx-rates";
 
 export default async function WalletPage({
   searchParams,
@@ -71,6 +73,8 @@ export default async function WalletPage({
   const lowBalance = smsCredits <= 10;
   const defaultCountryCode = user?.countryCode ?? pricingOptions[0]?.countryCode ?? "GH";
   const activePrice = await resolveSmsPriceForUser(session.userId, defaultCountryCode);
+  const { config: stripeConfig } = await loadStripeSettings();
+  const stripeFxPreview = await getStripeFxPreview(currency, stripeConfig.defaultCurrency || "USD");
 
   return (
     <AppPage wide>
@@ -127,6 +131,7 @@ export default async function WalletPage({
               paymentMethods={paymentMethods}
               offlineBankDetails={offlineBankDetails}
               defaultMethod={defaultMethod ?? undefined}
+              stripeFxPreview={stripeFxPreview ?? undefined}
             />
           </AppCardBody>
         </AppCard>

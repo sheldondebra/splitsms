@@ -32,7 +32,7 @@ const ALL_METHODS: Omit<PaymentMethodOption, "available">[] = [
   {
     value: "STRIPE",
     label: "Stripe",
-    description: "International cards (USD, EUR, GBP)",
+    description: "Pay with card — GHS converted to USD at the live rate",
     category: "online",
   },
   {
