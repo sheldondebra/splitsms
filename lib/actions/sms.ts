@@ -11,7 +11,7 @@ import {
 import { ResellerAccessError } from "@/lib/reseller/access";
 import { countSmsUnits, normalizePhones, isGsm7 } from "@/lib/sms/units";
 import { deductSmsCredits } from "@/lib/sms/billing";
-import { enqueueSmsJob } from "@/lib/queue/enqueue-sms";
+import { enqueueSmsJobsInline } from "@/lib/queue/enqueue-sms";
 import { resolveMessagePriority } from "@/lib/enterprise/priority";
 import { resolveApprovedSenderForUser } from "@/lib/sender-ids/validate-send";
 import { redirect } from "next/navigation";
@@ -112,9 +112,13 @@ export async function sendSmsAction(formData: FormData): Promise<SendSmsResult> 
     return created;
   });
 
-  for (const msg of messages) {
-    await enqueueSmsJob(msg.id, countryCode, priority);
-  }
+  await enqueueSmsJobsInline(
+    messages.map((msg) => ({
+      messageId: msg.id,
+      countryCode,
+      priority,
+    })),
+  );
 
   await prisma.campaign.update({
     where: { id: campaign.id },

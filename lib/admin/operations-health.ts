@@ -6,12 +6,15 @@ import { isMailjetConfigured } from "@/lib/email/config";
 import { getMnotifyStatus } from "@/lib/mnotify";
 import { getPaymentGatewaysOverview } from "@/lib/payments/gateway-settings";
 
+import { smsWorkersEnabled } from "@/lib/queue/sms-workers-enabled";
+
 export type OperationsHealth = {
   database: { ok: boolean; latencyMs: number | null };
   redis: {
     configured: boolean;
     ok: boolean;
     mode: "queue" | "inline";
+    workersEnabled: boolean;
   };
   queue: {
     waiting: number;
@@ -86,6 +89,7 @@ async function probeRedis(): Promise<{
 
 export async function getOperationsHealth(): Promise<OperationsHealth> {
   const redisConfigured = Boolean(process.env.REDIS_URL);
+  const workersEnabled = smsWorkersEnabled();
   const stuckThreshold = new Date(Date.now() - 30 * 60 * 1000);
 
   const [pendingMessages, stuckMessages, mnotify, gateways, redisProbe] = await Promise.all([
@@ -120,7 +124,7 @@ export async function getOperationsHealth(): Promise<OperationsHealth> {
   else if (
     stuckMessages > 0 ||
     (queueCounts?.failed ?? 0) > 10 ||
-    (redisConfigured && !redisOk) ||
+    (redisConfigured && workersEnabled && !redisOk) ||
     pendingMessages > 50
   ) {
     overall = "degraded";
@@ -131,7 +135,8 @@ export async function getOperationsHealth(): Promise<OperationsHealth> {
     redis: {
       configured: redisConfigured,
       ok: redisOk,
-      mode: redisOk ? "queue" : "inline",
+      mode: workersEnabled && redisOk ? "queue" : "inline",
+      workersEnabled,
     },
     queue: queueCounts,
     pendingMessages,

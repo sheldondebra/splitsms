@@ -97,28 +97,32 @@ export function AdminOperationsPanel({
             variant={health.database.ok ? "default" : "danger"}
           />
           <AdminStatCard
-            label="SMS queue"
+            label="SMS delivery"
             value={
-              health.redis.configured
+              health.redis.workersEnabled
                 ? health.redis.ok
                   ? `${health.queue?.waiting ?? 0} waiting`
                   : "Redis down"
-                : "Inline mode"
+                : "Inline (Vercel)"
             }
             hint={
-              health.redis.configured
+              health.redis.workersEnabled
                 ? health.queue
                   ? `${health.queue.active} active · ${health.queue.failed} failed`
-                  : "No queue stats"
-                : "Set REDIS_URL for background workers"
+                  : "Worker queue"
+                : health.redis.configured
+                  ? "REDIS_URL set; workers off — sends in web app"
+                  : "No Redis — sends in web app"
             }
             icon={Server}
             variant={
-              !health.redis.configured
-                ? "warning"
-                : health.redis.ok && (health.queue?.failed ?? 0) < 5
+              health.redis.workersEnabled
+                ? health.redis.ok && (health.queue?.failed ?? 0) < 5
                   ? "default"
                   : "warning"
+                : health.stuckMessages > 0
+                  ? "warning"
+                  : "default"
             }
           />
           <AdminStatCard
@@ -217,11 +221,20 @@ export function AdminOperationsPanel({
         )}
       </AdminCard>
 
-      {!health.redis.configured && (
+      {health.stuckMessages > 0 && (
         <AdminAlert variant="warning">
-          Background SMS workers are off. Messages send inline without{" "}
-          <code className="text-xs">REDIS_URL</code>. For high volume, set Redis and run{" "}
-          <code className="text-xs">npm run worker:sms</code>.
+          {health.stuckMessages} message{health.stuckMessages !== 1 ? "s" : ""} stuck in PENDING
+          for over 30 minutes. The cron job at{" "}
+          <code className="text-xs">/api/cron/process-sms</code> drains these when workers are
+          off. Check mNotify keys and sender ID approval under Admin → SMS.
+        </AdminAlert>
+      )}
+
+      {health.redis.workersEnabled && !health.redis.ok && (
+        <AdminAlert variant="warning">
+          SMS workers are enabled but Redis is unreachable. Run{" "}
+          <code className="text-xs">npm run worker:sms</code> on your worker host or unset{" "}
+          <code className="text-xs">SMS_WORKERS_ENABLED</code> to send inline on Vercel.
         </AdminAlert>
       )}
     </div>
