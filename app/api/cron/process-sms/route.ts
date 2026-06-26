@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { processDueScheduledCampaigns } from "@/lib/campaigns/scheduler";
 import { processPendingMessagesBatch } from "@/lib/queue/process-pending-batch";
 import { smsWorkersEnabled } from "@/lib/queue/sms-workers-enabled";
 
@@ -18,20 +19,22 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const params = new URL(request.url).searchParams;
+  const smsLimit = Math.min(50, Math.max(1, Number(params.get("limit") ?? 25)));
+  const campaignLimit = Math.min(20, Math.max(1, Number(params.get("campaigns") ?? 10)));
+
+  const campaigns = await processDueScheduledCampaigns(campaignLimit);
+
   if (smsWorkersEnabled()) {
     return NextResponse.json({
       ok: true,
+      campaigns,
       skipped: true,
       reason: "SMS_WORKERS_ENABLED=true — external worker handles the queue",
     });
   }
 
-  const limit = Math.min(
-    50,
-    Math.max(1, Number(new URL(request.url).searchParams.get("limit") ?? 25)),
-  );
+  const sms = await processPendingMessagesBatch(smsLimit);
 
-  const result = await processPendingMessagesBatch(limit);
-
-  return NextResponse.json({ ok: true, ...result });
+  return NextResponse.json({ ok: true, campaigns, sms });
 }
