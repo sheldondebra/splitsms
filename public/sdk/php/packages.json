@@ -9,7 +9,7 @@
         "dist": {
           "type": "zip",
           "url": "https://www.splitsms.com/sdk/php/splitsms-sdk-1.1.0.zip",
-          "shasum": "073604157030645df7c2d08f823a997379466210",
+          "shasum": "e048f6444c17d0948db0d1a4d0316ce5f9bf2dbd",
           "reference": "1.1.0"
         },
         "require": {

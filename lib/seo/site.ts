@@ -5,21 +5,31 @@ export const siteUrl = getSiteUrl();
 export const siteName = configSiteName;
 
 export const defaultKeywords = [
-  "SMS",
   "bulk SMS",
-  "global bulk SMS",
+  "bulk SMS platform",
+  "bulk SMS Ghana",
+  "bulk SMS Nigeria",
+  "bulk SMS Africa",
   "SMS API",
+  "REST SMS API",
   "SMS gateway",
-  "send SMS",
+  "SMS gateway API",
+  "send SMS online",
   "SMS marketing",
   "transactional SMS",
-  "OTP SMS",
-  "SMS platform",
+  "OTP SMS API",
+  "SMS verification API",
   "affordable SMS",
-  "SplitSMS",
-  "bulk messaging",
+  "cheap bulk SMS",
   "international SMS",
+  "global SMS",
   "WooCommerce SMS",
+  "WordPress SMS plugin",
+  "SMS webhooks",
+  "SMS delivery reports",
+  "SplitSMS",
+  "Infobip alternative",
+  "Twilio SMS alternative",
 ];
 
 /** Brand wordmark served from /public — 1024×343 PNG */
@@ -28,7 +38,7 @@ export const brandLogo = {
   url: `${siteUrl}/smslogo.png`,
   width: 1024,
   height: 343,
-  alt: "SplitSMS logo",
+  alt: "SplitSMS — Bulk SMS platform and SMS API",
 } as const;
 
 export const defaultOpenGraphImages = [
@@ -54,12 +64,28 @@ export const organizationJsonLd = {
   image: brandLogo.url,
   email: supportEmail,
   description:
-    "SplitSMS is a bulk SMS platform for 190+ countries — campaigns, OTP API, webhooks, and pay-as-you-go pricing.",
-  areaServed: ["GH", "NG", "Worldwide"],
+    "SplitSMS is a bulk SMS platform and SMS API for 190+ countries — campaigns, OTP, webhooks, Smart Forms, and pay-as-you-go pricing.",
+  areaServed: ["GH", "NG", "KE", "ZA", "US", "GB", "Worldwide"],
+  contactPoint: [
+    {
+      "@type": "ContactPoint",
+      contactType: "customer support",
+      email: supportEmail,
+      availableLanguage: ["English"],
+      areaServed: "Worldwide",
+    },
+  ],
   parentOrganization: {
     "@type": "Organization",
     name: "Tecunit",
   },
+  knowsAbout: [
+    "Bulk SMS",
+    "SMS API",
+    "OTP verification",
+    "SMS marketing",
+    "Transactional messaging",
+  ],
 };
 
 export const websiteJsonLd = {
@@ -67,7 +93,72 @@ export const websiteJsonLd = {
   "@id": `${siteUrl}/#website`,
   url: siteUrl,
   name: siteName,
-  description: "Bulk SMS platform — send SMS campaigns, OTP, and notifications globally.",
+  description:
+    "Bulk SMS platform — send SMS campaigns, OTP, and notifications globally with REST API and dashboard.",
   publisher: { "@id": `${siteUrl}/#organization` },
   inLanguage: "en",
 };
+
+export const smsServiceJsonLd = {
+  "@type": "Service",
+  "@id": `${siteUrl}/#service`,
+  name: "Bulk SMS & SMS API",
+  serviceType: "SMS messaging platform",
+  provider: { "@id": `${siteUrl}/#organization` },
+  areaServed: "Worldwide",
+  description:
+    "Send bulk SMS, OTP codes, and marketing campaigns in 190+ countries via dashboard or REST API.",
+  offers: {
+    "@type": "Offer",
+    priceCurrency: "GHS",
+    price: "0.029",
+    description: "Per SMS segment from — country-dependent transparent pricing",
+    url: `${siteUrl}/pricing`,
+  },
+};
+
+export function breadcrumbJsonLd(items: { name: string; path: string }[]) {
+  return {
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: `${siteUrl}${item.path.startsWith("/") ? item.path : `/${item.path}`}`,
+    })),
+  };
+}
+
+export function articleJsonLd(input: {
+  title: string;
+  description: string;
+  path: string;
+  datePublished?: string;
+}) {
+  return {
+    "@type": "Article",
+    headline: input.title,
+    description: input.description,
+    url: `${siteUrl}${input.path}`,
+    datePublished: input.datePublished,
+    author: { "@id": `${siteUrl}/#organization` },
+    publisher: { "@id": `${siteUrl}/#organization` },
+    mainEntityOfPage: `${siteUrl}${input.path}`,
+  };
+}
+
+export function webPageJsonLd(input: {
+  name: string;
+  description: string;
+  path: string;
+}) {
+  return {
+    "@type": "WebPage",
+    "@id": `${siteUrl}${input.path}#webpage`,
+    url: `${siteUrl}${input.path}`,
+    name: input.name,
+    description: input.description,
+    isPartOf: { "@id": `${siteUrl}/#website` },
+    about: { "@id": `${siteUrl}/#organization` },
+  };
+}

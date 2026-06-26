@@ -1,5 +1,39 @@
+import { cache } from "react";
 import { prisma } from "@/lib/db";
 import type { NotificationType, Prisma } from "@/lib/generated/prisma/client";
+
+export type NotificationListItem = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  readAt: Date | null;
+  createdAt: Date;
+  metadata?: { href?: string; ctaLabel?: string } | null;
+};
+
+function parseNotificationMetadata(value: unknown): NotificationListItem["metadata"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const href = typeof record.href === "string" ? record.href : undefined;
+  const ctaLabel = typeof record.ctaLabel === "string" ? record.ctaLabel : undefined;
+  if (!href && !ctaLabel) return null;
+  return { href, ctaLabel };
+}
+
+function toNotificationListItem(
+  row: Awaited<ReturnType<typeof getUserNotifications>>[number],
+): NotificationListItem {
+  return {
+    id: row.id,
+    type: row.type,
+    title: row.title,
+    message: row.message,
+    readAt: row.readAt,
+    createdAt: row.createdAt,
+    metadata: parseNotificationMetadata(row.metadata),
+  };
+}
 
 export async function createNotification(
   userId: string,
@@ -32,6 +66,18 @@ export async function getUnreadCount(userId: string) {
     where: { userId, readAt: null },
   });
 }
+
+/** Deduped per request for dashboard shell */
+export const getNotificationsSummary = cache(async (userId: string, limit = 15) => {
+  const [rows, unreadCount] = await Promise.all([
+    getUserNotifications(userId, limit),
+    getUnreadCount(userId),
+  ]);
+  return {
+    notifications: rows.map(toNotificationListItem),
+    unreadCount,
+  };
+});
 
 export async function markNotificationRead(userId: string, id: string) {
   return prisma.notification.updateMany({

@@ -45,7 +45,7 @@ export function ContactsMobileList({
   }
 
   return (
-    <div className="md:hidden">
+    <div className="md:hidden px-4 py-4 space-y-3">
       <MobileCardList>
       {contacts.map((c) => (
         <MobileCardItem key={c.id}>

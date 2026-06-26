@@ -88,6 +88,7 @@ export function formatReportWhen(iso: string | null) {
 export function buildReportsQuery(
   current: Record<string, string | undefined>,
   patch: Record<string, string | undefined | null>,
+  basePath = "/dashboard/reports",
 ) {
   const next = new URLSearchParams();
   const merged = { ...current, ...patch };
@@ -96,5 +97,5 @@ export function buildReportsQuery(
     next.set(key, value);
   }
   const qs = next.toString();
-  return qs ? `/dashboard/reports?${qs}` : "/dashboard/reports";
+  return qs ? `${basePath}?${qs}` : basePath;
 }

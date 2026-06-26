@@ -12,7 +12,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /** Increment when Prisma schema changes require a fresh client in dev */
-const PRISMA_CLIENT_BUILD_ID = "support-ticket-replies-2026-06";
+const PRISMA_CLIENT_BUILD_ID = "support-ticket-reference-2026-06-24";
 
 const NEON_WAKE_DELAYS_MS = [500, 1500, 3000, 5000];
 
@@ -117,10 +117,9 @@ function createPrisma() {
     throw new Error("DATABASE_URL is not set");
   }
   const pool = globalForPrisma.pool ?? createPool(connectionString);
+  if (!globalForPrisma.pool) globalForPrisma.pool = pool;
   const adapter = new PrismaPg(pool);
-  const client = new PrismaClient({ adapter });
-  if (process.env.NODE_ENV !== "production") globalForPrisma.pool = pool;
-  return client;
+  return new PrismaClient({ adapter });
 }
 
 /** Dev hot-reload can keep an old Prisma client missing newer models — recreate if stale */
@@ -148,10 +147,8 @@ function getPrisma(): PrismaClient {
     return cached;
   }
   const client = createPrisma();
-  if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prisma = client;
-    globalForPrisma.prismaBuildId = PRISMA_CLIENT_BUILD_ID;
-  }
+  globalForPrisma.prisma = client;
+  globalForPrisma.prismaBuildId = PRISMA_CLIENT_BUILD_ID;
   return client;
 }
 

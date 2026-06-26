@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { getAdminSupportDashboard } from "@/lib/admin/platform-dashboard";
+import { loadSupportPresence } from "@/lib/support/presence";
 import {
   AdminPage,
   AdminPageHeader,
@@ -10,6 +11,7 @@ import {
   AdminAlert,
 } from "@/components/admin/admin-page-shell";
 import { AdminSupportTicketCard } from "@/components/admin/admin-support-ticket-card";
+import { AdminSupportPresencePanel } from "@/components/admin/admin-support-presence-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +27,10 @@ export default async function AdminSupportPage({
   searchParams: Promise<{ q?: string; status?: string; saved?: string; error?: string }>;
 }) {
   const params = await searchParams;
-  const data = await getAdminSupportDashboard(params.q, params.status);
+  const [data, presence] = await Promise.all([
+    getAdminSupportDashboard(params.q, params.status),
+    loadSupportPresence(),
+  ]);
 
   return (
     <AdminPage wide>
@@ -49,6 +54,20 @@ export default async function AdminSupportPage({
       {params.error === "ticket" && (
         <AdminAlert variant="warning">Could not update that ticket.</AdminAlert>
       )}
+
+      {params.saved === "presence" && (
+        <AdminAlert variant="success">Support chat status updated for members.</AdminAlert>
+      )}
+      {params.error === "presence" && (
+        <AdminAlert variant="warning">Could not update support chat status.</AdminAlert>
+      )}
+
+      <AdminCard
+        title="Support chat status"
+        description="Members see this live indicator in the dashboard support chat."
+      >
+        <AdminSupportPresencePanel presence={presence} />
+      </AdminCard>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <AdminStatCard label="Open tickets" value={data.stats.open} variant="primary" />

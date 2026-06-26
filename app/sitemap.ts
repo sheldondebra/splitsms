@@ -3,40 +3,59 @@ import { siteUrl } from "@/lib/seo/site";
 import { getAllBlogSlugs } from "@/lib/marketing/blog-posts";
 import { getAllIntegrationSlugs } from "@/lib/marketing/integrations-catalog";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date();
-  const staticRoutes = [
-    "",
-    "/features",
-    "/pricing",
-    "/blog",
-    "/company",
-    "/api-docs",
-    "/vibe-coders",
-    "/openapi.json",
-    "/llms.txt",
-    "/sdk",
-    "/integrations",
-    "/docs",
-    "/changelog",
-    "/support",
-    "/privacy",
-    "/terms",
-    "/data-protection",
-    "/security",
-    "/smart-forms",
-    "/contact",
-  ];
+type SitemapEntry = MetadataRoute.Sitemap[number];
 
-  const blogRoutes = getAllBlogSlugs().map((slug) => `/blog/${slug}`);
-  const integrationRoutes = getAllIntegrationSlugs().map(
-    (slug) => `/integrations/${slug}`,
+function entry(
+  path: string,
+  priority: number,
+  changeFrequency: SitemapEntry["changeFrequency"] = "monthly",
+): SitemapEntry {
+  return {
+    url: `${siteUrl}${path}`,
+    lastModified: new Date(),
+    changeFrequency,
+    priority,
+  };
+}
+
+/** Public marketing & docs URLs worth indexing (no auth, no redirects-only stubs). */
+const STATIC_ROUTES: { path: string; priority: number; changeFrequency?: SitemapEntry["changeFrequency"] }[] = [
+  { path: "", priority: 1, changeFrequency: "weekly" },
+  { path: "/features", priority: 0.95, changeFrequency: "weekly" },
+  { path: "/pricing", priority: 0.95, changeFrequency: "weekly" },
+  { path: "/smart-forms", priority: 0.85, changeFrequency: "monthly" },
+  { path: "/integrations", priority: 0.85, changeFrequency: "weekly" },
+  { path: "/api-docs", priority: 0.9, changeFrequency: "weekly" },
+  { path: "/docs", priority: 0.85, changeFrequency: "weekly" },
+  { path: "/docs/api", priority: 0.85, changeFrequency: "monthly" },
+  { path: "/docs/connect", priority: 0.8, changeFrequency: "monthly" },
+  { path: "/docs/mobile", priority: 0.75, changeFrequency: "monthly" },
+  { path: "/sdk", priority: 0.8, changeFrequency: "monthly" },
+  { path: "/vibe-coders", priority: 0.75, changeFrequency: "monthly" },
+  { path: "/blog", priority: 0.85, changeFrequency: "weekly" },
+  { path: "/company", priority: 0.6, changeFrequency: "monthly" },
+  { path: "/support", priority: 0.65, changeFrequency: "monthly" },
+  { path: "/security", priority: 0.55, changeFrequency: "yearly" },
+  { path: "/privacy", priority: 0.4, changeFrequency: "yearly" },
+  { path: "/terms", priority: 0.4, changeFrequency: "yearly" },
+  { path: "/data-protection", priority: 0.4, changeFrequency: "yearly" },
+  { path: "/changelog", priority: 0.5, changeFrequency: "weekly" },
+  { path: "/signup", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/login", priority: 0.35, changeFrequency: "yearly" },
+];
+
+export default function sitemap(): MetadataRoute.Sitemap {
+  const staticEntries = STATIC_ROUTES.map(({ path, priority, changeFrequency }) =>
+    entry(path, priority, changeFrequency),
   );
 
-  return [...staticRoutes, ...integrationRoutes, ...blogRoutes].map((path) => ({
-    url: `${siteUrl}${path}`,
-    lastModified,
-    changeFrequency: path.startsWith("/blog/") ? "monthly" : path === "" || path === "/blog" ? "weekly" : "monthly",
-    priority: path === "" ? 1 : path === "/blog" || path === "/features" || path === "/pricing" ? 0.9 : 0.6,
-  }));
+  const blogEntries = getAllBlogSlugs().map((slug) =>
+    entry(`/blog/${slug}`, 0.7, "monthly"),
+  );
+
+  const integrationEntries = getAllIntegrationSlugs().map((slug) =>
+    entry(`/integrations/${slug}`, 0.75, "monthly"),
+  );
+
+  return [...staticEntries, ...integrationEntries, ...blogEntries];
 }

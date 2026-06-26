@@ -11,7 +11,7 @@ import { shouldBlockAuthBot } from "@/lib/auth/bot-guard";
 const COOKIE_NAME = "splitsms_session";
 const RESET_COOKIE = "splitsms_reset";
 
-const memberPaths = ["/dashboard", "/developers"];
+const memberPaths = ["/dashboard", "/developers", "/onboarding"];
 const resellerPaths = ["/reseller"];
 const enterprisePaths = ["/enterprise"];
 const adminPaths = ["/admin"];
@@ -188,5 +188,6 @@ export const config = {
     "/forgot-password",
     "/reset-password",
     "/complete-profile",
+    "/onboarding",
   ],
 };

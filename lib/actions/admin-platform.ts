@@ -94,7 +94,11 @@ export async function adminUpdateSupportTicketAction(formData: FormData) {
   const ticket = await prisma.supportTicket.update({
     where: { id: ticketId },
     data: { status },
+    select: { id: true, userId: true, status: true },
   });
+
+  const { notifyMemberSupportStatusUpdated } = await import("@/lib/support/notifications");
+  void notifyMemberSupportStatusUpdated(ticketId, status).catch(() => undefined);
 
   await logAdmin("SUPPORT_TICKET_UPDATED", "SupportTicket", ticketId, session.userId, {
     status,

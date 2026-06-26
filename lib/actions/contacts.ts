@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { normalizePhones } from "@/lib/sms/units";
-import { parseContactsCsv } from "@/lib/contacts/csv-import";
+import { parseContactsCsv, type CsvContactRow } from "@/lib/contacts/csv-import";
 import { detectCountryCode } from "@/lib/contacts/country-from-phone";
 import { runContactSignupAutomations } from "@/lib/automation/dispatch";
 import { redirect } from "next/navigation";
@@ -15,13 +15,16 @@ async function requireUserId() {
   return session.userId;
 }
 
-export async function importContactsCsvAction(formData: FormData) {
-  const userId = await requireUserId();
-  const csv = String(formData.get("csv") ?? "");
-  const preview = parseContactsCsv(csv);
-
+async function importContactRows(userId: string, rows: CsvContactRow[]) {
   let imported = 0;
-  for (const row of preview.valid) {
+  let skipped = 0;
+
+  for (const row of rows) {
+    if (!row.phone?.trim()) {
+      skipped++;
+      continue;
+    }
+
     try {
       const existing = await prisma.contact.findUnique({
         where: { userId_phone: { userId, phone: row.phone } },
@@ -54,12 +57,43 @@ export async function importContactsCsvAction(formData: FormData) {
       }
       imported++;
     } catch {
-      /* skip */
+      skipped++;
     }
   }
 
+  return { imported, skipped };
+}
+
+export async function importContactsCsvAction(formData: FormData) {
+  const userId = await requireUserId();
+  const csv = String(formData.get("csv") ?? "");
+  const preview = parseContactsCsv(csv);
+  const { imported, skipped } = await importContactRows(userId, preview.valid);
+
   redirect(
-    `/dashboard/contacts?imported=${imported}&invalid=${preview.invalid.length}&dup=${preview.duplicates}`,
+    `/dashboard/contacts?imported=${imported}&invalid=${preview.invalid.length + skipped}&dup=${preview.duplicates}`,
+  );
+}
+
+export async function importContactsSelectedAction(formData: FormData) {
+  const userId = await requireUserId();
+  const raw = String(formData.get("contacts") ?? "");
+
+  let rows: CsvContactRow[];
+  try {
+    const parsed = JSON.parse(raw) as CsvContactRow[];
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      redirect("/dashboard/contacts?error=import");
+    }
+    rows = parsed;
+  } catch {
+    redirect("/dashboard/contacts?error=import");
+  }
+
+  const { imported, skipped } = await importContactRows(userId, rows);
+
+  redirect(
+    `/dashboard/contacts?imported=${imported}&invalid=${skipped}`,
   );
 }
 

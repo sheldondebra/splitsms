@@ -5,7 +5,7 @@ import { initialCountryState } from "@/lib/auth/initial-country-state";
 import { signupAction } from "@/lib/actions/auth";
 import { AuthHoneypot } from "@/components/auth/auth-honeypot";
 import { AuthCaptcha } from "@/components/auth/auth-captcha";
-import { Button } from "@/components/ui/button";
+import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordField } from "@/components/auth/password-field";
@@ -200,9 +200,11 @@ function SignupFields({
 
       <AuthCaptcha />
 
-      <Button type="submit" className="w-full font-semibold">
-        {method === "phone" ? "Sign up with phone" : "Sign up with email"}
-      </Button>
+      <AuthSubmitButton
+        label={method === "phone" ? "Sign up with phone" : "Sign up with email"}
+        pendingLabel="Creating account…"
+        className="h-11"
+      />
 
       <p className="text-xs text-center text-muted-foreground leading-relaxed">
         5 free SMS credits after you verify your phone number.

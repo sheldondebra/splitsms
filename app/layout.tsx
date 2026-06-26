@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { getSiteUrl } from "@/lib/site-config";
-import { defaultOpenGraphImages } from "@/lib/seo/site";
+import { defaultOpenGraphImages, organizationJsonLd, websiteJsonLd } from "@/lib/seo/site";
+import { googleSiteVerification } from "@/lib/seo/metadata";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -21,22 +23,29 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: {
-    default: "SplitSMS — Bulk SMS Platform & SMS API | Worldwide",
+    default: "SplitSMS — Bulk SMS Platform & SMS API | 190+ Countries",
     template: "%s | SplitSMS",
   },
   description:
-    "Send bulk SMS, OTP, and marketing campaigns in 190+ countries. Affordable SMS gateway, REST SMS API, and pay-as-you-go pricing.",
+    "Send bulk SMS, OTP, and marketing campaigns in 190+ countries. Affordable SMS gateway, REST SMS API, webhooks, and pay-as-you-go pricing.",
+  applicationName: "SplitSMS",
+  category: "technology",
+  authors: [{ name: "SplitSMS", url: getSiteUrl() }],
+  creator: "SplitSMS",
+  publisher: "SplitSMS",
   keywords: [
-    "SMS",
     "bulk SMS",
     "SMS API",
     "SMS gateway",
-    "send SMS",
-    "global SMS",
+    "bulk SMS Ghana",
+    "OTP SMS API",
     "SplitSMS",
   ],
-  metadataBase: new URL(getSiteUrl()),
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     type: "website",
     siteName: "SplitSMS",
@@ -46,6 +55,22 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     images: [defaultOpenGraphImages[0].url],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  verification: googleSiteVerification(),
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-icon.svg", type: "image/svg+xml" }],
   },
 };
 
@@ -63,6 +88,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full font-sans antialiased">
+        <JsonLdScript data={[websiteJsonLd, organizationJsonLd]} />
         <ThemeProvider initialTheme={themeCookie}>
           {children}
           <Toaster richColors position="top-right" />

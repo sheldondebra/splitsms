@@ -42,6 +42,37 @@ export async function createInvoiceFromPayment(paymentId: string) {
   });
 }
 
+export async function createInvoiceFromCreditPurchase(transactionId: string) {
+  const tx = await prisma.transaction.findUnique({ where: { id: transactionId } });
+  if (!tx || tx.type !== "CREDIT_PURCHASE") return null;
+
+  const existing = await prisma.invoice.findFirst({ where: { transactionId } });
+  if (existing) return existing;
+
+  const meta = (tx.metadata ?? {}) as { creditsAfter?: number };
+  const items: Prisma.InputJsonValue = [
+    {
+      description: `SMS credits purchase (${tx.credits ?? 0} credits)`,
+      amount: tx.amount.toNumber(),
+      currency: tx.currency,
+      credits: tx.credits,
+      creditsAfter: meta.creditsAfter,
+    },
+  ];
+
+  return prisma.invoice.create({
+    data: {
+      userId: tx.userId,
+      invoiceNo: invoiceNumber(),
+      amount: tx.amount,
+      currency: tx.currency,
+      status: "PAID",
+      items,
+      transactionId: tx.id,
+    },
+  });
+}
+
 export async function createInvoiceFromTransaction(
   transactionId: string,
   items: Prisma.InputJsonValue,

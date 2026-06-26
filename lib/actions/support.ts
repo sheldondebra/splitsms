@@ -1,9 +1,9 @@
 "use server";
 
-import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { createSupportTicket } from "@/lib/support/ticket-reference-server";
 
 function supportRedirect(query: string) {
   revalidatePath("/dashboard/support");
@@ -20,12 +20,10 @@ export async function sendSupportMessageAction(formData: FormData) {
 
   const subject = message.length > 60 ? `${message.slice(0, 57)}...` : message;
 
-  await prisma.supportTicket.create({
-    data: {
-      userId: session.userId,
-      subject,
-      message,
-    },
+  await createSupportTicket({
+    userId: session.userId,
+    subject,
+    message,
   });
 
   supportRedirect("sent=1");
@@ -41,12 +39,10 @@ export async function createSupportTicketAction(formData: FormData) {
   if (!subject || !message) supportRedirect("error=invalid");
   if (subject.length > 120) supportRedirect("error=invalid");
 
-  await prisma.supportTicket.create({
-    data: {
-      userId: session.userId,
-      subject,
-      message,
-    },
+  await createSupportTicket({
+    userId: session.userId,
+    subject,
+    message,
   });
 
   supportRedirect("sent=1");

@@ -97,6 +97,55 @@ async function userAlreadyNotifiedApproved(userId: string, senderRecordId: strin
   return Boolean(existing);
 }
 
+const REGISTER_SENDER_ID_TITLE = "Attention: register sender ID";
+
+export async function ensureRegisterSenderIdNotification(userId: string) {
+  const [senderCount, account] = await Promise.all([
+    prisma.senderId.count({ where: { userId } }),
+    prisma.memberAccount.findUnique({
+      where: { userId },
+      select: { onboardingCompletedAt: true },
+    }),
+  ]);
+
+  if (senderCount > 0) {
+    await prisma.notification.updateMany({
+      where: {
+        userId,
+        readAt: null,
+        type: "SYSTEM",
+        title: REGISTER_SENDER_ID_TITLE,
+      },
+      data: { readAt: new Date() },
+    });
+    return;
+  }
+
+  if (!account?.onboardingCompletedAt) return;
+
+  const existing = await prisma.notification.findFirst({
+    where: {
+      userId,
+      readAt: null,
+      type: "SYSTEM",
+      title: REGISTER_SENDER_ID_TITLE,
+    },
+  });
+  if (existing) return existing;
+
+  return createNotification(
+    userId,
+    "SYSTEM",
+    REGISTER_SENDER_ID_TITLE,
+    "Add a sender ID so recipients see your brand name when you send SMS.",
+    {
+      kind: "register_sender_id",
+      href: "/dashboard/sender-ids",
+      ctaLabel: "Register sender ID",
+    },
+  );
+}
+
 export async function notifyUserSenderIdApproved(senderRecordId: string) {
   const sender = await prisma.senderId.findUnique({
     where: { id: senderRecordId },

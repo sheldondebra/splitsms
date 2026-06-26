@@ -1,13 +1,25 @@
 import { prisma } from "@/lib/db";
 import { TransactionType } from "@/lib/generated/prisma/client";
 import { createInvoiceFromPayment } from "@/lib/billing/invoices";
+import { sendReceiptAfterWalletTopUp, sendReceiptAfterCreditPurchase } from "@/lib/billing/receipts";
 import { createNotification } from "@/lib/notifications";
+import { capturePaymentDetails, formatInstrumentLabel, readPaymentInstrument } from "@/lib/payments/payment-details";
 
 export async function creditWalletFromPayment(paymentId: string) {
-  const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
-  if (!payment || payment.status === "COMPLETED") return payment;
+  let credited = false;
 
   await prisma.$transaction(async (tx) => {
+    const claimed = await tx.payment.updateMany({
+      where: { id: paymentId, status: "PENDING" },
+      data: {
+        status: "COMPLETED",
+      },
+    });
+    if (claimed.count === 0) return;
+
+    const payment = await tx.payment.findUnique({ where: { id: paymentId } });
+    if (!payment) return;
+
     const wallet = await tx.wallet.findUnique({ where: { userId: payment.userId } });
     if (!wallet) throw new Error("Wallet not found");
 
@@ -16,7 +28,7 @@ export async function creditWalletFromPayment(paymentId: string) {
 
     await tx.payment.update({
       where: { id: paymentId },
-      data: { status: "COMPLETED", providerReference: payment.providerReference ?? paymentId },
+      data: { providerReference: payment.providerReference ?? paymentId },
     });
     await tx.wallet.update({
       where: { userId: payment.userId },
@@ -45,18 +57,33 @@ export async function creditWalletFromPayment(paymentId: string) {
         metadata: { amount: payment.amount.toNumber(), method: payment.method },
       },
     });
+    credited = true;
   });
 
+  if (!credited) {
+    return prisma.payment.findUnique({ where: { id: paymentId } });
+  }
+
+  const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+  if (!payment) return null;
+
   await createInvoiceFromPayment(paymentId);
+  const instrument = await capturePaymentDetails(paymentId).catch(() => null);
+  const instrumentLabel = formatInstrumentLabel(instrument ?? readPaymentInstrument(payment.metadata));
+
   await createNotification(
     payment.userId,
     "WALLET_FUNDED",
     "Wallet funded",
-    `Your wallet was credited with ${payment.currency} ${payment.amount.toString()}.`,
+    instrumentLabel
+      ? `Your wallet was credited with ${payment.currency} ${payment.amount.toString()} (${instrumentLabel}).`
+      : `Your wallet was credited with ${payment.currency} ${payment.amount.toString()}.`,
     { paymentId },
   );
 
-  return prisma.payment.findUnique({ where: { id: paymentId } });
+  await sendReceiptAfterWalletTopUp(paymentId).catch(() => undefined);
+
+  return payment;
 }
 
 export async function purchaseCredits(
@@ -73,18 +100,21 @@ export async function purchaseCredits(
   const credit = await prisma.smsCredit.findUnique({ where: { userId } });
   const creditsBefore = credit?.balance ?? 0;
   const walletBefore = wallet.balance.toNumber();
+  const creditsAfter = creditsBefore + credits;
 
-  await prisma.$transaction([
-    prisma.wallet.update({
+  let transactionId = "";
+
+  await prisma.$transaction(async (tx) => {
+    await tx.wallet.update({
       where: { userId },
       data: { balance: { decrement: cost } },
-    }),
-    prisma.smsCredit.upsert({
+    });
+    await tx.smsCredit.upsert({
       where: { userId },
       update: { balance: { increment: credits } },
       create: { userId, balance: credits },
-    }),
-    prisma.transaction.create({
+    });
+    const created = await tx.transaction.create({
       data: {
         userId,
         type: "CREDIT_PURCHASE",
@@ -95,10 +125,13 @@ export async function purchaseCredits(
         status: "completed",
         balanceBefore: walletBefore,
         balanceAfter: walletBefore - cost,
-        metadata: { creditsBefore, creditsAfter: creditsBefore + credits },
+        metadata: { creditsBefore, creditsAfter },
       },
-    }),
-  ]);
+    });
+    transactionId = created.id;
+  });
+
+  await sendReceiptAfterCreditPurchase(transactionId).catch(() => undefined);
 }
 
 export async function approveManualPayment(paymentId: string, adminId: string) {

@@ -1,7 +1,9 @@
 import type { ChatMessage } from "@/components/dashboard/support-chat-panel";
+import { formatTicketReference } from "@/lib/support/ticket-format";
 
 export type SupportTicketChatRow = {
   id: string;
+  reference: number | null;
   message: string;
   status: string;
   createdAt: Date | string;
@@ -15,11 +17,9 @@ export type SupportTicketChatRow = {
   }[];
 };
 
-/** Human-readable ticket reference, e.g. SMS-20260526-A3F9K */
-export function formatTicketNumber(id: string, createdAt: Date | string): string {
-  const d = typeof createdAt === "string" ? new Date(createdAt) : createdAt;
-  const datePart = d.toISOString().slice(0, 10).replace(/-/g, "");
-  return `SMS-${datePart}-${id.slice(-5).toUpperCase()}`;
+export function formatTicketNumber(reference: number | null | undefined): string | undefined {
+  if (reference == null) return undefined;
+  return formatTicketReference(reference);
 }
 
 export function formatChatTime(date: Date | string): string {
@@ -33,8 +33,8 @@ export function formatChatTime(date: Date | string): string {
 }
 
 export function ticketAckMessage(ticket: SupportTicketChatRow): string {
-  const ref = formatTicketNumber(ticket.id, ticket.createdAt);
-  return `Received (${ref}). We'll reply by email or SMS.`;
+  const ref = formatTicketNumber(ticket.reference);
+  return ref ? `Received (${ref}). We'll reply by email or SMS.` : "Received. We'll reply by email or SMS.";
 }
 
 export function buildSupportChatMessages(
@@ -55,7 +55,7 @@ export function buildSupportChatMessages(
   );
 
   for (const t of chronological) {
-    const ref = formatTicketNumber(t.id, t.createdAt);
+    const ref = formatTicketNumber(t.reference);
     const ticketStatus = t.status;
 
     messages.push({
@@ -102,6 +102,7 @@ export function buildSupportChatMessages(
 
 export function ticketToChatRow(ticket: {
   id: string;
+  reference: number | null;
   message: string;
   status: string;
   createdAt: Date;
@@ -116,6 +117,7 @@ export function ticketToChatRow(ticket: {
 }): SupportTicketChatRow {
   return {
     id: ticket.id,
+    reference: ticket.reference,
     message: ticket.message,
     status: ticket.status,
     createdAt: ticket.createdAt.toISOString(),

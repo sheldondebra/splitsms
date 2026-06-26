@@ -226,6 +226,7 @@ model MemberAccount {
   featureBulkSms   Boolean             @default(true)
   featureWordPress Boolean             @default(true)
   adminNote        String?
+  onboardingCompletedAt DateTime?
   updatedAt        DateTime            @updatedAt
   updatedById      String?
 
@@ -730,6 +731,7 @@ model ApiKey {
 
 model SupportTicket {
   id        String               @id @default(cuid())
+  reference Int?                 @unique
   userId    String
   user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject   String

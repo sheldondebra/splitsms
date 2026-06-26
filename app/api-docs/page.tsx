@@ -1,21 +1,67 @@
+import type { Metadata } from "next";
 import { MarketingPageShell } from "@/components/marketing/marketing-page-shell";
 import { ApiDocsHero } from "@/components/marketing/api-docs-hero";
 import { DevelopersDocsGuide } from "@/components/developers/developers-docs-guide";
 import { ApiDocsExtras } from "@/components/marketing/api-docs-extras";
 import { ApiDocsView } from "@/components/developers/api-docs-view";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
+import { buildPageMetadata } from "@/lib/seo/metadata";
+import {
+  breadcrumbJsonLd,
+  organizationJsonLd,
+  siteUrl,
+  webPageJsonLd,
+  websiteJsonLd,
+} from "@/lib/seo/site";
 import { getSiteUrl } from "@/lib/site-config";
 import Link from "next/link";
 import { Braces, BookOpen } from "lucide-react";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-export const fetchCache = "force-no-store";
+export const metadata: Metadata = buildPageMetadata({
+  title: "SMS API Documentation — REST API Reference & OpenAPI",
+  description:
+    "SplitSMS REST SMS API docs: send SMS, OTP verification, wallet balance, campaigns, webhooks, and delivery reports. OpenAPI spec, code examples, and Postman collection.",
+  path: "/api-docs",
+  keywords: [
+    "SMS API documentation",
+    "REST SMS API",
+    "send SMS API",
+    "OTP API",
+    "SMS webhook API",
+    "OpenAPI SMS",
+    "bulk SMS API",
+    "SplitSMS API",
+  ],
+});
+
+const apiDocsJsonLd = [
+  websiteJsonLd,
+  organizationJsonLd,
+  webPageJsonLd({
+    name: "SplitSMS SMS API Documentation",
+    description: "REST API reference for bulk SMS, OTP, and webhooks.",
+    path: "/api-docs",
+  }),
+  breadcrumbJsonLd([
+    { name: "Home", path: "/" },
+    { name: "API docs", path: "/api-docs" },
+  ]),
+  {
+    "@type": "TechArticle",
+    headline: "SplitSMS REST SMS API Reference",
+    description: "Developer documentation for the SplitSMS SMS API.",
+    url: `${siteUrl}/api-docs`,
+    author: { "@id": `${siteUrl}/#organization` },
+    publisher: { "@id": `${siteUrl}/#organization` },
+  },
+];
 
 export default function ApiDocsPage() {
   const baseUrl = getSiteUrl();
 
   return (
     <MarketingPageShell>
+      <JsonLdScript data={apiDocsJsonLd} />
       <ApiDocsHero baseUrl={baseUrl} />
 
       <div className="mx-auto max-w-[1600px] px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20 py-10 md:py-14">

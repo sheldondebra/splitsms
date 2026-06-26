@@ -10,6 +10,11 @@ export async function getAdminSupportDashboard(q?: string, status?: string) {
           OR: [
             { subject: { contains: q, mode: "insensitive" as const } },
             { message: { contains: q, mode: "insensitive" as const } },
+            ...( /^\d+$/.test(q.trim())
+              ? [{ reference: Number.parseInt(q.trim(), 10) }]
+              : q.trim().startsWith("#") && /^\#\d+$/.test(q.trim())
+                ? [{ reference: Number.parseInt(q.trim().slice(1), 10) }]
+                : []),
             { user: { fullName: { contains: q, mode: "insensitive" as const } } },
             { user: { phone: { contains: q } } },
           ],

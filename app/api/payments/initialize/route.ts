@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getPaymentAdapter } from "@/lib/payments";
 import type { PaymentMethod } from "@/lib/generated/prisma/client";
 import { getPaymentMethodOptions } from "@/lib/payments/methods";
+import { resolveCheckoutAppUrl } from "@/lib/payments/checkout-url";
 import { z } from "zod";
 
 const schema = z.object({
@@ -84,9 +85,10 @@ export async function POST(request: Request) {
     amount: body.data.amount,
     currency: wallet.currency,
     email: user?.email ?? undefined,
+    appUrl: resolveCheckoutAppUrl(request),
   });
 
-  if (checkout.redirectUrl) {
+  if (checkout.redirectUrl && body.data.method !== "STRIPE") {
     await prisma.payment.update({
       where: { id: payment.id },
       data: { providerReference: payment.id },

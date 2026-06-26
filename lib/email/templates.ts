@@ -129,3 +129,262 @@ Your sender ID "${params.value}" is now approved on ${siteName} and ready to use
 
   return { subject, text, html };
 }
+
+export type ReceiptEmailKind = "wallet_topup" | "credit_purchase";
+
+export function receiptEmailContent(params: {
+  kind: ReceiptEmailKind;
+  memberName: string;
+  receiptNo: string;
+  amount: number;
+  currency: string;
+  date: string;
+  credits?: number;
+  creditsAfter?: number;
+  walletBalanceAfter?: number;
+  paymentMethod?: string;
+  paidWith?: string | null;
+  invoicesUrl: string;
+}) {
+  const isWallet = params.kind === "wallet_topup";
+  const title = isWallet ? "Wallet top-up receipt" : "SMS credits receipt";
+  const subject = `${siteName} — ${title} ${params.receiptNo}`;
+
+  const amountLine = `${params.currency} ${params.amount.toFixed(2)}`;
+  const summary = isWallet
+    ? `Your wallet was credited with <strong>${amountLine}</strong>.`
+    : `You purchased <strong>${params.credits?.toLocaleString() ?? "—"} SMS credits</strong> for ${amountLine}.`;
+
+  const detailRows: { label: string; value: string }[] = [
+    { label: "Receipt", value: params.receiptNo },
+    { label: "Date", value: params.date },
+    { label: "Type", value: isWallet ? "Wallet top-up" : "SMS credits" },
+    { label: "Amount", value: amountLine },
+  ];
+
+  if (isWallet && params.paymentMethod) {
+    detailRows.push({ label: "Payment method", value: params.paymentMethod });
+  }
+  if (isWallet && params.paidWith) {
+    detailRows.push({ label: "Paid with", value: params.paidWith });
+  }
+  if (!isWallet && params.credits != null) {
+    detailRows.push({ label: "Credits", value: params.credits.toLocaleString() });
+  }
+  if (params.walletBalanceAfter != null) {
+    detailRows.push({
+      label: "Wallet balance",
+      value: `${params.currency} ${params.walletBalanceAfter.toFixed(2)}`,
+    });
+  }
+  if (!isWallet && params.creditsAfter != null) {
+    detailRows.push({ label: "Credit balance", value: params.creditsAfter.toLocaleString() });
+  }
+
+  const rowsHtml = detailRows
+    .map(
+      (row) =>
+        `<tr><td style="color:#737373;padding:6px 0;vertical-align:top;">${row.label}</td><td style="padding:6px 0 6px 16px;font-weight:600;text-align:right;">${row.value}</td></tr>`,
+    )
+    .join("");
+
+  const textDetails = detailRows.map((r) => `${r.label}: ${r.value}`).join("\n");
+
+  const text = `Hi ${params.memberName},
+
+${isWallet ? `Your wallet was credited with ${amountLine}.` : `You purchased ${params.credits} SMS credits for ${amountLine}.`}
+
+${textDetails}
+
+View your invoices: ${params.invoicesUrl}
+
+— ${siteName}`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; color: #171717; background: #fafafa; margin: 0; padding: 24px 16px;">
+  <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e5e5; border-radius: 16px; overflow: hidden;">
+    <div style="background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); padding: 24px 28px;">
+      <p style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.85);">${siteName}</p>
+      <h1 style="margin: 8px 0 0; font-size: 22px; font-weight: 700; color: #ffffff;">${title}</h1>
+    </div>
+    <div style="padding: 28px;">
+      <p style="font-size: 15px; margin: 0 0 8px;">Hi ${params.memberName},</p>
+      <p style="font-size: 14px; color: #525252; margin: 0 0 24px;">${summary}</p>
+      <table style="width: 100%; font-size: 14px; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0; margin-bottom: 24px;">
+        ${rowsHtml}
+      </table>
+      <a href="${params.invoicesUrl}" style="display: inline-block; background: #171717; color: #ffffff; text-decoration: none; font-size: 13px; font-weight: 600; padding: 12px 18px; border-radius: 10px;">View invoices</a>
+      <p style="font-size: 12px; color: #a3a3a3; margin: 24px 0 0;">Thank you for using ${siteName}.</p>
+    </div>
+  </div>
+</body>
+</html>`.trim();
+
+  return { subject, text, html };
+}
+
+function supportStatusLabel(status: string): string {
+  const upper = status.toUpperCase();
+  if (upper === "IN_PROGRESS") return "In progress";
+  if (upper === "OPEN") return "Open";
+  if (upper === "RESOLVED") return "Resolved";
+  if (upper === "CLOSED") return "Closed";
+  return status;
+}
+
+export function supportTicketCreatedMemberContent(params: {
+  memberName: string;
+  ticketRef: string;
+  subject: string;
+  message: string;
+  supportUrl: string;
+}) {
+  const subject = `${siteName} — support ticket ${params.ticketRef} received`;
+  const preview =
+    params.message.length > 200 ? `${params.message.slice(0, 197)}...` : params.message;
+
+  const text = `Hi ${params.memberName},
+
+We received your support request ${params.ticketRef}.
+
+Subject: ${params.subject}
+
+${preview}
+
+We'll reply by email or SMS. Track the conversation: ${params.supportUrl}
+
+— ${siteName}`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #171717; max-width: 520px; margin: 0 auto; padding: 24px;">
+  <p style="font-size: 15px;">Hi ${params.memberName},</p>
+  <p style="font-size: 14px; color: #525252;">We received your support request <strong style="font-family:monospace;">${params.ticketRef}</strong>.</p>
+  <p style="font-size: 14px; margin: 16px 0 8px;"><strong>${params.subject}</strong></p>
+  <blockquote style="margin: 0 0 16px; padding: 12px 16px; border-left: 3px solid #ea580c; background: #fafafa; font-size: 14px; white-space: pre-wrap;">${preview.replace(/</g, "&lt;")}</blockquote>
+  <p style="font-size: 13px; color: #525252;">We'll reply by email or SMS.</p>
+  <p style="font-size: 13px;"><a href="${params.supportUrl}">View ticket ${params.ticketRef}</a></p>
+  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
+  <p style="font-size: 12px; color: #a3a3a3;">${siteName}</p>
+</body>
+</html>`.trim();
+
+  return { subject, text, html };
+}
+
+export function supportTicketReplyMemberContent(params: {
+  memberName: string;
+  ticketRef: string;
+  subject: string;
+  replyBody: string;
+  supportUrl: string;
+}) {
+  const subject = `${siteName} — reply on ticket ${params.ticketRef}`;
+  const text = `Hi ${params.memberName},
+
+Our team replied to your support request "${params.subject}" (${params.ticketRef}):
+
+${params.replyBody}
+
+View the conversation: ${params.supportUrl}
+
+— ${siteName}`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #171717; max-width: 520px; margin: 0 auto; padding: 24px;">
+  <p style="font-size: 15px;">Hi ${params.memberName},</p>
+  <p style="font-size: 14px; color: #525252;">Our team replied to <strong>${params.subject}</strong> (<strong style="font-family:monospace;">${params.ticketRef}</strong>):</p>
+  <blockquote style="margin: 16px 0; padding: 12px 16px; border-left: 3px solid #ea580c; background: #fafafa; font-size: 14px; white-space: pre-wrap;">${params.replyBody.replace(/</g, "&lt;")}</blockquote>
+  <p style="font-size: 13px;"><a href="${params.supportUrl}">Open ticket ${params.ticketRef}</a></p>
+  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
+  <p style="font-size: 12px; color: #a3a3a3;">${siteName}</p>
+</body>
+</html>`.trim();
+
+  return { subject, text, html };
+}
+
+export function supportTicketStatusMemberContent(params: {
+  memberName: string;
+  ticketRef: string;
+  subject: string;
+  status: string;
+  supportUrl: string;
+}) {
+  const statusLabel = supportStatusLabel(params.status);
+  const subject = `${siteName} — ticket ${params.ticketRef} is ${statusLabel.toLowerCase()}`;
+  const text = `Hi ${params.memberName},
+
+Your support ticket ${params.ticketRef} ("${params.subject}") is now ${statusLabel.toLowerCase()}.
+
+View the conversation: ${params.supportUrl}
+
+— ${siteName}`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #171717; max-width: 520px; margin: 0 auto; padding: 24px;">
+  <p style="font-size: 15px;">Hi ${params.memberName},</p>
+  <p style="font-size: 14px; color: #525252;">Your support ticket <strong style="font-family:monospace;">${params.ticketRef}</strong> (<strong>${params.subject}</strong>) is now <strong>${statusLabel.toLowerCase()}</strong>.</p>
+  <p style="font-size: 13px;"><a href="${params.supportUrl}">Open ticket ${params.ticketRef}</a></p>
+  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
+  <p style="font-size: 12px; color: #a3a3a3;">${siteName}</p>
+</body>
+</html>`.trim();
+
+  return { subject, text, html };
+}
+
+export function supportTicketAdminAlertContent(params: {
+  ticketRef: string;
+  subject: string;
+  message: string;
+  memberName: string;
+  memberPhone: string;
+  memberEmail?: string | null;
+  adminUrl: string;
+}) {
+  const preview =
+    params.message.length > 240 ? `${params.message.slice(0, 237)}...` : params.message;
+  const subject = `${siteName} — new support ticket ${params.ticketRef}`;
+  const text = `New support ticket on ${siteName}.
+
+Ticket: ${params.ticketRef}
+Subject: ${params.subject}
+Member: ${params.memberName}
+Phone: ${params.memberPhone}
+${params.memberEmail ? `Email: ${params.memberEmail}` : ""}
+
+Message:
+${preview}
+
+Review: ${params.adminUrl}
+
+— ${siteName}`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #171717; max-width: 520px; margin: 0 auto; padding: 24px;">
+  <p style="font-size: 15px;">New support ticket <strong style="font-family:monospace;">${params.ticketRef}</strong></p>
+  <table style="width:100%; font-size:14px; margin: 16px 0;">
+    <tr><td style="color:#737373;padding:4px 0;">Subject</td><td>${params.subject}</td></tr>
+    <tr><td style="color:#737373;padding:4px 0;">Member</td><td>${params.memberName}</td></tr>
+    <tr><td style="color:#737373;padding:4px 0;">Phone</td><td>${params.memberPhone}</td></tr>
+    ${params.memberEmail ? `<tr><td style="color:#737373;padding:4px 0;">Email</td><td>${params.memberEmail}</td></tr>` : ""}
+  </table>
+  <blockquote style="margin: 0 0 16px; padding: 12px 16px; border-left: 3px solid #ea580c; background: #fafafa; font-size: 14px; white-space: pre-wrap;">${preview.replace(/</g, "&lt;")}</blockquote>
+  <p style="font-size: 13px;"><a href="${params.adminUrl}">Open in admin</a></p>
+  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
+  <p style="font-size: 12px; color: #a3a3a3;">${siteName}</p>
+</body>
+</html>`.trim();
+
+  return { subject, text, html };
+}

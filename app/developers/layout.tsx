@@ -5,11 +5,13 @@ import { enforceTenantMemberAccess } from "@/lib/reseller/require-tenant-member"
 import { resolveTenantForMemberUser } from "@/lib/reseller/tenant";
 import { getRequestTenant } from "@/lib/reseller/request-tenant";
 import {
-  getUserNotifications,
-  getUnreadCount,
+  getNotificationsSummary,
+  ensureLowBalanceNotification,
 } from "@/lib/notifications";
+import { ensureRegisterSenderIdNotification } from "@/lib/sender-ids/notifications";
 import { prisma } from "@/lib/db";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
+import { after } from "next/server";
 import type { Viewport } from "next";
 
 export const viewport: Viewport = {
@@ -32,15 +34,21 @@ export default async function DevelopersLayout({
   const memberTenant =
     hostTenant ?? (await resolveTenantForMemberUser(session.userId));
 
-  const [user, balance, notifications, unreadCount] = await Promise.all([
+  const [user, balance, { notifications, unreadCount }] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.userId },
       select: { fullName: true, email: true, phone: true },
     }),
     getBalanceSnapshot(session.userId),
-    getUserNotifications(session.userId, 15),
-    getUnreadCount(session.userId),
+    getNotificationsSummary(session.userId, 15),
   ]);
+
+  after(async () => {
+    await Promise.all([
+      ensureLowBalanceNotification(session.userId, balance.creditBalance),
+      ensureRegisterSenderIdNotification(session.userId),
+    ]).catch(() => undefined);
+  });
 
   const firstName = user?.fullName?.split(" ")[0] ?? "there";
 

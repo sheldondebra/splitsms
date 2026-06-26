@@ -15,5 +15,6 @@ export interface PaymentProviderAdapter {
     amount: number;
     currency: string;
     email?: string;
+    appUrl?: string;
   }): Promise<CheckoutSession>;
 }

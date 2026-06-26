@@ -2,8 +2,15 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MarketingPageShell } from "@/components/marketing/marketing-page-shell";
 import { BlogPostContent } from "@/components/marketing/blog-post-content";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import { getAllBlogSlugs, getBlogPost } from "@/lib/marketing/blog-posts";
-import { siteUrl } from "@/lib/seo/site";
+import {
+  articleJsonLd,
+  breadcrumbJsonLd,
+  organizationJsonLd,
+  websiteJsonLd,
+} from "@/lib/seo/site";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -16,17 +23,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = getBlogPost(slug);
   if (!post) return { title: "Article not found" };
 
-  return {
+  return buildPageMetadata({
     title: post.title,
     description: post.excerpt,
-    alternates: { canonical: `/blog/${slug}` },
-    openGraph: {
-      title: post.title,
-      description: post.excerpt,
-      url: `${siteUrl}/blog/${slug}`,
-      type: "article",
-    },
-  };
+    path: `/blog/${slug}`,
+    ogType: "article",
+  });
 }
 
 export default async function BlogPostPage({ params }: Props) {
@@ -34,8 +36,27 @@ export default async function BlogPostPage({ params }: Props) {
   const post = getBlogPost(slug);
   if (!post) notFound();
 
+  const path = `/blog/${slug}`;
+
   return (
     <MarketingPageShell>
+      <JsonLdScript
+        data={[
+          websiteJsonLd,
+          organizationJsonLd,
+          articleJsonLd({
+            title: post.title,
+            description: post.excerpt,
+            path,
+            datePublished: post.published,
+          }),
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "Blog", path: "/blog" },
+            { name: post.title, path },
+          ]),
+        ]}
+      />
       <BlogPostContent post={post} />
     </MarketingPageShell>
   );

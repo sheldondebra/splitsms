@@ -105,3 +105,29 @@ export function formatCampaignWhen(iso: string | null) {
     minute: "2-digit",
   });
 }
+
+/** Turn stored names like `Quick send 2026-06-26T07:46:01.595Z` into readable labels. */
+export function formatCampaignDisplayName(name: string): string {
+  const isoMatch = name.match(/^(.+?)\s(\d{4}-\d{2}-\d{2}T[\d:.]+Z?)$/);
+  if (!isoMatch) return name;
+
+  const [, prefix, iso] = isoMatch;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return name;
+
+  const when = date.toLocaleString("en-GB", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return `${prefix.trim()} · ${when}`;
+}
+
+export function formatCampaignDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}

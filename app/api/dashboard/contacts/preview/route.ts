@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { parseContactsCsv } from "@/lib/contacts/csv-import";
+import {
+  countryBreakdownFromPreview,
+  parseContactsCsv,
+  parseContactsUpload,
+} from "@/lib/contacts/csv-import";
+
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -8,22 +14,42 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json().catch(() => ({}));
-  const csv = String(body.csv ?? "");
-  if (!csv.trim()) {
-    return NextResponse.json({ error: "CSV required" }, { status: 400 });
-  }
+  const contentType = req.headers.get("content-type") ?? "";
 
-  const preview = parseContactsCsv(csv);
-  const countries: Record<string, number> = {};
-  for (const row of preview.valid) {
-    const cc = row.countryCode ?? "UNK";
-    countries[cc] = (countries[cc] ?? 0) + 1;
-  }
+  try {
+    if (contentType.includes("multipart/form-data")) {
+      const form = await req.formData();
+      const file = form.get("file");
+      if (!(file instanceof File)) {
+        return NextResponse.json({ error: "File required" }, { status: 400 });
+      }
+      if (file.size > MAX_FILE_BYTES) {
+        return NextResponse.json({ error: "File too large (max 5 MB)" }, { status: 400 });
+      }
+      const bytes = await file.arrayBuffer();
+      const preview = parseContactsUpload(file.name, bytes);
+      return NextResponse.json({
+        ...preview,
+        filename: file.name,
+        countryBreakdown: countryBreakdownFromPreview(preview),
+      });
+    }
 
-  return NextResponse.json({
-    ...preview,
-    countryBreakdown: countries,
-    sample: preview.valid.slice(0, 10),
-  });
+    const body = await req.json().catch(() => ({}));
+    const csv = String(body.csv ?? "");
+    if (!csv.trim()) {
+      return NextResponse.json({ error: "CSV required" }, { status: 400 });
+    }
+
+    const preview = parseContactsCsv(csv);
+    return NextResponse.json({
+      ...preview,
+      countryBreakdown: countryBreakdownFromPreview(preview),
+    });
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Could not parse file" },
+      { status: 400 },
+    );
+  }
 }

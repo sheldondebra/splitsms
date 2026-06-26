@@ -30,6 +30,8 @@ import {
   ExternalLink,
   Coins,
   Wallet,
+  KeyRound,
+  CircleUser,
 } from "lucide-react";
 
 export type SettingsPanelProps = {
@@ -68,7 +70,7 @@ const TABS: { id: TabId; label: string; icon: typeof User }[] = [
   { id: "security", label: "Security", icon: Shield },
   { id: "appearance", label: "Theme", icon: Palette },
   { id: "webhooks", label: "Webhooks", icon: Bell },
-  { id: "account", label: "Account", icon: User },
+  { id: "account", label: "Account", icon: CircleUser },
 ];
 
 function initials(name: string) {
@@ -80,6 +82,14 @@ function initials(name: string) {
     .join("");
 }
 
+function SettingsFieldPanel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-muted/15 p-4 sm:p-5 space-y-5">
+      {children}
+    </div>
+  );
+}
+
 export function SettingsPanel({
   user,
   webhook,
@@ -89,68 +99,112 @@ export function SettingsPanel({
 }: SettingsPanelProps) {
   const [tab, setTab] = useState<TabId>("profile");
 
+  const tabButtonClass = (id: TabId) =>
+    cn(
+      "inline-flex shrink-0 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-all min-h-10",
+      tab === id
+        ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+    );
+
   return (
-    <div className="space-y-6 lg:space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-base font-bold text-primary-foreground shadow-sm">
-            {initials(user.fullName)}
-          </div>
-          <div className="min-w-0">
-            <h2 className="truncate text-xl font-bold text-foreground">{user.fullName}</h2>
-            <p className="truncate text-sm text-muted-foreground">{user.phone}</p>
-            <div className="mt-1.5 flex flex-wrap items-center gap-2">
-              {user.isVerified && (
-                <Badge className="gap-1 bg-emerald-600 text-[10px] hover:bg-emerald-600">
-                  <CheckCircle2 className="h-3 w-3" />
-                  Verified
-                </Badge>
-              )}
-              <span className="text-xs text-muted-foreground">
-                Member since {format(user.createdAt, "MMM yyyy")}
-              </span>
+    <div className="space-y-5">
+      <AppCard className="overflow-hidden">
+        <div className="border-b border-border/50 bg-gradient-to-br from-primary/[0.06] via-card to-muted/20 px-4 py-5 sm:px-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-lg font-bold text-primary-foreground shadow-sm">
+                {initials(user.fullName)}
+              </div>
+              <div className="min-w-0">
+                <h2 className="truncate text-xl font-bold tracking-tight">{user.fullName}</h2>
+                <p className="truncate text-sm text-muted-foreground">{user.phone}</p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                  {user.isVerified ? (
+                    <Badge className="gap-1 bg-emerald-600/90 text-[10px] hover:bg-emerald-600">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Verified
+                    </Badge>
+                  ) : null}
+                  <span className="text-xs text-muted-foreground">
+                    Member since {format(user.createdAt, "MMM yyyy")}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/dashboard/wallet"
+                className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-background/80 px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/50"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+                  <Wallet className="h-4 w-4 text-muted-foreground" />
+                </span>
+                <span className="text-left leading-tight">
+                  <span className="block text-xs text-muted-foreground">Wallet</span>
+                  <span className="block font-bold tabular-nums">
+                    {stats.walletCurrency} {stats.walletBalance.toFixed(2)}
+                  </span>
+                </span>
+              </Link>
+              <Link
+                href="/dashboard/wallet"
+                className="inline-flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2 text-sm font-medium transition-colors hover:bg-primary/10"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/12">
+                  <Coins className="h-4 w-4 text-primary" />
+                </span>
+                <span className="text-left leading-tight">
+                  <span className="block text-xs text-muted-foreground">SMS credits</span>
+                  <span className="block font-bold tabular-nums text-primary">
+                    {stats.smsCredits.toLocaleString()}
+                  </span>
+                </span>
+              </Link>
             </div>
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <Link
-            href="/dashboard/wallet"
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border/60 bg-card px-4 py-2.5 text-sm font-medium hover:bg-muted/50 sm:flex-none"
-          >
-            <Wallet className="h-4 w-4 text-primary" />
-            <span className="tabular-nums">
-              {stats.walletCurrency} {stats.walletBalance.toFixed(2)}
-            </span>
-          </Link>
-          <Link
-            href="/dashboard/wallet"
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border/60 bg-card px-4 py-2.5 text-sm font-medium hover:bg-muted/50 sm:flex-none"
-          >
-            <Coins className="h-4 w-4 text-primary" />
-            <span className="tabular-nums">{stats.smsCredits.toLocaleString()} SMS</span>
-          </Link>
+        <div className="grid grid-cols-3 divide-x divide-border/50 border-b border-border/50 bg-card">
+          {[
+            { label: "Contacts", value: stats.contacts, href: "/dashboard/contacts" },
+            { label: "API keys", value: stats.apiKeys, href: "/dashboard/api-keys" },
+            { label: "Sender IDs", value: stats.senderIds, href: "/dashboard/sender-ids" },
+          ].map(({ label, value, href }) => (
+            <Link
+              key={label}
+              href={href}
+              className="px-3 py-3 text-center transition-colors hover:bg-muted/30 sm:px-4"
+            >
+              <p className="text-lg font-bold tabular-nums leading-none">{value.toLocaleString()}</p>
+              <p className="mt-1 text-[11px] font-medium text-muted-foreground">{label}</p>
+            </Link>
+          ))}
         </div>
-      </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 app-scroll-x">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            className={cn(
-              "inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition-colors",
-              tab === id
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
+        <div className="p-2 bg-muted/20">
+          <div
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1"
+            role="tablist"
+            aria-label="Settings sections"
           >
-            <Icon className="h-4 w-4" />
-            {label}
-          </button>
-        ))}
-      </div>
+            {TABS.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={tab === id}
+                onClick={() => setTab(id)}
+                className={tabButtonClass(id)}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="truncate">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </AppCard>
 
       {tab === "profile" && (
         <AppCard>
@@ -161,65 +215,68 @@ export function SettingsPanel({
               icon={User}
             />
             <form action={updateProfileAction} className="space-y-5">
-              <div className="grid gap-5 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full name</Label>
-                  <Input
-                    id="fullName"
-                    name="fullName"
-                    defaultValue={user.fullName}
-                    required
-                    className="h-11"
-                  />
+              <SettingsFieldPanel>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="fullName" className="text-xs font-semibold">
+                      Full name
+                    </Label>
+                    <Input
+                      id="fullName"
+                      name="fullName"
+                      defaultValue={user.fullName}
+                      required
+                      className="h-11 bg-background"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email" className="text-xs font-semibold">
+                      Email <span className="font-normal text-muted-foreground">(optional)</span>
+                    </Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      defaultValue={user.email ?? ""}
+                      placeholder="you@company.com"
+                      className="h-11 bg-background"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email (optional)</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    defaultValue={user.email ?? ""}
-                    placeholder="you@company.com"
-                    className="h-11"
-                  />
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label>Phone number</Label>
-                <div className="flex h-11 items-center gap-2 rounded-xl border bg-muted/30 px-3 text-sm">
-                  <Smartphone className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0 flex-1 truncate">{user.phone}</span>
-                  <CopyValueButton value={user.phone} label="Copy" />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Country: {user.countryCode}. Contact support to change your phone number.
-                </p>
-              </div>
-
-              <div className="grid gap-5 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Account ID</Label>
-                  <div className="flex h-11 items-center gap-2 rounded-xl border bg-muted/20 px-3 font-mono text-sm tabular-nums">
-                    <span className="min-w-0 flex-1 tracking-widest">{user.accountId}</span>
-                    <CopyValueButton value={user.accountId} label="Copy" />
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Phone number</Label>
+                  <div className="flex h-11 items-center gap-2 rounded-xl border border-border/60 bg-background px-3 text-sm">
+                    <Smartphone className="h-4 w-4 shrink-0 text-primary" />
+                    <span className="min-w-0 flex-1 truncate font-mono">{user.phone}</span>
+                    <CopyValueButton value={user.phone} label="Copy" />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Your 6-digit SplitSMS account number for support and billing.
+                    Country: {user.countryCode}. Contact support to change your phone number.
                   </p>
                 </div>
-                {user.referralCode && (
-                  <div className="space-y-2">
-                    <Label>Referral code</Label>
-                    <div className="flex h-11 items-center gap-2 rounded-xl border bg-muted/20 px-3 text-sm font-medium">
-                      <span className="flex-1">{user.referralCode}</span>
-                      <CopyValueButton value={user.referralCode} label="Copy" />
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Account ID</Label>
+                    <div className="flex h-11 items-center gap-2 rounded-xl border border-border/60 bg-background px-3 font-mono text-sm tabular-nums">
+                      <span className="min-w-0 flex-1 tracking-widest">{user.accountId}</span>
+                      <CopyValueButton value={user.accountId} label="Copy" />
                     </div>
                   </div>
-                )}
-              </div>
+                  {user.referralCode ? (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Referral code</Label>
+                      <div className="flex h-11 items-center gap-2 rounded-xl border border-border/60 bg-background px-3 text-sm font-medium">
+                        <span className="flex-1">{user.referralCode}</span>
+                        <CopyValueButton value={user.referralCode} label="Copy" />
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </SettingsFieldPanel>
 
-              <Button type="submit" className="h-11 w-full sm:w-auto">
+              <Button type="submit" className="h-11 w-full sm:w-auto rounded-xl font-semibold px-8">
                 Save changes
               </Button>
             </form>
@@ -228,7 +285,7 @@ export function SettingsPanel({
       )}
 
       {tab === "security" && (
-        <div className="space-y-6">
+        <div className="space-y-5">
           <AppCard>
             <AppCardBody>
               <AppCardTitle
@@ -245,7 +302,7 @@ export function SettingsPanel({
               <AppCardTitle
                 title="Active sessions"
                 description={`${sessionCount} session${sessionCount === 1 ? "" : "s"} on this account`}
-                icon={Shield}
+                icon={KeyRound}
               />
               <SettingsSessions sessions={sessions} sessionCount={sessionCount} />
             </AppCardBody>
@@ -276,48 +333,56 @@ export function SettingsPanel({
               className="mb-0"
             />
 
-            <form action={saveWebhookAction} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="webhookUrl">Webhook URL</Label>
-                <Input
-                  id="webhookUrl"
-                  name="url"
-                  type="url"
-                  defaultValue={webhook?.url ?? ""}
-                  placeholder="https://your-site.com/api/splitsms-webhook"
-                  className="h-11"
-                />
-              </div>
-              <Button type="submit" className="h-11 w-full sm:w-auto">
-                Save webhook
-              </Button>
-            </form>
-
-            {webhook?.url && (
-              <div className="space-y-4 border-t border-border/50 pt-5">
-                {webhook.secret && (
-                  <div className="space-y-2 rounded-xl border bg-muted/20 p-4">
-                    <Label className="text-xs text-muted-foreground">Signing secret</Label>
-                    <div className="flex items-center gap-2">
-                      <code className="min-w-0 flex-1 truncate font-mono text-xs">{webhook.secret}</code>
-                      <CopyValueButton value={webhook.secret} label="Copy" />
-                    </div>
-                  </div>
-                )}
-                <div className="flex flex-wrap gap-1.5">
-                  {webhook.events.map((ev) => (
-                    <Badge key={ev} variant="secondary" className="text-[10px]">
-                      {ev}
-                    </Badge>
-                  ))}
+            <SettingsFieldPanel>
+              <form action={saveWebhookAction} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="webhookUrl" className="text-xs font-semibold">
+                    Webhook URL
+                  </Label>
+                  <Input
+                    id="webhookUrl"
+                    name="url"
+                    type="url"
+                    defaultValue={webhook?.url ?? ""}
+                    placeholder="https://your-site.com/api/splitsms-webhook"
+                    className="h-11 bg-background"
+                  />
                 </div>
-                <form action={clearWebhookAction}>
-                  <Button type="submit" variant="outline" className="h-11">
-                    Remove webhook
-                  </Button>
-                </form>
-              </div>
-            )}
+                <Button type="submit" className="h-11 w-full sm:w-auto rounded-xl font-semibold">
+                  Save webhook
+                </Button>
+              </form>
+
+              {webhook?.url ? (
+                <div className="space-y-4 border-t border-border/50 pt-4">
+                  {webhook.secret ? (
+                    <div className="space-y-1.5 rounded-xl border border-border/60 bg-background p-4">
+                      <Label className="text-xs font-semibold text-muted-foreground">
+                        Signing secret
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <code className="min-w-0 flex-1 truncate font-mono text-xs">
+                          {webhook.secret}
+                        </code>
+                        <CopyValueButton value={webhook.secret} label="Copy" />
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className="flex flex-wrap gap-1.5">
+                    {webhook.events.map((ev) => (
+                      <Badge key={ev} variant="secondary" className="text-[10px]">
+                        {ev}
+                      </Badge>
+                    ))}
+                  </div>
+                  <form action={clearWebhookAction}>
+                    <Button type="submit" variant="outline" className="h-10 rounded-lg">
+                      Remove webhook
+                    </Button>
+                  </form>
+                </div>
+              ) : null}
+            </SettingsFieldPanel>
 
             <p className="text-xs text-muted-foreground">
               Setup guide:{" "}
@@ -334,34 +399,49 @@ export function SettingsPanel({
       )}
 
       {tab === "account" && (
-        <div className="space-y-6">
+        <div className="space-y-5">
           <AppCard>
             <AppCardBody>
               <AppCardTitle
                 title="Account information"
                 description="Membership details for your SplitSMS account"
-                icon={User}
+                icon={CircleUser}
               />
-              <dl className="divide-y divide-border/50 text-sm">
+              <div className="rounded-xl border border-border/60 overflow-hidden divide-y divide-border/50">
                 {[
                   { label: "Account ID", value: user.accountId },
                   { label: "Member since", value: format(user.createdAt, "MMMM d, yyyy") },
                   { label: "Phone verified", value: user.isVerified ? "Yes" : "No" },
                   { label: "Country", value: user.countryCode },
-                  { label: "Contacts", value: stats.contacts.toLocaleString() },
-                  { label: "API keys", value: stats.apiKeys.toLocaleString() },
-                  { label: "Sender IDs", value: stats.senderIds.toLocaleString() },
-                ].map(({ label, value }) => (
-                  <div key={label} className="flex justify-between gap-4 py-3 first:pt-0 last:pb-0">
-                    <dt className="text-muted-foreground">{label}</dt>
-                    <dd className="font-medium tabular-nums">{value}</dd>
-                  </div>
-                ))}
-              </dl>
+                  { label: "Contacts", value: stats.contacts.toLocaleString(), href: "/dashboard/contacts" },
+                  { label: "API keys", value: stats.apiKeys.toLocaleString(), href: "/dashboard/api-keys" },
+                  { label: "Sender IDs", value: stats.senderIds.toLocaleString(), href: "/dashboard/sender-ids" },
+                ].map(({ label, value, href }) => {
+                  const row = (
+                    <>
+                      <dt className="text-muted-foreground">{label}</dt>
+                      <dd className="font-semibold tabular-nums">{value}</dd>
+                    </>
+                  );
+                  return href ? (
+                    <Link
+                      key={label}
+                      href={href}
+                      className="flex justify-between gap-4 px-4 py-3.5 text-sm transition-colors hover:bg-muted/30"
+                    >
+                      {row}
+                    </Link>
+                  ) : (
+                    <div key={label} className="flex justify-between gap-4 px-4 py-3.5 text-sm">
+                      {row}
+                    </div>
+                  );
+                })}
+              </div>
             </AppCardBody>
           </AppCard>
 
-          <AppCard className="border-destructive/20">
+          <AppCard className="border-destructive/25 bg-destructive/[0.02]">
             <AppCardBody>
               <AppCardTitle
                 title="Sign out"
@@ -371,7 +451,7 @@ export function SettingsPanel({
               <LogoutConfirmButton
                 variant="outline"
                 fullWidth
-                className="h-11 border-destructive/30 text-destructive hover:bg-destructive/5 hover:text-destructive sm:w-auto sm:min-w-[160px]"
+                className="h-11 border-destructive/30 text-destructive hover:bg-destructive/5 hover:text-destructive sm:w-auto sm:min-w-[160px] rounded-xl"
               />
             </AppCardBody>
           </AppCard>

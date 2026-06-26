@@ -11,6 +11,7 @@ export const UX_ERRORS: Record<string, string> = {
   balance: "Your balance is too low for this purchase.",
   payment: "Payment could not be completed. Please try again.",
   tag: "Please enter a tag name.",
+  import: "Could not import contacts. Check your file and try again.",
   group: "Please select or name a group.",
   promo: "That promo code did not work. Check the code and try again.",
   automation_invalid: "Please fill in a name and message for your workflow.",

@@ -24,9 +24,8 @@ export default async function LoginPage({
   const params = await searchParams;
   const { error, reset, mode, method, phone, email } = params;
   const tenant = await getRequestTenant();
-  const countries = await getSignupCountryOptions();
-
   const smsMode = mode === "sms";
+  const countries = smsMode ? await getSignupCountryOptions() : [];
   const phonePasswordMode = mode === "password" && phone === "1";
 
   return (

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/db";
 
 export type BalanceSnapshot = {
@@ -7,7 +8,7 @@ export type BalanceSnapshot = {
   lowBalance: boolean;
 };
 
-export async function getBalanceSnapshot(userId: string): Promise<BalanceSnapshot> {
+export const getBalanceSnapshot = cache(async (userId: string): Promise<BalanceSnapshot> => {
   const [wallet, credit] = await Promise.all([
     prisma.wallet.findUnique({ where: { userId } }),
     prisma.smsCredit.findUnique({ where: { userId } }),
@@ -21,4 +22,4 @@ export async function getBalanceSnapshot(userId: string): Promise<BalanceSnapsho
     creditBalance,
     lowBalance: creditBalance <= 10,
   };
-}
+});

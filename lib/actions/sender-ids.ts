@@ -90,6 +90,9 @@ export async function requestSenderIdAction(
   });
 
   void notifyAdminsNewSenderId(sender.id).catch(() => undefined);
+  void import("@/lib/sender-ids/notifications").then(({ ensureRegisterSenderIdNotification }) =>
+    ensureRegisterSenderIdNotification(session.userId),
+  );
 
   revalidatePath("/dashboard/sender-ids");
   revalidatePath("/dashboard/send");

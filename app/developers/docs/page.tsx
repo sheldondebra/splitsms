@@ -5,10 +5,6 @@ import { BookOpen, Braces } from "lucide-react";
 import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 import { getSiteUrl } from "@/lib/site-config";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-export const fetchCache = "force-no-store";
-
 export const metadata = {
   title: "API Documentation",
   description:

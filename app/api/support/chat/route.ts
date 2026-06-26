@@ -6,8 +6,33 @@ import {
   formatTicketNumber,
   ticketToChatRow,
 } from "@/lib/support/chat";
+import {
+  backfillSupportTicketReferences,
+  createSupportTicket,
+} from "@/lib/support/ticket-reference-server";
+import { loadSupportPresence } from "@/lib/support/presence";
 
 export const dynamic = "force-dynamic";
+
+const ticketSelect = {
+  id: true,
+  reference: true,
+  subject: true,
+  message: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true,
+  replies: {
+    orderBy: { createdAt: "asc" as const },
+    select: {
+      id: true,
+      body: true,
+      isStaff: true,
+      createdAt: true,
+      author: { select: { fullName: true } },
+    },
+  },
+};
 
 export async function GET() {
   const session = await getSession();
@@ -23,33 +48,19 @@ export async function GET() {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
+  await backfillSupportTicketReferences().catch(() => undefined);
+
   const tickets = await prisma.supportTicket.findMany({
     where: { userId: session.userId },
     orderBy: { createdAt: "asc" },
     take: 50,
-    select: {
-      id: true,
-      subject: true,
-      message: true,
-      status: true,
-      createdAt: true,
-      updatedAt: true,
-      replies: {
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          body: true,
-          isStaff: true,
-          createdAt: true,
-          author: { select: { fullName: true } },
-        },
-      },
-    },
+    select: ticketSelect,
   });
 
   const firstName = user.fullName.split(" ")[0] ?? "there";
   const rows = tickets.map((t) => ticketToChatRow(t));
   const messages = buildSupportChatMessages(firstName, rows);
+  const presence = await loadSupportPresence();
 
   let latestUpdate = new Date(0);
   for (const t of tickets) {
@@ -62,6 +73,7 @@ export async function GET() {
 
   return NextResponse.json({
     messages,
+    presence,
     updatedAt: latestUpdate.toISOString(),
     ticketCount: tickets.length,
   });
@@ -87,14 +99,17 @@ export async function POST(request: Request) {
 
   const subject = message.length > 60 ? `${message.slice(0, 57)}...` : message;
 
-  const ticket = await prisma.supportTicket.create({
-    data: {
-      userId: session.userId,
-      subject,
-      message,
-    },
+  const ticket = await createSupportTicket({
+    userId: session.userId,
+    subject,
+    message,
+  });
+
+  const full = await prisma.supportTicket.findUniqueOrThrow({
+    where: { id: ticket.id },
     select: {
       id: true,
+      reference: true,
       subject: true,
       message: true,
       status: true,
@@ -102,18 +117,19 @@ export async function POST(request: Request) {
     },
   });
 
-  const ticketNumber = formatTicketNumber(ticket.id, ticket.createdAt);
-  const row = ticketToChatRow(ticket);
+  const ticketNumber = formatTicketNumber(full.reference);
+  const row = ticketToChatRow(full);
 
   return NextResponse.json({
     ok: true,
     ticket: {
-      id: ticket.id,
+      id: full.id,
+      reference: full.reference!,
       ticketNumber,
-      subject: ticket.subject,
-      message: ticket.message,
-      status: ticket.status,
-      createdAt: ticket.createdAt.toISOString(),
+      subject: full.subject,
+      message: full.message,
+      status: full.status,
+      createdAt: full.createdAt.toISOString(),
     },
     row,
   });

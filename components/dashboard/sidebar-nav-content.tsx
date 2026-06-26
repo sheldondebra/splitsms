@@ -49,7 +49,14 @@ export function SidebarNavContent({
           return (
             <div key={section.id}>
               <div className="flex items-center justify-between px-1">
-                <p className="px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/45">
+                <p
+                  className={cn(
+                    "px-2 font-semibold uppercase tracking-widest",
+                    isCollapsible
+                      ? "text-[11px] text-sidebar-primary font-bold tracking-[0.14em]"
+                      : "text-[10px] text-sidebar-foreground/45",
+                  )}
+                >
                   {section.label}
                 </p>
                 {isCollapsible ? (
@@ -59,8 +66,9 @@ export function SidebarNavContent({
                       setOpenSections((prev) => ({ ...prev, [section.id]: !prev[section.id] }))
                     }
                     className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors",
-                      isOpen && "text-sidebar-foreground",
+                      "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
+                      "text-sidebar-primary/80 hover:bg-sidebar-primary/10 hover:text-sidebar-primary",
+                      isOpen && "text-sidebar-primary",
                     )}
                     aria-label={`Toggle ${section.label}`}
                   >
@@ -73,7 +81,7 @@ export function SidebarNavContent({
                 <ul className="mt-2 space-y-0.5">
                   {section.items.map(({ href, label, icon: Icon }) => {
                     const active = isNavActive(pathname, href);
-                    const highlight = href === "/dashboard/sender-ids" || href === "/developers";
+                    const highlight = href === "/developers";
                     return (
                       <li key={href}>
                         <Link href={href} onClick={onNavigate} className={navItemClass(active, highlight)}>

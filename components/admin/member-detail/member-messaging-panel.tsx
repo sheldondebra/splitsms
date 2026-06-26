@@ -1,4 +1,5 @@
 import { format, formatDistanceToNow } from "date-fns";
+import Link from "next/link";
 import { AdminCard, AdminEmpty } from "@/components/admin/admin-page-shell";
 import { ProviderBadge } from "@/components/admin/provider-badge";
 import { Badge } from "@/components/ui/badge";
@@ -111,7 +112,18 @@ export function MemberMessagingPanel({ data }: { data: AdminMemberDetail }) {
         </AdminCard>
       )}
 
-      <AdminCard title="SMS log" description="Last 40 messages with delivery timing">
+      <AdminCard
+        title="SMS log"
+        description="Last 40 messages with delivery timing"
+        actions={
+          <Link
+            href={`/admin/messages?userId=${data.user.id}`}
+            className="text-xs font-semibold text-primary hover:underline"
+          >
+            View all SMS logs →
+          </Link>
+        }
+      >
         {recentMessages.length === 0 ? (
           <AdminEmpty>No messages sent yet.</AdminEmpty>
         ) : (

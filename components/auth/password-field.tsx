@@ -11,6 +11,7 @@ type PasswordFieldProps = {
   id: string;
   name: string;
   label: string;
+  placeholder?: string;
   required?: boolean;
   showStrength?: boolean;
   autoComplete?: string;
@@ -20,6 +21,7 @@ export function PasswordField({
   id,
   name,
   label,
+  placeholder,
   required = true,
   showStrength = false,
   autoComplete = "new-password",
@@ -36,6 +38,7 @@ export function PasswordField({
           id={id}
           name={name}
           type={visible ? "text" : "password"}
+          placeholder={placeholder}
           required={required}
           minLength={8}
           autoComplete={autoComplete}

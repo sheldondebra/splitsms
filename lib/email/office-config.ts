@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { maskTailSecret } from "@/lib/mask-secret";
 import { siteName, supportEmail } from "@/lib/site-config";
 import type { MailjetConfig } from "@/lib/email/config";
 
@@ -25,11 +26,25 @@ const envDefaults = (): Omit<MailjetOfficeStored, "updatedAt"> => ({
   sandbox: process.env.MAILJET_SANDBOX === "true",
 });
 
-export async function loadMailjetOfficeStored(): Promise<MailjetOfficeStored> {
+function mergeSenderField(
+  stored: Partial<MailjetOfficeStored> | null | undefined,
+  key: "fromEmail" | "fromName",
+  base: string,
+): string {
+  const raw = stored?.[key];
+  if (typeof raw === "string" && raw.trim()) return raw.trim();
+  return base.trim();
+}
+
+export async function loadMailjetOfficeRaw(): Promise<Partial<MailjetOfficeStored> | null> {
   const row = await prisma.platformSetting.findUnique({
     where: { key: MAILJET_OFFICE_KEY },
   });
-  const stored = row?.value as Partial<MailjetOfficeStored> | null;
+  return (row?.value as Partial<MailjetOfficeStored> | null) ?? null;
+}
+
+export async function loadMailjetOfficeStored(): Promise<MailjetOfficeStored> {
+  const stored = await loadMailjetOfficeRaw();
   const base = envDefaults();
 
   if (!stored) return { ...base };
@@ -37,8 +52,8 @@ export async function loadMailjetOfficeStored(): Promise<MailjetOfficeStored> {
   return {
     apiKey: (stored.apiKey || base.apiKey).trim(),
     apiSecret: (stored.apiSecret || base.apiSecret).trim(),
-    fromEmail: (stored.fromEmail || base.fromEmail).trim(),
-    fromName: (stored.fromName || base.fromName).trim(),
+    fromEmail: mergeSenderField(stored, "fromEmail", base.fromEmail),
+    fromName: mergeSenderField(stored, "fromName", base.fromName),
     sandbox: stored.sandbox ?? base.sandbox,
     updatedAt: stored.updatedAt,
   };
@@ -61,6 +76,9 @@ export async function saveMailjetOfficeConfig(
   actorId?: string,
 ) {
   const current = await loadMailjetOfficeStored();
+  const fromEmailInput = input.fromEmail?.trim();
+  const fromNameInput = input.fromName?.trim();
+
   const next: MailjetOfficeStored = {
     apiKey:
       input.apiKey !== undefined && input.apiKey.trim() !== ""
@@ -70,8 +88,8 @@ export async function saveMailjetOfficeConfig(
       input.apiSecret !== undefined && input.apiSecret.trim() !== ""
         ? input.apiSecret.trim()
         : current.apiSecret,
-    fromEmail: (input.fromEmail ?? current.fromEmail).trim(),
-    fromName: (input.fromName ?? current.fromName).trim(),
+    fromEmail: fromEmailInput || current.fromEmail,
+    fromName: fromNameInput || current.fromName,
     sandbox: input.sandbox ?? current.sandbox,
     updatedAt: new Date().toISOString(),
   };
@@ -101,8 +119,4 @@ export async function saveMailjetOfficeConfig(
   return next;
 }
 
-export function maskMailjetSecret(secret: string) {
-  if (!secret) return "";
-  if (secret.length <= 6) return "••••••";
-  return `${"•".repeat(Math.min(16, secret.length - 4))}${secret.slice(-4)}`;
-}
+export const maskMailjetSecret = maskTailSecret;

@@ -123,10 +123,10 @@ export async function getDashboardOverview(userId: string) {
   });
 
   const deliveryChart = [
-    { name: "Delivered", value: delivered, fill: "var(--primary)" },
+    { name: "Delivered", value: delivered, fill: "#10b981" },
     { name: "Failed", value: failed, fill: "hsl(var(--destructive))" },
-    { name: "Pending", value: pending, fill: "hsl(var(--muted-foreground))" },
-    { name: "Sent", value: Math.max(0, (byStatus.SENT ?? 0)), fill: "hsl(220 70% 50%)" },
+    { name: "Pending", value: pending, fill: "#fbbf24" },
+    { name: "Sent", value: Math.max(0, byStatus.SENT ?? 0), fill: "#3b82f6" },
   ].filter((d) => d.value > 0);
 
   const countryChart = countryRows

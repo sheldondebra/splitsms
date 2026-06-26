@@ -12,6 +12,15 @@ type Message = {
   body: string;
 };
 
+function statusDotClass(status: string) {
+  if (status === "SENT" || status === "DELIVERED") return "bg-emerald-500";
+  if (status === "FAILED" || status === "REJECTED" || status === "EXPIRED") {
+    return "bg-destructive";
+  }
+  if (status === "PENDING") return "bg-amber-400";
+  return "bg-muted-foreground/40";
+}
+
 export function RecentActivityList({ messages }: { messages: Message[] }) {
   return (
     <div className="rounded-2xl border border-border/60 bg-card">
@@ -44,14 +53,7 @@ export function RecentActivityList({ messages }: { messages: Message[] }) {
               className="flex items-center gap-4 px-5 py-3.5 border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors"
             >
               <div
-                className={cn(
-                  "h-2 w-2 rounded-full shrink-0",
-                  m.status === "DELIVERED"
-                    ? "bg-emerald-500"
-                    : m.status === "FAILED"
-                      ? "bg-destructive"
-                      : "bg-muted-foreground/40",
-                )}
+                className={cn("h-2 w-2 rounded-full shrink-0", statusDotClass(m.status))}
               />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium truncate">{m.recipient}</p>

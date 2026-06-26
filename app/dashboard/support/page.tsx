@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { SupportDashboard } from "@/components/dashboard/support-dashboard";
 import { buildSupportChatMessages, formatTicketNumber } from "@/lib/support/chat";
+import { loadSupportPresence } from "@/lib/support/presence";
 import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 import { LifeBuoy } from "lucide-react";
 
@@ -17,7 +18,7 @@ export default async function SupportPage({
 
   const params = await searchParams;
 
-  const [user, tickets] = await Promise.all([
+  const [user, tickets, supportPresence] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.userId },
       select: { fullName: true, email: true },
@@ -28,6 +29,7 @@ export default async function SupportPage({
       take: 30,
       select: {
         id: true,
+        reference: true,
         subject: true,
         message: true,
         status: true,
@@ -44,6 +46,7 @@ export default async function SupportPage({
         },
       },
     }),
+    loadSupportPresence(),
   ]);
 
   if (!user) return null;
@@ -53,6 +56,7 @@ export default async function SupportPage({
     firstName,
     tickets.map((t) => ({
       id: t.id,
+      reference: t.reference,
       message: t.message,
       status: t.status,
       createdAt: t.createdAt,
@@ -69,7 +73,7 @@ export default async function SupportPage({
 
   const rows = tickets.map((t) => ({
     id: t.id,
-    ticketNumber: formatTicketNumber(t.id, t.createdAt),
+    ticketNumber: formatTicketNumber(t.reference) ?? "",
     subject: t.subject,
     message: t.message,
     status: t.status,
@@ -97,6 +101,7 @@ export default async function SupportPage({
         email={user.email}
         chatMessages={chatMessages}
         tickets={rows}
+        supportPresence={supportPresence}
         sent={params.sent === "1"}
         error={params.error}
       />

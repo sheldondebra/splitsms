@@ -7,11 +7,11 @@ const STRIPE_MIN_USD = 0.5;
 
 export const stripeAdapter: PaymentProviderAdapter = {
   method: "STRIPE",
-  async initializeTopUp({ paymentId, amount, currency, email }) {
+  async initializeTopUp({ paymentId, amount, currency, email, appUrl }) {
     const { config } = await loadStripeSettings();
     const secret = config.secretKey;
     const { getSiteUrl } = await import("@/lib/site-config");
-    const appUrl = getSiteUrl();
+    const baseUrl = appUrl ?? getSiteUrl();
 
     if (!config.enabled || !secret) {
       return {
@@ -48,27 +48,27 @@ export const stripeAdapter: PaymentProviderAdapter = {
         ? undefined
         : `Wallet credit: ${conversion.sourceCurrency} ${conversion.sourceAmount.toFixed(2)} at 1 ${conversion.sourceCurrency} = ${conversion.chargeCurrency} ${conversion.rate.toFixed(6)}`;
 
+    const stripeFxMeta = {
+      sourceCurrency: conversion.sourceCurrency,
+      sourceAmount: conversion.sourceAmount,
+      chargeCurrency: conversion.chargeCurrency,
+      chargeAmount: conversion.chargeAmount,
+      rate: conversion.rate,
+      rateFetchedAt: conversion.rateFetchedAt,
+      rateSource: conversion.rateSource,
+    };
+
     await prisma.payment.update({
       where: { id: paymentId },
       data: {
-        metadata: {
-          stripeFx: {
-            sourceCurrency: conversion.sourceCurrency,
-            sourceAmount: conversion.sourceAmount,
-            chargeCurrency: conversion.chargeCurrency,
-            chargeAmount: conversion.chargeAmount,
-            rate: conversion.rate,
-            rateFetchedAt: conversion.rateFetchedAt,
-            rateSource: conversion.rateSource,
-          },
-        },
+        metadata: { stripeFx: stripeFxMeta },
       },
     });
 
     const body = new URLSearchParams({
       mode: "payment",
-      success_url: `${appUrl}/dashboard/wallet?provider=stripe&reference=${paymentId}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/dashboard/wallet?error=cancelled`,
+      success_url: `${baseUrl}/dashboard/wallet?provider=stripe&reference=${paymentId}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/dashboard/wallet?error=cancelled`,
       "line_items[0][quantity]": "1",
       "line_items[0][price_data][currency]": stripeCurrency,
       "line_items[0][price_data][unit_amount]": String(unitAmount),
@@ -90,7 +90,17 @@ export const stripeAdapter: PaymentProviderAdapter = {
       body,
     });
 
-    const data = (await res.json()) as { url?: string; error?: { message?: string } };
+    const data = (await res.json()) as { id?: string; url?: string; error?: { message?: string } };
+
+    if (data.id) {
+      await prisma.payment.update({
+        where: { id: paymentId },
+        data: {
+          providerReference: data.id,
+          metadata: { stripeFx: stripeFxMeta, stripeSessionId: data.id },
+        },
+      });
+    }
 
     if (!data.url) {
       return {

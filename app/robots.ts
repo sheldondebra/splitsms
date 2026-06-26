@@ -3,22 +3,25 @@ import { siteUrl } from "@/lib/seo/site";
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: {
-      userAgent: "*",
-      allow: "/",
-      disallow: [
-        "/dashboard/",
-        "/admin/",
-        "/api/",
-        "/enterprise/",
-        "/reseller/",
-        "/login",
-        "/signup",
-        "/verify-otp",
-        "/forgot-password",
-        "/reset-password",
-      ],
-    },
+    rules: [
+      {
+        userAgent: "*",
+        allow: "/",
+        disallow: [
+          "/dashboard/",
+          "/admin/",
+          "/api/",
+          "/enterprise/",
+          "/reseller/",
+          "/developers/",
+          "/embed/",
+          "/f/",
+          "/onboarding",
+          "/complete-profile",
+        ],
+      },
+    ],
     sitemap: `${siteUrl}/sitemap.xml`,
+    host: siteUrl,
   };
 }

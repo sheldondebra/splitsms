@@ -10,6 +10,7 @@ import { Wallet, Plus, Coins } from "lucide-react";
 import { getPaymentMethodOptions, getDefaultPaymentMethodForUser } from "@/lib/payments/methods";
 import { getOfflineBankDetails } from "@/lib/payments/offline-config";
 import { verifyAndCreditPaymentForUser } from "@/lib/payments/verify";
+import { reconcilePendingStripePaymentsForUser } from "@/lib/payments/stripe-webhook";
 import { getWalletPricingOptions } from "@/lib/billing/wallet-pricing";
 import { resolveSmsPriceForUser } from "@/lib/reseller/pricing";
 import { loadStripeSettings } from "@/lib/payments/gateway-settings";
@@ -46,6 +47,8 @@ export default async function WalletPage({
     callbackResult = verified.ok
       ? { ok: true }
       : { ok: false, error: verified.error ?? "payment" };
+  } else {
+    await reconcilePendingStripePaymentsForUser(session.userId).catch(() => undefined);
   }
 
   const [wallet, credit, transactions, paymentMethods, offlineBankDetails, user, pricingOptions, defaultMethod] =

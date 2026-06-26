@@ -18,6 +18,7 @@ import {
   Megaphone,
   LifeBuoy,
   Activity,
+  Send,
 } from "lucide-react";
 
 export type AdminNavItem = {
@@ -67,6 +68,7 @@ export const adminNavSections: AdminNavSection[] = [
     label: "SMS platform",
     items: [
       { href: "/admin/sender-ids", label: "Sender IDs", icon: BadgeCheck, badge: "pending-sender-ids" },
+      { href: "/admin/messages", label: "SMS logs", icon: Send },
       { href: "/admin/routes", label: "Routes", icon: Route },
       { href: "/admin/providers", label: "Providers", icon: Layers3 },
     ],

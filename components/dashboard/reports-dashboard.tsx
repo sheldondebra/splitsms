@@ -53,9 +53,17 @@ export type MessageLogRow = {
   createdAt: string;
   campaignId: string | null;
   campaignName: string | null;
+  memberId?: string | null;
+  memberName?: string | null;
+  memberPhone?: string | null;
 };
 
-export type CampaignOption = { id: string; name: string; status: string };
+export type CampaignOption = {
+  id: string;
+  name: string;
+  status: string;
+  memberName?: string | null;
+};
 
 export type CampaignReport = {
   id: string;
@@ -82,6 +90,8 @@ export type ReportsDashboardProps = {
     status?: string;
     country?: string;
     q?: string;
+    userId?: string;
+    member?: string;
   };
   overview: {
     totalMessages: number;
@@ -101,6 +111,12 @@ export type ReportsDashboardProps = {
   campaignReport: CampaignReport | null;
   failedInView: number;
   exportUrl: string;
+  basePath?: string;
+  showMemberColumn?: boolean;
+  showRetry?: boolean;
+  emptyAction?: { label: string; href: string };
+  memberFilter?: string;
+  showQuickLinks?: boolean;
 };
 
 function MessageDetails({ message }: { message: MessageLogRow }) {
@@ -199,10 +215,17 @@ export function ReportsDashboard({
   campaignReport,
   failedInView,
   exportUrl,
+  basePath = "/dashboard/reports",
+  showMemberColumn = false,
+  showRetry = true,
+  emptyAction = { label: "Send SMS", href: "/dashboard/send" },
+  memberFilter,
+  showQuickLinks = true,
 }: ReportsDashboardProps) {
   const router = useRouter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState(filters.q ?? "");
+  const [memberSearch, setMemberSearch] = useState(memberFilter ?? "");
 
   const statusFilter = (filters.status ?? "all") as MessageStatusFilter;
   const filterBase = useMemo(
@@ -211,12 +234,14 @@ export function ReportsDashboard({
       status: filters.status,
       country: filters.country,
       q: filters.q,
+      userId: filters.userId,
+      member: filters.member,
     }),
     [filters],
   );
 
   function goTo(patch: Record<string, string | undefined | null>) {
-    router.push(buildReportsQuery(filterBase, patch));
+    router.push(buildReportsQuery(filterBase, patch, basePath));
   }
 
   const topCountries = overview.charts.countryChart.slice(0, 5);
@@ -256,6 +281,10 @@ export function ReportsDashboard({
             deliveryChart={overview.charts.deliveryChart}
             messagesToday={overview.messagesToday}
             deliveryRate={overview.deliveryRate}
+            delivered={overview.delivered}
+            failed={overview.failed}
+            pending={overview.pending}
+            totalMessages={overview.totalMessages}
           />
         </div>
 
@@ -345,7 +374,7 @@ export function ReportsDashboard({
               className="mb-0"
             />
             <div className="flex flex-wrap gap-2">
-              {failedInView > 0 && (
+              {showRetry && failedInView > 0 && (
                 <form action={retryFailedMessagesAction}>
                   {filters.campaign && (
                     <input type="hidden" name="campaignId" value={filters.campaign} />
@@ -369,10 +398,24 @@ export function ReportsDashboard({
             className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
             onSubmit={(e) => {
               e.preventDefault();
-              goTo({ q: search.trim() || null, page: null });
+              goTo({
+                q: search.trim() || null,
+                member: memberSearch.trim() || null,
+                page: null,
+              });
             }}
           >
-            <div className="relative sm:col-span-2">
+            {showMemberColumn && (
+              <div className="relative sm:col-span-2 lg:col-span-1">
+                <Input
+                  placeholder="Search member name, phone, email…"
+                  value={memberSearch}
+                  onChange={(e) => setMemberSearch(e.target.value)}
+                  className="h-11"
+                />
+              </div>
+            )}
+            <div className={cn("relative", showMemberColumn ? "sm:col-span-2" : "sm:col-span-2")}>
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search phone or message…"
@@ -404,7 +447,9 @@ export function ReportsDashboard({
                 <option value="">All campaigns</option>
                 {campaigns.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {"memberName" in c && c.memberName
+                      ? `${c.name} · ${c.memberName}`
+                      : c.name}
                   </option>
                 ))}
               </select>
@@ -412,9 +457,14 @@ export function ReportsDashboard({
             <Button type="submit" className="h-11 sm:col-span-2 lg:col-span-1">
               Search
             </Button>
-            {(filters.q || filters.country || filters.campaign || filters.status) && (
+            {(filters.q ||
+              filters.country ||
+              filters.campaign ||
+              filters.status ||
+              filters.member ||
+              filters.userId) && (
               <Link
-                href="/dashboard/reports"
+                href={basePath}
                 className="inline-flex h-11 items-center justify-center rounded-xl border px-4 text-sm font-medium hover:bg-muted/50 sm:col-span-2 lg:col-span-1"
               >
                 Clear filters
@@ -429,7 +479,7 @@ export function ReportsDashboard({
                 href={buildReportsQuery(filterBase, {
                   status: o.value === "all" ? null : o.value,
                   page: null,
-                })}
+                }, basePath)}
                 className={cn(
                   "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors",
                   statusFilter === o.value
@@ -447,8 +497,8 @@ export function ReportsDashboard({
               icon={Send}
               title="No messages to show"
               description="Try adjusting filters, or send SMS to see delivery results here."
-              actionLabel="Send SMS"
-              actionHref="/dashboard/send"
+              actionLabel={emptyAction.label}
+              actionHref={emptyAction.href}
             />
           ) : (
             <>
@@ -468,6 +518,9 @@ export function ReportsDashboard({
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/30 text-left text-xs text-muted-foreground">
+                      {showMemberColumn && (
+                        <th className="px-5 py-3 font-medium">Member</th>
+                      )}
                       <th className="px-5 py-3 font-medium">Recipient</th>
                       <th className="px-5 py-3 font-medium">Status</th>
                       <th className="px-5 py-3 font-medium">Country</th>
@@ -489,6 +542,25 @@ export function ReportsDashboard({
                               expanded && "bg-muted/15",
                             )}
                           >
+                            {showMemberColumn && (
+                              <td className="px-5 py-3.5">
+                                {m.memberId ? (
+                                  <Link
+                                    href={`/admin/members/${m.memberId}?tab=messaging`}
+                                    className="font-medium text-primary hover:underline"
+                                  >
+                                    {m.memberName ?? m.memberPhone ?? "Member"}
+                                  </Link>
+                                ) : (
+                                  "—"
+                                )}
+                                {m.memberPhone && (
+                                  <p className="mt-0.5 text-[10px] text-muted-foreground font-mono">
+                                    {m.memberPhone}
+                                  </p>
+                                )}
+                              </td>
+                            )}
                             <td className="max-w-xs px-5 py-3.5">
                               <p className="font-medium">{m.recipient}</p>
                               <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
@@ -529,7 +601,7 @@ export function ReportsDashboard({
                           </tr>
                           {expanded && (
                             <tr key={`${m.id}-detail`} className="border-b border-border/40 bg-muted/10">
-                              <td colSpan={6} className="px-5 py-4">
+                              <td colSpan={showMemberColumn ? 7 : 6} className="px-5 py-4">
                                 <MessageDetails message={m} />
                               </td>
                             </tr>
@@ -547,7 +619,7 @@ export function ReportsDashboard({
             <div className="flex items-center justify-center gap-4 pt-2">
               {page > 1 && (
                 <Link
-                  href={buildReportsQuery(filterBase, { page: String(page - 1) })}
+                  href={buildReportsQuery(filterBase, { page: String(page - 1) }, basePath)}
                   className="inline-flex h-11 items-center rounded-xl border px-5 text-sm font-semibold hover:bg-muted/50"
                 >
                   Previous
@@ -558,7 +630,7 @@ export function ReportsDashboard({
               </span>
               {page < totalPages && (
                 <Link
-                  href={buildReportsQuery(filterBase, { page: String(page + 1) })}
+                  href={buildReportsQuery(filterBase, { page: String(page + 1) }, basePath)}
                   className="inline-flex h-11 items-center rounded-xl border px-5 text-sm font-semibold hover:bg-muted/50"
                 >
                   Next
@@ -569,22 +641,24 @@ export function ReportsDashboard({
         </AppCardBody>
       </AppCard>
 
-      <div className="flex flex-wrap justify-center gap-3 sm:justify-start">
-        <Link
-          href="/dashboard/send"
-          className="inline-flex h-11 items-center gap-2 rounded-xl border border-border/60 px-5 text-sm font-semibold hover:bg-muted/50"
-        >
-          <Send className="h-4 w-4" />
-          Send SMS
-        </Link>
-        <Link
-          href="/dashboard/campaigns"
-          className="inline-flex h-11 items-center gap-2 rounded-xl border border-border/60 px-5 text-sm font-semibold hover:bg-muted/50"
-        >
-          <Megaphone className="h-4 w-4" />
-          Campaigns
-        </Link>
-      </div>
+      {showQuickLinks && (
+        <div className="flex flex-wrap justify-center gap-3 sm:justify-start">
+          <Link
+            href="/dashboard/send"
+            className="inline-flex h-11 items-center gap-2 rounded-xl border border-border/60 px-5 text-sm font-semibold hover:bg-muted/50"
+          >
+            <Send className="h-4 w-4" />
+            Send SMS
+          </Link>
+          <Link
+            href="/dashboard/campaigns"
+            className="inline-flex h-11 items-center gap-2 rounded-xl border border-border/60 px-5 text-sm font-semibold hover:bg-muted/50"
+          >
+            <Megaphone className="h-4 w-4" />
+            Campaigns
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

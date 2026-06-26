@@ -31,12 +31,22 @@ function isValidEmail(email: string) {
 export async function saveMailjetOfficeConfigAction(formData: FormData) {
   const session = await requireAdmin();
 
+  const fromEmail = String(formData.get("fromEmail") ?? "").trim();
+  const fromName = String(formData.get("fromName") ?? "").trim();
+
+  if (!fromEmail || !isValidEmail(fromEmail)) {
+    redirect("/admin/general?error=from_email");
+  }
+  if (!fromName) {
+    redirect("/admin/general?error=from_name");
+  }
+
   await saveMailjetOfficeConfig(
     {
       apiKey: String(formData.get("apiKey") ?? "").trim() || undefined,
       apiSecret: String(formData.get("apiSecret") ?? "").trim() || undefined,
-      fromEmail: String(formData.get("fromEmail") ?? "").trim(),
-      fromName: String(formData.get("fromName") ?? "").trim(),
+      fromEmail,
+      fromName,
       sandbox: formData.get("sandbox") === "on",
     },
     session.userId,
@@ -108,14 +118,21 @@ export async function sendTestEmailAction(formData: FormData) {
   }
 
   const { subject, text, html } = testEmailContent();
+  const { loadMailjetOfficeConfig } = await import("@/lib/email/office-config");
+  const activeConfig = await loadMailjetOfficeConfig();
   const result = await sendEmail({ to, subject, text, html });
 
   await saveGatewayLastTest("mailjet_send_test", {
     ok: result.ok,
     error: !result.ok ? result.error : null,
     details: result.ok
-      ? { to, messageId: "messageId" in result ? result.messageId : undefined }
-      : { to },
+      ? {
+          to,
+          fromEmail: activeConfig?.fromEmail,
+          fromName: activeConfig?.fromName,
+          messageId: "messageId" in result ? result.messageId : undefined,
+        }
+      : { to, fromEmail: activeConfig?.fromEmail },
   });
 
   revalidateGeneral();

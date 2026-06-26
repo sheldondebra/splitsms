@@ -3,6 +3,7 @@ import {
   adminReplySupportTicketAction,
   adminUpdateSupportTicketAction,
 } from "@/lib/actions/admin-platform";
+import { formatTicketNumber } from "@/lib/support/chat";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +13,7 @@ const STATUS_OPTIONS = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"] as const;
 
 export type AdminSupportTicket = {
   id: string;
+  reference: number | null;
   subject: string;
   message: string;
   status: string;
@@ -49,6 +51,11 @@ export function AdminSupportTicketCard({
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <p className={compact ? "font-medium text-sm" : "font-semibold"}>{t.subject}</p>
+            {formatTicketNumber(t.reference) && (
+              <Badge variant="secondary" className="font-mono text-[10px]">
+                {formatTicketNumber(t.reference)}
+              </Badge>
+            )}
             <Badge variant="outline" className="text-[10px]">
               {t.status}
             </Badge>

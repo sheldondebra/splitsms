@@ -1,10 +1,5 @@
 import { format, formatDistanceToNow } from "date-fns";
-import {
-  MobileCardList,
-  MobileCardItem,
-  AppCard,
-  AppCardBody,
-} from "@/components/dashboard/page-shell";
+import { MobileCardList, MobileCardItem } from "@/components/dashboard/page-shell";
 import {
   Table,
   TableBody,
@@ -14,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Monitor, Smartphone } from "lucide-react";
+import { parseUserAgent } from "@/lib/user-agent";
 
 export type SessionRow = {
   id: string;
@@ -23,8 +19,6 @@ export type SessionRow = {
   lastActiveAt: Date;
 };
 
-import { parseUserAgent } from "@/lib/user-agent";
-
 function parseDevice(userAgent: string | null) {
   const p = parseUserAgent(userAgent);
   return { label: p.label, mobile: p.mobile };
@@ -33,7 +27,7 @@ function parseDevice(userAgent: string | null) {
 function SessionIcon({ mobile }: { mobile: boolean }) {
   const Icon = mobile ? Smartphone : Monitor;
   return (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
       <Icon className="h-4 w-4" />
     </div>
   );
@@ -48,7 +42,7 @@ export function SettingsSessions({
 }) {
   if (!sessions.length) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-muted-foreground rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-6 text-center">
         No session history yet. You have {sessionCount} active session
         {sessionCount === 1 ? "" : "s"} on this account.
       </p>
@@ -89,50 +83,56 @@ export function SettingsSessions({
         })}
       </MobileCardList>
 
-      <AppCard className="hidden overflow-hidden md:block">
-        <AppCardBody className="p-0 sm:p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>Device</TableHead>
-                <TableHead>IP address</TableHead>
-                <TableHead>Signed in</TableHead>
-                <TableHead className="text-right">Last active</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sessions.map((s) => {
-                const device = parseDevice(s.userAgent);
-                return (
-                  <TableRow key={s.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2.5">
-                        <SessionIcon mobile={device.mobile} />
-                        <span className="text-sm font-medium">{device.label}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {s.ip ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {format(s.createdAt, "MMM d, yyyy")}
-                    </TableCell>
-                    <TableCell className="text-right text-sm text-muted-foreground">
-                      {formatDistanceToNow(s.lastActiveAt, { addSuffix: true })}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </AppCardBody>
-      </AppCard>
+      <div className="hidden md:block overflow-hidden rounded-xl border border-border/60">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-b border-border/60 bg-muted/20 hover:bg-muted/20">
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Device
+              </TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                IP address
+              </TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Signed in
+              </TableHead>
+              <TableHead className="text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Last active
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sessions.map((s) => {
+              const device = parseDevice(s.userAgent);
+              return (
+                <TableRow key={s.id} className="border-border/50">
+                  <TableCell>
+                    <div className="flex items-center gap-2.5">
+                      <SessionIcon mobile={device.mobile} />
+                      <span className="text-sm font-medium">{device.label}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    {s.ip ?? "—"}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {format(s.createdAt, "MMM d, yyyy")}
+                  </TableCell>
+                  <TableCell className="text-right text-sm text-muted-foreground">
+                    {formatDistanceToNow(s.lastActiveAt, { addSuffix: true })}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
 
-      {sessionCount > sessions.length && (
+      {sessionCount > sessions.length ? (
         <p className="mt-3 text-xs text-muted-foreground">
           Showing {sessions.length} recent of {sessionCount} total sessions.
         </p>
-      )}
+      ) : null}
     </>
   );
 }

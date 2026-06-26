@@ -8,10 +8,13 @@ import { Headphones, Loader2, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   formatChatTime,
-  formatTicketNumber,
   ticketAckMessage,
   type SupportTicketChatRow,
 } from "@/lib/support/chat";
+import {
+  supportPresenceDotClass,
+  type SupportPresence,
+} from "@/lib/support/presence-meta";
 import {
   getChatTicketTag,
   isTicketThreadClosed,
@@ -40,6 +43,10 @@ type SupportChatPanelProps = {
   initialMessages: ChatMessage[];
   draftMessage?: string;
   poll?: boolean;
+  initialPresence?: SupportPresence;
+  /** Render inside a parent card without extra border/radius */
+  embedded?: boolean;
+  className?: string;
 };
 
 const POLL_MS = 4000;
@@ -81,6 +88,9 @@ export function SupportChatPanel({
   initialMessages,
   draftMessage = "",
   poll = true,
+  initialPresence,
+  embedded = false,
+  className,
 }: SupportChatPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const initialMessagesKey = initialMessages
@@ -100,6 +110,13 @@ export function SupportChatPanel({
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
+  const [presence, setPresence] = useState<SupportPresence>(
+    initialPresence ?? {
+      status: "ONLINE",
+      label: "Online",
+      detail: "Live · scroll for history",
+    },
+  );
   const lastSyncRef = useRef<string>("");
   const [, startTransition] = useTransition();
 
@@ -117,8 +134,10 @@ export function SupportChatPanel({
       if (!res.ok) return;
       const data = (await res.json()) as {
         messages: ChatMessage[];
+        presence?: SupportPresence;
         updatedAt: string;
       };
+      if (data.presence) setPresence(data.presence);
       if (data.updatedAt && data.messages) {
         if (data.updatedAt !== lastSyncRef.current) {
           setMessages(data.messages);
@@ -155,8 +174,6 @@ export function SupportChatPanel({
       role: "user",
       body: message,
       time: formatChatTime(now),
-      status: "OPEN",
-      ticketStatus: "OPEN",
     };
 
     setMessages((prev) => [...prev, optimisticUser]);
@@ -174,6 +191,7 @@ export function SupportChatPanel({
         error?: string;
         ticket?: {
           id: string;
+          reference: number;
           ticketNumber: string;
           message: string;
           status: string;
@@ -182,7 +200,7 @@ export function SupportChatPanel({
         row?: SupportTicketChatRow;
       };
 
-      if (!res.ok || !data.ticket) {
+      if (!res.ok || !data.ticket?.ticketNumber) {
         setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
         setText(message);
         setError(data.error ?? "Could not send message. Please try again.");
@@ -190,13 +208,14 @@ export function SupportChatPanel({
       }
 
       const row: SupportTicketChatRow = data.row ?? {
-        id: data.ticket.id,
-        message: data.ticket.message,
-        status: data.ticket.status,
-        createdAt: data.ticket.createdAt,
+        id: data.ticket!.id,
+        reference: data.ticket!.reference,
+        message: data.ticket!.message,
+        status: data.ticket!.status,
+        createdAt: data.ticket!.createdAt,
       };
 
-      const ticketNumber = data.ticket.ticketNumber ?? formatTicketNumber(row.id, row.createdAt);
+      const ticketNumber = data.ticket!.ticketNumber;
 
       setMessages((prev) => {
         const withoutPending = prev.filter((m) => m.id !== optimisticId);
@@ -236,20 +255,30 @@ export function SupportChatPanel({
   }
 
   return (
-    <div className="flex flex-col h-[min(420px,55vh)] max-h-[420px] rounded-2xl border border-border/60 bg-card overflow-hidden">
+    <div
+      className={cn(
+        "flex flex-col overflow-hidden",
+        embedded
+          ? "min-h-[360px] bg-transparent"
+          : "h-[min(420px,55vh)] max-h-[420px] rounded-2xl border border-border/60 bg-card",
+        className,
+      )}
+    >
       <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-border/50 shrink-0">
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary">
           <Headphones className="h-3.5 w-3.5" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold leading-none">Support chat</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Live · scroll for history</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">{presence.detail}</p>
         </div>
         <span
           className={cn(
-            "h-1.5 w-1.5 rounded-full shrink-0",
-            poll ? "bg-emerald-500 animate-pulse" : "bg-emerald-500",
+            "h-2.5 w-2.5 rounded-full shrink-0",
+            supportPresenceDotClass(presence.status),
           )}
+          title={presence.label}
+          aria-label={`Support team ${presence.label.toLowerCase()}`}
         />
       </div>
 
@@ -286,9 +315,13 @@ export function SupportChatPanel({
               )}
             >
               <div className="flex items-center justify-between gap-2 px-0.5">
-                <p className="font-mono text-[9px] font-bold text-primary truncate">
-                  {thread.ticketNumber}
-                </p>
+                {thread.ticketNumber ? (
+                  <p className="font-mono text-[9px] font-bold text-primary truncate">
+                    {thread.ticketNumber}
+                  </p>
+                ) : (
+                  <span />
+                )}
                 <Badge
                   variant="outline"
                   className={cn("gap-0.5 text-[9px] px-1.5 py-0 h-5 shrink-0", tag.className)}

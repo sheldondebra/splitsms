@@ -53,6 +53,7 @@ export const dashboardNavSections: DashboardNavSection[] = [
     items: [
       { href: "/dashboard", label: "Home", icon: Home, mobile: true },
       { href: "/dashboard/send", label: "Send SMS", icon: Send, mobile: true },
+      { href: "/dashboard/sender-ids", label: "Sender ID", icon: BadgeCheck },
       { href: "/dashboard/contacts", label: "Contacts", icon: Users },
       { href: "/dashboard/forms", label: "Smart Forms", icon: FileText },
       { href: "/dashboard/campaigns", label: "Campaigns", icon: Megaphone },
@@ -65,7 +66,6 @@ export const dashboardNavSections: DashboardNavSection[] = [
     collapsible: true,
     defaultOpen: false,
     items: [
-      { href: "/dashboard/sender-ids", label: "Sender ID", icon: BadgeCheck, mobile: true },
       { href: "/dashboard/templates", label: "Templates", icon: FileStack },
       { href: "/dashboard/reports", label: "Message results", icon: BarChart3 },
       { href: "/dashboard/transactions", label: "Transactions", icon: ScrollText },

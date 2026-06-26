@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { sendSmsAction } from "@/lib/actions/sms";
 import { getMessagePreview } from "@/lib/sms/message-preview";
 import { SendCostPreview } from "@/components/sms/send-cost-preview";
+import { SmsSchedulePicker, isSmsScheduledForLater } from "@/components/sms/sms-schedule-picker";
 import { SmsPreview } from "@/components/sms/sms-preview";
 import {
   SendSmsSenderField,
@@ -36,6 +37,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   ChevronDown,
+  Clock3,
   FileText,
   Loader2,
   MessageSquare,
@@ -97,7 +99,11 @@ export function SendSmsForm({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showSuccess, setShowSuccess] = useState(false);
-  const [lastSent, setLastSent] = useState<{ count: number; credits: number } | null>(null);
+  const [lastSent, setLastSent] = useState<
+    | { count: number; credits: number; scheduled?: false }
+    | { count: number; credits: number; scheduled: true; scheduledAt: string; campaignId: string }
+    | null
+  >(null);
   const initialTpl = initialTemplateId
     ? templates.find((t) => t.id === initialTemplateId)
     : undefined;
@@ -112,6 +118,10 @@ export function SendSmsForm({
     return registeredSenders.find((s) => s.status === "PENDING")?.value ?? "";
   });
   const [countryCode, setCountryCode] = useState(defaultCountryCode);
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [scheduleResetKey, setScheduleResetKey] = useState(0);
+
+  const isScheduling = useMemo(() => isSmsScheduledForLater(scheduledAt), [scheduledAt]);
 
   const selectedTemplate = useMemo(
     () => templates.find((t) => t.id === selectedTemplateId),
@@ -148,32 +158,70 @@ export function SendSmsForm({
     const form = e.currentTarget;
     const formData = new FormData(form);
     const count = recipientCount;
-    const toastId = toast.loading("Sending your messages…", {
-      description: `Queuing ${count} message${count === 1 ? "" : "s"} via ${senderId}`,
-    });
+    const toastId = toast.loading(
+      isScheduling ? "Scheduling your messages…" : "Sending your messages…",
+      {
+        description: isScheduling
+          ? `${count} message${count === 1 ? "" : "s"} for ${new Date(scheduledAt).toLocaleString()}`
+          : `Queuing ${count} message${count === 1 ? "" : "s"} via ${senderId}`,
+      },
+    );
 
     startTransition(async () => {
       try {
         const result = await sendSmsAction(formData);
 
         if (result.ok) {
-          setLastSent({ count: result.recipientCount, credits: result.creditsUsed });
+          if (result.scheduled) {
+            setLastSent({
+              count: result.recipientCount,
+              credits: result.estimatedCredits,
+              scheduled: true,
+              scheduledAt: result.scheduledAt,
+              campaignId: result.campaignId,
+            });
+          } else {
+            setLastSent({
+              count: result.recipientCount,
+              credits: result.creditsUsed,
+            });
+          }
           setShowSuccess(true);
           setRecipients("");
           setRecipientChips([]);
           setBody("");
           setSelectedTemplateId("");
+          setScheduledAt("");
+          setScheduleResetKey((k) => k + 1);
 
-          toast.success("Messages sent successfully!", {
-            id: toastId,
-            description: `${result.recipientCount} recipient${result.recipientCount === 1 ? "" : "s"} · ${result.creditsUsed} credit${result.creditsUsed === 1 ? "" : "s"} used`,
-            duration: 6000,
-            action: {
-              label: "View report",
-              onClick: () =>
-                router.push(`/dashboard/reports?campaign=${result.campaignId}`),
-            },
-          });
+          if (result.scheduled) {
+            const when = new Date(result.scheduledAt).toLocaleString(undefined, {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            toast.success("Messages scheduled!", {
+              id: toastId,
+              description: `${result.recipientCount} recipient${result.recipientCount === 1 ? "" : "s"} · ${when}`,
+              duration: 6000,
+              action: {
+                label: "View campaigns",
+                onClick: () => router.push("/dashboard/campaigns"),
+              },
+            });
+          } else {
+            toast.success("Messages sent successfully!", {
+              id: toastId,
+              description: `${result.recipientCount} recipient${result.recipientCount === 1 ? "" : "s"} · ${result.creditsUsed} credit${result.creditsUsed === 1 ? "" : "s"} used`,
+              duration: 6000,
+              action: {
+                label: "View report",
+                onClick: () =>
+                  router.push(`/dashboard/reports?campaign=${result.campaignId}`),
+              },
+            });
+          }
           router.refresh();
           return;
         }
@@ -207,9 +255,13 @@ export function SendSmsForm({
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/15">
               <Loader2 className="h-7 w-7 animate-spin text-primary" />
             </div>
-            <p className="mt-5 text-lg font-semibold">Sending messages…</p>
+            <p className="mt-5 text-lg font-semibold">
+              {isScheduling ? "Scheduling messages…" : "Sending messages…"}
+            </p>
             <p className="mt-1.5 text-sm text-muted-foreground">
-              Delivering to {recipientCount} recipient{recipientCount === 1 ? "" : "s"}
+              {isScheduling
+                ? `Setting up ${recipientCount} message${recipientCount === 1 ? "" : "s"} for later`
+                : `Delivering to ${recipientCount} recipient${recipientCount === 1 ? "" : "s"}`}
             </p>
             <p className="mt-3 text-xs text-muted-foreground">This usually takes a few seconds</p>
           </div>
@@ -229,21 +281,50 @@ export function SendSmsForm({
               <CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-emerald-900 dark:text-emerald-100">
-                  Messages queued successfully
+                  {lastSent.scheduled ? "Messages scheduled" : "Messages queued successfully"}
                 </p>
                 <p className="text-sm text-emerald-800/90 dark:text-emerald-200/90 mt-0.5">
-                  Sent to {lastSent.count} recipient{lastSent.count === 1 ? "" : "s"} ·{" "}
-                  {lastSent.credits} credit{lastSent.credits === 1 ? "" : "s"} used
+                  {lastSent.scheduled ? (
+                    <>
+                      {lastSent.count} recipient{lastSent.count === 1 ? "" : "s"} ·{" "}
+                      {new Date(lastSent.scheduledAt).toLocaleString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                      {" · "}
+                      ~{lastSent.credits} credit{lastSent.credits === 1 ? "" : "s"} at send time
+                    </>
+                  ) : (
+                    <>
+                      Sent to {lastSent.count} recipient{lastSent.count === 1 ? "" : "s"} ·{" "}
+                      {lastSent.credits} credit{lastSent.credits === 1 ? "" : "s"} used
+                    </>
+                  )}
                 </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 h-8 border-emerald-500/30 text-emerald-800 dark:text-emerald-200"
-                  onClick={() => setShowSuccess(false)}
-                >
-                  Dismiss
-                </Button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {lastSent.scheduled ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 border-emerald-500/30 text-emerald-800 dark:text-emerald-200"
+                      render={<Link href="/dashboard/campaigns" />}
+                    >
+                      View campaigns
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 border-emerald-500/30 text-emerald-800 dark:text-emerald-200"
+                    onClick={() => setShowSuccess(false)}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -401,25 +482,40 @@ export function SendSmsForm({
               placeholder="Hello {firstName}, your order is ready!"
               className="min-h-[120px] text-base resize-y"
             />
-            <div className="flex flex-wrap gap-1.5">
-              {TEMPLATE_VARIABLES.slice(0, 5).map((v) => (
-                <Button
-                  key={v.key}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={pending}
-                  className="h-7 rounded-md text-[10px] font-mono px-2"
-                  onClick={() => insertVariable(v.key)}
-                >
-                  {`{${v.key}}`}
-                </Button>
-              ))}
+            <div className="space-y-1.5 pt-1">
+              <p className="text-xs font-medium text-muted-foreground">Personalize your message</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Tap a tag to insert it. Saved contacts get their own name, phone, and other details
+                filled in automatically.
+              </p>
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {TEMPLATE_VARIABLES.slice(0, 5).map((v) => (
+                  <Button
+                    key={v.key}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={pending}
+                    className="h-7 rounded-md text-[10px] font-mono px-2"
+                    onClick={() => insertVariable(v.key)}
+                    title={`Insert ${v.label} — e.g. ${v.example}`}
+                  >
+                    {`{${v.key}}`}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
 
           <input type="hidden" name="senderId" value={senderId} />
           <input type="hidden" name="countryCode" value={countryCode} />
+
+          <SmsSchedulePicker
+            key={scheduleResetKey}
+            value={scheduledAt}
+            onChange={setScheduledAt}
+            disabled={pending}
+          />
 
           <details className="group rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
             <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-muted-foreground select-none">
@@ -458,7 +554,13 @@ export function SendSmsForm({
             {pending ? (
               <>
                 <Loader2 className="h-5 w-5 animate-spin" />
-                Sending…
+                {isScheduling ? "Scheduling…" : "Sending…"}
+              </>
+            ) : isScheduling ? (
+              <>
+                <Clock3 className="h-5 w-5" />
+                Schedule for {recipientCount > 0 ? recipientCount : "…"} recipient
+                {recipientCount === 1 ? "" : "s"}
               </>
             ) : (
               <>

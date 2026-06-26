@@ -7,15 +7,13 @@ import { ContactsTable } from "@/components/contacts/contacts-table";
 import { ContactsFilters } from "@/components/contacts/contacts-filters";
 import { ContactsGroupsPanel } from "@/components/contacts/contacts-groups-panel";
 import { ContactsAddForm } from "@/components/contacts/contacts-add-form";
+import { ContactsStats } from "@/components/contacts/contacts-stats";
 import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
-import { AppPage, PageHeader, AppCard } from "@/components/dashboard/page-shell";
-import { CardContent } from "@/components/ui/card";
+import { AppPage, PageHeader, AppCard, AppCardBody } from "@/components/dashboard/page-shell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Download, Users, Upload, UserPlus, UsersRound } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { buildContactsQueryString } from "@/components/contacts/contacts-pagination";
 
 export default async function ContactsPage({
   searchParams,
@@ -70,11 +68,14 @@ export default async function ContactsPage({
     ? `Imported ${params.imported} contacts${params.invalid ? ` · ${params.invalid} invalid skipped` : ""}${params.dup ? ` · ${params.dup} duplicates skipped` : ""}`
     : undefined;
 
+  const tabTriggerClass =
+    "min-h-10 rounded-lg px-3 py-2 text-sm font-medium gap-2 data-active:bg-primary data-active:text-primary-foreground data-active:shadow-sm data-active:shadow-primary/20 dark:data-active:bg-primary dark:data-active:text-primary-foreground";
+
   return (
-    <AppPage>
+    <AppPage wide>
       <PageHeader
         title="Contacts"
-        description={`${total.toLocaleString()} contact${total === 1 ? "" : "s"} · import, filter, and group for campaigns`}
+        description="Import, organize, and message your audience from one place."
         icon={Users}
         mobileDescription={`${total} contacts — search, import CSV, or add manually.`}
         actions={
@@ -97,106 +98,84 @@ export default async function ContactsPage({
         <FriendlyAlert error={params.error} />
       )}
 
-      <ContactsFilters
-        q={params.q}
-        country={params.country}
-        tag={params.tag}
-        groupId={params.groupId}
-        groups={groups}
+      <ContactsStats
+        total={total}
+        groupCount={groups.length}
+        countryCount={countryBreakdown.length}
       />
 
-      {countryBreakdown.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          <span className="text-xs text-muted-foreground self-center mr-1">By country:</span>
-          {countryBreakdown.map((c) => (
-            <Link
-              key={c.countryCode ?? "unk"}
-              href={`/dashboard/contacts${buildContactsQueryString({
-                ...filterQuery,
-                country: c.countryCode ?? undefined,
-              })}`}
-            >
-              <Badge variant="outline" className="hover:bg-muted/50 cursor-pointer font-mono">
-                {c.countryCode ?? "?"}: {c._count.id}
-              </Badge>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      <Tabs defaultValue="list" className="w-full">
-        <TabsList className="tabs-list-mobile w-full !h-auto min-h-11 p-1.5 gap-1.5 grid grid-cols-2 sm:grid-cols-4 bg-muted/50 rounded-xl border border-border/50">
-          <TabsTrigger
-            value="list"
-            className="!h-auto min-h-10 rounded-lg px-3 py-2.5 text-sm font-medium gap-2 data-[state=active]:shadow-sm"
-          >
+      <Tabs defaultValue="list" className="w-full space-y-4">
+        <TabsList className="tabs-list-mobile w-full !h-auto min-h-11 p-1 gap-1 grid grid-cols-2 sm:grid-cols-4 bg-muted/40 rounded-xl border border-border/50">
+          <TabsTrigger value="list" className={tabTriggerClass}>
             <Users className="h-4 w-4 shrink-0" />
-            <span>All</span>
+            <span>All contacts</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="import"
-            className="!h-auto min-h-10 rounded-lg px-3 py-2.5 text-sm font-medium gap-2 data-[state=active]:shadow-sm"
-          >
+          <TabsTrigger value="import" className={tabTriggerClass}>
             <Upload className="h-4 w-4 shrink-0" />
             <span>Import</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="groups"
-            className="!h-auto min-h-10 rounded-lg px-3 py-2.5 text-sm font-medium gap-2 data-[state=active]:shadow-sm"
-          >
+          <TabsTrigger value="groups" className={tabTriggerClass}>
             <UsersRound className="h-4 w-4 shrink-0" />
             <span>Groups</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="add"
-            className="!h-auto min-h-10 rounded-lg px-3 py-2.5 text-sm font-medium gap-2 data-[state=active]:shadow-sm"
-          >
+          <TabsTrigger value="add" className={tabTriggerClass}>
             <UserPlus className="h-4 w-4 shrink-0" />
-            <span>Add</span>
+            <span>Add new</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="list" className="mt-6">
-          <AppCard className="overflow-hidden border-border/60 shadow-sm">
-            <CardContent className="p-0 sm:p-0">
-              <div className="p-4 sm:p-6">
-                <ContactsTable
-                  contacts={contacts}
-                  groups={groups}
-                  total={total}
-                  page={page}
-                  perPage={perPage}
-                  query={filterQuery}
-                />
-              </div>
-            </CardContent>
+        <TabsContent value="list" className="mt-0 space-y-4">
+          <ContactsFilters
+            q={params.q}
+            country={params.country}
+            tag={params.tag}
+            groupId={params.groupId}
+            groups={groups}
+            countryBreakdown={countryBreakdown}
+          />
+
+          <AppCard className="overflow-hidden">
+            <AppCardBody className="!px-0 !py-0 sm:!px-0 sm:!py-0">
+              <ContactsTable
+                contacts={contacts}
+                groups={groups}
+                total={total}
+                page={page}
+                perPage={perPage}
+                query={filterQuery}
+              />
+            </AppCardBody>
           </AppCard>
         </TabsContent>
 
-        <TabsContent value="import" className="mt-6">
+        <TabsContent value="import" className="mt-0">
           <AppCard>
-            <CardContent className="p-4 sm:p-6 pt-5 sm:pt-6">
-              <div className="mb-5">
-                <h2 className="text-lg font-semibold">Import from CSV</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Paste or upload contact data. Preview validates numbers before saving.
+            <AppCardBody>
+              <div className="mb-6 max-w-2xl">
+                <h2 className="text-lg font-semibold">Import contacts</h2>
+                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                  Upload CSV or Excel, review rows, and confirm before saving to your list.
                 </p>
               </div>
               <CsvImportPanel />
-            </CardContent>
+            </AppCardBody>
           </AppCard>
         </TabsContent>
 
-        <TabsContent value="groups" className="mt-6">
+        <TabsContent value="groups" className="mt-0">
           <AppCard>
-            <CardContent className="p-4 sm:p-6 pt-5 sm:pt-6">
+            <AppCardBody>
               <ContactsGroupsPanel groups={groups} />
-            </CardContent>
+            </AppCardBody>
           </AppCard>
         </TabsContent>
 
-        <TabsContent value="add" className="mt-6">
-          <ContactsAddForm />
+        <TabsContent value="add" className="mt-0">
+          <AppCard>
+            <AppCardBody>
+              <ContactsAddForm />
+            </AppCardBody>
+          </AppCard>
         </TabsContent>
       </Tabs>
     </AppPage>

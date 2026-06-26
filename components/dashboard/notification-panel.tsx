@@ -1,9 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { markAllReadAction, markReadAction } from "@/lib/actions/notifications";
 import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+type NotificationMetadata = {
+  href?: string;
+  ctaLabel?: string;
+};
 
 export type NotificationItem = {
   id: string;
@@ -12,7 +18,16 @@ export type NotificationItem = {
   message: string;
   readAt: Date | null;
   createdAt: Date;
+  metadata?: NotificationMetadata | null;
 };
+
+function notificationCta(metadata: NotificationMetadata | null | undefined) {
+  if (!metadata?.href) return null;
+  return {
+    href: metadata.href,
+    label: metadata.ctaLabel ?? "View",
+  };
+}
 
 export function NotificationBell({
   notifications,
@@ -52,34 +67,45 @@ export function NotificationBell({
               No notifications
             </li>
           ) : (
-            notifications.map((n) => (
-              <li
-                key={n.id}
-                className={cn(
-                  "border-b px-4 py-3 text-sm last:border-0",
-                  !n.readAt && "bg-primary/5",
-                )}
-              >
-                <div className="flex justify-between gap-2">
-                  <p className="font-medium">{n.title}</p>
-                  {!n.readAt && (
-                    <form action={markReadAction}>
-                      <input type="hidden" name="id" value={n.id} />
-                      <button
-                        type="submit"
-                        className="text-[10px] text-primary hover:underline"
-                      >
-                        Mark read
-                      </button>
-                    </form>
+            notifications.map((n) => {
+              const cta = notificationCta(n.metadata);
+              return (
+                <li
+                  key={n.id}
+                  className={cn(
+                    "border-b px-4 py-3 text-sm last:border-0",
+                    !n.readAt && "bg-primary/5",
                   )}
-                </div>
-                <p className="text-muted-foreground text-xs mt-1">{n.message}</p>
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  {new Date(n.createdAt).toLocaleString()}
-                </p>
-              </li>
-            ))
+                >
+                  <div className="flex justify-between gap-2">
+                    <p className="font-medium">{n.title}</p>
+                    {!n.readAt && (
+                      <form action={markReadAction}>
+                        <input type="hidden" name="id" value={n.id} />
+                        <button
+                          type="submit"
+                          className="text-[10px] text-primary hover:underline"
+                        >
+                          Mark read
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground text-xs mt-1">{n.message}</p>
+                  {cta && (
+                    <Link
+                      href={cta.href}
+                      className="mt-2 inline-flex text-xs font-semibold text-primary hover:underline"
+                    >
+                      {cta.label} →
+                    </Link>
+                  )}
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {new Date(n.createdAt).toLocaleString()}
+                  </p>
+                </li>
+              );
+            })
           )}
         </ul>
       </div>

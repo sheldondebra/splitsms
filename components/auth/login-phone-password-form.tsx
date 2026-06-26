@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { loginPasswordAction } from "@/lib/actions/auth";
+import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 import { PasswordField } from "@/components/auth/password-field";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -26,6 +26,7 @@ export function LoginPhonePasswordForm() {
         id="login-password-phone"
         name="password"
         label="Password"
+        placeholder="Enter your password"
         showStrength={false}
         autoComplete="current-password"
       />
@@ -37,9 +38,7 @@ export function LoginPhonePasswordForm() {
           Forgot password?
         </Link>
       </div>
-      <Button type="submit" className="w-full h-11 font-semibold text-base">
-        Sign in
-      </Button>
+      <AuthSubmitButton label="Sign in" pendingLabel="Signing in…" />
       <p className="text-center text-xs text-muted-foreground">
         <Link href="/login" className="text-primary font-medium hover:underline">
           ← Sign in with email instead

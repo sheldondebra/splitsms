@@ -3,13 +3,16 @@ import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { getDashboardOverview } from "@/lib/analytics/dashboard";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
-import { syncUserPendingMnotifyDeliveries } from "@/lib/sms/sync-mnotify-dlr";
+import { userNeedsOnboarding } from "@/lib/onboarding";
+import { redirect } from "next/navigation";
 import { DashboardChartsPanel } from "@/components/dashboard/dashboard-charts-panel";
 import {
   SupportChatPanel,
 } from "@/components/dashboard/support-chat-panel";
 import { buildSupportChatMessages } from "@/lib/support/chat";
+import { loadSupportPresence } from "@/lib/support/presence";
 import { DashboardMetrics, DashboardAlert } from "@/components/dashboard/dashboard-metrics";
+import { DashboardWelcomeBalance } from "@/components/dashboard/dashboard-welcome-balance";
 import { RecentActivityList } from "@/components/dashboard/recent-activity-list";
 import { DeliverySyncPoller } from "@/components/dashboard/delivery-sync-poller";
 import { SetupStrip } from "@/components/dashboard/setup-strip";
@@ -19,9 +22,11 @@ export default async function DashboardPage() {
   const session = await getSession();
   if (!session) return null;
 
-  await syncUserPendingMnotifyDeliveries(session.userId, 20).catch(() => undefined);
+  if (session.role === "MEMBER" && (await userNeedsOnboarding(session.userId))) {
+    redirect("/onboarding");
+  }
 
-  const [data, balance, user, recentMessages, hasTopup, senderIds, tickets] =
+  const [data, balance, user, recentMessages, hasTopup, senderIds, tickets, supportPresence] =
     await Promise.all([
       getDashboardOverview(session.userId),
       getBalanceSnapshot(session.userId),
@@ -55,8 +60,9 @@ export default async function DashboardPage() {
         where: { userId: session.userId },
         orderBy: { createdAt: "asc" },
         take: 12,
-        select: { id: true, message: true, status: true, createdAt: true },
+        select: { id: true, reference: true, message: true, status: true, createdAt: true },
       }),
+      loadSupportPresence(),
     ]);
 
   const hasApprovedSender = senderIds.some((s) => s.status === "APPROVED");
@@ -76,10 +82,7 @@ export default async function DashboardPage() {
           <h1 className="text-2xl font-bold tracking-tight sm:text-[1.65rem]">
             Welcome back, {firstName}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {balance.creditBalance.toLocaleString()} SMS credits ·{" "}
-            {balance.walletCurrency} {balance.walletBalance.toFixed(2)} in wallet
-          </p>
+          <DashboardWelcomeBalance balance={balance} />
         </div>
         <Link
           href="/dashboard/send"
@@ -90,9 +93,10 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      <p className="md:hidden text-sm text-muted-foreground">
-        Hi {firstName} — {balance.creditBalance.toLocaleString()} credits ready to send.
-      </p>
+      <div className="md:hidden space-y-3">
+        <p className="text-sm text-muted-foreground">Hi {firstName}</p>
+        <DashboardWelcomeBalance balance={balance} className="mt-0" />
+      </div>
 
       <Link
         href="/dashboard/send"
@@ -131,10 +135,35 @@ export default async function DashboardPage() {
 
       <DashboardMetrics
         metrics={[
-          { label: "Sent today", value: data.messagesToday, icon: Send },
-          { label: "Delivery rate", value: `${data.deliveryRate}%`, icon: Percent },
-          { label: "Campaigns", value: data.campaigns, icon: Megaphone },
-          { label: "Sender IDs", value: data.activeSenderIds, icon: BadgeCheck },
+          {
+            label: "Sent today",
+            value: data.messagesToday,
+            icon: Send,
+            href: "/dashboard/reports",
+            tone: "primary",
+          },
+          {
+            label: "Delivery rate",
+            value: `${data.deliveryRate}%`,
+            icon: Percent,
+            href: "/dashboard/reports",
+            tone:
+              data.deliveryRate >= 80 ? "success" : data.deliveryRate >= 50 ? "primary" : "warning",
+          },
+          {
+            label: "Campaigns",
+            value: data.campaigns,
+            icon: Megaphone,
+            href: "/dashboard/campaigns",
+            tone: "neutral",
+          },
+          {
+            label: "Sender IDs",
+            value: data.activeSenderIds,
+            icon: BadgeCheck,
+            href: "/dashboard/sender-ids",
+            tone: "neutral",
+          },
         ]}
       />
 
@@ -145,12 +174,19 @@ export default async function DashboardPage() {
             deliveryChart={data.charts.deliveryChart}
             messagesToday={data.messagesToday}
             deliveryRate={data.deliveryRate}
+            delivered={data.delivered}
+            failed={data.failed}
+            pending={data.pending}
+            totalMessages={data.totalMessages}
           />
           <RecentActivityList messages={recentMessages} />
         </div>
 
         <div className="lg:col-span-2">
-          <SupportChatPanel initialMessages={chatMessages} />
+          <SupportChatPanel
+            initialMessages={chatMessages}
+            initialPresence={supportPresence}
+          />
         </div>
       </div>
     </div>

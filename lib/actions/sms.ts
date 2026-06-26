@@ -17,7 +17,21 @@ import { resolveApprovedSenderForUser } from "@/lib/sender-ids/validate-send";
 import { redirect } from "next/navigation";
 
 export type SendSmsResult =
-  | { ok: true; recipientCount: number; campaignId: string; creditsUsed: number }
+  | {
+      ok: true;
+      recipientCount: number;
+      campaignId: string;
+      creditsUsed: number;
+      scheduled?: false;
+    }
+  | {
+      ok: true;
+      recipientCount: number;
+      campaignId: string;
+      scheduled: true;
+      scheduledAt: string;
+      estimatedCredits: number;
+    }
   | { ok: false; error: string };
 
 export async function sendSmsAction(formData: FormData): Promise<SendSmsResult> {
@@ -33,6 +47,7 @@ export async function sendSmsAction(formData: FormData): Promise<SendSmsResult> 
   const body = String(formData.get("body") ?? "");
   const recipientsRaw = String(formData.get("recipients") ?? "");
   const countryCode = String(formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE);
+  const scheduleRaw = String(formData.get("scheduledAt") ?? "");
 
   const recipients = normalizePhones(recipientsRaw);
   if (!body || recipients.length === 0) {
@@ -54,6 +69,35 @@ export async function sendSmsAction(formData: FormData): Promise<SendSmsResult> 
   const costPerUnit = pricing?.memberPrice.toNumber() ?? 0.05;
   const totalUnits = units * recipients.length;
   const totalCost = costPerUnit * totalUnits;
+
+  const scheduledAt = scheduleRaw ? new Date(scheduleRaw) : null;
+  const isScheduled = Boolean(scheduledAt && scheduledAt > new Date());
+
+  if (isScheduled && scheduledAt) {
+    const campaign = await prisma.campaign.create({
+      data: {
+        userId: session.userId,
+        name: `Scheduled send ${scheduledAt.toISOString()}`,
+        senderId,
+        message: body,
+        recipientsText: recipientsRaw,
+        recipientCount: recipients.length,
+        estimatedCost: totalCost,
+        countryCode,
+        status: "SCHEDULED",
+        scheduledAt,
+      },
+    });
+
+    return {
+      ok: true,
+      recipientCount: recipients.length,
+      campaignId: campaign.id,
+      scheduled: true,
+      scheduledAt: scheduledAt.toISOString(),
+      estimatedCredits: totalUnits,
+    };
+  }
 
   const wallet = await prisma.wallet.findUnique({ where: { userId: session.userId } });
   const currency = wallet?.currency ?? "GHS";
@@ -77,7 +121,12 @@ export async function sendSmsAction(formData: FormData): Promise<SendSmsResult> 
   const campaign = await prisma.campaign.create({
     data: {
       userId: session.userId,
-      name: `Quick send ${new Date().toISOString()}`,
+      name: `Quick send · ${new Date().toLocaleString("en-GB", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`,
       senderId,
       message: body,
       status: "SENDING",

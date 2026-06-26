@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+const POLL_MS = 45_000;
+
 /** Poll mNotify delivery reports while messages are still in transit. */
 export function DeliverySyncPoller({ active }: { active: boolean }) {
   const router = useRouter();
@@ -14,14 +16,19 @@ export function DeliverySyncPoller({ active }: { active: boolean }) {
 
     async function sync() {
       try {
-        await fetch("/api/dashboard/delivery-sync", { method: "POST" });
-        if (!cancelled) router.refresh();
+        const res = await fetch("/api/dashboard/delivery-sync", { method: "POST" });
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as { rowsUpdated?: number };
+        if (!cancelled && (data.rowsUpdated ?? 0) > 0) {
+          router.refresh();
+        }
       } catch {
         /* ignore network errors */
       }
     }
 
-    const timer = window.setInterval(sync, 12_000);
+    void sync();
+    const timer = window.setInterval(sync, POLL_MS);
     return () => {
       cancelled = true;
       window.clearInterval(timer);

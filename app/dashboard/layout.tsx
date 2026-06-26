@@ -5,13 +5,14 @@ import { enforceTenantMemberAccess } from "@/lib/reseller/require-tenant-member"
 import { resolveTenantForMemberUser } from "@/lib/reseller/tenant";
 import { getRequestTenant } from "@/lib/reseller/request-tenant";
 import {
-  getUserNotifications,
-  getUnreadCount,
+  getNotificationsSummary,
   ensureLowBalanceNotification,
 } from "@/lib/notifications";
+import { ensureRegisterSenderIdNotification } from "@/lib/sender-ids/notifications";
 import { prisma } from "@/lib/db";
 import { userNeedsProfileCompletion } from "@/lib/auth/phone-auth";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
 import type { Viewport } from "next";
 
@@ -39,23 +40,21 @@ export default async function DashboardLayout({
   const memberTenant =
     hostTenant ?? (await resolveTenantForMemberUser(session.userId));
 
-  const [credit, user, balance] = await Promise.all([
-    prisma.smsCredit.findUnique({ where: { userId: session.userId } }),
+  const [user, balance, { notifications, unreadCount }] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.userId },
       select: { fullName: true, email: true, phone: true },
     }),
     getBalanceSnapshot(session.userId),
+    getNotificationsSummary(session.userId, 15),
   ]);
 
-  if (credit) {
-    await ensureLowBalanceNotification(session.userId, credit.balance);
-  }
-
-  const [notifications, unreadCount] = await Promise.all([
-    getUserNotifications(session.userId, 15),
-    getUnreadCount(session.userId),
-  ]);
+  after(async () => {
+    await Promise.all([
+      ensureLowBalanceNotification(session.userId, balance.creditBalance),
+      ensureRegisterSenderIdNotification(session.userId),
+    ]).catch(() => undefined);
+  });
 
   if (user && userNeedsProfileCompletion(user.fullName)) {
     redirect("/complete-profile");

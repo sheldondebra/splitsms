@@ -1,16 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { logoutAction } from "@/lib/actions/auth";
+import { LogoutConfirmDialog } from "@/components/auth/logout-confirm-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,32 +39,7 @@ export function LogoutConfirmButton({
         {label}
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Sign out?</DialogTitle>
-            <DialogDescription>
-              You will need to sign in again to access your dashboard, wallet, and messages.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex-row gap-2 sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              className="flex-1 sm:flex-none"
-            >
-              Cancel
-            </Button>
-            <form action={logoutAction} className="flex-1 sm:flex-none">
-              <Button type="submit" variant="destructive" className="w-full gap-2">
-                <LogOut className="h-4 w-4" />
-                Yes, sign out
-              </Button>
-            </form>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <LogoutConfirmDialog open={open} onOpenChange={setOpen} />
     </>
   );
 }

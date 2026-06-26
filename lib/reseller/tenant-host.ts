@@ -9,6 +9,20 @@ export function isPlatformHost(host: string) {
   const h = normalizeHost(host);
   if (!h || h === "localhost" || h === "127.0.0.1") return true;
 
+  if (process.env.NODE_ENV === "development") {
+    if (
+      h.startsWith("192.168.") ||
+      h.startsWith("10.") ||
+      h.endsWith(".local")
+    ) {
+      return true;
+    }
+    if (h.startsWith("172.")) {
+      const secondOctet = Number(h.split(".")[1]);
+      if (secondOctet >= 16 && secondOctet <= 31) return true;
+    }
+  }
+
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL;
   if (fromEnv) {
     try {

@@ -46,6 +46,7 @@ import {
 } from "@/lib/auth/reset-session";
 import { logAuthEvent } from "@/lib/auth/audit";
 import { getMemberAccountForUser, isMemberSuspended } from "@/lib/admin/member-account";
+import { userNeedsOnboarding } from "@/lib/onboarding";
 import { assertTenantLoginAllowed } from "@/lib/auth/tenant-login";
 import {
   assertOtpRequestAllowed,
@@ -123,6 +124,9 @@ async function finishLogin(user: {
   }
   if (user.role === "ENTERPRISE") {
     redirect("/enterprise");
+  }
+  if (user.role === "MEMBER" && (await userNeedsOnboarding(user.id))) {
+    redirect("/onboarding");
   }
   redirect("/dashboard");
 }
@@ -443,6 +447,9 @@ export async function completeProfileAction(formData: FormData) {
   }
   if (session.role === "ENTERPRISE") {
     redirect("/enterprise");
+  }
+  if (session.role === "MEMBER" && (await userNeedsOnboarding(session.userId))) {
+    redirect("/onboarding");
   }
   redirect("/dashboard");
 }

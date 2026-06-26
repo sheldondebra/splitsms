@@ -112,28 +112,38 @@ export function ContactsTable({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-0">
+      <div className="flex flex-col gap-3 border-b border-border/50 px-4 py-3 sm:px-6 sm:flex-row sm:items-center sm:justify-between bg-muted/15">
         <p className="text-sm text-muted-foreground">
-          Showing <span className="font-medium text-foreground">{showingFrom}–{showingTo}</span> of{" "}
-          <span className="font-medium text-foreground">{total.toLocaleString()}</span>
+          Showing{" "}
+          <span className="font-semibold text-foreground tabular-nums">
+            {showingFrom}–{showingTo}
+          </span>{" "}
+          of{" "}
+          <span className="font-semibold text-foreground tabular-nums">
+            {total.toLocaleString()}
+          </span>
         </p>
       </div>
 
-      <ContactsBulkActions
-        groups={groups}
-        selectedIds={[...selected]}
-        selectedContacts={selectedContacts}
-        onClear={() => setSelected(new Set())}
-      />
+      {selected.size > 0 ? (
+        <div className="px-4 sm:px-6 pt-4">
+          <ContactsBulkActions
+            groups={groups}
+            selectedIds={[...selected]}
+            selectedContacts={selectedContacts}
+            onClear={() => setSelected(new Set())}
+          />
+        </div>
+      ) : null}
 
       <ContactsMobileList contacts={contacts} groups={groups} />
 
-      <div className="hidden md:block overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
+      <div className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow className="border-b border-border/60 bg-muted/30 hover:bg-muted/30">
-              <TableHead className="w-11 pl-4">
+              <TableHead className="w-11 pl-4 sm:pl-6">
                 <input
                   type="checkbox"
                   checked={contacts.length > 0 && selected.size === contacts.length}
@@ -172,7 +182,7 @@ export function ContactsTable({
                     isSelected && "bg-primary/[0.03]",
                   )}
                 >
-                  <TableCell className="pl-4">
+                  <TableCell className="pl-4 sm:pl-6">
                     <input
                       type="checkbox"
                       checked={isSelected}
@@ -285,16 +295,16 @@ export function ContactsTable({
                     )}
                   </TableCell>
 
-                  <TableCell className="pr-4">
-                    <div className="flex items-center justify-end gap-1.5">
+                  <TableCell className="pr-4 sm:pr-6">
+                    <div className="flex items-center justify-end gap-1">
                       <ContactSendLink phone={c.phone} countryCode={c.countryCode} compact />
 
                       {groups.length > 0 ? (
-                        <form action={addContactToGroupAction} className="flex items-center gap-1">
+                        <form action={addContactToGroupAction} className="flex items-center">
                           <input type="hidden" name="contactId" value={c.id} />
                           <select
                             name="groupId"
-                            className="h-8 max-w-[92px] rounded-md border border-input bg-background px-2 text-[11px]"
+                            className="h-8 w-[88px] rounded-md border border-input bg-background px-1.5 text-[11px]"
                             defaultValue=""
                             aria-label="Add to group"
                           >
@@ -331,12 +341,12 @@ export function ContactsTable({
           </TableBody>
         </Table>
 
-        <div className="border-t border-border/60 bg-muted/20 px-4 py-3">
+        <div className="border-t border-border/50 bg-muted/15 px-4 py-3 sm:px-6">
           <ContactsPagination page={page} total={total} perPage={perPage} query={query} />
         </div>
       </div>
 
-      <div className="md:hidden">
+      <div className="md:hidden px-4 py-3 border-t border-border/50 bg-muted/15">
         <ContactsPagination page={page} total={total} perPage={perPage} query={query} />
       </div>
     </div>

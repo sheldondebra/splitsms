@@ -78,12 +78,12 @@ export default async function SettingsPage({
   const accountId = formatAccountNumber(accountNumber);
 
   return (
-    <AppPage medium>
+    <AppPage wide>
       <PageHeader
         title="Settings"
-        description="Profile, password, theme, webhooks, and account"
+        description="Manage your profile, security, theme, and account preferences."
         icon={Settings}
-        mobileDescription="Manage your account — profile, security, and preferences."
+        mobileDescription="Profile, password, theme, webhooks, and account."
       />
 
       <div className="space-y-4">
