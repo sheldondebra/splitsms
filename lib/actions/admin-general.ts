@@ -12,6 +12,11 @@ import {
   parseNotifyPhones,
   saveGeneralOfficeConfig,
 } from "@/lib/general-office/config";
+import {
+  loadSlackOfficeConfig,
+  saveSlackOfficeConfig,
+} from "@/lib/slack/config";
+import { testSlackConnection } from "@/lib/slack/client";
 import { saveGatewayLastTest } from "@/lib/payments/gateway-settings";
 
 async function requireAdmin() {
@@ -140,4 +145,51 @@ export async function sendTestEmailAction(formData: FormData) {
     redirect("/admin/general?test=send&result=fail");
   }
   redirect(`/admin/general?test=send&result=ok&to=${encodeURIComponent(to)}`);
+}
+
+export async function saveSlackOfficeConfigAction(formData: FormData) {
+  const session = await requireAdmin();
+  const current = await loadSlackOfficeConfig();
+
+  const webhookRaw = String(formData.get("webhookUrl") ?? "").trim();
+  const supportBotTokenRaw = String(formData.get("supportBotToken") ?? "").trim();
+  const supportSigningSecretRaw = String(formData.get("supportSigningSecret") ?? "").trim();
+
+  await saveSlackOfficeConfig(
+    {
+      enabled: formData.get("enabled") === "on",
+      webhookUrl: webhookRaw || current.webhookUrl,
+      supportThreadsEnabled: formData.get("supportThreadsEnabled") === "on",
+      supportBotToken: supportBotTokenRaw || current.supportBotToken,
+      supportChannelId: String(formData.get("supportChannelId") ?? "").trim(),
+      supportSigningSecret: supportSigningSecretRaw || current.supportSigningSecret,
+      notifyUserRegistration: formData.get("notifyUserRegistration") === "on",
+      notifyUserLogin: formData.get("notifyUserLogin") === "on",
+      notifyAuthFailures: formData.get("notifyAuthFailures") === "on",
+      notifySenderIdRequests: formData.get("notifySenderIdRequests") === "on",
+      notifyOfflinePayments: formData.get("notifyOfflinePayments") === "on",
+      notifyOnlinePayments: formData.get("notifyOnlinePayments") === "on",
+      notifySupportTickets: formData.get("notifySupportTickets") === "on",
+    },
+    session.userId,
+  );
+
+  revalidateGeneral();
+  redirect("/admin/general?saved=slack");
+}
+
+export async function testSlackConnectionAction() {
+  await requireAdmin();
+
+  const config = await loadSlackOfficeConfig();
+  const result = await testSlackConnection(config);
+
+  await saveGatewayLastTest("slack_connection_test", {
+    ok: result.ok,
+    error: result.ok ? null : result.error,
+    details: result.ok ? { webhook: Boolean(config.webhookUrl) } : null,
+  });
+
+  revalidateGeneral();
+  redirect(`/admin/general?test=slack&result=${result.ok ? "ok" : "fail"}`);
 }

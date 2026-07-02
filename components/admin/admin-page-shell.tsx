@@ -160,22 +160,30 @@ export function AdminCard({
   title,
   description,
   actions,
+  dense,
 }: {
   children: ReactNode;
   className?: string;
   title?: string;
   description?: ReactNode;
   actions?: ReactNode;
+  dense?: boolean;
 }) {
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden",
+        "border border-border/60 bg-card overflow-hidden",
+        dense ? "rounded-xl shadow-none" : "rounded-2xl shadow-sm",
         className,
       )}
     >
       {(title || description || actions) && (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-5 py-4 border-b border-border/50 bg-muted/15">
+        <div
+          className={cn(
+            "flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between border-b border-border/50 bg-muted/15",
+            dense ? "px-4 py-3" : "px-5 py-4",
+          )}
+        >
           <div>
             {title && <h2 className="font-semibold text-sm">{title}</h2>}
             {description && (
@@ -185,14 +193,25 @@ export function AdminCard({
           {actions}
         </div>
       )}
-      <div className="p-5">{children}</div>
+      <div className={dense ? "p-4" : "p-5"}>{children}</div>
     </div>
   );
 }
 
-export function AdminEmpty({ children }: { children: ReactNode }) {
+export function AdminEmpty({
+  children,
+  dense,
+}: {
+  children: ReactNode;
+  dense?: boolean;
+}) {
   return (
-    <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-6 py-12 text-center text-sm text-muted-foreground">
+    <div
+      className={cn(
+        "rounded-lg border border-dashed border-border/70 bg-muted/20 text-center text-sm text-muted-foreground",
+        dense ? "px-4 py-8" : "px-6 py-12",
+      )}
+    >
       {children}
     </div>
   );

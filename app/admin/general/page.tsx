@@ -13,7 +13,10 @@ import {
   loadMailjetOfficeStored,
 } from "@/lib/email/office-config";
 import { loadGeneralOfficeConfig } from "@/lib/general-office/config";
+import { loadSlackOfficeConfig } from "@/lib/slack/config";
+import { getSiteUrl } from "@/lib/site-config";
 import { loadGatewayLastTest } from "@/lib/payments/gateway-settings";
+import { GeneralSlackPanel } from "@/components/admin/general-slack-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -29,12 +32,13 @@ export default async function AdminGeneralOfficePage({
   }>;
 }) {
   const params = await searchParams;
-  const [configured, stored, raw, officeConfig, connectionTest, sendTest] =
+  const [configured, stored, raw, officeConfig, slackConfig, connectionTest, sendTest] =
     await Promise.all([
       isMailjetConfiguredAsync(),
       loadMailjetOfficeStored(),
       loadMailjetOfficeRaw(),
       loadGeneralOfficeConfig(),
+      loadSlackOfficeConfig(),
       loadGatewayLastTest("mailjet_connection_test"),
       loadGatewayLastTest("mailjet_send_test"),
     ]);
@@ -45,7 +49,7 @@ export default async function AdminGeneralOfficePage({
   return (
     <AdminPage narrow>
       <p className="text-sm text-muted-foreground -mt-2">
-        Configure outbound email and who receives platform alerts.
+        Configure email, SMS alerts, and Slack notifications for your admin team.
       </p>
 
       <GeneralOfficeAlerts
@@ -65,6 +69,11 @@ export default async function AdminGeneralOfficePage({
       />
 
       <GeneralOfficeNotifyPanel config={officeConfig} />
+
+      <GeneralSlackPanel
+        config={slackConfig}
+        eventsUrl={`${getSiteUrl()}/api/slack/events`}
+      />
 
       <AdminCard title="Support inbox">
         <p className="text-sm text-muted-foreground">

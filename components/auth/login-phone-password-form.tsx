@@ -5,9 +5,10 @@ import { PasswordField } from "@/components/auth/password-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function LoginPhonePasswordForm() {
+export function LoginPhonePasswordForm({ returnTo }: { returnTo?: string }) {
   return (
     <form action={loginPasswordAction} className="space-y-4">
+      {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <div className="space-y-2">
         <Label htmlFor="login-identifier">Phone number</Label>
         <Input

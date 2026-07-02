@@ -3,6 +3,8 @@ import { sendEmail } from "@/lib/email";
 import {
   senderIdAdminAlertContent,
   senderIdApprovedMemberContent,
+  senderIdRejectedMemberContent,
+  senderIdSubmittedMemberContent,
 } from "@/lib/email/templates";
 import { loadGeneralOfficeConfig } from "@/lib/general-office/config";
 import { createNotification } from "@/lib/notifications";
@@ -82,6 +84,10 @@ export async function notifyAdminsNewSenderId(senderRecordId: string) {
       }
     }),
   );
+
+  void import("@/lib/slack/notify")
+    .then(({ notifySlackNewSenderId }) => notifySlackNewSenderId(senderRecordId))
+    .catch(() => undefined);
 }
 
 async function userAlreadyNotifiedApproved(userId: string, senderRecordId: string) {
@@ -179,4 +185,78 @@ export async function notifyUserSenderIdApproved(senderRecordId: string) {
     tasks.push(sendPlatformAlertSms(sender.user.phone, smsText));
   }
   await Promise.allSettled(tasks);
+}
+
+export async function notifyUserSenderIdSubmitted(senderRecordId: string, purpose: string) {
+  const sender = await prisma.senderId.findUnique({
+    where: { id: senderRecordId },
+    include: {
+      user: { select: { id: true, fullName: true, phone: true, email: true } },
+    },
+  });
+  if (!sender) return;
+
+  const title = `Sender ID submitted: ${sender.value}`;
+  const message = `Your sender ID "${sender.value}" was submitted to carriers for registration. We'll notify you when you can send SMS with it.`;
+  const smsText = `${siteName}: Sender ID "${sender.value}" submitted to carriers for registration. We'll notify you when it's ready.`;
+
+  await createNotification(sender.user.id, "SYSTEM", title, message, {
+    kind: "sender_id_submitted",
+    senderId: senderRecordId,
+    value: sender.value,
+    href: "/dashboard/sender-ids",
+  });
+
+  const tasks: Promise<unknown>[] = [];
+  if (sender.user.email) {
+    const { subject, text, html } = senderIdSubmittedMemberContent({
+      value: sender.value,
+      memberName: sender.user.fullName,
+      purpose,
+    });
+    tasks.push(sendEmail({ to: sender.user.email, subject, text, html }));
+  }
+  if (sender.user.phone) {
+    tasks.push(sendPlatformAlertSms(sender.user.phone, smsText));
+  }
+  await Promise.allSettled(tasks);
+}
+
+export async function notifyUserSenderIdRejected(senderRecordId: string, reason: string) {
+  const sender = await prisma.senderId.findUnique({
+    where: { id: senderRecordId },
+    include: {
+      user: { select: { id: true, fullName: true, phone: true, email: true } },
+    },
+  });
+  if (!sender) return;
+
+  const note = reason.trim() || "Does not meet naming requirements";
+  const title = `Sender ID not approved: ${sender.value}`;
+  const message = note;
+  const smsText = `${siteName}: Sender ID "${sender.value}" was not approved. ${note} Register another at ${getSiteUrl()}/dashboard/sender-ids`;
+
+  await createNotification(sender.user.id, "SYSTEM", title, message, {
+    kind: "sender_id_rejected",
+    senderId: senderRecordId,
+    value: sender.value,
+    href: "/dashboard/sender-ids",
+    ctaLabel: "Register sender ID",
+  });
+
+  const tasks: Promise<unknown>[] = [];
+  if (sender.user.email) {
+    const { subject, text, html } = senderIdRejectedMemberContent({
+      value: sender.value,
+      memberName: sender.user.fullName,
+      reason: note,
+    });
+    tasks.push(sendEmail({ to: sender.user.email, subject, text, html }));
+  }
+  if (sender.user.phone) {
+    tasks.push(sendPlatformAlertSms(sender.user.phone, smsText));
+  }
+  await Promise.allSettled(tasks);
+
+  await ensureRegisterSenderIdNotification(sender.user.id).catch(() => undefined);
 }

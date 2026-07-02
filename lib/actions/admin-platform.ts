@@ -3,6 +3,10 @@
 import { prisma } from "@/lib/db";
 import { getSession, isAdminRole } from "@/lib/auth/session";
 import { rejectManualPayment } from "@/lib/payments/wallet";
+import {
+  staffReplyToSupportTicket,
+  updateSupportTicketStatus,
+} from "@/lib/support/staff-actions";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { CampaignStatus, SmartFormStatus } from "@/lib/generated/prisma/client";
@@ -38,46 +42,15 @@ export async function adminReplySupportTicketAction(formData: FormData) {
     redirect(`${returnTo}?error=reply`);
   }
 
-  const ticket = await prisma.supportTicket.findUnique({
-    where: { id: ticketId },
-    select: { id: true, userId: true, status: true },
-  });
-  if (!ticket) redirect(`${returnTo}?error=ticket`);
-
-  const nextStatus =
-    statusRaw && SUPPORT_STATUSES.includes(statusRaw as (typeof SUPPORT_STATUSES)[number])
-      ? statusRaw
-      : ticket.status === "OPEN"
-        ? "IN_PROGRESS"
-        : ticket.status;
-
-  await prisma.$transaction([
-    prisma.supportTicketReply.create({
-      data: {
-        ticketId,
-        authorId: session.userId,
-        body,
-        isStaff: true,
-      },
-    }),
-    prisma.supportTicket.update({
-      where: { id: ticketId },
-      data: { status: nextStatus },
-    }),
-  ]);
-
-  const { notifyMemberSupportReply } = await import("@/lib/support/notify-reply");
-  void notifyMemberSupportReply(ticketId, body).catch(() => undefined);
-
-  await logAdmin("SUPPORT_TICKET_REPLY", "SupportTicket", ticketId, session.userId, {
-    userId: ticket.userId,
-    status: nextStatus,
-    preview: body.slice(0, 120),
+  const result = await staffReplyToSupportTicket({
+    ticketId,
+    adminId: session.userId,
+    body,
+    status: statusRaw || undefined,
+    source: "admin",
   });
 
-  revalidatePath("/admin/support");
-  revalidatePath("/dashboard/support");
-  revalidatePath(`/admin/members/${ticket.userId}`);
+  if (!result.ok) redirect(`${returnTo}?error=ticket`);
   redirect(`${returnTo}?saved=reply`);
 }
 
@@ -87,26 +60,14 @@ export async function adminUpdateSupportTicketAction(formData: FormData) {
   const status = String(formData.get("status")).toUpperCase();
   const returnTo = String(formData.get("returnTo") ?? "/admin/support");
 
-  if (!ticketId || !SUPPORT_STATUSES.includes(status as (typeof SUPPORT_STATUSES)[number])) {
-    redirect(`${returnTo}?error=ticket`);
-  }
-
-  const ticket = await prisma.supportTicket.update({
-    where: { id: ticketId },
-    data: { status },
-    select: { id: true, userId: true, status: true },
-  });
-
-  const { notifyMemberSupportStatusUpdated } = await import("@/lib/support/notifications");
-  void notifyMemberSupportStatusUpdated(ticketId, status).catch(() => undefined);
-
-  await logAdmin("SUPPORT_TICKET_UPDATED", "SupportTicket", ticketId, session.userId, {
+  const result = await updateSupportTicketStatus({
+    ticketId,
+    adminId: session.userId,
     status,
-    userId: ticket.userId,
+    source: "admin",
   });
 
-  revalidatePath("/admin/support");
-  revalidatePath(`/admin/members/${ticket.userId}`);
+  if (!result.ok) redirect(`${returnTo}?error=ticket`);
   redirect(`${returnTo}?saved=ticket`);
 }
 

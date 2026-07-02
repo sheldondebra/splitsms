@@ -4,7 +4,7 @@ import {
   normalizeMnotifyPhone,
 } from "@/lib/mnotify";
 import { dispatchUserWebhooks } from "@/lib/webhooks/dispatch";
-import { refundSmsCredits } from "@/lib/sms/billing";
+import { syncCampaignStatus } from "@/lib/campaigns/sync-status";
 
 function mapMnotifyStatus(raw: string): "DELIVERED" | "FAILED" | "SENT" {
   const s = raw.toUpperCase().trim();
@@ -48,6 +48,8 @@ async function applyDeliveryUpdate(
     id: string;
     userId: string;
     status: string;
+    channel: string | null;
+    countryCode: string | null;
     recipient: string;
     smsUnits: number;
     cost: { toNumber: () => number } | null;
@@ -67,21 +69,21 @@ async function applyDeliveryUpdate(
     },
   });
 
-  if (status === "FAILED" && message.status !== "FAILED" && message.user.wallet) {
+  if (status === "FAILED" && message.status !== "FAILED") {
     try {
-      await refundSmsCredits(
-        message.userId,
-        message.smsUnits,
-        message.cost?.toNumber() ?? 0,
-        message.user.wallet.currency,
+      const { refundMessageBilling } = await import("@/lib/sms/message-billing");
+      await refundMessageBilling(
+        message,
+        message.user.wallet?.currency ?? "GHS",
         `DLR failed: ${message.recipient}`,
       );
-    } catch {
-      /* ignore */
+    } catch (err) {
+      console.error("[applyDeliveryUpdate] refund failed", message.id, err);
     }
   }
 
   await dispatchUserWebhooks(message.userId, updatedMsg);
+  await syncCampaignStatus(updatedMsg.campaignId);
   return updatedMsg;
 }
 

@@ -2,19 +2,24 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { formatDistanceToNow } from "date-fns";
 import {
-  approveSenderIdAction,
+  adminSubmitSenderToProvidersAction,
   adminSyncSenderProvidersAction,
   adminResubmitSenderProvidersAction,
   adminSyncAllSenderProvidersAction,
-  rejectSenderIdAction,
   blockSenderIdAction,
 } from "@/lib/actions/admin-sender-ids";
+import {
+  SenderIdApproveDialogTrigger,
+  SenderIdDenyDialogTrigger,
+  useSenderSummary,
+} from "@/components/admin/sender-id-action-dialogs";
 import { SenderIdRegisterForm } from "@/components/admin/sender-id-register-form";
 import { SenderIdPolicyPanel } from "@/components/admin/sender-id-policy-panel";
 import { SenderIdBannedPanel } from "@/components/admin/sender-id-banned-panel";
 import type { AdminBannedSendersDashboard } from "@/lib/admin/sender-id-banned-types";
-import { SenderIdProviderBadges } from "@/components/admin/sender-id-provider-badges";
+import { SenderIdProviderPanel } from "@/components/admin/sender-id-provider-badges";
 import { SenderIdsDashboardCharts } from "@/components/admin/sender-ids-dashboard-charts";
 import { MnotifySenderIdsPanel } from "@/components/admin/mnotify-sender-ids-panel";
 import type { MnotifySenderInventoryRow } from "@/lib/sender-ids/mnotify-inventory";
@@ -23,16 +28,21 @@ import {
   AdminAlert,
   AdminCard,
   AdminEmpty,
-  AdminListRow,
-  AdminStatCard,
 } from "@/components/admin/admin-page-shell";
 import type { AdminSenderIdsDashboard } from "@/lib/admin/sender-ids-dashboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { SenderIdProviderRegistration } from "@/lib/generated/prisma/client";
-import { AlertTriangle, RefreshCw, RotateCcw } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  CheckCircle2,
+  RefreshCw,
+  RotateCcw,
+  Send,
+} from "lucide-react";
 
 type SenderRow = {
   id: string;
@@ -53,12 +63,12 @@ type TabId = "overview" | "pending" | "register" | "all" | "mnotify" | "banned";
 const SAVED_MESSAGES: Record<string, string> = {
   created: "Sender ID created for the member.",
   policy: "Reserved sender name rules saved.",
-  submitted: "Approved on SplitSMS and submitted to carriers — awaiting carrier confirmation.",
+  submitted: "Submitted to carriers — sync status after registration completes.",
   sync: "Provider statuses refreshed.",
   sync_all: "All active sender IDs synced with providers.",
-  resubmit: "Re-submitted to providers — check status after sync.",
-  approved: "Sender ID approved on SplitSMS.",
-  rejected: "Sender ID denied and added to the ban list.",
+  resubmit: "Re-sent to carriers — check status after sync.",
+  approved: "Sender ID approved — member can send SMS and was notified.",
+  rejected: "Sender ID denied — member notified by email and SMS.",
   blocked: "Sender ID blocked and added to the ban list.",
   banned_added: "Name added to the ban list.",
   banned_removed: "Name removed from the ban list.",
@@ -66,16 +76,92 @@ const SAVED_MESSAGES: Record<string, string> = {
 
 const ERROR_MESSAGES: Record<string, string> = {
   provider_denied:
-    "Cannot approve — provider denied or deleted this sender ID. Use Re-submit to register again.",
+    "Cannot approve — all carriers denied this sender ID. Re-submit after fixing the name or purpose.",
   notfound: "Sender ID not found.",
   duplicate: "This sender ID already exists for the member.",
   limit: "Member has reached their sender ID limit.",
   blocked: "Sender ID registration is blocked for this member.",
   invalid: "Invalid sender ID value.",
   reserved:
-    "Reserved or protected name — telcos, banks, government, and global brands are blocked. Use admin override only with verified authorization.",
+    "Reserved or protected name — use admin override only with verified authorization.",
   user: "Member not found.",
 };
+
+function activeProviderRegs(regs: SenderIdProviderRegistration[]) {
+  return regs.filter((r) => r.status !== "SKIPPED");
+}
+
+function allProvidersDenied(regs: SenderIdProviderRegistration[]) {
+  const active = activeProviderRegs(regs);
+  return active.length > 0 && active.every((r) => r.status === "REJECTED" || r.status === "FAILED");
+}
+
+function anyProviderApproved(regs: SenderIdProviderRegistration[]) {
+  return regs.some((r) => r.status === "APPROVED");
+}
+
+function SenderStatsBar({ stats }: { stats: AdminSenderIdsDashboard["stats"] }) {
+  const items = [
+    { label: "Pending", value: stats.pending, hot: stats.pending > 0, primary: true },
+    { label: "Approved", value: stats.approved, hot: false },
+    { label: "Denied", value: stats.rejected, hot: stats.rejected > 0 },
+    {
+      label: "Provider mismatch",
+      value: stats.mismatchCount,
+      hot: stats.mismatchCount > 0,
+      warn: stats.mismatchCount > 0,
+    },
+    { label: "Total", value: stats.total, hot: false },
+  ];
+
+  return (
+    <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-x divide-y sm:divide-y-0 lg:divide-y-0 divide-border/50">
+        {items.map(({ label, value, hot, primary, warn }) => (
+          <div
+            key={label}
+            className={cn(
+              "flex items-center gap-2.5 px-3 py-2.5 min-w-0",
+              hot && primary && "bg-primary/[0.04]",
+              hot && warn && "bg-amber-500/[0.04]",
+              hot && !primary && !warn && "bg-amber-500/[0.04]",
+            )}
+          >
+            <div
+              className={cn(
+                "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+                hot && primary
+                  ? "bg-primary/12 text-primary"
+                  : hot && warn
+                    ? "bg-amber-500/12 text-amber-700 dark:text-amber-300"
+                    : hot
+                      ? "bg-amber-500/12 text-amber-700 dark:text-amber-300"
+                      : "bg-muted text-muted-foreground",
+              )}
+            >
+              <BadgeCheck className="h-3.5 w-3.5" />
+            </div>
+            <div className="min-w-0">
+              <p
+                className={cn(
+                  "text-base font-bold tabular-nums leading-none",
+                  hot && primary && "text-primary",
+                  hot && warn && "text-amber-700 dark:text-amber-300",
+                  hot && !primary && !warn && "text-amber-700 dark:text-amber-300",
+                )}
+              >
+                {value}
+              </p>
+              <p className="text-[10px] font-medium text-muted-foreground truncate mt-0.5">
+                {label}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function AdminSenderIdsView({
   dashboard,
@@ -118,7 +204,7 @@ export function AdminSenderIdsView({
     initialTab === "mnotify" ||
     initialTab === "banned"
       ? initialTab
-      : "overview";
+      : "pending";
 
   function onTabChange(value: string) {
     const params = new URLSearchParams();
@@ -127,7 +213,7 @@ export function AdminSenderIdsView({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 md:space-y-5">
       {saved && SAVED_MESSAGES[saved] && (
         <AdminAlert variant="success">{SAVED_MESSAGES[saved]}</AdminAlert>
       )}
@@ -139,102 +225,66 @@ export function AdminSenderIdsView({
 
       {dashboard.stats.mismatchCount > 0 && (
         <AdminAlert variant="warning">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold">
-                {dashboard.stats.mismatchCount} sender ID
-                {dashboard.stats.mismatchCount === 1 ? "" : "s"} marked approved but not confirmed by
-                any provider
-              </p>
-              <p className="text-xs mt-1 opacity-90">
-                Sync all providers to reconcile status, or re-submit denied senders.
-              </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-2 min-w-0">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-sm">
+                  {dashboard.stats.mismatchCount} approved on SplitSMS but not confirmed by
+                  carriers
+                </p>
+                <p className="text-xs mt-0.5 opacity-90">
+                  Sync all providers or re-submit denied senders.
+                </p>
+              </div>
             </div>
+            <form action={adminSyncAllSenderProvidersAction}>
+              <input type="hidden" name="returnTo" value={`/admin/sender-ids?tab=${tab}`} />
+              <Button type="submit" variant="outline" size="sm" className="h-8 gap-1.5 shrink-0">
+                <RefreshCw className="h-3.5 w-3.5" />
+                Sync all
+              </Button>
+            </form>
           </div>
         </AdminAlert>
       )}
 
+      <SenderStatsBar stats={dashboard.stats} />
+
       <Tabs value={tab} onValueChange={onTabChange} className="gap-4">
-        <TabsList variant="line" className="w-full justify-start rounded-none border-b bg-transparent p-0 flex-wrap h-auto">
-          <TabsTrigger value="overview" className="rounded-none px-4 py-2.5">
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="pending" className="rounded-none px-4 py-2.5">
+        <TabsList
+          variant="line"
+          className="w-full justify-start rounded-none border-b bg-transparent p-0 flex-wrap h-auto gap-0"
+        >
+          <TabsTrigger value="pending" className="rounded-none px-3 py-2 text-xs sm:text-sm">
             Pending
             {pending.length > 0 && (
-              <Badge variant="secondary" className="ml-1.5 text-[10px]">
+              <Badge variant="secondary" className="ml-1.5 text-[9px] px-1.5 py-0 h-4">
                 {pending.length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="register" className="rounded-none px-4 py-2.5">
-            Register
-          </TabsTrigger>
-          <TabsTrigger value="all" className="rounded-none px-4 py-2.5">
+          <TabsTrigger value="all" className="rounded-none px-3 py-2 text-xs sm:text-sm">
             All
           </TabsTrigger>
-          <TabsTrigger value="mnotify" className="rounded-none px-4 py-2.5">
+          <TabsTrigger value="register" className="rounded-none px-3 py-2 text-xs sm:text-sm">
+            Register
+          </TabsTrigger>
+          <TabsTrigger value="overview" className="rounded-none px-3 py-2 text-xs sm:text-sm">
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="mnotify" className="rounded-none px-3 py-2 text-xs sm:text-sm">
             mNotify
           </TabsTrigger>
-          <TabsTrigger value="banned" className="rounded-none px-4 py-2.5">
+          <TabsTrigger value="banned" className="rounded-none px-3 py-2 text-xs sm:text-sm">
             Banned
             {(bannedDashboard.config.bannedEntries.length ?? 0) > 0 && (
-              <Badge variant="secondary" className="ml-1.5 text-[10px]">
+              <Badge variant="secondary" className="ml-1.5 text-[9px] px-1.5 py-0 h-4">
                 {bannedDashboard.config.bannedEntries.length}
               </Badge>
             )}
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="overview" className="mt-4 space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <AdminStatCard label="Total" value={dashboard.stats.total} variant="primary" />
-            <AdminStatCard label="Pending" value={dashboard.stats.pending} />
-            <AdminStatCard label="Approved" value={dashboard.stats.approved} />
-            <AdminStatCard
-              label="Denied"
-              value={dashboard.stats.rejected}
-              variant={dashboard.stats.rejected > 0 ? "warning" : "default"}
-            />
-            <AdminStatCard
-              label="Provider mismatch"
-              value={dashboard.stats.mismatchCount}
-              variant={dashboard.stats.mismatchCount > 0 ? "danger" : "default"}
-            />
-          </div>
-
-          <SenderIdsDashboardCharts
-            statusChart={dashboard.statusChart}
-            providerChart={dashboard.providerChart}
-            signupChart={dashboard.signupChart}
-          />
-
-          <div className="flex flex-wrap gap-2">
-            <form action={adminSyncAllSenderProvidersAction}>
-              <input type="hidden" name="returnTo" value="/admin/sender-ids?tab=overview" />
-              <Button type="submit" variant="outline" size="sm" className="gap-1.5">
-                <RefreshCw className="h-3.5 w-3.5" />
-                Sync all with providers
-              </Button>
-            </form>
-          </div>
-
-          <AdminCard title="Recent registrations">
-            <ul className="divide-y divide-border/50">
-              {dashboard.recent.map((s) => (
-                <li key={s.id} className="py-3 flex flex-wrap justify-between gap-2">
-                  <div>
-                    <p className="font-mono font-semibold text-sm">{s.value}</p>
-                    <p className="text-xs text-muted-foreground">{s.user.fullName}</p>
-                    <SenderIdProviderBadges registrations={s.providerRegistrations} />
-                  </div>
-                  <Badge variant="outline">{s.status}</Badge>
-                </li>
-              ))}
-            </ul>
-          </AdminCard>
-        </TabsContent>
 
         <TabsContent value="pending" className="mt-0">
           <AdminCard
@@ -242,17 +292,35 @@ export function AdminSenderIdsView({
             description={
               pending.length === 0
                 ? "No requests awaiting review"
-                : `${pending.length} awaiting platform approval`
+                : "Review each request, submit to carriers, then confirm approval when ready"
             }
+            dense
           >
             {pending.length === 0 ? (
-              <AdminEmpty>All sender ID requests are processed.</AdminEmpty>
+              <AdminEmpty dense>
+                <CheckCircle2 className="h-6 w-6 mx-auto mb-2 text-emerald-500 opacity-80" />
+                All sender ID requests are processed.
+              </AdminEmpty>
             ) : (
-              <div className="-my-1 space-y-0">
+              <ul className="divide-y divide-border/50 -mx-2">
                 {pending.map((s) => (
                   <SenderIdAdminRow key={s.id} sender={s} returnTo="/admin/sender-ids?tab=pending" />
                 ))}
-              </div>
+              </ul>
+            )}
+          </AdminCard>
+        </TabsContent>
+
+        <TabsContent value="all" className="mt-0">
+          <AdminCard title="All sender IDs" description={`${allSenders.length} shown (latest 100)`} dense>
+            {allSenders.length === 0 ? (
+              <AdminEmpty dense>No sender IDs yet.</AdminEmpty>
+            ) : (
+              <ul className="divide-y divide-border/50 -mx-2">
+                {allSenders.map((s) => (
+                  <SenderIdAdminRow key={s.id} sender={s} returnTo="/admin/sender-ids?tab=all" />
+                ))}
+              </ul>
             )}
           </AdminCard>
         </TabsContent>
@@ -261,26 +329,35 @@ export function AdminSenderIdsView({
           <AdminCard
             title="Register sender ID for a member"
             description="Creates the sender for platform review before carrier submission."
+            dense
           >
-            <SenderIdRegisterForm
-              members={members}
-              returnTo="/admin/sender-ids?tab=register"
-            />
+            <SenderIdRegisterForm members={members} returnTo="/admin/sender-ids?tab=register" />
           </AdminCard>
           <SenderIdPolicyPanel config={reservedConfig} />
         </TabsContent>
 
-        <TabsContent value="all" className="mt-0">
-          <AdminCard title="All sender IDs" description={`${allSenders.length} shown (latest 100)`}>
-            {allSenders.length === 0 ? (
-              <AdminEmpty>No sender IDs yet.</AdminEmpty>
-            ) : (
-              <div className="-my-1 space-y-0">
-                {allSenders.map((s) => (
-                  <SenderIdAdminRow key={s.id} sender={s} returnTo="/admin/sender-ids?tab=all" />
-                ))}
-              </div>
-            )}
+        <TabsContent value="overview" className="mt-0 space-y-4">
+          <SenderIdsDashboardCharts
+            statusChart={dashboard.statusChart}
+            providerChart={dashboard.providerChart}
+            signupChart={dashboard.signupChart}
+          />
+
+          <AdminCard title="Recent registrations" dense>
+            <ul className="divide-y divide-border/50 -mx-2">
+              {dashboard.recent.map((s) => (
+                <li key={s.id} className="px-2 py-2.5 flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-mono font-semibold text-sm">{s.value}</p>
+                    <p className="text-xs text-muted-foreground">{s.user.fullName}</p>
+                    <SenderIdProviderPanel registrations={s.providerRegistrations} compact />
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">
+                    {s.status}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
           </AdminCard>
         </TabsContent>
 
@@ -299,7 +376,7 @@ export function AdminSenderIdsView({
               detail={detail}
             />
           ) : (
-            <AdminEmpty>Loading mNotify inventory…</AdminEmpty>
+            <AdminEmpty dense>Loading mNotify inventory…</AdminEmpty>
           )}
         </TabsContent>
       </Tabs>
@@ -314,107 +391,161 @@ function SenderIdAdminRow({
   sender: SenderRow;
   returnTo: string;
 }) {
-  const providerDenied = s.providerRegistrations.some(
+  const submitted = Boolean(s.providerSubmittedAt);
+  const denied = allProvidersDenied(s.providerRegistrations);
+  const approvedOnCarrier = anyProviderApproved(s.providerRegistrations);
+  const providerRejectedOrFailed = s.providerRegistrations.some(
     (r) => r.status === "REJECTED" || r.status === "FAILED",
   );
   const canResubmit =
     s.status === "REJECTED" ||
-    s.providerRegistrations.some(
-      (r) => r.status === "REJECTED" || r.status === "FAILED",
-    );
+    providerRejectedOrFailed ||
+    (submitted && !approvedOnCarrier);
+  const resubmitLabel =
+    s.status === "REJECTED" || providerRejectedOrFailed ? "Re-submit" : "Resend to carriers";
+
+  const statusHint = !submitted
+    ? "Not submitted to carriers yet"
+    : approvedOnCarrier
+      ? "At least one carrier approved — confirm SplitSMS approval"
+      : denied
+        ? "All carriers denied — re-submit or deny on SplitSMS"
+        : "Submitted — waiting on carrier registration. Resend if stuck on hold.";
+
+  const summary = useSenderSummary(s, returnTo);
 
   return (
-    <AdminListRow>
-      <div className="min-w-0 space-y-2 flex-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-semibold font-mono text-sm">{s.value}</p>
-          <Badge variant="outline" className="text-[10px]">
-            {s.countryCode}
-          </Badge>
-          <Badge variant="outline" className="text-[10px]">
-            {s.status}
-          </Badge>
-          {s.status === "PENDING" && !s.providerSubmittedAt && (
-            <Badge variant="secondary" className="text-[10px]">
-              Awaiting platform review
+    <li className="px-2 py-3 first:pt-1 last:pb-1">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-mono text-sm font-bold tracking-tight">{s.value}</p>
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-5">
+              {s.countryCode}
             </Badge>
-          )}
-          {s.status === "PENDING" && s.providerSubmittedAt && (
-            <Badge variant="secondary" className="text-[10px]">
-              Awaiting carriers
+            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-5">
+              {s.status}
             </Badge>
-          )}
-          <Link
-            href={`/admin/members/${s.user.id}?tab=senders`}
-            className="text-xs text-primary hover:underline"
+            {s.isDefault && (
+              <Badge className="text-[9px] px-1.5 py-0 h-5">Default</Badge>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+            <Link
+              href={`/admin/members/${s.user.id}?tab=senders`}
+              className="font-medium text-foreground hover:text-primary hover:underline"
+            >
+              {s.user.fullName}
+            </Link>
+            <span>·</span>
+            <span>{s.user.phone}</span>
+            <span>·</span>
+            <span>{formatDistanceToNow(s.createdAt, { addSuffix: true })}</span>
+          </div>
+
+          <p
+            className={cn(
+              "text-xs",
+              denied && "text-destructive",
+              approvedOnCarrier && "text-emerald-700 dark:text-emerald-300",
+              !denied && !approvedOnCarrier && "text-muted-foreground",
+            )}
           >
-            {s.user.fullName}
-          </Link>
-        </div>
-        <p className="text-sm text-muted-foreground">{s.user.fullName}</p>
-        <p className="text-xs text-muted-foreground">{s.user.phone}</p>
-        <SenderIdProviderBadges registrations={s.providerRegistrations} />
-        {s.providerStatus && (
-          <p className="text-[11px] text-muted-foreground">{s.providerStatus}</p>
-        )}
-        {providerDenied && (
-          <p className="text-xs text-amber-700 dark:text-amber-300">
-            Provider denied — use Re-submit before approving.
+            {statusHint}
           </p>
-        )}
-      </div>
-      <div className="flex flex-col gap-2 sm:items-end">
-        <form action={adminSyncSenderProvidersAction}>
-          <input type="hidden" name="senderId" value={s.id} />
-          <input type="hidden" name="returnTo" value={returnTo} />
-          <Button size="sm" type="submit" variant="secondary" className="w-full sm:w-auto gap-1">
-            <RefreshCw className="h-3.5 w-3.5" />
-            Sync providers
-          </Button>
-        </form>
-        {canResubmit && (
-          <form action={adminResubmitSenderProvidersAction}>
-            <input type="hidden" name="senderId" value={s.id} />
-            <input type="hidden" name="returnTo" value={returnTo} />
-            <Button size="sm" type="submit" variant="outline" className="w-full sm:w-auto gap-1">
-              <RotateCcw className="h-3.5 w-3.5" />
-              Re-submit
-            </Button>
-          </form>
-        )}
-        {s.status === "PENDING" && (
-          <div className="flex flex-wrap gap-2 sm:justify-end">
-            <form action={approveSenderIdAction}>
-              <input type="hidden" name="id" value={s.id} />
-              <input type="hidden" name="setDefault" value="1" />
+
+          {s.providerStatus && (
+            <p className="text-[11px] text-muted-foreground">{s.providerStatus}</p>
+          )}
+
+          {s.adminNote && (
+            <p className="text-[11px] text-muted-foreground italic">{s.adminNote}</p>
+          )}
+
+          <SenderIdProviderPanel registrations={s.providerRegistrations} compact />
+        </div>
+
+        <div className="flex flex-col gap-2 shrink-0 w-full lg:w-[220px]">
+          {s.status === "PENDING" && (
+            <div className="grid grid-cols-1 gap-2">
+              {!submitted ? (
+                <>
+                  <form action={adminSubmitSenderToProvidersAction}>
+                    <input type="hidden" name="id" value={s.id} />
+                    <input type="hidden" name="returnTo" value={returnTo} />
+                    <input
+                      type="hidden"
+                      name="purpose"
+                      value={summary.defaultPurpose}
+                    />
+                    <Button type="submit" variant="secondary" size="sm" className="w-full h-8 gap-1.5 text-xs">
+                      <Send className="h-3.5 w-3.5" />
+                      Submit to carriers
+                    </Button>
+                  </form>
+                  <SenderIdApproveDialogTrigger
+                    sender={summary}
+                    mode="approve_submit"
+                    label="Approve & submit"
+                    className="w-full h-8 gap-1.5 text-xs"
+                  />
+                </>
+              ) : (
+                <SenderIdApproveDialogTrigger
+                  sender={summary}
+                  mode="confirm_approval"
+                  label="Confirm approval"
+                  disabled={denied && !approvedOnCarrier}
+                  className="w-full h-8 gap-1.5 text-xs"
+                />
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <form action={adminSyncSenderProvidersAction} className="flex-1 min-w-[7rem]">
+              <input type="hidden" name="senderId" value={s.id} />
               <input type="hidden" name="returnTo" value={returnTo} />
-              <Button size="sm" type="submit" disabled={providerDenied}>
-                {s.providerSubmittedAt ? "Confirm approval" : "Approve & submit to carriers"}
+              <Button type="submit" variant="outline" size="sm" className="w-full h-8 gap-1 text-xs">
+                <RefreshCw className="h-3 w-3" />
+                Sync
               </Button>
             </form>
-            <form action={rejectSenderIdAction} className="flex flex-wrap gap-2 items-center">
+            {canResubmit && (
+              <form action={adminResubmitSenderProvidersAction} className="flex-1 min-w-[7rem]">
+                <input type="hidden" name="senderId" value={s.id} />
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <Button type="submit" variant="outline" size="sm" className="w-full h-8 gap-1 text-xs">
+                  <RotateCcw className="h-3 w-3" />
+                  {resubmitLabel}
+                </Button>
+              </form>
+            )}
+          </div>
+
+          {s.status === "PENDING" && (
+            <div className="pt-1 border-t border-border/40">
+              <SenderIdDenyDialogTrigger
+                sender={summary}
+                className="w-full h-8 text-xs gap-1"
+              />
+            </div>
+          )}
+
+          {s.status !== "REJECTED" && s.status !== "PENDING" && (
+            <form action={blockSenderIdAction}>
               <input type="hidden" name="id" value={s.id} />
               <input type="hidden" name="returnTo" value={returnTo} />
               <input type="hidden" name="addToBanList" value="on" />
-              <Input name="note" placeholder="Deny reason" className="h-8 w-36 text-xs" />
-              <Button size="sm" type="submit" variant="destructive">
-                Deny & ban
+              <input type="hidden" name="note" value="Blocked by admin" />
+              <Button type="submit" variant="outline" size="sm" className="w-full h-8 text-xs text-destructive">
+                Block & ban
               </Button>
             </form>
-          </div>
-        )}
-        {s.status !== "REJECTED" && (
-          <form action={blockSenderIdAction}>
-            <input type="hidden" name="id" value={s.id} />
-            <input type="hidden" name="returnTo" value={returnTo} />
-            <input type="hidden" name="addToBanList" value="on" />
-            <input type="hidden" name="note" value="Blocked by admin" />
-            <Button size="sm" type="submit" variant="outline" className="text-destructive">
-              Block & ban
-            </Button>
-          </form>
-        )}
+          )}
+        </div>
       </div>
-    </AdminListRow>
+    </li>
   );
 }

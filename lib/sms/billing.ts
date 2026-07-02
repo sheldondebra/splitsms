@@ -13,42 +13,48 @@ export async function deductSmsCredits(
   countryCode = "GH",
   messageId?: string,
 ) {
-  await assertUserCanSendSms(userId, units);
-
-  const credit = await prisma.smsCredit.findUnique({ where: { userId } });
-  if (!credit || credit.balance < units) {
-    throw new Error("INSUFFICIENT_CREDITS");
-  }
-
   const price = await resolveSmsPriceForUser(userId, countryCode);
+  const billableUnits = units * price.creditsPerSms;
+  await assertUserCanSendSms(userId, billableUnits);
   const providerCost = units * price.platformCost;
-  const creditsBefore = credit.balance;
 
-  await prisma.$transaction([
-    prisma.smsCredit.update({
-      where: { userId },
-      data: { balance: { decrement: units } },
-    }),
-    prisma.transaction.create({
+  await prisma.$transaction(async (tx) => {
+    const credit = await tx.smsCredit.findUnique({ where: { userId } });
+    const creditsBefore = credit?.balance ?? 0;
+    if (creditsBefore < billableUnits) {
+      throw new Error("INSUFFICIENT_CREDITS");
+    }
+
+    const updated = await tx.smsCredit.updateMany({
+      where: { userId, balance: { gte: billableUnits } },
+      data: { balance: { decrement: billableUnits } },
+    });
+    if (updated.count === 0) {
+      throw new Error("INSUFFICIENT_CREDITS");
+    }
+
+    await tx.transaction.create({
       data: {
         userId,
         type: "SMS_DEBIT",
         amount,
         currency,
-        credits: units,
+        credits: billableUnits,
         description,
         status: "completed",
         metadata: {
           creditsBefore,
-          creditsAfter: creditsBefore - units,
+          creditsAfter: creditsBefore - billableUnits,
+          segmentUnits: units,
+          creditsPerSms: price.creditsPerSms,
           providerCost,
           sellPrice: price.sellPrice,
           costPrice: price.costPrice,
           countryCode,
         },
       },
-    }),
-  ]);
+    });
+  });
 
   await recordSmsCommission(userId, units, countryCode, messageId);
 }
@@ -60,15 +66,17 @@ export async function refundSmsCredits(
   currency: string,
   description: string,
 ) {
-  const credit = await prisma.smsCredit.findUnique({ where: { userId } });
-  const creditsBefore = credit?.balance ?? 0;
+  await prisma.$transaction(async (tx) => {
+    const credit = await tx.smsCredit.findUnique({ where: { userId } });
+    const creditsBefore = credit?.balance ?? 0;
 
-  await prisma.$transaction([
-    prisma.smsCredit.update({
+    await tx.smsCredit.upsert({
       where: { userId },
-      data: { balance: { increment: units } },
-    }),
-    prisma.transaction.create({
+      update: { balance: { increment: units } },
+      create: { userId, balance: units },
+    });
+
+    await tx.transaction.create({
       data: {
         userId,
         type: "REFUND",
@@ -79,8 +87,8 @@ export async function refundSmsCredits(
         status: "completed",
         metadata: { creditsBefore, creditsAfter: creditsBefore + units },
       },
-    }),
-  ]);
+    });
+  });
 }
 
 export async function getLowBalanceWarning(userId: string, threshold = 10) {

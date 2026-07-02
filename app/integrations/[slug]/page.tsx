@@ -2,11 +2,18 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MarketingPageShell } from "@/components/marketing/marketing-page-shell";
 import { IntegrationDetailContent } from "@/components/marketing/integration-detail-content";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import {
   getAllIntegrationSlugs,
   getIntegration,
 } from "@/lib/marketing/integrations-catalog";
-import { getSiteUrl } from "@/lib/site-config";
+import {
+  breadcrumbJsonLd,
+  organizationJsonLd,
+  websiteJsonLd,
+  webPageJsonLd,
+} from "@/lib/seo/site";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -19,17 +26,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const integration = getIntegration(slug);
   if (!integration) return { title: "Integration not found" };
 
-  const canonical = `/integrations/${slug}`;
-  return {
-    title: `${integration.name} Integration`,
+  const title =
+    slug === "woocommerce"
+      ? "WooCommerce SMS Integration — Order & Payment Notifications"
+      : slug === "paystack"
+        ? "Paystack SMS — WooCommerce Payment Confirmation Texts"
+        : `${integration.name} SMS Integration`;
+
+  return buildPageMetadata({
+    title,
     description: integration.metaDescription,
-    alternates: { canonical },
-    openGraph: {
-      url: `${getSiteUrl()}${canonical}`,
-      title: `${integration.name} + SplitSMS`,
-      description: integration.metaDescription,
-    },
-  };
+    path: `/integrations/${slug}`,
+    keywords: [
+      `${integration.name} SMS`,
+      `${integration.name} integration`,
+      "SMS integration",
+      "WordPress SMS",
+      "SplitSMS",
+    ],
+  });
 }
 
 export default async function IntegrationDetailPage({ params }: PageProps) {
@@ -37,8 +52,26 @@ export default async function IntegrationDetailPage({ params }: PageProps) {
   const integration = getIntegration(slug);
   if (!integration) notFound();
 
+  const path = `/integrations/${slug}`;
+
   return (
     <MarketingPageShell>
+      <JsonLdScript
+        data={[
+          websiteJsonLd,
+          organizationJsonLd,
+          webPageJsonLd({
+            name: `${integration.name} + SplitSMS`,
+            description: integration.metaDescription,
+            path,
+          }),
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "Integrations", path: "/integrations" },
+            { name: integration.name, path },
+          ]),
+        ]}
+      />
       <IntegrationDetailContent integration={integration} />
     </MarketingPageShell>
   );

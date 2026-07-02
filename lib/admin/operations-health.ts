@@ -5,8 +5,10 @@ import { SMS_SEND_QUEUE } from "@/lib/queue/sms-queue";
 import { isMailjetConfigured } from "@/lib/email/config";
 import { getMnotifyStatus } from "@/lib/mnotify";
 import { getPaymentGatewaysOverview } from "@/lib/payments/gateway-settings";
-
 import { smsWorkersEnabled } from "@/lib/queue/sms-workers-enabled";
+import type { MessageStatus } from "@/lib/generated/prisma/client";
+
+const QUEUED_MESSAGE_STATUSES: MessageStatus[] = ["PENDING", "PROCESSING"];
 
 export type OperationsHealth = {
   database: { ok: boolean; latencyMs: number | null };
@@ -93,9 +95,9 @@ export async function getOperationsHealth(): Promise<OperationsHealth> {
   const stuckThreshold = new Date(Date.now() - 30 * 60 * 1000);
 
   const [pendingMessages, stuckMessages, mnotify, gateways, redisProbe] = await Promise.all([
-    prisma.message.count({ where: { status: "PENDING" } }),
+    prisma.message.count({ where: { status: { in: QUEUED_MESSAGE_STATUSES } } }),
     prisma.message.count({
-      where: { status: "PENDING", createdAt: { lt: stuckThreshold } },
+      where: { status: { in: QUEUED_MESSAGE_STATUSES }, createdAt: { lt: stuckThreshold } },
     }),
     getMnotifyStatus(),
     getPaymentGatewaysOverview(),
@@ -145,5 +147,62 @@ export async function getOperationsHealth(): Promise<OperationsHealth> {
     smsGateway,
     activePaymentGateways,
     overall,
+  };
+}
+
+/** User-facing copy for admin SMS delivery status cards. */
+export function describeSmsDeliveryMode(health: OperationsHealth): {
+  modeLabel: string;
+  statusLabel: string;
+  detail: string;
+  tone: "ok" | "warning" | "muted";
+} {
+  if (health.redis.workersEnabled) {
+    if (health.redis.ok) {
+      const waiting = health.queue?.waiting ?? 0;
+      return {
+        modeLabel: "Worker queue",
+        statusLabel: "Redis connected",
+        detail:
+          waiting > 0
+            ? `${waiting} job${waiting === 1 ? "" : "s"} waiting — npm run worker:sms is processing the queue.`
+            : "Worker queue is connected and idle.",
+        tone: "ok",
+      };
+    }
+
+    return {
+      modeLabel: "Worker queue",
+      statusLabel: "Redis offline",
+      detail:
+        "Start Redis and npm run worker:sms, or unset SMS_WORKERS_ENABLED to send inline from the app.",
+      tone: "warning",
+    };
+  }
+
+  if (health.stuckMessages > 0) {
+    return {
+      modeLabel: "Inline delivery",
+      statusLabel: `${health.stuckMessages} stuck`,
+      detail:
+        "Some messages pending over 30 minutes. Call /api/cron/process-sms on a schedule with CRON_SECRET.",
+      tone: "warning",
+    };
+  }
+
+  if (health.pendingMessages > 0) {
+    return {
+      modeLabel: "Inline delivery",
+      statusLabel: `${health.pendingMessages} pending`,
+      detail: "Messages send from the app. The process-sms cron drains any backlog automatically.",
+      tone: "muted",
+    };
+  }
+
+  return {
+    modeLabel: "Inline delivery",
+    statusLabel: "Ready",
+    detail: "SMS sends through mNotify when users submit — no Redis worker required.",
+    tone: "ok",
   };
 }

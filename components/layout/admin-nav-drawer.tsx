@@ -41,7 +41,7 @@ export function AdminNavDrawer({ open, onClose, badges }: AdminNavDrawerProps) {
         <AdminSidebar
           badges={badges}
           onNavigate={onClose}
-          className="h-full w-[min(100vw,280px)] shadow-2xl"
+          className="h-full w-[min(100vw,240px)] shadow-2xl"
         />
         <button
           type="button"

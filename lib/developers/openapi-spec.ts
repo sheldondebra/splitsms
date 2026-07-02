@@ -372,6 +372,14 @@ export function buildLlmsTxt(siteUrl: string, apiBaseUrl: string): string {
 - Integration generator: ${base}/developers/generate
 - AI prompt library: ${base}/developers/prompts
 - Vibe coders landing: ${base}/vibe-coders
+- SMS solutions hub: ${base}/solutions
+- SMS Ghana: ${base}/solutions/sms
+- mNotify alternative: ${base}/solutions/mnotify
+- Infobip alternative: ${base}/solutions/infobip
+- OTP SMS API: ${base}/solutions/otp
+- WooCommerce SMS: ${base}/solutions/woocommerce-sms
+- Paystack SMS: ${base}/solutions/paystack-sms
+- SMS integration: ${base}/solutions/sms-integration
 - SDK install: ${base}/sdk
 - Postman: ${base}/developers/postman
 

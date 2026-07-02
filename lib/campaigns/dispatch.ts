@@ -5,11 +5,6 @@ import { personalizeMessage } from "@/lib/sms/personalize";
 import { enqueueSmsJob } from "@/lib/queue/enqueue-sms";
 import { resolveMessagePriority } from "@/lib/enterprise/priority";
 import { createNotification } from "@/lib/notifications";
-import { emitCampaignCompleted } from "@/lib/webhooks/events";
-import {
-  computeNextScheduledAt,
-  shouldScheduleRecurrence,
-} from "@/lib/campaigns/recurrence";
 import type { CampaignRecurrence } from "@/lib/generated/prisma/client";
 
 export type CampaignRecipient = {
@@ -111,6 +106,7 @@ export async function dispatchCampaign(campaignId: string) {
       totalCost,
       currency,
       `Campaign: ${campaign.name}`,
+      countryCode ?? "GH",
     );
   } catch {
     await prisma.campaign.update({
@@ -157,75 +153,5 @@ export async function dispatchCampaign(campaignId: string) {
     await enqueueSmsJob(msg.id, countryCode, priority);
   }
 
-  await prisma.campaign.update({
-    where: { id: campaignId },
-    data: { status: "COMPLETED" },
-  });
-
-  await createNotification(
-    campaign.userId,
-    "CAMPAIGN_COMPLETED",
-    "Campaign completed",
-    `"${campaign.name}" finished sending to ${recipients.length} recipients.`,
-    { campaignId },
-  );
-
-  await emitCampaignCompleted(campaign.userId, {
-    id: campaign.id,
-    name: campaign.name,
-    recipientCount: recipients.length,
-  });
-
-  await maybeScheduleRecurrence(campaign);
-
   return { ok: true as const, sent: recipients.length };
-}
-
-async function maybeScheduleRecurrence(campaign: {
-  id: string;
-  userId: string;
-  name: string;
-  senderId: string;
-  message: string;
-  contactGroupId: string | null;
-  countryCode: string;
-  recurrence: CampaignRecurrence;
-  recurrenceDays: number | null;
-  recurrenceEndAt: Date | null;
-  timezone: string;
-  scheduledAt: Date | null;
-}) {
-  if (campaign.recurrence === "NONE") return;
-
-  const base = campaign.scheduledAt ?? new Date();
-  const nextAt = computeNextScheduledAt(base, campaign.recurrence, campaign.recurrenceDays);
-  if (!nextAt || !shouldScheduleRecurrence(campaign.recurrence, campaign.recurrenceEndAt, nextAt)) {
-    return;
-  }
-
-  await prisma.campaign.create({
-    data: {
-      userId: campaign.userId,
-      name: `${campaign.name} (recurring)`,
-      senderId: campaign.senderId,
-      message: campaign.message,
-      contactGroupId: campaign.contactGroupId ?? undefined,
-      countryCode: campaign.countryCode,
-      timezone: campaign.timezone,
-      recurrence: campaign.recurrence,
-      recurrenceDays: campaign.recurrenceDays ?? undefined,
-      recurrenceEndAt: campaign.recurrenceEndAt ?? undefined,
-      parentCampaignId: campaign.id,
-      status: "SCHEDULED",
-      scheduledAt: nextAt,
-    },
-  });
-
-  await createNotification(
-    campaign.userId,
-    "SYSTEM",
-    "Recurring campaign scheduled",
-    `Next run of "${campaign.name}" is scheduled for ${nextAt.toISOString()}.`,
-    { parentCampaignId: campaign.id },
-  );
 }

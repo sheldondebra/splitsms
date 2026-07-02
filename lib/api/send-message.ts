@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { countSmsUnits, normalizePhones } from "@/lib/sms/units";
 import { deductSmsCredits } from "@/lib/sms/billing";
+import { resolveSmsPriceForUser } from "@/lib/reseller/pricing";
 import { enqueueSmsJob } from "@/lib/queue/enqueue-sms";
 import { resolveMessagePriority } from "@/lib/enterprise/priority";
 import { processSandboxMessage } from "@/lib/api/sandbox";
@@ -37,23 +38,11 @@ export async function apiSendMessages(ctx: ApiContext, input: SendSmsInput) {
   const currency = ctx.user.wallet?.currency ?? "GHS";
 
   let costPerUnit = 0;
+  let totalCost = 0;
   if (!ctx.isSandbox) {
-    const pricing = await prisma.smsPricing.findFirst({
-      where: { country: { code: input.countryCode } },
-    });
-    costPerUnit = pricing?.memberPrice.toNumber() ?? 0.05;
-    const totalCost = costPerUnit * totalUnits;
-    try {
-      await deductSmsCredits(
-        ctx.user.id,
-        totalUnits,
-        totalCost,
-        currency,
-        `API send ${recipientList.length} recipients`,
-      );
-    } catch {
-      return apiError("INSUFFICIENT_CREDITS", "Insufficient SMS credits", 402);
-    }
+    const price = await resolveSmsPriceForUser(ctx.user.id, input.countryCode);
+    costPerUnit = price.sellPrice;
+    totalCost = costPerUnit * totalUnits;
   }
 
   const campaign = await prisma.campaign.create({
@@ -68,26 +57,51 @@ export async function apiSendMessages(ctx: ApiContext, input: SendSmsInput) {
     },
   });
 
+  const messages = await prisma.$transaction(async (tx) => {
+    const created = [];
+    for (const recipient of recipientList) {
+      created.push(
+        await tx.message.create({
+          data: {
+            userId: ctx.user.id,
+            campaignId: campaign.id,
+            recipient,
+            body: input.message,
+            senderId: approvedSender,
+            countryCode: input.countryCode,
+            smsUnits: units,
+            cost: ctx.isSandbox ? 0 : costPerUnit * units,
+            status: "PENDING",
+            isSandbox: ctx.isSandbox,
+            priority: ctx.isSandbox ? "MEDIUM" : resolveMessagePriority({ channel: "api", body: input.message }),
+            channel: "api",
+          },
+        }),
+      );
+    }
+    return created;
+  });
+
+  if (!ctx.isSandbox) {
+    try {
+      await deductSmsCredits(
+        ctx.user.id,
+        totalUnits,
+        totalCost,
+        currency,
+        `API send ${recipientList.length} recipients`,
+        input.countryCode,
+      );
+    } catch {
+      await prisma.campaign.delete({ where: { id: campaign.id } });
+      return apiError("INSUFFICIENT_CREDITS", "Insufficient SMS credits", 402);
+    }
+  }
+
   const ids: string[] = [];
   const priority = resolveMessagePriority({ channel: "api", body: input.message });
 
-  for (const recipient of recipientList) {
-    const message = await prisma.message.create({
-      data: {
-        userId: ctx.user.id,
-        campaignId: campaign.id,
-        recipient,
-        body: input.message,
-        senderId: approvedSender,
-        countryCode: input.countryCode,
-        smsUnits: units,
-        cost: ctx.isSandbox ? 0 : costPerUnit * units,
-        status: "PENDING",
-        isSandbox: ctx.isSandbox,
-        priority: ctx.isSandbox ? "MEDIUM" : priority,
-        channel: "api",
-      },
-    });
+  for (const message of messages) {
     ids.push(message.id);
 
     if (ctx.isSandbox) {
@@ -95,13 +109,6 @@ export async function apiSendMessages(ctx: ApiContext, input: SendSmsInput) {
     } else {
       await enqueueSmsJob(message.id, input.countryCode, priority);
     }
-  }
-
-  if (!ctx.isSandbox) {
-    await prisma.campaign.update({
-      where: { id: campaign.id },
-      data: { status: "COMPLETED" },
-    });
   }
 
   return apiSuccess({

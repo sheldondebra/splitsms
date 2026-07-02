@@ -18,4 +18,8 @@ export async function logAuthEvent(
   } catch {
     /* non-blocking */
   }
+
+  void import("@/lib/slack/auth-hooks")
+    .then(({ dispatchSlackAuthEvent }) => dispatchSlackAuthEvent(action, metadata, actorId))
+    .catch(() => undefined);
 }

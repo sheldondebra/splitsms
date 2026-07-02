@@ -65,17 +65,66 @@ export function InfoRow({
   label,
   value,
   mono,
+  compact,
 }: {
   label: string;
   value: React.ReactNode;
   mono?: boolean;
+  compact?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-2.5 border-b border-border/40 last:border-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className={cn("text-sm font-medium text-right", mono && "font-mono text-xs")}>
+    <div
+      className={cn(
+        "flex items-center justify-between gap-4 border-b border-border/40 last:border-0",
+        compact ? "py-2" : "py-2.5",
+      )}
+    >
+      <span className={cn("text-muted-foreground", compact ? "text-xs" : "text-sm")}>
+        {label}
+      </span>
+      <span
+        className={cn(
+          "font-medium text-right",
+          compact ? "text-xs" : "text-sm",
+          mono && "font-mono text-xs",
+        )}
+      >
         {value}
       </span>
+    </div>
+  );
+}
+
+export function DetailTile({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  mono,
+  className,
+}: {
+  label: string;
+  value: React.ReactNode;
+  hint?: React.ReactNode;
+  icon?: LucideIcon;
+  mono?: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border border-border/50 bg-muted/15 px-3 py-2.5 min-w-0",
+        className,
+      )}
+    >
+      <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {Icon && <Icon className="h-3 w-3 shrink-0" />}
+        <span className="truncate">{label}</span>
+      </div>
+      <p className={cn("mt-1 text-sm font-semibold truncate", mono && "font-mono text-xs")}>
+        {value}
+      </p>
+      {hint && <p className="mt-0.5 text-[10px] text-muted-foreground truncate">{hint}</p>}
     </div>
   );
 }

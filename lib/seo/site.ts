@@ -5,6 +5,8 @@ export const siteUrl = getSiteUrl();
 export const siteName = configSiteName;
 
 export const defaultKeywords = [
+  "SMS",
+  "SMS Ghana",
   "bulk SMS",
   "bulk SMS platform",
   "bulk SMS Ghana",
@@ -14,22 +16,30 @@ export const defaultKeywords = [
   "REST SMS API",
   "SMS gateway",
   "SMS gateway API",
+  "SMS gateway Ghana",
   "send SMS online",
   "SMS marketing",
   "transactional SMS",
+  "OTP",
+  "OTP SMS",
   "OTP SMS API",
   "SMS verification API",
+  "SMS integration",
   "affordable SMS",
   "cheap bulk SMS",
   "international SMS",
   "global SMS",
   "WooCommerce SMS",
+  "Paystack SMS",
   "WordPress SMS plugin",
   "SMS webhooks",
   "SMS delivery reports",
-  "SplitSMS",
+  "mNotify",
+  "mNotify alternative",
   "Infobip alternative",
   "Twilio SMS alternative",
+  "vibe coders SMS API",
+  "SplitSMS",
 ];
 
 /** Brand wordmark served from /public — 1024×343 PNG */
@@ -81,12 +91,28 @@ export const organizationJsonLd = {
   },
   knowsAbout: [
     "Bulk SMS",
+    "SMS Ghana",
     "SMS API",
     "OTP verification",
     "SMS marketing",
     "Transactional messaging",
+    "WooCommerce SMS",
+    "Paystack SMS integration",
+    "mNotify routing",
+    "SMS integration",
   ],
 };
+
+export function faqPageJsonLd(faqs: { question: string; answer: string }[]) {
+  return {
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: { "@type": "Answer", text: faq.answer },
+    })),
+  };
+}
 
 export const websiteJsonLd = {
   "@type": "WebSite",

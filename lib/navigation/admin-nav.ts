@@ -19,6 +19,7 @@ import {
   LifeBuoy,
   Activity,
   Send,
+  MessagesSquare,
 } from "lucide-react";
 
 export type AdminNavItem = {
@@ -41,7 +42,7 @@ export const adminNavSections: AdminNavSection[] = [
     items: [
       { href: "/admin", label: "Overview", icon: LayoutDashboard },
       { href: "/admin/operations", label: "Operations", icon: Activity, badge: "operations-attention" },
-      { href: "/admin/general", label: "General office", icon: Settings },
+      { href: "/admin/general", label: "Settings", icon: Settings },
     ],
   },
   {
@@ -49,6 +50,7 @@ export const adminNavSections: AdminNavSection[] = [
     label: "Users",
     items: [
       { href: "/admin/members", label: "Members", icon: Users },
+      { href: "/admin/outreach", label: "Bulk messages", icon: MessagesSquare },
       { href: "/admin/resellers", label: "Resellers", icon: Store },
       { href: "/admin/enterprise", label: "Enterprise", icon: Building2 },
     ],

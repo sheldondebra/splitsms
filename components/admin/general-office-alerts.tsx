@@ -34,6 +34,18 @@ export function GeneralOfficeAlerts({
       {params.saved === "alerts" && (
         <AdminAlert variant="success">Alert contacts saved.</AdminAlert>
       )}
+      {params.saved === "slack" && (
+        <AdminAlert variant="success">Slack notification settings saved.</AdminAlert>
+      )}
+
+      {params.test === "slack" && params.result === "ok" && (
+        <AdminAlert variant="success">Test message posted to your Slack channel.</AdminAlert>
+      )}
+      {params.test === "slack" && params.result === "fail" && (
+        <AdminAlert variant="warning">
+          Slack test failed. Check bot token, channel ID, and that the bot is invited to the channel.
+        </AdminAlert>
+      )}
 
       {params.test === "connection" && params.result === "ok" && (
         <AdminAlert variant="success">Mailjet connection verified.</AdminAlert>

@@ -145,7 +145,7 @@ export const integrationsCatalog: IntegrationDef[] = [
     logoSrc: LOGO.paystack,
     brandColor: "#00C3F7",
     metaDescription:
-      "Connect Paystack on your WordPress store with SplitSMS. Send order and payment-complete SMS when customers pay via Paystack on WooCommerce.",
+      "Paystack SMS for WooCommerce — send payment confirmation and order SMS when customers pay via Paystack on WordPress. Webhook-safe, Ghana-ready SplitSMS plugin.",
     heroDescription:
       "Run WooCommerce with the Paystack payment gateway and SplitSMS together — customers get instant SMS when they place an order and when Paystack confirms payment.",
     overview:
@@ -239,7 +239,7 @@ export const integrationsCatalog: IntegrationDef[] = [
     logoSrc: LOGO.woocommerce,
     brandColor: "#96588A",
     metaDescription:
-      "WooCommerce SMS notifications with SplitSMS — order placed, payment complete, processing, completed, and cancelled messages.",
+      "WooCommerce SMS notifications with SplitSMS — order placed, payment complete, processing, completed, cancelled, and shipped messages. Free WordPress plugin, HPOS compatible.",
     heroDescription:
       "Keep customers informed at every step of their WooCommerce order with automated SMS powered by SplitSMS.",
     overview:

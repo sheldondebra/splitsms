@@ -78,7 +78,7 @@ function capitalize(s: string) {
 
 async function resolveStripeSessionId(payment: Payment) {
   const meta = readPaymentMetadata(payment.metadata);
-  let sessionId = meta.stripeSessionId ?? payment.providerReference ?? "";
+  const sessionId = meta.stripeSessionId ?? payment.providerReference ?? "";
 
   if (
     sessionId &&

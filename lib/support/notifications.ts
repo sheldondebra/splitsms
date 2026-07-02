@@ -149,6 +149,10 @@ export async function notifyAdminsNewSupportTicket(ticketId: string) {
       }
     }),
   );
+
+  void import("@/lib/slack/notify")
+    .then(({ notifySlackSupportTicket }) => notifySlackSupportTicket(ticketId))
+    .catch(() => undefined);
 }
 
 export async function notifyMemberSupportReply(ticketId: string, replyBody: string) {

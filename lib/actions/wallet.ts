@@ -41,6 +41,9 @@ export async function createTopUpAction(formData: FormData) {
       where: { id: payment.id },
       data: { metadata: { reference } },
     });
+    void import("@/lib/slack/notify")
+      .then(({ notifySlackOfflinePayment }) => notifySlackOfflinePayment(payment.id))
+      .catch(() => undefined);
     redirect("/dashboard/wallet?submitted=manual");
   }
 

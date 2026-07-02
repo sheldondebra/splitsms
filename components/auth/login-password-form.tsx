@@ -5,9 +5,16 @@ import { PasswordField } from "@/components/auth/password-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function LoginPasswordForm({ defaultEmail }: { defaultEmail?: string }) {
+export function LoginPasswordForm({
+  defaultEmail,
+  returnTo,
+}: {
+  defaultEmail?: string;
+  returnTo?: string;
+}) {
   return (
     <form action={loginPasswordAction} className="space-y-4">
+      {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <div className="space-y-2">
         <Label htmlFor="login-email">Email</Label>
         <Input

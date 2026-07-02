@@ -12,8 +12,9 @@ export async function sendOtpEmail(
   purpose: OtpEmailPurpose,
 ) {
   const { subject, text, html } = otpEmailContent({ code, purpose });
+  const configured = await isMailjetConfiguredAsync();
 
-  if (!isMailjetConfigured()) {
+  if (!configured) {
     if (process.env.NODE_ENV === "development") {
       console.log(`[DEV OTP EMAIL] ${to}: ${code} (${purpose})`);
       return { ok: true as const };

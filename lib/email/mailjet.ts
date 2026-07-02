@@ -17,12 +17,40 @@ export type SendMailjetResult =
   | { ok: true; messageId?: string }
   | { ok: false; error: string; status?: number };
 
+type MailjetSendResponse = {
+  Messages?: {
+    Status?: string;
+    Errors?: { ErrorMessage?: string; ErrorCode?: string }[];
+    To?: { MessageID?: number; Email?: string }[];
+  }[];
+  ErrorMessage?: string;
+  message?: string;
+};
+
+function formatMailjetError(data: MailjetSendResponse, fallback: string) {
+  const msgErrors = data.Messages?.flatMap((m) => m.Errors ?? []) ?? [];
+  if (msgErrors.length > 0) {
+    return msgErrors
+      .map((e) => [e.ErrorCode, e.ErrorMessage].filter(Boolean).join(": "))
+      .join("; ");
+  }
+  return data.ErrorMessage ?? data.message ?? fallback;
+}
+
 export async function sendMailjetEmail(
   params: SendMailjetEmailParams,
 ): Promise<SendMailjetResult> {
   const config = await resolveMailjetConfig();
   if (!config) {
     return { ok: false, error: "Mailjet is not configured" };
+  }
+
+  if (config.sandbox) {
+    console.info("[Mailjet sandbox] Would send:", {
+      to: params.to,
+      subject: params.subject,
+      from: config.fromEmail,
+    });
   }
 
   const auth = Buffer.from(`${config.apiKey}:${config.apiSecret}`).toString("base64");
@@ -57,23 +85,30 @@ export async function sendMailjetEmail(
     body: JSON.stringify(body),
   });
 
-  const data = (await res.json().catch(() => ({}))) as {
-    Messages?: { Status?: string; To?: { MessageID?: number }[] }[];
-    ErrorMessage?: string;
-    message?: string;
-  };
+  const data = (await res.json().catch(() => ({}))) as MailjetSendResponse;
 
   if (!res.ok) {
-    const err =
-      data.ErrorMessage ??
-      data.message ??
-      (typeof data === "object" ? JSON.stringify(data) : "Mailjet request failed");
-    return { ok: false, error: err, status: res.status };
+    return {
+      ok: false,
+      error: formatMailjetError(data, "Mailjet request failed"),
+      status: res.status,
+    };
   }
 
   const first = data.Messages?.[0];
   if (first?.Status === "error") {
-    return { ok: false, error: "Mailjet rejected the message", status: res.status };
+    return {
+      ok: false,
+      error: formatMailjetError(data, "Mailjet rejected the message"),
+      status: res.status,
+    };
+  }
+
+  if (config.sandbox) {
+    return {
+      ok: true,
+      messageId: "sandbox",
+    };
   }
 
   const messageId = first?.To?.[0]?.MessageID
@@ -87,6 +122,7 @@ export async function testMailjetConnection(): Promise<{
   ok: boolean;
   error?: string;
   fromEmail?: string;
+  sandbox?: boolean;
 }> {
   const config = await resolveMailjetConfig();
   if (!config) {
@@ -107,5 +143,5 @@ export async function testMailjetConnection(): Promise<{
     };
   }
 
-  return { ok: true, fromEmail: config.fromEmail };
+  return { ok: true, fromEmail: config.fromEmail, sandbox: config.sandbox };
 }

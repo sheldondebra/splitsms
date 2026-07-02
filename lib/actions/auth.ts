@@ -26,7 +26,7 @@ import {
 } from "@/lib/auth/phone-auth";
 import { generateUniqueAccountNumber } from "@/lib/auth/account-number";
 import { getSession } from "@/lib/auth/session";
-import { isMailjetConfigured } from "@/lib/email/config";
+import { isMailjetConfiguredAsync } from "@/lib/email/config";
 import type { OtpDeliveryChannel } from "@/lib/auth/otp";
 import { getCountryByCode } from "@/lib/countries-data";
 import {
@@ -61,6 +61,15 @@ function authRedirect(path: string, params?: Record<string, string>): never {
   redirect(`${path}${q}`);
 }
 
+/** Safe post-login redirect for Slack admin links and admin pages only. */
+function parseSafeReturnTo(raw: string | undefined | null): string | null {
+  const value = raw?.trim();
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+  if (value.startsWith("/slack/action") || value.startsWith("/slack/go")) return value;
+  if (value.startsWith("/admin")) return value;
+  return null;
+}
+
 function passwordLoginRedirect(params?: Record<string, string>): never {
   authRedirect("/login", { ...params });
 }
@@ -69,13 +78,13 @@ function passwordLoginRedirectPhone(params?: Record<string, string>): never {
   authRedirect("/login", { phone: "1", ...params });
 }
 
-function emailOtpDelivery(email: string): {
+async function emailOtpDelivery(email: string): Promise<{
   email: string;
   channel: OtpDeliveryChannel;
-} {
+}> {
   return {
     email,
-    channel: isMailjetConfigured() ? "email" : "sms",
+    channel: (await isMailjetConfiguredAsync()) ? "email" : "sms",
   };
 }
 
@@ -97,11 +106,14 @@ function verifyOtpParamsForEmailFlow(
   };
 }
 
-async function finishLogin(user: {
-  id: string;
-  role: UserRole;
-  phone: string;
-}) {
+async function finishLogin(
+  user: {
+    id: string;
+    role: UserRole;
+    phone: string;
+  },
+  returnTo?: string | null,
+) {
   await assertTenantLoginAllowed(user.id, user.role);
 
   await prisma.user.update({
@@ -116,6 +128,12 @@ async function finishLogin(user: {
   });
   await recordDeviceSession(user.id);
   await logAuthEvent("LOGIN_SUCCESS", { phone: user.phone }, user.id);
+
+  const safeReturn = parseSafeReturnTo(returnTo);
+  if (safeReturn && (user.role === "ADMIN" || user.role === "SUPER_ADMIN")) {
+    redirect(safeReturn);
+  }
+
   if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") {
     redirect("/admin");
   }
@@ -316,7 +334,7 @@ export async function requestEmailAuthAction(formData: FormData) {
       user.id,
     );
 
-    const deliveryOpts = emailOtpDelivery(email);
+    const deliveryOpts = await emailOtpDelivery(email);
 
     let otp;
     try {
@@ -370,7 +388,7 @@ export async function requestEmailAuthAction(formData: FormData) {
   const purposeParam = user!.isVerified ? "login" : "signup";
 
   const loginEmail = email;
-  const deliveryOpts = emailOtpDelivery(loginEmail);
+  const deliveryOpts = await emailOtpDelivery(loginEmail);
 
   let otp;
   try {
@@ -719,7 +737,7 @@ export async function loginPasswordAction(formData: FormData) {
     authRedirect("/verify-otp", { phone: user.phone, purpose: "signup" });
   }
 
-  await finishLogin(user);
+  await finishLogin(user, String(formData.get("returnTo") ?? ""));
 }
 
 export async function loginOtpRequestAction(formData: FormData) {
@@ -755,8 +773,8 @@ export async function forgotPasswordAction(formData: FormData) {
   const user = await findUserByIdentifier(identifier);
 
   if (user && !isAccountLocked(user.lockedUntil)) {
-    const useEmail = Boolean(user.email && isMailjetConfigured());
-    const deliveryOpts = useEmail && user.email ? emailOtpDelivery(user.email) : undefined;
+    const useEmail = Boolean(user.email && (await isMailjetConfiguredAsync()));
+    const deliveryOpts = useEmail && user.email ? await emailOtpDelivery(user.email) : undefined;
 
     try {
       const otp = await createAndSendOtp(

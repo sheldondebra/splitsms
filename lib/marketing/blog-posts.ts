@@ -483,6 +483,13 @@ export const blogPosts: BlogPost[] = [
           "SplitSMS → Integrations shows detected plugins: WooCommerce, Paystack gateways, WPForms, Contact Form 7, Elementor Pro. Toggle what you need and save message templates. Crocoblock Jet modules live under SplitSMS → Crocoblock.",
         ],
       },
+      {
+        heading: "Elementor Pro Forms",
+        paragraphs: [
+          "For Elementor-built sites, use SplitSMS → Forms to auto-detect every Elementor Pro form — toggle SMS per form, pick the phone field, and edit the message without opening the page builder. Or edit a form in Elementor → Actions After Submit → add SplitSMS Notification for per-form phone mapping, custom templates, sender ID override, and admin copy.",
+          "Set a Tel field Field ID (Advanced → Field ID, e.g. phone) so SplitSMS reads the right number. See our full Elementor Pro Forms SMS guide for both setup paths, template variables, and skip-log debugging.",
+        ],
+      },
     ],
   },
   {
@@ -600,6 +607,72 @@ export const blogPosts: BlogPost[] = [
     ],
   },
   {
+    slug: "elementor-pro-forms-sms-splitsms-wordpress",
+    title: "Elementor Pro Forms SMS: SplitSMS Notification & Forms Manager",
+    excerpt:
+      "Two ways to send SMS from Elementor Pro forms — native SplitSMS Notification action and auto-detected Forms manager toggles.",
+    category: "WordPress",
+    readTime: "7 min read",
+    published: "2026-07-02",
+    sections: [
+      {
+        paragraphs: [
+          "Elementor Pro powers landing pages, quote forms, and lead capture on thousands of WordPress sites. When someone submits a form, email is the default — and email is slow, gets filtered, and rarely gets read on mobile-first markets like Ghana and Nigeria. SMS closes the loop in seconds.",
+          "SplitSMS plugin v1.7.2 ships two Elementor Pro integrations: a native SplitSMS Notification action inside the form builder, and a Forms manager that auto-detects every Elementor form on your site. Pick the path that fits your workflow — per-form control in Elementor, or bulk toggles from SplitSMS → Forms.",
+        ],
+      },
+      {
+        heading: "Why Elementor Pro + SMS beats email-only forms",
+        paragraphs: [
+          "Form submissions are high-intent moments. A prospect requesting a quote, a patient booking a consultation, or a buyer asking about availability is actively waiting for confirmation. SMS open rates exceed 90% on mobile. A single line — Hi {name}, we received your request on {site_name}. We will call you soon. — reduces support calls and builds trust immediately.",
+          "Elementor Pro forms fire elementor_pro/forms/new_record after submit. SplitSMS hooks that event (plus a mail_sent fallback for edge cases across Elementor versions), normalizes the phone number, and sends through the same API your dashboard uses. Delivery logs appear under SplitSMS → Logs in wp-admin and on your splitsms.com dashboard.",
+        ],
+      },
+      {
+        heading: "Method 1: SplitSMS Notification in Actions After Submit",
+        paragraphs: [
+          "Recommended for production forms where message copy matters. Install the SplitSMS WordPress plugin from splitsms.com/integrations (v1.7.2 or later). Connect your API key under SplitSMS → Settings — paste the full key (~56 characters), set your approved Sender ID, and run Test connection.",
+          "Edit your page in Elementor → select the Form widget → Actions After Submit → Add Action → SplitSMS Notification. Choose Send to: phone from form field, custom phone with field macros, or admin phone only. Map the Tel field ID (Advanced → Field ID, e.g. phone). Write your message using placeholders like {name}, {email}, {form_name}, and {phone}.",
+          "Optional controls: Sender ID override per form, Also notify admin toggle with a separate admin message template. Save and submit a test entry with your own mobile number. Check SplitSMS → Logs for delivered status before going live.",
+        ],
+      },
+      {
+        heading: "Method 2: Forms manager — auto-detect every Elementor form",
+        paragraphs: [
+          "SplitSMS → Forms scans your site for Elementor Pro forms embedded in pages, posts, and Elementor library templates. Click Refresh list when you add new forms. Toggle Send SMS per form, pick the phone field from a dropdown, edit the message template, and save — no need to open the Elementor editor.",
+          "Best for agencies managing many client sites, quick rollouts across existing forms, or when non-technical owners maintain SMS copy from wp-admin without touching the page builder.",
+        ],
+      },
+      {
+        heading: "Global Elementor integration (Integrations page)",
+        paragraphs: [
+          "SplitSMS → Integrations → Elementor Pro Forms enables automatic SMS for all detected forms using one global template. Set the default phone field ID, optional comma-separated form names to filter (Contact Form, Quote — empty means all forms), and a shared message template with variables: {site_name}, {name}, {email}, {subject}, {message}, {form_name}, {form_id}, {phone}, {field_phone}.",
+          "Use the global toggle for quick experiments or legacy forms. When a form has the native SplitSMS Notification action configured, the plugin skips duplicate global hooks for that submission.",
+        ],
+      },
+      {
+        heading: "Phone field setup in Elementor",
+        paragraphs: [
+          "Add a Tel field type to your Elementor form — not a plain Text field labeled Phone. Open the field → Advanced → Field ID and set a clear ID like phone or mobile. Enter that same ID in SplitSMS (Forms manager dropdown, Integrations panel, or SplitSMS Notification action).",
+          "SplitSMS also scans common field labels and IDs (phone, mobile, tel) as fallbacks, but explicit Field IDs prevent wrong-number sends on multi-field forms.",
+        ],
+      },
+      {
+        heading: "Templates, admin alerts, and skip logs",
+        paragraphs: [
+          "Keep messages under 160 characters when possible to stay in one SMS segment. Include {site_name} or your brand Sender ID so recipients know who sent the text. Enable admin copy on high-value lead forms so your sales team gets pinged instantly — separate templates for customer confirmation vs internal alert.",
+          "Every send writes to SplitSMS → Logs with recipient, template, status, and source (elementor). Skipped sends show reasons: no phone field, form filtered out, insufficient wallet balance, or duplicate prevented when the native action already handled the submission. Failed sends show API errors so you fix issues without guessing.",
+        ],
+      },
+      {
+        heading: "SEO takeaway for Elementor developers",
+        paragraphs: [
+          "If you build client sites in Elementor Pro, advertising SMS-ready forms is a differentiator. Search terms like Elementor Pro form SMS notification, WordPress Elementor SMS Ghana, and send SMS after Elementor form submit map directly to this workflow. Install SplitSMS once per site, configure per form in minutes, and ship transactional SMS without leaving WordPress admin.",
+        ],
+      },
+    ],
+  },
+  {
     slug: "wpforms-elementor-contact-form-7-sms-wordpress",
     title: "WPForms, Contact Form 7 & Elementor SMS: Which WordPress Form Plugin Works Best?",
     excerpt:
@@ -633,9 +706,9 @@ export const blogPosts: BlogPost[] = [
       {
         heading: "Elementor Pro Forms SMS",
         paragraphs: [
-          "Elementor Pro forms fire elementor_pro/forms/new_record on submit. SplitSMS maps the Tel field using Advanced → Field ID — set a clear ID like phone or mobile in the Elementor form widget, then enter that ID in the SplitSMS Elementor panel.",
-          "Filter by form name when you only want SMS on specific forms (quote request vs newsletter). Elementor's mail_sent fallback covers edge cases where the primary hook timing differs across Elementor versions.",
-          "Best for: marketing sites, landing pages, and WooCommerce stores where Elementor controls the entire front end.",
+          "Elementor Pro forms fire elementor_pro/forms/new_record on submit. SplitSMS offers two setup paths: edit the form in Elementor → Actions After Submit → SplitSMS Notification (per-form phone, message, sender ID override, admin copy), or use SplitSMS → Forms to auto-detect every Elementor form and toggle SMS without opening the page builder.",
+          "Map the Tel field using Advanced → Field ID — set a clear ID like phone or mobile, then enter that ID in the SplitSMS Notification action or Forms manager. The global Integrations panel supports form-name filters and a shared template; mail_sent fallback covers edge cases where hook timing differs across Elementor versions.",
+          "When the native SplitSMS Notification action is present, duplicate global hooks are skipped. Best for: marketing sites, landing pages, and WooCommerce stores where Elementor controls the entire front end. See our dedicated Elementor Pro Forms SMS guide for full setup steps.",
         ],
       },
       {
@@ -804,6 +877,478 @@ export const blogPosts: BlogPost[] = [
         paragraphs: [
           "Install plugin v1.6.0 from splitsms.com/integrations, connect your API key, enable WordPress core under Integrations, and register a test user on staging. Check SplitSMS → Logs for delivered status.",
           "Combine with WooCommerce, WPForms, and Crocoblock on the same site — one plugin, one API key, every WordPress event covered.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "smart-forms-collect-leads-instant-sms",
+    title: "Smart Forms: Collect Leads and Send Instant SMS — No Extra Tools",
+    excerpt:
+      "Build branded forms, share with short links and QR codes, and trigger SMS confirmations automatically from your SplitSMS dashboard.",
+    category: "Smart Forms",
+    readTime: "6 min read",
+    published: "2026-06-28",
+    sections: [
+      {
+        paragraphs: [
+          "Most businesses stitch together a form builder, a CRM, and an SMS platform just to capture a phone number and send a thank-you text. SplitSMS Smart Forms puts all three in one dashboard — build the form, collect responses, save contacts, and fire SMS automation the moment someone submits.",
+          "Smart Forms is built for Ghana and Africa's mobile-first audiences. Every submission can trigger an instant SMS confirmation the respondent actually reads, while your team gets an admin alert on their phone. No Zapier, no webhook middleware, no developer required.",
+        ],
+      },
+      {
+        heading: "What Smart Forms does",
+        paragraphs: [
+          "Create custom forms with text, phone, email, select, date, consent, and other field types. Start from templates — event registration, contact collection, feedback surveys, training sign-ups — or build from scratch in under ten minutes.",
+          "Brand every form with your colors, button text, background, and success message. Publish with a short link like splitsms.com/f/abc123, generate a QR code for posters and flyers, or embed the form on your website and WordPress pages.",
+        ],
+      },
+      {
+        heading: "SMS automation built in",
+        paragraphs: [
+          "Configure two automation types from the form dashboard: a confirmation SMS to the respondent and an admin notification when a new response arrives. Use merge tags like {full_name} and {phone} so every message feels personal.",
+          "Respondents saved to a contact group can be targeted in future bulk SMS campaigns — the same wallet, the same Sender ID, the same delivery reports you already use for campaigns and OTP.",
+        ],
+      },
+      {
+        heading: "Analytics and exports",
+        paragraphs: [
+          "Track views, submissions, conversion rate, traffic sources, QR scans, and device types in real time. Export responses to CSV when you need a spreadsheet for your team or client report.",
+          "Built-in spam protection includes honeypot fields, captcha options, and rate limiting — so your form stays clean without slowing down legitimate visitors.",
+        ],
+      },
+      {
+        heading: "Get started today",
+        paragraphs: [
+          "Open Dashboard → Smart Forms, pick a template, customize the design, enable SMS automation, and publish. Your first form can go live in under ten minutes — with 5 free SMS credits to test confirmations before you scale.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "event-registration-sms-smart-forms",
+    title: "Event Registration with SMS Confirmation: A Smart Forms Playbook",
+    excerpt:
+      "Church conferences, workshops, and corporate events — how to collect sign-ups and send instant text confirmations.",
+    category: "Smart Forms",
+    readTime: "5 min read",
+    published: "2026-06-25",
+    sections: [
+      {
+        paragraphs: [
+          "Event organizers in Accra, Lagos, and across West Africa lose registrations to long Google Forms that never send a confirmation. Attendees wonder if their sign-up worked. Smart Forms fixes that with instant SMS the moment someone submits — plus QR codes for walk-up registration at the venue.",
+        ],
+      },
+      {
+        heading: "Start with the event registration template",
+        paragraphs: [
+          "SplitSMS includes a ready-made event registration template: full name, phone number, email, and number of guests. Customize fields for your event — add a session preference dropdown, dietary requirements, or a consent checkbox for follow-up SMS.",
+          "Mark phone as required. SMS confirmation only works when you capture a valid number. SplitSMS normalizes Ghana formats (024, 054, +233) automatically before sending.",
+        ],
+      },
+      {
+        heading: "Write confirmation SMS that attendees trust",
+        paragraphs: [
+          "Keep the respondent message short and factual: Hi {full_name}, you're registered for [Event Name] on [Date]. See you there! — [Your Brand]. Stay under 160 characters when possible to use one SMS segment.",
+          "Enable admin notification SMS so your events team gets pinged on every new registration: New registration: {full_name}, {phone}, {guests} guests. Route admin alerts to a shared phone or team lead.",
+        ],
+      },
+      {
+        heading: "Share offline and online",
+        paragraphs: [
+          "Print the QR code on flyers, church bulletins, and conference banners — attendees scan and register on the spot. Share the short link on WhatsApp status, Instagram bio, and email invites. Embed the form on your WordPress event page with one iframe snippet.",
+          "Track QR scans vs link clicks in Smart Forms analytics to see which channel drives the most sign-ups.",
+        ],
+      },
+      {
+        heading: "After the event",
+        paragraphs: [
+          "Export all responses to CSV for check-in lists or badge printing. The contact group built from submissions is ready for a thank-you SMS or early-bird promo for your next event — all from the same SplitSMS account.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "smart-forms-qr-codes-short-links-sharing",
+    title: "QR Codes, Short Links & Embeds: Share Smart Forms Anywhere",
+    excerpt:
+      "Four ways to publish your form — short links, QR codes, website embeds, and WordPress — with analytics for each channel.",
+    category: "Smart Forms",
+    readTime: "5 min read",
+    published: "2026-06-22",
+    sections: [
+      {
+        paragraphs: [
+          "A form nobody can find collects zero leads. Smart Forms gives you four sharing options from one publish button — each tracked separately in analytics so you know what actually works.",
+        ],
+      },
+      {
+        heading: "Short links for digital sharing",
+        paragraphs: [
+          "Every published form gets a short URL like splitsms.com/f/abc123. Copy it for WhatsApp broadcasts, SMS campaigns, email signatures, and social media bios. Short links are easy to type, easy to remember, and trackable — Smart Forms logs every click as a shortlink_click event.",
+          "Use UTM-style source parameters when sharing across channels so analytics breaks down traffic by source: WhatsApp vs Instagram vs paid ads.",
+        ],
+      },
+      {
+        heading: "QR codes for offline and print",
+        paragraphs: [
+          "Download a QR code PNG from the Share panel and drop it on posters, restaurant table tents, event banners, product packaging, and business cards. When someone scans, Smart Forms records a qr_scan event — perfect for measuring foot traffic from a physical location.",
+          "QR codes work on any smartphone camera. No app install required. In markets where mobile data is expensive, a quick scan beats typing a long URL on a small keyboard.",
+        ],
+      },
+      {
+        heading: "Website and WordPress embeds",
+        paragraphs: [
+          "Copy the iframe embed code to add the form directly on your landing page — visitors never leave your site. For WordPress, paste the embed snippet into any page, post, or Elementor HTML widget.",
+          "Embedded forms inherit your brand styling from the Smart Forms builder. Adjust colors and button text once; every share channel shows the same polished experience.",
+        ],
+      },
+      {
+        heading: "Measure what matters",
+        paragraphs: [
+          "The analytics dashboard shows views, unique views, submissions, conversion rate, QR scans, shares, and device breakdown. Compare channels weekly: if QR scans spike at your retail location but link clicks dominate online, double down on what converts.",
+          "Open Dashboard → Smart Forms → Share on any published form to access all four options in one place.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "smart-forms-sms-automation-setup-guide",
+    title: "Smart Forms SMS Automation: Confirmations & Admin Alerts Setup Guide",
+    excerpt:
+      "Configure instant SMS to respondents and admin notifications — templates, merge tags, Sender IDs, and troubleshooting.",
+    category: "Smart Forms",
+    readTime: "6 min read",
+    published: "2026-06-18",
+    sections: [
+      {
+        paragraphs: [
+          "The highest-value moment in lead capture is the ten seconds after someone submits. Smart Forms SMS automation sends a confirmation text immediately — before they close the tab, before they forget your brand, before a competitor replies first.",
+        ],
+      },
+      {
+        heading: "Two automation types",
+        paragraphs: [
+          "Respondent SMS — sent to the phone number on the form. Use this for thank-you messages, booking confirmations, reference numbers, and next-step instructions. Admin SMS — sent to your team's phone when a new response arrives. Use this for hot leads, support tickets, and event registrations that need same-day follow-up.",
+          "Enable either or both from Dashboard → Smart Forms → [Your Form] → Automation. Each form has its own templates — your contact form and event registration can send different messages.",
+        ],
+      },
+      {
+        heading: "Merge tags and templates",
+        paragraphs: [
+          "Personalize messages with field merge tags: {full_name}, {phone}, {email}, and any custom field key you defined in the builder. Example respondent template: Thanks {full_name}! We received your inquiry and will call you within 24 hours. — Acme Ltd.",
+          "Example admin template: New lead: {full_name} ({phone}). Source: contact form. Reply ASAP. Keep admin messages actionable — include the phone number and one clear next step.",
+        ],
+      },
+      {
+        heading: "Sender ID and wallet",
+        paragraphs: [
+          "SMS sends through your approved Sender ID so recipients see your brand name, not a random number. Register a Sender ID in Dashboard → Sender IDs before going live — Ghana carrier approval typically takes a few business days.",
+          "Each SMS debits your SplitSMS wallet at published rates (from around GHS 0.029 per segment in Ghana). Top up via Paystack. Smart Forms analytics shows smsSent and smsFailed counts per form so you catch wallet or delivery issues early.",
+        ],
+      },
+      {
+        heading: "Save contacts for follow-up campaigns",
+        paragraphs: [
+          "Enable Save to contact group in form settings. Every submission with a valid phone number joins the group you choose — ready for bulk SMS campaigns, segmented promos, or re-engagement without re-importing CSVs.",
+          "Test with your own number before publishing. Submit the form, confirm delivery in message logs, and verify merge tags render correctly. Most setup issues are wrong phone format or missing Sender ID approval.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "smart-forms-analytics-improve-conversions",
+    title: "Smart Forms Analytics: Track Views, Conversions & Optimize Your Forms",
+    excerpt:
+      "Views, QR scans, conversion rate, traffic sources, and device breakdown — use data to fix forms that underperform.",
+    category: "Smart Forms",
+    readTime: "5 min read",
+    published: "2026-06-15",
+    sections: [
+      {
+        paragraphs: [
+          "Publishing a form is step one. Improving it is step two. Smart Forms analytics gives you the metrics marketers need — without exporting to Google Analytics or wiring custom tracking pixels.",
+        ],
+      },
+      {
+        heading: "Core metrics at a glance",
+        paragraphs: [
+          "Views and unique views tell you how many people opened your form. Submissions and conversion rate (submissions ÷ views) tell you how many completed it. A 40% view-to-submit rate on a two-field contact form is healthy; 5% on a ten-field survey means something is wrong.",
+          "Contacts collected counts how many phone numbers landed in your contact group. SMS sent and SMS failed track automation health — if failures spike, check wallet balance and Sender ID status.",
+        ],
+      },
+      {
+        heading: "Channel and device breakdown",
+        paragraphs: [
+          "Source breakdown shows where traffic comes from — direct link, QR scan, embed, social share. If you run a poster campaign, watch qr_scans climb. If WhatsApp drives most link clicks, put the short URL in your status more often.",
+          "Device breakdown splits mobile vs desktop vs tablet. Forms with tiny tap targets or long dropdowns often show lower mobile conversion. If 80% of views are mobile but conversion is half your desktop rate, simplify fields for thumb-friendly input.",
+        ],
+      },
+      {
+        heading: "Time series and trends",
+        paragraphs: [
+          "The chart view plots views, submissions, and conversion rate by day. Spot spikes after a campaign launch or drops after you added a required field nobody wants to fill. Compare week-over-week to measure the impact of design or copy changes.",
+          "Filter by date range and traffic source to isolate specific campaigns — useful when the same form serves both a QR poster and a paid ad with different audiences.",
+        ],
+      },
+      {
+        heading: "Act on the data",
+        paragraphs: [
+          "Low views? Share more — post the short link, print the QR code, embed on your homepage. High views, low submissions? Remove optional fields, shorten labels, or add a clearer value proposition above the submit button. High submissions, low SMS delivery? Top up wallet and verify Sender ID.",
+          "Export responses to CSV for deeper analysis or client reporting. Open Dashboard → Smart Forms → [Your Form] → Analytics to start — every published form tracks automatically from day one.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "smart-forms-like-google-forms-with-sms",
+    title: "Smart Forms Works Like Google Forms — But Sends SMS When Someone Submits",
+    excerpt:
+      "Same familiar flow: build a form, share a link, collect responses. The difference is instant text confirmations and admin alerts built in.",
+    category: "Smart Forms",
+    readTime: "5 min read",
+    published: "2026-07-01",
+    sections: [
+      {
+        paragraphs: [
+          "If you have ever created a Google Form, you already know the rhythm: add questions, copy a link, share it on WhatsApp or email, and watch responses roll into a spreadsheet. SplitSMS Smart Forms follows that same workflow — build, publish, share, review submissions — with one addition Google Forms does not offer out of the box: automatic SMS when someone hits submit.",
+          "This is not about replacing Google Forms for every use case. Google Forms is excellent for internal surveys, classroom quizzes, and free unlimited response collection. Smart Forms is for teams who collect phone numbers and need the respondent — and their own team — to get a text immediately.",
+        ],
+      },
+      {
+        heading: "The workflow you already know",
+        paragraphs: [
+          "Create a form in the dashboard. Drag in fields — name, phone, email, dropdowns, checkboxes, long text. Customize how it looks. Publish and copy a short link or QR code. Share it anywhere. View every response in a list, export to CSV when you need a file.",
+          "If that sounds like Google Forms, that is intentional. Smart Forms was designed so marketers, event organizers, and small business owners do not need to learn a new mental model — just the same form-building habit with SMS layered on top.",
+        ],
+      },
+      {
+        heading: "Where SMS fits in",
+        paragraphs: [
+          "Google Forms can email you when someone responds, and you can wire SMS through third-party tools like Zapier or Make — but that means another subscription, another login, and another thing to break. Smart Forms sends SMS from the same account you use for bulk campaigns and OTP.",
+          "Two automations, configured per form: a confirmation text to the person who submitted, and an alert to your team's phone. Both use merge tags from the form fields — Hi {full_name}, we received your request — the same way you might personalize an email, except SMS gets read.",
+        ],
+      },
+      {
+        heading: "When Smart Forms makes sense",
+        paragraphs: [
+          "Choose Smart Forms when phone numbers are part of the form and SMS follow-up matters: event registration, lead capture, customer feedback with instant thank-you texts, training sign-ups, and contact forms where your sales team needs a ping on their mobile.",
+          "Stick with Google Forms when you need completely free unlimited forms with no SMS, complex logic branching for internal HR surveys, or deep Google Sheets integration for teams already living in Workspace.",
+        ],
+      },
+      {
+        heading: "Try the familiar flow with SMS",
+        paragraphs: [
+          "Open Dashboard → Smart Forms, pick a template, publish, and submit a test entry with your own number. You will see the response in your dashboard and the confirmation SMS on your phone — the Google Forms experience, plus the text message Ghana and Nigeria customers expect.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "google-forms-email-vs-smart-forms-sms-confirmations",
+    title: "Google Forms Sends Email Confirmations. Smart Forms Sends SMS.",
+    excerpt:
+      "Both collect responses the same way. For mobile-first customers who ignore inbox notifications, SMS confirmation closes the loop.",
+    category: "Smart Forms",
+    readTime: "5 min read",
+    published: "2026-06-30",
+    sections: [
+      {
+        paragraphs: [
+          "Google Forms can show a custom confirmation message on screen after submit, and with add-ons or Apps Script you can send an email receipt. That works fine when your audience checks email daily. In Ghana, Nigeria, and much of Africa, the phone is the primary screen — and SMS is what people actually read within minutes.",
+          "Smart Forms keeps the same collection mechanics as Google Forms. The difference is what happens in the ten seconds after submit: an SMS lands on the respondent's phone and optionally on yours.",
+        ],
+      },
+      {
+        heading: "Same collection, different confirmation channel",
+        paragraphs: [
+          "Google Forms: respondent fills out fields → sees a thank-you page → maybe receives an email → organizer checks the Responses tab or linked Sheet.",
+          "Smart Forms: respondent fills out fields → sees a branded success message → receives an SMS confirmation → organizer gets an optional admin SMS and sees the response in the dashboard. Both store every answer. Both export to CSV. The confirmation channel is what changes.",
+        ],
+      },
+      {
+        heading: "Why SMS confirmation matters for forms",
+        paragraphs: [
+          "Event registration: attendees want proof they are on the list. A text that says You are registered for Saturday 9am beats an email they may never open. Lead capture: a prospect who just requested a quote feels acknowledged when a text arrives before your sales call. Customer feedback: a short thank-you SMS after a survey increases trust and future response rates.",
+          "Google Forms can do none of this natively without external integrations. Smart Forms includes it in the Automation tab — no Zapier, no Apps Script, no developer.",
+        ],
+      },
+      {
+        heading: "Contacts flow into bulk SMS",
+        paragraphs: [
+          "Google Forms responses live in Google Sheets. To SMS those contacts later, you export the sheet, clean phone numbers, import into an SMS tool, and send a campaign. Smart Forms saves respondents directly to a contact group in SplitSMS — the same groups you use for bulk SMS, OTP, and wallet billing.",
+          "One account, one phone number format normalization (+233, 024, 054), one Sender ID. The form is not a dead end; it feeds your SMS marketing stack.",
+        ],
+      },
+      {
+        heading: "Use both if you need to",
+        paragraphs: [
+          "Some teams keep Google Forms for internal staff surveys and use Smart Forms for customer-facing forms that need SMS. That is a reasonable split. For anything where the submitter gave you a phone number and expects to hear back fast, Smart Forms gives you the Google Forms-style builder with the confirmation channel your market actually uses.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "recreate-google-form-smart-forms-sms",
+    title: "How to Recreate Your Google Form in Smart Forms (and Add SMS)",
+    excerpt:
+      "Field by field: migrate contact forms, event sign-ups, and surveys to Smart Forms without losing the simple share-and-collect workflow.",
+    category: "Smart Forms",
+    readTime: "6 min read",
+    published: "2026-06-29",
+    sections: [
+      {
+        paragraphs: [
+          "You have a Google Form that works — contact us, event RSVP, customer feedback. Responses land in a Sheet. You share the link on WhatsApp. The only thing missing is an automatic text to the person who submitted and an alert on your phone. Here is how to rebuild the same form in Smart Forms without changing how your audience experiences it.",
+        ],
+      },
+      {
+        heading: "Map your Google Form fields",
+        paragraphs: [
+          "Short answer → Text field. Paragraph → Textarea. Multiple choice → Radio or Select. Checkboxes → Checkbox field. Dropdown → Select. Date → Date field. Email → Email field. Phone number → Phone field (required for SMS automation).",
+          "Smart Forms templates cover common Google Form use cases: contact collection, event registration, customer feedback, training sign-ups, and church registration. Pick the closest template and adjust rather than rebuilding every field from zero.",
+        ],
+      },
+      {
+        heading: "Match the share experience",
+        paragraphs: [
+          "In Google Forms you copy a docs.google.com link. In Smart Forms you copy splitsms.com/f/abc123 — same idea, shorter URL for WhatsApp. Google Forms offers a QR code via third-party tools; Smart Forms generates one in the Share panel. Google Forms embeds via iframe; Smart Forms gives you the same embed snippet for your website or WordPress page.",
+          "Your audience still clicks a link, fills fields, and taps Submit. The form URL changes; the habit does not.",
+        ],
+      },
+      {
+        heading: "Add the SMS layer Google Forms lacks",
+        paragraphs: [
+          "Open Automation on your Smart Form. Enable Send confirmation SMS to respondent. Write a template using your field keys: Thanks {full_name}, we got your message. We will call {phone} within 24 hours. Enable admin notification SMS and point it to your sales or events phone.",
+          "Register an approved Sender ID in SplitSMS so texts show your business name. Test with your own number before replacing the Google Form link in the wild.",
+        ],
+      },
+      {
+        heading: "Review responses the same way",
+        paragraphs: [
+          "Google Forms Responses tab → Smart Forms Responses page. Filter, search, open individual submissions. Google Sheets export → CSV export from the dashboard. Smart Forms adds analytics Google Forms does not include by default: views, conversion rate, QR scans, traffic sources, and SMS delivery counts.",
+          "Migration tip: run both forms in parallel for a week. Send new traffic to Smart Forms. Compare submission volume and — more importantly — how many people reply to your follow-up because they received an SMS confirmation.",
+        ],
+      },
+      {
+        heading: "When to keep Google Forms",
+        paragraphs: [
+          "Internal-only forms with no phone field, classroom quizzes, and teams deeply integrated with Google Workspace may stay on Google Forms — and that is fine. Smart Forms is the same build-share-collect pattern for customer-facing forms where SMS closes the loop. Start with your highest-traffic Google Form that collects phone numbers; that is where the upgrade pays off first.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "best-sms-ghana-accra-messaging-reseller-platform",
+    title: "Best SMS in Ghana: Accra Messaging Platform & Reseller Program",
+    excerpt:
+      "Compare bulk SMS in Ghana, Accra-ready messaging tools, and the best reseller platform for agencies — transparent pricing, Sender IDs, and white-label branding.",
+    category: "Guide",
+    readTime: "7 min read",
+    published: "2026-07-02",
+    sections: [
+      {
+        paragraphs: [
+          "Searching for the best SMS in Ghana usually means three things at once: a reliable bulk SMS gateway for campaigns and OTP, a messaging platform Accra teams can run without calling overseas support, and — if you are an agency or SaaS founder — the best reseller platform to sell SMS under your own brand.",
+          "SplitSMS covers all three from one stack: Ghana-first routing through trusted carriers, a dashboard and REST API built for West Africa, and an approved reseller program with white-label portals, sub-users, and per-country pricing you control.",
+        ],
+      },
+      {
+        heading: "What makes the best SMS in Ghana",
+        paragraphs: [
+          "The best SMS in Ghana is not the cheapest line on a spreadsheet — it is transparent per-segment pricing, approved Sender IDs, deliverability on MTN and Telecel networks, and a wallet you top up locally via Paystack. SplitSMS publishes Ghana rates before you send (from around GHS 0.029 per segment), registers your brand Sender ID through a clear approval workflow, and routes through carriers including mNotify with failover when one path is congested.",
+          "You need both a bulk SMS UI for marketing teams and a REST API for OTP, WooCommerce, and custom apps. SplitSMS gives you campaigns, contact groups, scheduling, delivery reports, sandbox keys, and webhooks from one account — no separate enterprise contract to negotiate.",
+        ],
+      },
+      {
+        heading: "Accra messaging platform for growing teams",
+        paragraphs: [
+          "Accra is Ghana's business hub — fintech, e-commerce, schools, clinics, and real estate teams all need messaging that lands in seconds. An Accra messaging platform should feel local: GHS wallet billing, +233 phone normalization (024, 054, +233), Paystack top-ups, and support from operators who understand Ghana carrier rules.",
+          "SplitSMS is operated by Tecunit and built for mobile-first West Africa. Retailers in Osu send flash-sale SMS. Clinics in East Legon confirm appointments by text. Developers in Cantonments ship OTP login with the same API that powers bulk campaigns. Whether you are in Accra, Kumasi, or serving Ghana from abroad, you get one dashboard, one wallet, and delivery logs you can audit.",
+        ],
+      },
+      {
+        heading: "Bulk SMS, OTP, and WordPress — one Ghana account",
+        paragraphs: [
+          "Marketing SMS: upload CSV contacts, personalize with merge fields, schedule sends, and track delivered vs failed in real time. Transactional SMS: order confirmations, payment alerts, appointment reminders — the messages Ghana customers actually read.",
+          "Developers get REST endpoints for send, verify OTP, balance checks, and signed delivery webhooks. WordPress and WooCommerce teams install the free SplitSMS plugin for order SMS, Elementor and WPForms lead alerts, and Crocoblock booking confirmations — same API key, same wallet, same Ghana pricing.",
+        ],
+      },
+      {
+        heading: "Best reseller platform for SMS agencies",
+        paragraphs: [
+          "If you resell SMS to clients, the best reseller platform lets you set your own sell rates, fund sub-user wallets, earn commission on every message, and put your brand on the login screen — not SplitSMS. SplitSMS Reseller gives approved partners a full partner dashboard: create and suspend sub-users, set per-country pricing above platform cost, track unpaid commission, and request payouts from your wallet tab.",
+          "White-label branding goes further: custom domain (sms.yourcompany.com), logo, accent colors, and a branded member portal so your clients sign in on your site. Agencies in Accra, Lagos, and across West Africa use this to package bulk SMS, OTP API access, and WordPress integrations as their own product without building carrier relationships from scratch.",
+        ],
+      },
+      {
+        heading: "Reseller vs direct account — which fits you",
+        paragraphs: [
+          "Choose a direct SplitSMS account if you send SMS for your own business: campaigns, OTP, WooCommerce notifications, Smart Forms confirmations. Sign up, claim free starter credits, register a Sender ID, and send the same day.",
+          "Apply for the reseller program if you manage multiple client accounts, want margin on every SMS segment, or need a white-label portal for your agency brand. Submit your business name at splitsms.com/reseller — admin review usually takes one to two business days. Approved resellers set Ghana and Nigeria sell rates, onboard sub-users, and earn commission as clients send.",
+        ],
+      },
+      {
+        heading: "Why teams pick SplitSMS over legacy gateways",
+        paragraphs: [
+          "Legacy SMS portals hide pricing, force sales calls, and offer APIs as an afterthought. SplitSMS is built for 2026: transparent Ghana rates, modern REST API, WordPress plugin, Smart Forms with SMS confirmations, SplitSMS Connect for SaaS embeds, and a reseller layer for agencies — all from one operator with local market knowledge.",
+          "Start with 5 free SMS credits on signup. Top up via Paystack. Register your Sender ID. Send your first bulk campaign or OTP flow in minutes — or apply to become a reseller and launch your own Accra messaging platform under your brand.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "mnotify-alternative-bulk-sms-ghana",
+    title: "mNotify Alternative: Bulk SMS Ghana with Dashboard, API & WooCommerce",
+    excerpt:
+      "Compare mNotify vs SplitSMS — Ghana SMS routing, transparent GHS pricing, OTP API, WordPress plugin, and self-serve signup without sales calls.",
+    category: "Guide",
+    readTime: "6 min read",
+    published: "2026-07-02",
+    sections: [
+      {
+        paragraphs: [
+          "Searching mNotify or mnotify usually means you need reliable bulk SMS in Ghana. SplitSMS routes through trusted carriers including mNotify while adding a modern dashboard, REST SMS API, OTP verify endpoints, WooCommerce plugin, and Paystack wallet top-ups — one platform for campaigns and transactional SMS.",
+        ],
+      },
+      {
+        heading: "What SplitSMS adds beyond mNotify-only portals",
+        paragraphs: [
+          "Self-serve signup with 5 free credits. Published Ghana rates from around GHS 0.029 per segment. Sender ID registration workflow. Delivery webhooks. WordPress + Paystack SMS. Smart Forms with SMS confirmations. Reseller white-label for agencies.",
+        ],
+      },
+      {
+        heading: "When to choose SplitSMS",
+        paragraphs: [
+          "Pick SplitSMS if you need bulk SMS plus OTP API, WooCommerce order texts, developer docs, or multi-country sending from one wallet. Test with sandbox keys before migrating live campaigns.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "infobip-alternative-sms-api-africa",
+    title: "Infobip Alternative: Affordable SMS API for Ghana, Nigeria & Africa",
+    excerpt:
+      "Infobip vs SplitSMS for African teams — pay-as-you-go pricing, OTP API, WooCommerce SMS, and no enterprise contract required.",
+    category: "Guide",
+    readTime: "6 min read",
+    published: "2026-07-02",
+    sections: [
+      {
+        paragraphs: [
+          "Infobip powers global enterprises with complex CPaaS stacks. Many Ghana and West Africa teams want SMS integration without long procurement cycles or opaque pricing. SplitSMS is an Infobip alternative with transparent rates, REST API, OTP, webhooks, and Africa-first billing via Paystack.",
+        ],
+      },
+      {
+        heading: "SplitSMS vs Infobip for developers",
+        paragraphs: [
+          "OpenAPI spec, llms.txt, sandbox keys, and vibe-coder docs. Send your first OTP in under an hour. Same account powers bulk campaigns, Smart Forms, and WordPress WooCommerce SMS.",
+        ],
+      },
+      {
+        heading: "SplitSMS vs Infobip for marketers",
+        paragraphs: [
+          "Bulk SMS dashboard, contact groups, scheduling, delivery reports, and approved Sender IDs for Ghana. No monthly minimum — top up when you need credits.",
         ],
       },
     ],

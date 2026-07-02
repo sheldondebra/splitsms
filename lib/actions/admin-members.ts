@@ -354,3 +354,105 @@ export async function adminBlockSenderIdAction(formData: FormData) {
   revalidatePath("/admin/sender-ids");
   redirect(memberPath(userId, { saved: "sender_blocked" }));
 }
+
+export async function adminSendMemberOutreachAction(formData: FormData) {
+  const session = await requireAdmin();
+  const userId = String(formData.get("userId") ?? "");
+  const returnTab = String(formData.get("returnTab") ?? "messaging");
+  const templateId = String(formData.get("templateId") ?? "custom");
+  const sendSms = formData.get("sendSms") === "on";
+  const sendEmail = formData.get("sendEmail") === "on";
+  const smsBody = String(formData.get("smsBody") ?? "").trim();
+  const emailSubject = String(formData.get("emailSubject") ?? "").trim();
+  const emailText = String(formData.get("emailText") ?? "").trim();
+
+  if (!userId) redirect("/admin/members?error=outreach");
+  if (!sendSms && !sendEmail) {
+    redirect(memberPath(userId, { tab: returnTab, error: "outreach_channel" }));
+  }
+  if (sendSms && !smsBody) {
+    redirect(memberPath(userId, { tab: returnTab, error: "outreach_sms" }));
+  }
+  if (sendEmail && (!emailSubject || !emailText)) {
+    redirect(memberPath(userId, { tab: returnTab, error: "outreach_email" }));
+  }
+
+  const user = await prisma.user.findFirst({
+    where: { id: userId, role: "MEMBER" },
+    select: { id: true, fullName: true, phone: true, email: true },
+  });
+  if (!user) redirect(memberPath(userId, { tab: returnTab, error: "notfound" }));
+
+  const { sendEmail: sendMail } = await import("@/lib/email");
+  const { adminMemberOutreachEmailContent } = await import("@/lib/email/templates");
+  const { sendPlatformAlertSms } = await import("@/lib/sms/platform-notify");
+  const { createNotification } = await import("@/lib/notifications");
+  const { getMemberOutreachTemplate } = await import("@/lib/admin/member-outreach-templates");
+  const { getSiteUrl } = await import("@/lib/site-config");
+
+  const template = getMemberOutreachTemplate(templateId);
+  const siteUrl = getSiteUrl();
+  const ctaHref = template.href ? `${siteUrl}${template.href}` : undefined;
+
+  const results: { sms?: string; email?: string } = {};
+
+  if (sendSms) {
+    if (!user.phone?.trim()) {
+      redirect(memberPath(userId, { tab: returnTab, error: "outreach_no_phone" }));
+    }
+    const smsResult = await sendPlatformAlertSms(user.phone, smsBody);
+    if (!smsResult.ok) {
+      redirect(
+        memberPath(userId, {
+          tab: returnTab,
+          error: "outreach_sms_failed",
+        }),
+      );
+    }
+    results.sms = "sent";
+  }
+
+  if (sendEmail) {
+    const email = user.email?.trim();
+    if (!email) {
+      redirect(memberPath(userId, { tab: returnTab, error: "outreach_no_email" }));
+    }
+    const { subject, text, html } = adminMemberOutreachEmailContent({
+      memberName: user.fullName,
+      subject: emailSubject,
+      bodyText: emailText,
+      ctaHref,
+      ctaLabel: template.ctaLabel,
+    });
+    const mailResult = await sendMail({
+      to: email,
+      toName: user.fullName,
+      subject,
+      text,
+      html,
+    });
+    if (!mailResult.ok) {
+      redirect(memberPath(userId, { tab: returnTab, error: "outreach_email_failed" }));
+    }
+    results.email = "sent";
+  }
+
+  const channels = [results.sms && "SMS", results.email && "email"].filter(Boolean).join(" and ");
+  await createNotification(
+    userId,
+    "SYSTEM",
+    emailSubject || "Message from support",
+    smsBody.slice(0, 500),
+    template.href ? { href: template.href, ctaLabel: template.ctaLabel } : undefined,
+  );
+
+  await logAdmin("ADMIN_MEMBER_OUTREACH", userId, session.userId, {
+    templateId,
+    sendSms,
+    sendEmail,
+    channels,
+  });
+
+  revalidatePath(memberPath(userId));
+  redirect(memberPath(userId, { tab: returnTab, saved: "outreach_sent" }));
+}

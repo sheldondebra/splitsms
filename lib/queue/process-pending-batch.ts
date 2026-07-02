@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { processMessageJob } from "@/lib/queue/process-message";
+import { syncAllSendingCampaigns } from "@/lib/campaigns/sync-status";
 
 export async function processPendingMessagesBatch(limit = 25) {
   const messages = await prisma.message.findMany({
@@ -28,6 +29,7 @@ export async function processPendingMessagesBatch(limit = 25) {
   }
 
   const remaining = await prisma.message.count({ where: { status: "PENDING", isSandbox: false } });
+  await syncAllSendingCampaigns();
 
   return { processed, sent, failed, remaining };
 }

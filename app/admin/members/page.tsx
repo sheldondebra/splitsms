@@ -12,10 +12,24 @@ export default async function AdminMembersPage({
     joined?: string;
     sort?: string;
     page?: string;
+    saved?: string;
+    error?: string;
+    count?: string;
+    failed?: string;
   }>;
 }) {
   const params = await searchParams;
   const data = await getAdminMembersDashboard(params);
 
-  return <AdminMembersView data={data} />;
+  return (
+    <AdminMembersView
+      data={data}
+      flash={{
+        saved: params.saved,
+        error: params.error,
+        count: params.count,
+        failed: params.failed,
+      }}
+    />
+  );
 }

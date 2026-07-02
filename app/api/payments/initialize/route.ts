@@ -71,6 +71,10 @@ export async function POST(request: Request) {
   });
 
   if (body.data.method === "MANUAL") {
+    void import("@/lib/slack/notify")
+      .then(({ notifySlackOfflinePayment }) => notifySlackOfflinePayment(payment.id))
+      .catch(() => undefined);
+
     return NextResponse.json({
       success: true,
       paymentId: payment.id,

@@ -40,6 +40,16 @@ function formatAmount(amount: number | null, currency: string | null, unit = "")
   return formatted;
 }
 
+/** mNotify reports SMS credits, not wallet currency. */
+function formatSmsCredits(amount: number | null, bonus: number | null = null): string {
+  if (amount == null) return "—";
+  const formatted = amount.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  if (bonus != null && bonus > 0) {
+    return `${formatted} credits (+ ${bonus.toLocaleString()} bonus)`;
+  }
+  return `${formatted} credits`;
+}
+
 async function fetchMnotifyBalance(): Promise<ProviderSmsBalance> {
   const name = "mNotify";
   if (!(await isMnotifyConfigured())) {
@@ -58,18 +68,14 @@ async function fetchMnotifyBalance(): Promise<ProviderSmsBalance> {
   const live = await fetchMnotifyAccountBalance();
 
   if (live.ok && live.amount != null) {
-    const currency = live.currency ?? "GHS";
-    const display =
-      live.bonus != null && live.bonus > 0
-        ? `${formatAmount(live.amount, currency)} (+ ${live.bonus.toLocaleString()} bonus)`
-        : formatAmount(live.amount, currency);
+    const display = formatSmsCredits(live.amount, live.bonus);
     return {
       type: "MNOTIFY",
       name,
       status: "ok",
       display,
       amount: live.amount,
-      currency,
+      currency: null,
       bonus: live.bonus,
       hint: live.source?.startsWith("Cached")
         ? `Live API unavailable (${live.error ?? "unknown"}). Showing last known balance.`
@@ -79,18 +85,14 @@ async function fetchMnotifyBalance(): Promise<ProviderSmsBalance> {
 
   const cached = await loadMnotifyBalanceCache();
   if (cached) {
-    const currency = cached.currency ?? "GHS";
-    const display =
-      cached.bonus != null && cached.bonus > 0
-        ? `${formatAmount(cached.amount, currency)} (+ ${cached.bonus.toLocaleString()} bonus)`
-        : formatAmount(cached.amount, currency);
+    const display = formatSmsCredits(cached.amount, cached.bonus);
     return {
       type: "MNOTIFY",
       name,
       status: "ok",
       display,
       amount: cached.amount,
-      currency,
+      currency: null,
       bonus: cached.bonus,
       hint: `Last known balance (${new Date(cached.at).toLocaleString()}) from ${cached.source}. Refresh page after sending SMS to update.`,
       error: live.error,

@@ -102,22 +102,6 @@ export async function sendSmsAction(formData: FormData): Promise<SendSmsResult> 
   const wallet = await prisma.wallet.findUnique({ where: { userId: session.userId } });
   const currency = wallet?.currency ?? "GHS";
 
-  try {
-    await deductSmsCredits(
-      session.userId,
-      totalUnits,
-      totalCost,
-      currency,
-      `Bulk send ${recipients.length} recipients`,
-      countryCode,
-    );
-  } catch (e) {
-    if (e instanceof ResellerAccessError) {
-      return { ok: false, error: e.code.toLowerCase() };
-    }
-    return { ok: false, error: "credits" };
-  }
-
   const campaign = await prisma.campaign.create({
     data: {
       userId: session.userId,
@@ -132,6 +116,7 @@ export async function sendSmsAction(formData: FormData): Promise<SendSmsResult> 
       status: "SENDING",
       recipientCount: recipients.length,
       estimatedCost: totalCost,
+      countryCode,
     },
   });
 
@@ -161,6 +146,23 @@ export async function sendSmsAction(formData: FormData): Promise<SendSmsResult> 
     return created;
   });
 
+  try {
+    await deductSmsCredits(
+      session.userId,
+      totalUnits,
+      totalCost,
+      currency,
+      `Bulk send ${recipients.length} recipients`,
+      countryCode,
+    );
+  } catch (e) {
+    await prisma.campaign.delete({ where: { id: campaign.id } });
+    if (e instanceof ResellerAccessError) {
+      return { ok: false, error: e.code.toLowerCase() };
+    }
+    return { ok: false, error: "credits" };
+  }
+
   await enqueueSmsJobsInline(
     messages.map((msg) => ({
       messageId: msg.id,
@@ -168,11 +170,6 @@ export async function sendSmsAction(formData: FormData): Promise<SendSmsResult> 
       priority,
     })),
   );
-
-  await prisma.campaign.update({
-    where: { id: campaign.id },
-    data: { status: "COMPLETED" },
-  });
 
   return {
     ok: true,

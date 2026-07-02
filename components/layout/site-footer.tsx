@@ -18,10 +18,21 @@ import {
 
 const productLinks = [
   { href: "/features", label: "SMS features" },
+  { href: "/solutions", label: "SMS solutions" },
   { href: "/smart-forms", label: "Smart Forms" },
   { href: "/pricing", label: "SMS pricing" },
   { href: "/blog", label: "Blog" },
   { href: "/signup", label: "Sign up free" },
+];
+
+const solutionLinks = [
+  { href: "/solutions/sms", label: "SMS Ghana" },
+  { href: "/solutions/mnotify", label: "mNotify alternative" },
+  { href: "/solutions/infobip", label: "Infobip alternative" },
+  { href: "/solutions/otp", label: "OTP SMS API" },
+  { href: "/solutions/woocommerce-sms", label: "WooCommerce SMS" },
+  { href: "/solutions/paystack-sms", label: "Paystack SMS" },
+  { href: "/solutions/sms-integration", label: "SMS integration" },
 ];
 
 const developerLinks = [
@@ -180,7 +191,7 @@ export function SiteFooter() {
         </div>
 
         <div className="max-w-[1600px] mx-auto border-t border-border dark:border-white/10 pt-14 pb-14">
-          <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-6 xl:gap-8">
+          <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 lg:gap-6 xl:gap-8">
             <div className="col-span-2 sm:col-span-2 lg:col-span-1 min-w-0">
               <Logo href="/" size="md" variant="default" />
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
@@ -206,6 +217,7 @@ export function SiteFooter() {
             </div>
 
             <FooterLinkGroup title="Product" icon={Send} links={productLinks} />
+            <FooterLinkGroup title="Solutions" icon={Zap} links={solutionLinks} />
             <FooterLinkGroup title="Developers" icon={Code2} links={developerLinks} />
             <FooterLinkGroup
               title="WordPress integrations"

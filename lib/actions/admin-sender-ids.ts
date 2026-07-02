@@ -16,7 +16,7 @@ import {
   maybeSetFirstDefault,
 } from "@/lib/sender-ids/provider-sync";
 import { senderHasProviderApproval } from "@/lib/sender-ids/reconcile-status";
-import { notifyUserSenderIdApproved } from "@/lib/sender-ids/notifications";
+import { notifyUserSenderIdApproved, notifyUserSenderIdRejected, notifyUserSenderIdSubmitted } from "@/lib/sender-ids/notifications";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -55,8 +55,13 @@ async function finalizeSenderApproval(
   await notifyUserSenderIdApproved(senderRecordId).catch(() => undefined);
 }
 
-export async function approveSenderIdCore(formData: FormData) {
-  await requireAdminSession();
+export async function approveSenderIdCore(
+  formData: FormData,
+  opts?: { actorId?: string },
+) {
+  if (!opts?.actorId) {
+    await requireAdminSession();
+  }
   const id = String(formData.get("id"));
   const setDefault = formData.get("setDefault") === "1";
 
@@ -69,7 +74,10 @@ export async function approveSenderIdCore(formData: FormData) {
   });
   if (!row) return { ok: false as const, error: "notfound" as const };
 
-  const purpose = `SplitSMS sender ID for ${row.user.fullName ?? "customer"} (${row.value})`;
+  const purposeRaw = String(formData.get("purpose") ?? "").trim();
+  const purpose =
+    purposeRaw ||
+    `SplitSMS sender ID for ${row.user.fullName ?? "customer"} (${row.value})`;
   const userId = row.userId;
 
   if (!row.providerSubmittedAt) {
@@ -122,8 +130,10 @@ export async function approveSenderIdCore(formData: FormData) {
     },
   });
 
+  await notifyUserSenderIdSubmitted(id, purpose).catch(() => undefined);
+
   revalidateSenderPaths(userId);
-  return { ok: true as const, userId, pendingCarriers: true as const };
+  return { ok: true as const, userId, pendingCarriers: true as const, purpose };
 }
 
 export async function approveSenderIdAction(formData: FormData) {
@@ -138,8 +148,13 @@ export async function approveSenderIdAction(formData: FormData) {
   );
 }
 
-export async function rejectSenderIdCore(formData: FormData) {
-  await requireAdminSession();
+export async function rejectSenderIdCore(
+  formData: FormData,
+  opts?: { actorId?: string; ban?: boolean },
+) {
+  if (!opts?.actorId) {
+    await requireAdminSession();
+  }
   const id = String(formData.get("id"));
   const sender = await prisma.senderId.findUnique({
     where: { id },
@@ -159,7 +174,16 @@ export async function rejectSenderIdCore(formData: FormData) {
     },
   });
 
-  await maybeBanSenderFromAdminAction(id, sender.value, formData, "reject", note);
+  await maybeBanSenderFromAdminAction(
+    id,
+    sender.value,
+    formData,
+    opts?.ban ? "block" : "reject",
+    note,
+    opts?.actorId ? { userId: opts.actorId } : undefined,
+  );
+
+  await notifyUserSenderIdRejected(id, note).catch(() => undefined);
 
   revalidateSenderPaths(sender.userId);
   return { ok: true as const, userId: sender.userId };
@@ -322,6 +346,46 @@ export async function adminCreateSenderIdAction(formData: FormData) {
   adminRedirect(returnTo, { saved: "created" });
 }
 
+export async function adminSubmitSenderToProvidersAction(formData: FormData) {
+  await requireAdminSession();
+  const id = String(formData.get("id") ?? "");
+  const returnTo = String(formData.get("returnTo") ?? DEFAULT_RETURN);
+
+  const row = await prisma.senderId.findUnique({
+    where: { id },
+    include: {
+      user: { select: { fullName: true } },
+    },
+  });
+  if (!row) adminRedirect(returnTo, { error: "notfound" });
+
+  const purposeRaw = String(formData.get("purpose") ?? "").trim();
+  const purpose =
+    purposeRaw ||
+    `SplitSMS sender ID for ${row.user.fullName ?? "customer"} (${row.value})`;
+
+  if (row.providerSubmittedAt) {
+    await syncSenderIdFromProviders(id);
+    revalidateSenderPaths(row.userId);
+    adminRedirect(returnTo, { saved: "sync" });
+  }
+
+  await registerSenderIdWithAllProviders({
+    senderRecordId: id,
+    userId: row.userId,
+    value: row.value,
+    purpose,
+    countryCode: row.countryCode,
+    afterPlatformApproval: false,
+  });
+  await syncSenderIdFromProviders(id);
+
+  await notifyUserSenderIdSubmitted(id, purpose).catch(() => undefined);
+
+  revalidateSenderPaths(row.userId);
+  adminRedirect(returnTo, { saved: "submitted" });
+}
+
 export async function adminSyncSenderProvidersAction(formData: FormData) {
   await requireAdminSession();
   const senderId = String(formData.get("senderId") ?? "");
@@ -345,6 +409,8 @@ export async function adminResubmitSenderProvidersAction(formData: FormData) {
 
   const result = await resubmitSenderIdToProviders(senderId);
   if (!result.ok) adminRedirect(returnTo, { error: "notfound" });
+
+  await syncSenderIdFromProviders(senderId);
 
   const sender = await prisma.senderId.findUnique({
     where: { id: senderId },

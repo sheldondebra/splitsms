@@ -76,7 +76,7 @@ export default async function AdminSenderIdsPage({
     <AdminPage wide>
       <AdminPageHeader
         title="Sender IDs"
-        description="Review member requests, approve before carrier submission, and sync provider status."
+        description="Review requests, submit to carriers, and approve when registration is confirmed."
         icon={BadgeCheck}
       />
       <AdminSenderIdsView

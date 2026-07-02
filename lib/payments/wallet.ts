@@ -83,6 +83,10 @@ export async function creditWalletFromPayment(paymentId: string) {
 
   await sendReceiptAfterWalletTopUp(paymentId).catch(() => undefined);
 
+  void import("@/lib/slack/notify")
+    .then(({ notifySlackOnlinePayment }) => notifySlackOnlinePayment(paymentId))
+    .catch(() => undefined);
+
   return payment;
 }
 
@@ -92,28 +96,33 @@ export async function purchaseCredits(
   cost: number,
   currency: string,
 ) {
-  const wallet = await prisma.wallet.findUnique({ where: { userId } });
-  if (!wallet || wallet.balance.toNumber() < cost) {
-    throw new Error("Insufficient wallet balance");
-  }
-
-  const credit = await prisma.smsCredit.findUnique({ where: { userId } });
-  const creditsBefore = credit?.balance ?? 0;
-  const walletBefore = wallet.balance.toNumber();
-  const creditsAfter = creditsBefore + credits;
-
   let transactionId = "";
 
   await prisma.$transaction(async (tx) => {
-    await tx.wallet.update({
-      where: { userId },
+    const wallet = await tx.wallet.findUnique({ where: { userId } });
+    if (!wallet || wallet.balance.toNumber() < cost) {
+      throw new Error("Insufficient wallet balance");
+    }
+
+    const debited = await tx.wallet.updateMany({
+      where: { userId, balance: { gte: cost } },
       data: { balance: { decrement: cost } },
     });
+    if (debited.count === 0) {
+      throw new Error("Insufficient wallet balance");
+    }
+
+    const credit = await tx.smsCredit.findUnique({ where: { userId } });
+    const creditsBefore = credit?.balance ?? 0;
+    const walletBefore = wallet.balance.toNumber();
+    const creditsAfter = creditsBefore + credits;
+
     await tx.smsCredit.upsert({
       where: { userId },
       update: { balance: { increment: credits } },
       create: { userId, balance: credits },
     });
+
     const created = await tx.transaction.create({
       data: {
         userId,

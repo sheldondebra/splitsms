@@ -7,6 +7,7 @@ const EVENT_MAP: Record<MessageStatus, string> = {
   FAILED: "message.failed",
   SENT: "message.sent",
   PENDING: "message.pending",
+  PROCESSING: "message.pending",
   REJECTED: "message.failed",
   EXPIRED: "message.failed",
 };

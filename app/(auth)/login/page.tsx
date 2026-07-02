@@ -19,10 +19,12 @@ export default async function LoginPage({
     email?: string;
     cooldown?: string;
     retry?: string;
+    returnTo?: string;
+    hint?: string;
   }>;
 }) {
   const params = await searchParams;
-  const { error, reset, mode, method, phone, email } = params;
+  const { error, reset, mode, method, phone, email, returnTo, hint } = params;
   const tenant = await getRequestTenant();
   const smsMode = mode === "sms";
   const countries = smsMode ? await getSignupCountryOptions() : [];
@@ -47,6 +49,9 @@ export default async function LoginPage({
     >
       <AuthCard>
         <AuthAlert code={reset === "success" ? "reset" : error} />
+        {hint === "slack" ? (
+          <AuthAlert code="slack_signin" className="mb-4" />
+        ) : null}
 
         {smsMode ? (
           <AuthEntryTabs
@@ -55,9 +60,9 @@ export default async function LoginPage({
             defaultMethod={method === "phone" ? "phone" : "email"}
           />
         ) : phonePasswordMode ? (
-          <LoginPhonePasswordForm />
+          <LoginPhonePasswordForm returnTo={returnTo} />
         ) : (
-          <LoginPasswordForm defaultEmail={email} />
+          <LoginPasswordForm defaultEmail={email} returnTo={returnTo} />
         )}
 
         <div className="mt-6 pt-5 border-t border-border/50 space-y-3 text-center text-sm">

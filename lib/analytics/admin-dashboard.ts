@@ -15,6 +15,21 @@ function startOfToday() {
   return d;
 }
 
+import type { MessageStatus } from "@/lib/generated/prisma/client";
+
+const SENT_MESSAGE_STATUSES: MessageStatus[] = ["SENT", "DELIVERED"];
+
+function sentMessagesTodayWhere(todayStart: Date) {
+  return {
+    isSandbox: false,
+    status: { in: SENT_MESSAGE_STATUSES },
+    OR: [
+      { sentAt: { gte: todayStart } },
+      { sentAt: null, createdAt: { gte: todayStart } },
+    ],
+  };
+}
+
 export async function getAdminDashboardOverview() {
   const today = startOfToday();
 
@@ -29,7 +44,8 @@ export async function getAdminDashboardOverview() {
     providerBalances,
     dailyMsgs,
     pendingSenderIds,
-    messagesToday,
+    messagesSentToday,
+    messagesSentAllTime,
     recentMembers,
     recentPayments,
     openSupportTickets,
@@ -50,7 +66,10 @@ export async function getAdminDashboardOverview() {
       select: { createdAt: true },
     }),
     prisma.senderId.count({ where: { status: "PENDING" } }),
-    prisma.message.count({ where: { createdAt: { gte: today } } }),
+    prisma.message.count({ where: sentMessagesTodayWhere(today) }),
+    prisma.message.count({
+      where: { isSandbox: false, status: { in: SENT_MESSAGE_STATUSES } },
+    }),
     prisma.user.findMany({
       where: { role: "MEMBER" },
       orderBy: { createdAt: "desc" },
@@ -97,7 +116,8 @@ export async function getAdminDashboardOverview() {
     pendingPayments: payments,
     pendingSenderIds,
     openSupportTickets,
-    messagesToday,
+    messagesSentToday,
+    messagesSentAllTime,
     recentMembers,
     recentPayments,
     totalRevenue: revenue._sum.amount?.toNumber() ?? 0,

@@ -36,11 +36,17 @@ export const metadata: Metadata = {
   creator: "SplitSMS",
   publisher: "SplitSMS",
   keywords: [
+    "SMS",
+    "SMS Ghana",
     "bulk SMS",
     "SMS API",
     "SMS gateway",
-    "bulk SMS Ghana",
     "OTP SMS API",
+    "WooCommerce SMS",
+    "Paystack SMS",
+    "SMS integration",
+    "mNotify alternative",
+    "Infobip alternative",
     "SplitSMS",
   ],
   alternates: {

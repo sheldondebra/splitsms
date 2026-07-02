@@ -16,8 +16,10 @@ import {
 } from "@/lib/sender-ids/normalize";
 import {
   registerSenderIdWithAllProviders,
+  resubmitSenderIdToProviders,
   syncSenderIdFromProviders,
 } from "@/lib/sender-ids/provider-sync";
+import { notifyUserSenderIdSubmitted } from "@/lib/sender-ids/notifications";
 import {
   loadMnotifySenderTracker,
   saveMnotifySenderTracker,
@@ -174,6 +176,66 @@ export async function adminUpdateMnotifySenderAction(formData: FormData) {
 
   revalidateMnotifyPaths(platform?.userId);
   adminRedirect(returnTo, { saved: "updated" });
+}
+
+/** Re-register a declined/rejected sender ID at mNotify and re-submit on SplitSMS. */
+export async function adminReregisterMnotifySenderAction(formData: FormData) {
+  const session = await requireAdminSession();
+  const returnTo = String(formData.get("returnTo") ?? RETURN_BASE);
+  const senderName = normalizeSenderIdValue(String(formData.get("senderName") ?? ""));
+  const purpose = String(formData.get("purpose") ?? "").trim();
+  const platformId = String(formData.get("platformId") ?? "").trim();
+
+  if (!senderName || !purpose) adminRedirect(returnTo, { error: "invalid" });
+
+  let userId: string | undefined;
+
+  if (platformId) {
+    const platform = await prisma.senderId.findUnique({
+      where: { id: platformId },
+      select: { id: true, userId: true },
+    });
+    if (!platform) adminRedirect(returnTo, { error: "notfound" });
+
+    userId = platform.userId;
+    const resubmit = await resubmitSenderIdToProviders(platformId, purpose);
+    if (!resubmit.ok) adminRedirect(returnTo, { error: "notfound" });
+
+    await syncSenderIdFromProviders(platformId);
+    await notifyUserSenderIdSubmitted(platformId, purpose).catch(() => undefined);
+  } else {
+    const registered = await registerMnotifySenderId(senderName, purpose);
+    if (!registered.ok) {
+      adminRedirect(returnTo, {
+        error: "mnotify_register",
+        detail: encodeURIComponent(registered.error ?? "failed"),
+      });
+    }
+
+    const platform = await prisma.senderId.findFirst({
+      where: { value: senderName },
+      select: { id: true, userId: true },
+    });
+    if (platform) {
+      userId = platform.userId;
+      await syncSenderIdFromProviders(platform.id);
+    }
+  }
+
+  await trackMnotifySender(senderName, purpose, session.userId, "Re-registered at mNotify");
+
+  await prisma.auditLog.create({
+    data: {
+      actorId: session.userId,
+      action: "ADMIN_MNOTIFY_SENDER_REREGISTER",
+      entityType: "MnotifySender",
+      entityId: senderName,
+      metadata: { purpose, platformId: platformId || null },
+    },
+  });
+
+  revalidateMnotifyPaths(userId);
+  adminRedirect(returnTo, { saved: "reregistered" });
 }
 
 /** Delete from mNotify (best effort) + platform + tracker. */

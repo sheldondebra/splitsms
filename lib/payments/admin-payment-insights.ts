@@ -295,7 +295,7 @@ export async function reconcileAllPendingOnlinePayments() {
   });
 
   let credited = 0;
-  let checked = pending.length;
+  const checked = pending.length;
 
   for (const payment of pending) {
     if (payment.method === "STRIPE") {

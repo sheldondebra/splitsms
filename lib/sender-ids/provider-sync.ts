@@ -233,7 +233,10 @@ export async function syncSenderIdFromProviders(senderRecordId: string) {
 }
 
 /** Re-submit a sender ID to all configured providers (after denial or deletion). */
-export async function resubmitSenderIdToProviders(senderRecordId: string) {
+export async function resubmitSenderIdToProviders(
+  senderRecordId: string,
+  purposeOverride?: string,
+) {
   const sender = await prisma.senderId.findUnique({
     where: { id: senderRecordId },
     select: {
@@ -248,6 +251,7 @@ export async function resubmitSenderIdToProviders(senderRecordId: string) {
   if (!sender) return { ok: false as const, error: "Sender ID not found" };
 
   const purpose =
+    purposeOverride?.trim() ||
     sender.adminNote?.trim() ||
     `SplitSMS sender ID (${sender.value}) for ${sender.user.fullName}`;
 
@@ -256,7 +260,8 @@ export async function resubmitSenderIdToProviders(senderRecordId: string) {
     data: {
       status: "PENDING",
       isDefault: false,
-      adminNote: "Re-submitted to providers — awaiting provider and platform approval.",
+      adminNote: purpose,
+      providerStatus: "Re-submitted to providers — awaiting carrier approval.",
     },
   });
 

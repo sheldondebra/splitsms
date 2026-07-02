@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { siteUrl } from "@/lib/seo/site";
 import { getAllBlogSlugs } from "@/lib/marketing/blog-posts";
 import { getAllIntegrationSlugs } from "@/lib/marketing/integrations-catalog";
+import { getAllSeoLandingSlugs } from "@/lib/marketing/seo-landing-pages";
 
 type SitemapEntry = MetadataRoute.Sitemap[number];
 
@@ -31,7 +32,8 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency?: Sitemap
   { path: "/docs/connect", priority: 0.8, changeFrequency: "monthly" },
   { path: "/docs/mobile", priority: 0.75, changeFrequency: "monthly" },
   { path: "/sdk", priority: 0.8, changeFrequency: "monthly" },
-  { path: "/vibe-coders", priority: 0.75, changeFrequency: "monthly" },
+  { path: "/vibe-coders", priority: 0.85, changeFrequency: "monthly" },
+  { path: "/solutions", priority: 0.92, changeFrequency: "weekly" },
   { path: "/blog", priority: 0.85, changeFrequency: "weekly" },
   { path: "/company", priority: 0.6, changeFrequency: "monthly" },
   { path: "/support", priority: 0.65, changeFrequency: "monthly" },
@@ -57,5 +59,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entry(`/integrations/${slug}`, 0.75, "monthly"),
   );
 
-  return [...staticEntries, ...integrationEntries, ...blogEntries];
+  const solutionEntries = getAllSeoLandingSlugs().map((slug) =>
+    entry(`/solutions/${slug}`, 0.9, "weekly"),
+  );
+
+  return [...staticEntries, ...solutionEntries, ...integrationEntries, ...blogEntries];
 }

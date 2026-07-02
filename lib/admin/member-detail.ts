@@ -3,6 +3,7 @@ import { getOrCreateMemberAccount } from "@/lib/admin/member-account";
 import { getAdminMemberProducts } from "@/lib/admin/platform-dashboard";
 import { resolveMemberSource } from "@/lib/admin/members-dashboard";
 import { getCountryByCode } from "@/lib/countries-data";
+import { buildMemberOutreachVars } from "@/lib/admin/member-outreach-templates";
 import { parseUserAgent } from "@/lib/user-agent";
 import { notFound } from "next/navigation";
 
@@ -334,6 +335,10 @@ export async function getAdminMemberDetail(userId: string) {
     reseller: user.reseller,
     resellerMembership: user.resellerMembership,
     enterprise: user.enterpriseAccount,
+    outreach: {
+      needsOnboarding: !account.onboardingCompletedAt,
+      vars: buildMemberOutreachVars({ fullName: user.fullName }),
+    },
     products,
   };
 }

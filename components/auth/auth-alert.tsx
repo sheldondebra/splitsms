@@ -46,9 +46,13 @@ const messages: Record<string, { text: string; variant: "error" | "success" | "i
     text: "No account found for this email. Sign up or try your phone number.",
     variant: "error",
   },
-  email_send: {
-    text: "Could not send the email code. Check Mailjet settings or try phone sign-in.",
+  slack_link: {
+    text: "This Slack admin link expired or is invalid. Open SplitSMS admin directly or request a new alert.",
     variant: "error",
+  },
+  slack_signin: {
+    text: "Sign in with your admin account to complete the action from Slack.",
+    variant: "info",
   },
 };
 

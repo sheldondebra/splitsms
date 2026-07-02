@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAdminDashboardOverview } from "@/lib/analytics/admin-dashboard";
 import { getAdminOperationsDashboard } from "@/lib/admin/operations-dashboard";
+import { describeSmsDeliveryMode } from "@/lib/admin/operations-health";
 import { AdminOperationsPanel } from "@/components/admin/admin-operations-panel";
 import {
   AdminPage,
@@ -52,6 +53,8 @@ export default async function AdminDashboardPage() {
     getAdminOperationsDashboard(),
   ]);
 
+  const delivery = describeSmsDeliveryMode(operations.health);
+
   return (
     <AdminPage wide>
       <AdminPageHeader
@@ -70,8 +73,6 @@ export default async function AdminDashboardPage() {
           ) : undefined
         }
       />
-
-      <AdminOperationsPanel data={operations} compact />
 
       {!stats.mnotify.configured && (
         <AdminAlert variant="warning">
@@ -99,9 +100,9 @@ export default async function AdminDashboardPage() {
           variant="primary"
         />
         <AdminStatCard
-          label="SMS today"
-          value={stats.messagesToday.toLocaleString()}
-          hint={`${stats.messages.toLocaleString()} all-time`}
+          label="SMS sent today"
+          value={stats.messagesSentToday.toLocaleString()}
+          hint={`${stats.messagesSentAllTime.toLocaleString()} sent all-time`}
         />
         <AdminStatCard
           label="Revenue"
@@ -185,8 +186,8 @@ export default async function AdminDashboardPage() {
 
         <div className="space-y-6">
           <AdminCard
-            title="Provider"
-            description={stats.mnotify.configured ? "Gateway connected" : "Setup required"}
+            title="SMS gateway"
+            description={stats.mnotify.configured ? "mNotify connected" : "Add API key under Providers"}
           >
             <div className="flex items-center gap-2">
               <span
@@ -196,13 +197,30 @@ export default async function AdminDashboardPage() {
                 )}
               />
               <span className="text-sm font-medium">
-                {stats.providerHealth === "healthy" ? "Operational" : "Needs configuration"}
+                {stats.mnotify.configured ? "Operational" : "Needs configuration"}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground mt-3">
-              Run <code className="text-[10px] bg-muted px-1 rounded">npm run worker:sms</code> with
-              Redis for live queue processing.
-            </p>
+
+            <div
+              className={cn(
+                "mt-3 rounded-lg border px-3 py-2.5 text-xs leading-relaxed",
+                delivery.tone === "ok" && "border-emerald-500/20 bg-emerald-500/5 text-muted-foreground",
+                delivery.tone === "warning" && "border-amber-500/25 bg-amber-500/8 text-amber-950 dark:text-amber-100",
+                delivery.tone === "muted" && "border-border/50 bg-muted/25 text-muted-foreground",
+              )}
+            >
+              <p className="font-medium text-foreground">{delivery.modeLabel}</p>
+              <p className="mt-0.5">{delivery.statusLabel}</p>
+              <p className="mt-1 opacity-90">{delivery.detail}</p>
+            </div>
+
+            <Link
+              href="/admin/providers"
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary mt-3 hover:underline"
+            >
+              Manage providers
+              <ArrowRight className="h-3 w-3" />
+            </Link>
           </AdminCard>
 
           <AdminCard title="Recent members">
@@ -267,6 +285,8 @@ export default async function AdminDashboardPage() {
           </AdminCard>
         </div>
       </div>
+
+      <AdminOperationsPanel data={operations} compact />
     </AdminPage>
   );
 }

@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
+  MessageSquare,
 } from "lucide-react";
 
 const PROVIDER_ICONS = {
@@ -77,7 +78,11 @@ export function ProviderBalancesPanel({
                 <BalanceStatusIcon status={b.status} />
               </div>
               <div className="flex items-baseline gap-2">
-                <Wallet className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                {b.type === "MNOTIFY" ? (
+                  <MessageSquare className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                ) : (
+                  <Wallet className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                )}
                 <p
                   className={cn(
                     "text-lg font-bold tabular-nums tracking-tight",
@@ -92,7 +97,6 @@ export function ProviderBalancesPanel({
               {b.bonus != null && b.bonus > 0 && b.status === "ok" && (
                 <p className="text-xs text-muted-foreground">
                   Bonus / free credit: {b.bonus.toLocaleString()}
-                  {b.currency ? ` ${b.currency}` : ""}
                 </p>
               )}
               {b.hint && (

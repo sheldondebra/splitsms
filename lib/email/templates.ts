@@ -1,4 +1,4 @@
-import { siteName } from "@/lib/site-config";
+import { getSiteUrl, siteName } from "@/lib/site-config";
 
 export function otpEmailContent(params: {
   code: string;
@@ -122,6 +122,110 @@ Your sender ID "${params.value}" is now approved on ${siteName} and ready to use
 <body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #171717; max-width: 480px; margin: 0 auto; padding: 24px;">
   <p style="font-size: 15px;">Hi ${params.memberName},</p>
   <p style="font-size: 14px; color: #525252;">Your sender ID <strong style="font-family:monospace;">${params.value}</strong> is now <strong>approved</strong> and ready to use.</p>
+  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
+  <p style="font-size: 12px; color: #a3a3a3;">${siteName}</p>
+</body>
+</html>`.trim();
+
+  return { subject, text, html };
+}
+
+export function adminMemberOutreachEmailContent(params: {
+  memberName: string;
+  subject: string;
+  bodyText: string;
+  ctaHref?: string;
+  ctaLabel?: string;
+}) {
+  const subject = params.subject;
+  const text = params.bodyText;
+  const ctaBlock =
+    params.ctaHref && params.ctaLabel
+      ? `<p style="margin: 20px 0;"><a href="${params.ctaHref}" style="display:inline-block;background:#ea580c;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600;">${params.ctaLabel}</a></p>`
+      : "";
+  const ctaText =
+    params.ctaHref && params.ctaLabel ? `\n${params.ctaLabel}: ${params.ctaHref}\n` : "";
+
+  const htmlBody = params.bodyText
+    .split("\n")
+    .map((line) => `<p style="margin:0 0 12px;font-size:14px;color:#525252;line-height:1.5;">${line || "&nbsp;"}</p>`)
+    .join("");
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #171717; max-width: 520px; margin: 0 auto; padding: 24px;">
+  ${htmlBody}
+  ${ctaBlock}
+  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
+  <p style="font-size: 12px; color: #a3a3a3;">${siteName}</p>
+</body>
+</html>`.trim();
+
+  return { subject, text: text + ctaText, html };
+}
+
+export function senderIdSubmittedMemberContent(params: {
+  value: string;
+  memberName: string;
+  purpose: string;
+}) {
+  const subject = `Sender ID submitted for registration: ${params.value}`;
+  const text = `Hi ${params.memberName},
+
+Your sender ID "${params.value}" has been submitted to our SMS carriers for registration.
+
+Registration purpose: ${params.purpose}
+
+We'll notify you when it is approved and ready for sending. You cannot use this sender ID for SMS until carrier registration completes.
+
+Register or manage sender IDs: ${getSiteUrl()}/dashboard/sender-ids
+
+— ${siteName}`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #171717; max-width: 480px; margin: 0 auto; padding: 24px;">
+  <p style="font-size: 15px;">Hi ${params.memberName},</p>
+  <p style="font-size: 14px; color: #525252;">Your sender ID <strong style="font-family:monospace;">${params.value}</strong> has been submitted to our SMS carriers for registration.</p>
+  <p style="font-size: 13px; color: #525252; margin-top: 12px;"><strong>Purpose:</strong> ${params.purpose}</p>
+  <p style="font-size: 13px; color: #737373; margin-top: 12px;">We'll email you when it is approved and ready for sending.</p>
+  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
+  <p style="font-size: 12px; color: #a3a3a3;">${siteName}</p>
+</body>
+</html>`.trim();
+
+  return { subject, text, html };
+}
+
+export function senderIdRejectedMemberContent(params: {
+  value: string;
+  memberName: string;
+  reason: string;
+}) {
+  const registerUrl = `${getSiteUrl()}/dashboard/sender-ids`;
+  const subject = `Sender ID not approved: ${params.value}`;
+  const text = `Hi ${params.memberName},
+
+Your sender ID request "${params.value}" was not approved on ${siteName}.
+
+Reason: ${params.reason}
+
+You can register a different sender ID that meets naming requirements:
+${registerUrl}
+
+— ${siteName}`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #171717; max-width: 480px; margin: 0 auto; padding: 24px;">
+  <p style="font-size: 15px;">Hi ${params.memberName},</p>
+  <p style="font-size: 14px; color: #525252;">Your sender ID request <strong style="font-family:monospace;">${params.value}</strong> was not approved.</p>
+  <p style="font-size: 13px; color: #525252; margin-top: 12px;"><strong>Reason:</strong> ${params.reason}</p>
+  <p style="font-size: 13px; color: #525252; margin-top: 16px;">You may register a different sender ID that meets carrier naming rules.</p>
+  <p style="margin-top: 16px;"><a href="${registerUrl}" style="color: #ea580c; font-weight: 600;">Register a sender ID</a></p>
   <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
   <p style="font-size: 12px; color: #a3a3a3;">${siteName}</p>
 </body>

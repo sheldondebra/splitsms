@@ -18,8 +18,30 @@ import {
   Landmark,
   Hash,
   CheckCircle2,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const ROW_KEY_ICONS: Record<string, LucideIcon> = {
+  payerName: User,
+  payerEmail: Mail,
+  payerPhone: Phone,
+  expires: Calendar,
+  country: Globe,
+  bank: Landmark,
+  gateway: CheckCircle2,
+  providerPaymentId: Hash,
+  providerReference: Hash,
+  paymentId: Hash,
+};
+
+function resolveInstrumentIcon(instrument: PaymentInstrumentDetails | null): LucideIcon {
+  const channel = instrument?.channel?.toLowerCase() ?? "";
+  if (channel.includes("mobile") || instrument?.network) return Smartphone;
+  if (channel.includes("bank")) return Building2;
+  if (channel.includes("card") || instrument?.last4) return CreditCard;
+  return Wallet;
+}
 
 export function PaymentDetailsBlock({
   instrument,
@@ -37,7 +59,7 @@ export function PaymentDetailsBlock({
   const rows = instrumentDetailRows(instrument);
   const refs = instrumentReferenceRows(instrument, paymentId, providerReference);
   const summary = formatInstrumentLabel(instrument) ?? "Payment details";
-  const Icon = iconForInstrument(instrument);
+  const Icon = resolveInstrumentIcon(instrument);
   const subtitle = instrument?.payerName ?? instrument?.payerEmail ?? null;
 
   if (rows.length === 0 && refs.length === 0 && !summary) return null;
@@ -109,7 +131,7 @@ function DetailRow({
   value: string;
   mono?: boolean;
 }) {
-  const RowIcon = iconForRowKey(rowKey);
+  const RowIcon = ROW_KEY_ICONS[rowKey] ?? CreditCard;
   return (
     <li className="flex items-start gap-2 min-w-0">
       <RowIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground mt-0.5" />
@@ -125,37 +147,4 @@ function DetailRow({
       </span>
     </li>
   );
-}
-
-function iconForInstrument(instrument: PaymentInstrumentDetails | null) {
-  const channel = instrument?.channel?.toLowerCase() ?? "";
-  if (channel.includes("mobile") || instrument?.network) return Smartphone;
-  if (channel.includes("bank")) return Building2;
-  if (channel.includes("card") || instrument?.last4) return CreditCard;
-  return Wallet;
-}
-
-function iconForRowKey(key: string) {
-  switch (key) {
-    case "payerName":
-      return User;
-    case "payerEmail":
-      return Mail;
-    case "payerPhone":
-      return Phone;
-    case "expires":
-      return Calendar;
-    case "country":
-      return Globe;
-    case "bank":
-      return Landmark;
-    case "gateway":
-      return CheckCircle2;
-    case "providerPaymentId":
-    case "providerReference":
-    case "paymentId":
-      return Hash;
-    default:
-      return CreditCard;
-  }
 }

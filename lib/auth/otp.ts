@@ -2,7 +2,7 @@ import { createHash, randomInt } from "crypto";
 import { prisma } from "@/lib/db";
 import { sendOtpSms } from "@/lib/sms/otp-sender";
 import { sendOtpEmail, type OtpEmailPurpose } from "@/lib/email";
-import { isMailjetConfigured } from "@/lib/email/config";
+import { isMailjetConfiguredAsync } from "@/lib/email/config";
 import type { OtpPurpose } from "@/lib/generated/prisma/client";
 
 const OTP_TTL_MS = 10 * 60 * 1000;
@@ -79,8 +79,9 @@ export async function createAndSendOtp(
 
   const email = options?.email?.trim().toLowerCase();
   let channel = options?.channel ?? "sms";
+  const mailjetReady = await isMailjetConfiguredAsync();
 
-  if (channel === "email" && (!email || !isMailjetConfigured())) {
+  if (channel === "email" && (!email || !mailjetReady)) {
     channel = "sms";
   }
 

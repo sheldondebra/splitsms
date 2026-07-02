@@ -54,9 +54,16 @@ export function GeneralEmailPanel({
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
               Sandbox
             </p>
-            <p className="mt-0.5">{stored.sandbox ? "On" : "Off"}</p>
+            <p className="mt-0.5">{stored.sandbox ? "On — emails are not delivered" : "Off"}</p>
           </div>
         </div>
+
+        {stored.sandbox ? (
+          <p className="text-sm text-amber-800 dark:text-amber-300 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+            Sandbox mode is enabled. Mailjet accepts sends but does not deliver real email. Turn it off
+            under Mailjet API settings to go live.
+          </p>
+        ) : null}
 
         <GeneralMailjetForm
           stored={stored}

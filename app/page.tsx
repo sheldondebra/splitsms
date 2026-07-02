@@ -12,18 +12,26 @@ import {
 } from "@/lib/seo/site";
 
 export const metadata: Metadata = buildPageMetadata({
-  absoluteTitle: "SplitSMS — Bulk SMS Platform & SMS API | 190+ Countries",
+  absoluteTitle:
+    "SplitSMS — SMS Ghana, Bulk SMS API, OTP & WooCommerce | 190+ Countries",
   title: "Bulk SMS Platform & SMS API",
   description:
-    "Send bulk SMS, OTP, and marketing campaigns worldwide. Affordable SMS gateway, REST SMS API, webhooks, Smart Forms, and 5 free SMS credits on signup.",
+    "Send SMS in Ghana and 190+ countries — bulk campaigns, OTP API, WooCommerce SMS, Paystack payment texts, mNotify routing, and REST integration. 5 free credits on signup.",
   path: "/",
   keywords: [
+    "SMS",
+    "SMS Ghana",
     "bulk SMS",
     "bulk SMS Ghana",
     "bulk SMS Nigeria",
     "SMS API",
     "SMS gateway",
     "OTP SMS API",
+    "WooCommerce SMS",
+    "Paystack SMS",
+    "SMS integration",
+    "mNotify alternative",
+    "Infobip alternative",
     "affordable bulk SMS",
     "international SMS",
     "SMS marketing platform",
@@ -74,6 +82,30 @@ const homeJsonLd = [
         acceptedAnswer: {
           "@type": "Answer",
           text: "SplitSMS delivers bulk SMS and OTP to 190+ countries including Ghana, Nigeria, Kenya, South Africa, the UK, and the United States.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Is SplitSMS an mNotify or Infobip alternative?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Yes. SplitSMS routes Ghana SMS through carriers including mNotify and offers a self-serve dashboard, REST API, OTP, WooCommerce plugin, and transparent pricing — a simpler Infobip alternative for Africa-focused teams.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Does SplitSMS support WooCommerce and Paystack SMS?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Yes. Install the free SplitSMS WordPress plugin to send WooCommerce order and Paystack payment confirmation SMS when customers checkout on your store.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "How do I integrate SMS into my app?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Use the SplitSMS REST SMS API with Bearer auth, sandbox keys for testing, and delivery webhooks. See splitsms.com/api-docs or splitsms.com/solutions/sms-integration.",
         },
       },
     ],

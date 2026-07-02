@@ -86,6 +86,7 @@ enum SmsProviderType {
 
 enum MessageStatus {
   PENDING
+  PROCESSING
   SENT
   DELIVERED
   FAILED
@@ -730,19 +731,22 @@ model ApiKey {
 }
 
 model SupportTicket {
-  id        String               @id @default(cuid())
-  reference Int?                 @unique
-  userId    String
-  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subject   String
-  message   String
-  status    String               @default("OPEN")
-  createdAt DateTime             @default(now())
-  updatedAt DateTime             @updatedAt
-  replies   SupportTicketReply[]
+  id             String               @id @default(cuid())
+  reference      Int?                 @unique
+  userId         String
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject        String
+  message        String
+  status         String               @default("OPEN")
+  slackThreadTs  String?
+  slackChannelId String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  replies        SupportTicketReply[]
 
   @@index([userId, status])
   @@index([status, createdAt])
+  @@index([slackThreadTs])
 }
 
 model SupportTicketReply {

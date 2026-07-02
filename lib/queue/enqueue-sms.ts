@@ -15,6 +15,7 @@ export async function enqueueSmsJob(
 
   if (queue && smsWorkersEnabled()) {
     await queue.add("send", job, {
+      jobId: messageId,
       priority: bullPriority,
       removeOnComplete: true,
     });

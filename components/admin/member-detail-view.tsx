@@ -333,7 +333,7 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
         </TabsContent>
 
         <TabsContent value="messaging" className="mt-6">
-          <MemberMessagingPanel data={data} />
+          <MemberMessagingPanel data={data} flash={flash} />
         </TabsContent>
 
         <TabsContent value="sessions" className="mt-6">
@@ -1116,6 +1116,7 @@ function flashMessage(saved: string, temp?: string) {
     sender_blocked: "Sender ID blocked.",
     reply: "Support reply sent — member notified by email and SMS.",
     ticket: "Ticket status updated.",
+    outreach_sent: "Message sent to member via SMS and/or email.",
   };
   return map[saved] ?? "Changes saved.";
 }

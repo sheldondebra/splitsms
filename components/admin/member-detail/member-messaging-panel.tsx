@@ -1,6 +1,7 @@
 import { format, formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { AdminCard, AdminEmpty } from "@/components/admin/admin-page-shell";
+import { MemberOutreachPanel } from "@/components/admin/member-detail/member-outreach-panel";
 import { ProviderBadge } from "@/components/admin/provider-badge";
 import { Badge } from "@/components/ui/badge";
 import type { AdminMemberDetail } from "@/lib/admin/member-detail";
@@ -38,12 +39,26 @@ function MessageStatusBadge({ status }: { status: string }) {
   );
 }
 
-export function MemberMessagingPanel({ data }: { data: AdminMemberDetail }) {
+export function MemberMessagingPanel({
+  data,
+  flash,
+}: {
+  data: AdminMemberDetail;
+  flash?: { saved?: string; error?: string };
+}) {
   const { recentMessages, routingLogs, wordpressLogs, analytics } = data;
   const failed = recentMessages.filter((m) => m.status === "FAILED");
 
   return (
     <div className="space-y-4">
+      <MemberOutreachPanel
+        userId={data.user.id}
+        phone={data.user.phone}
+        email={data.user.email}
+        needsOnboarding={data.outreach.needsOnboarding}
+        vars={data.outreach.vars}
+        flash={flash}
+      />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-border/60 bg-card p-4">
           <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">

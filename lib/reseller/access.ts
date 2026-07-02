@@ -16,13 +16,15 @@ function startOfTodayUtc() {
 }
 
 export async function countUserSmsToday(userId: string) {
-  return prisma.message.count({
+  const result = await prisma.message.aggregate({
     where: {
       userId,
       createdAt: { gte: startOfTodayUtc() },
       status: { notIn: ["REJECTED"] },
     },
+    _sum: { smsUnits: true },
   });
+  return result._sum.smsUnits ?? 0;
 }
 
 export async function countResellerSmsToday(resellerId: string) {
@@ -31,13 +33,15 @@ export async function countResellerSmsToday(resellerId: string) {
     select: { userId: true },
   });
   if (subIds.length === 0) return 0;
-  return prisma.message.count({
+  const result = await prisma.message.aggregate({
     where: {
       userId: { in: subIds.map((s) => s.userId) },
       createdAt: { gte: startOfTodayUtc() },
       status: { notIn: ["REJECTED"] },
     },
+    _sum: { smsUnits: true },
   });
+  return result._sum.smsUnits ?? 0;
 }
 
 /** Blocks send when sub-user is suspended or daily caps exceeded. */

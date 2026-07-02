@@ -1,17 +1,48 @@
 import { prisma } from "@/lib/db";
 import { sendSmsWithFailover } from "@/lib/sms/orchestrator";
-import { refundSmsCredits } from "@/lib/sms/billing";
+import { refundMessageBilling } from "@/lib/sms/message-billing";
 import { dispatchUserWebhooks } from "@/lib/webhooks/dispatch";
-import { releaseEnterpriseCredit } from "@/lib/enterprise/credit";
+import { syncCampaignStatus } from "@/lib/campaigns/sync-status";
 import type { SmsProviderType } from "@/lib/generated/prisma/client";
+
+const STALE_PROCESSING_MS = 5 * 60 * 1000;
+
+/** Reset messages stuck in PROCESSING (worker crash / timeout). */
+export async function resetStaleProcessingMessages() {
+  const cutoff = new Date(Date.now() - STALE_PROCESSING_MS);
+  await prisma.message.updateMany({
+    where: { status: "PROCESSING", updatedAt: { lt: cutoff } },
+    data: { status: "PENDING" },
+  });
+}
+
+/** Atomically claim a PENDING message so only one worker sends it. */
+async function claimMessage(messageId: string) {
+  const claimed = await prisma.message.updateMany({
+    where: { id: messageId, status: "PENDING" },
+    data: { status: "PROCESSING" },
+  });
+  return claimed.count > 0;
+}
 
 /** Credits are deducted before queue; worker only sends via provider. */
 export async function processMessageJob(messageId: string, countryCode: string) {
+  await resetStaleProcessingMessages();
+
+  const existing = await prisma.message.findUnique({
+    where: { id: messageId },
+    select: { status: true },
+  });
+  if (!existing || existing.status !== "PENDING") return;
+
+  const claimed = await claimMessage(messageId);
+  if (!claimed) return;
+
   const message = await prisma.message.findUnique({
     where: { id: messageId },
     include: { user: { include: { wallet: true } } },
   });
-  if (!message || message.status !== "PENDING") return;
+  if (!message) return;
 
   if (message.isSandbox) {
     const { processSandboxMessage } = await import("@/lib/api/sandbox");
@@ -68,25 +99,19 @@ export async function processMessageJob(messageId: string, countryCode: string) 
       const { syncMnotifyDeliveryAfterSend } = await import("@/lib/sms/sync-mnotify-dlr");
       void syncMnotifyDeliveryAfterSend(result.providerRef).catch(() => undefined);
     }
+    await syncCampaignStatus(message.campaignId);
     return;
   }
 
   const currency = message.user.wallet?.currency ?? "GHS";
-  const cost = message.cost?.toNumber() ?? 0;
-  if (enterprise?.credit) {
-    await releaseEnterpriseCredit(enterprise.id, cost);
-  } else {
-    try {
-      await refundSmsCredits(
-        message.userId,
-        message.smsUnits,
-        cost,
-        currency,
-        `Refund failed SMS to ${message.recipient}`,
-      );
-    } catch {
-      /* wallet may be missing */
-    }
+  try {
+    await refundMessageBilling(
+      message,
+      currency,
+      `Refund failed SMS to ${message.recipient}`,
+    );
+  } catch (err) {
+    console.error("[processMessageJob] refund failed", messageId, err);
   }
 
   const failed = await prisma.message.update({
@@ -98,13 +123,19 @@ export async function processMessageJob(messageId: string, countryCode: string) 
     },
   });
   await dispatchUserWebhooks(message.userId, failed);
+  await syncCampaignStatus(message.campaignId);
 }
 
 export async function updateMessageFromDlr(
   providerRef: string,
   status: "DELIVERED" | "FAILED" | "SENT",
+  recipient?: string,
 ) {
-  const message = await prisma.message.findFirst({ where: { providerRef } });
+  const message = recipient
+    ? await prisma.message.findFirst({
+        where: { providerRef, recipient },
+      })
+    : await prisma.message.findFirst({ where: { providerRef } });
   if (!message) return;
 
   const updated = await prisma.message.update({
@@ -121,20 +152,18 @@ export async function updateMessageFromDlr(
       where: { id: message.userId },
       include: { wallet: true },
     });
-    if (user?.wallet) {
-      try {
-        await refundSmsCredits(
-          message.userId,
-          message.smsUnits,
-          message.cost?.toNumber() ?? 0,
-          user.wallet.currency,
-          `DLR failed: ${message.recipient}`,
-        );
-      } catch {
-        /* ignore */
-      }
+    const currency = user?.wallet?.currency ?? "GHS";
+    try {
+      await refundMessageBilling(
+        message,
+        currency,
+        `DLR failed: ${message.recipient}`,
+      );
+    } catch (err) {
+      console.error("[updateMessageFromDlr] refund failed", message.id, err);
     }
   }
 
   await dispatchUserWebhooks(message.userId, updated);
+  await syncCampaignStatus(message.campaignId);
 }

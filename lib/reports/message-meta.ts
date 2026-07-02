@@ -22,6 +22,12 @@ export const MESSAGE_STATUS_META: Record<string, MessageStatusMeta> = {
     badgeClass: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
     textClass: "text-amber-700 dark:text-amber-400",
   },
+  PROCESSING: {
+    label: STATUS_LABELS.PROCESSING,
+    icon: Send,
+    badgeClass: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400",
+    textClass: "text-sky-700 dark:text-sky-400",
+  },
   SENT: {
     label: STATUS_LABELS.SENT,
     icon: Send,
@@ -54,13 +60,14 @@ export const MESSAGE_STATUS_META: Record<string, MessageStatusMeta> = {
   },
 };
 
-export type MessageStatusFilter = "all" | "PENDING" | "SENT" | "DELIVERED" | "FAILED";
+export type MessageStatusFilter = "all" | "PENDING" | "PROCESSING" | "SENT" | "DELIVERED" | "FAILED";
 
 export const MESSAGE_FILTER_OPTIONS: { value: MessageStatusFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "DELIVERED", label: "Delivered" },
   { value: "SENT", label: "Sent" },
   { value: "PENDING", label: "Pending" },
+  { value: "PROCESSING", label: "Sending" },
   { value: "FAILED", label: "Failed" },
 ];
 
