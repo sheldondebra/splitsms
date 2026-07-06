@@ -17,10 +17,34 @@ import {
 } from "@/lib/sender-ids/provider-sync";
 import { senderHasProviderApproval } from "@/lib/sender-ids/reconcile-status";
 import { notifyUserSenderIdApproved, notifyUserSenderIdRejected, notifyUserSenderIdSubmitted } from "@/lib/sender-ids/notifications";
+import { notifySlackSenderIdAdminAction } from "@/lib/slack/sender-id-events";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 const DEFAULT_RETURN = "/admin/sender-ids?tab=pending";
+
+export type SenderIdActionStep = {
+  id: string;
+  label: string;
+  status: "pending" | "running" | "done" | "error" | "skipped";
+  detail?: string;
+};
+
+export type ApproveSenderIdResult =
+  | {
+      ok: true;
+      userId: string;
+      outcome: "approved" | "pending_carriers" | "submitted";
+      steps: SenderIdActionStep[];
+      message: string;
+      pendingCarriers?: true;
+      purpose?: string;
+    }
+  | { ok: false; error: string; message: string; steps?: SenderIdActionStep[] };
+
+export type SenderIdMutationResult =
+  | { ok: true; message: string; steps?: SenderIdActionStep[] }
+  | { ok: false; error: string; message: string };
 
 function revalidateSenderPaths(userId?: string) {
   revalidatePath("/admin/sender-ids");
@@ -37,6 +61,57 @@ async function requireAdminSession() {
 
 function adminRedirect(returnTo: string, params: Record<string, string | undefined>): never {
   redirect(withReturnParams(returnTo, params));
+}
+
+async function resolveActor(actorId?: string) {
+  if (!actorId) {
+    const session = await requireAdminSession();
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { id: true, fullName: true },
+    });
+    return { id: session.userId, name: user?.fullName ?? "Admin" };
+  }
+  const user = await prisma.user.findUnique({
+    where: { id: actorId },
+    select: { id: true, fullName: true },
+  });
+  return { id: actorId, name: user?.fullName ?? "Admin" };
+}
+
+function providerStepLabel(provider: string) {
+  if (provider === "MNOTIFY") return "mNotify registrar";
+  if (provider === "TWILIO") return "Twilio registrar";
+  if (provider === "INFOBIP") return "Infobip registrar";
+  return provider;
+}
+
+function mapProviderStep(
+  provider: string,
+  result: { status: string; providerStatus?: string; error?: string },
+): SenderIdActionStep {
+  if (result.status === "SKIPPED") {
+    return {
+      id: provider,
+      label: providerStepLabel(provider),
+      status: "skipped",
+      detail: result.providerStatus ?? "Not in registration policy",
+    };
+  }
+  if (result.status === "FAILED" || result.status === "REJECTED") {
+    return {
+      id: provider,
+      label: providerStepLabel(provider),
+      status: "error",
+      detail: result.error ?? result.providerStatus ?? result.status,
+    };
+  }
+  return {
+    id: provider,
+    label: providerStepLabel(provider),
+    status: "done",
+    detail: result.providerStatus ?? "Submitted",
+  };
 }
 
 async function finalizeSenderApproval(
@@ -58,10 +133,9 @@ async function finalizeSenderApproval(
 export async function approveSenderIdCore(
   formData: FormData,
   opts?: { actorId?: string },
-) {
-  if (!opts?.actorId) {
-    await requireAdminSession();
-  }
+): Promise<ApproveSenderIdResult> {
+  const actor = await resolveActor(opts?.actorId);
+  const steps: SenderIdActionStep[] = [];
   const id = String(formData.get("id"));
   const setDefault = formData.get("setDefault") === "1";
 
@@ -69,10 +143,12 @@ export async function approveSenderIdCore(
     where: { id },
     include: {
       providerRegistrations: true,
-      user: { select: { fullName: true } },
+      user: { select: { fullName: true, phone: true } },
     },
   });
-  if (!row) return { ok: false as const, error: "notfound" as const };
+  if (!row) {
+    return { ok: false, error: "notfound", message: "Sender ID not found." };
+  }
 
   const purposeRaw = String(formData.get("purpose") ?? "").trim();
   const purpose =
@@ -81,7 +157,8 @@ export async function approveSenderIdCore(
   const userId = row.userId;
 
   if (!row.providerSubmittedAt) {
-    await registerSenderIdWithAllProviders({
+    steps.push({ id: "submit", label: "Submitting to carriers", status: "running" });
+    const reg = await registerSenderIdWithAllProviders({
       senderRecordId: id,
       userId,
       value: row.value,
@@ -89,23 +166,41 @@ export async function approveSenderIdCore(
       countryCode: row.countryCode,
       afterPlatformApproval: true,
     });
+    steps.pop();
+    steps.push(mapProviderStep("MNOTIFY", reg.mnotify));
+    steps.push(mapProviderStep("TWILIO", reg.twilio));
+    steps.push(mapProviderStep("INFOBIP", reg.infobip));
+
+    steps.push({ id: "sync", label: "Syncing carrier status", status: "running" });
     await syncSenderIdFromProviders(id);
+    steps.pop();
+    steps.push({ id: "sync", label: "Carrier status synced", status: "done" });
   } else {
+    steps.push({ id: "sync", label: "Syncing carrier status", status: "running" });
     await syncSenderIdFromProviders(id);
+    steps.pop();
+    steps.push({ id: "sync", label: "Carrier status synced", status: "done" });
   }
 
   const refreshed = await prisma.senderId.findUnique({
     where: { id },
     include: { providerRegistrations: true },
   });
-  if (!refreshed) return { ok: false as const, error: "notfound" as const };
+  if (!refreshed) {
+    return { ok: false, error: "notfound", message: "Sender ID not found.", steps };
+  }
 
   const active = refreshed.providerRegistrations.filter((r) => r.status !== "SKIPPED");
   const anyRejected = active.some((r) => r.status === "REJECTED" || r.status === "FAILED");
   const anyApproved = senderHasProviderApproval(refreshed.providerRegistrations);
 
   if (anyRejected && !anyApproved) {
-    return { ok: false as const, error: "provider_denied" as const };
+    return {
+      ok: false,
+      error: "provider_denied",
+      message: "All carriers denied this sender ID. Re-submit after fixing the name or purpose.",
+      steps,
+    };
   }
 
   if (anyApproved || refreshed.status === "APPROVED") {
@@ -118,8 +213,27 @@ export async function approveSenderIdCore(
       },
     });
     await finalizeSenderApproval(id, userId, setDefault);
+
+    void notifySlackSenderIdAdminAction({
+      action: "approved",
+      senderRecordId: id,
+      value: row.value,
+      memberName: row.user.fullName,
+      memberPhone: row.user.phone,
+      countryCode: row.countryCode,
+      actorName: actor.name,
+      actorId: actor.id,
+      outcome: "approved",
+    }).catch(() => undefined);
+
     revalidateSenderPaths(userId);
-    return { ok: true as const, userId };
+    return {
+      ok: true,
+      userId,
+      outcome: "approved",
+      steps,
+      message: `${row.value} approved — member notified and can send SMS.`,
+    };
   }
 
   await prisma.senderId.update({
@@ -132,8 +246,28 @@ export async function approveSenderIdCore(
 
   await notifyUserSenderIdSubmitted(id, purpose).catch(() => undefined);
 
+  void notifySlackSenderIdAdminAction({
+    action: "submitted",
+    senderRecordId: id,
+    value: row.value,
+    memberName: row.user.fullName,
+    memberPhone: row.user.phone,
+    countryCode: row.countryCode,
+    actorName: actor.name,
+    actorId: actor.id,
+    outcome: "pending_carriers",
+  }).catch(() => undefined);
+
   revalidateSenderPaths(userId);
-  return { ok: true as const, userId, pendingCarriers: true as const, purpose };
+  return {
+    ok: true,
+    userId,
+    outcome: "pending_carriers",
+    pendingCarriers: true,
+    purpose,
+    steps,
+    message: `${row.value} submitted to carriers — awaiting registrar approval.`,
+  };
 }
 
 export async function approveSenderIdAction(formData: FormData) {
@@ -151,17 +285,15 @@ export async function approveSenderIdAction(formData: FormData) {
 export async function rejectSenderIdCore(
   formData: FormData,
   opts?: { actorId?: string; ban?: boolean },
-) {
-  if (!opts?.actorId) {
-    await requireAdminSession();
-  }
+): Promise<SenderIdMutationResult & { userId?: string }> {
+  const actor = await resolveActor(opts?.actorId);
   const id = String(formData.get("id"));
   const sender = await prisma.senderId.findUnique({
     where: { id },
-    select: { userId: true, value: true },
+    select: { userId: true, value: true, countryCode: true, user: { select: { fullName: true, phone: true } } },
   });
 
-  if (!sender) return { ok: false as const, error: "notfound" as const };
+  if (!sender) return { ok: false, error: "notfound", message: "Sender ID not found." };
 
   const note = String(formData.get("note") ?? "Does not meet naming requirements").trim();
 
@@ -185,8 +317,26 @@ export async function rejectSenderIdCore(
 
   await notifyUserSenderIdRejected(id, note).catch(() => undefined);
 
+  void notifySlackSenderIdAdminAction({
+    action: opts?.ban ? "blocked" : "denied",
+    senderRecordId: id,
+    value: sender.value,
+    memberName: sender.user.fullName,
+    memberPhone: sender.user.phone,
+    countryCode: sender.countryCode,
+    actorName: actor.name,
+    actorId: actor.id,
+    note,
+  }).catch(() => undefined);
+
   revalidateSenderPaths(sender.userId);
-  return { ok: true as const, userId: sender.userId };
+  return {
+    ok: true,
+    userId: sender.userId,
+    message: opts?.ban
+      ? `${sender.value} blocked and member notified.`
+      : `${sender.value} denied and member notified.`,
+  };
 }
 
 export async function rejectSenderIdAction(formData: FormData) {
@@ -203,28 +353,14 @@ export async function blockSenderIdAction(formData: FormData) {
   const id = String(formData.get("id") ?? formData.get("senderId") ?? "");
   const returnTo = String(formData.get("returnTo") ?? DEFAULT_RETURN);
 
-  const sender = await prisma.senderId.findUnique({
-    where: { id },
-    select: { userId: true, value: true },
-  });
-  if (!sender) {
-    adminRedirect(returnTo, { error: "notfound" });
+  const fd = new FormData();
+  fd.set("id", id);
+  fd.set("note", String(formData.get("note") ?? "Blocked by admin"));
+  fd.set("addToBanList", String(formData.get("addToBanList") ?? "on"));
+  const result = await rejectSenderIdCore(fd, { actorId: session.userId, ban: true });
+  if (!result.ok) {
+    adminRedirect(returnTo, { error: result.error });
   }
-
-  const note = String(formData.get("note") ?? "Blocked by admin").trim();
-
-  await prisma.senderId.update({
-    where: { id },
-    data: {
-      status: "REJECTED",
-      adminNote: note,
-      isDefault: false,
-    },
-  });
-
-  await maybeBanSenderFromAdminAction(id, sender.value, formData, "block", note, session);
-
-  revalidateSenderPaths(sender.userId);
   revalidatePath("/admin/sender-ids");
   adminRedirect(returnTo, { saved: "blocked" });
 }
@@ -540,4 +676,127 @@ export async function banFlaggedSenderIdAction(formData: FormData) {
 
   revalidatePath("/admin/sender-ids");
   adminRedirect(returnTo, { saved: "banned_added" });
+}
+
+export async function approveSenderIdJsonAction(input: {
+  id: string;
+  purpose: string;
+  setDefault?: boolean;
+}): Promise<ApproveSenderIdResult> {
+  await requireAdminSession();
+  const fd = new FormData();
+  fd.set("id", input.id);
+  fd.set("purpose", input.purpose);
+  fd.set("setDefault", input.setDefault === false ? "0" : "1");
+  return approveSenderIdCore(fd);
+}
+
+export async function rejectSenderIdJsonAction(input: {
+  id: string;
+  note: string;
+  addToBanList?: boolean;
+}): Promise<SenderIdMutationResult> {
+  await requireAdminSession();
+  const fd = new FormData();
+  fd.set("id", input.id);
+  fd.set("note", input.note);
+  fd.set("addToBanList", input.addToBanList === false ? "off" : "on");
+  const result = await rejectSenderIdCore(fd);
+  if (result.ok) revalidateSenderPaths(result.userId);
+  return result;
+}
+
+export async function submitSenderToProvidersJsonAction(input: {
+  id: string;
+  purpose: string;
+}): Promise<SenderIdMutationResult & { steps?: SenderIdActionStep[] }> {
+  const actor = await resolveActor();
+  const row = await prisma.senderId.findUnique({
+    where: { id: input.id },
+    include: { user: { select: { fullName: true, phone: true } } },
+  });
+  if (!row) return { ok: false, error: "notfound", message: "Sender ID not found." };
+
+  const purpose =
+    input.purpose.trim() ||
+    `SplitSMS sender ID for ${row.user.fullName ?? "customer"} (${row.value})`;
+
+  const steps: SenderIdActionStep[] = [];
+
+  if (row.providerSubmittedAt) {
+    steps.push({ id: "sync", label: "Syncing carrier status", status: "running" });
+    await syncSenderIdFromProviders(input.id);
+    steps[0] = { id: "sync", label: "Carrier status synced", status: "done" };
+    revalidateSenderPaths(row.userId);
+    return { ok: true, message: "Carrier status refreshed.", steps };
+  }
+
+  steps.push({ id: "submit", label: "Submitting to carriers", status: "running" });
+  const reg = await registerSenderIdWithAllProviders({
+    senderRecordId: input.id,
+    userId: row.userId,
+    value: row.value,
+    purpose,
+    countryCode: row.countryCode,
+    afterPlatformApproval: false,
+  });
+  steps.pop();
+  steps.push(mapProviderStep("MNOTIFY", reg.mnotify));
+  steps.push(mapProviderStep("TWILIO", reg.twilio));
+  steps.push(mapProviderStep("INFOBIP", reg.infobip));
+  steps.push({ id: "sync", label: "Syncing carrier status", status: "running" });
+  await syncSenderIdFromProviders(input.id);
+  steps.push({ id: "sync", label: "Carrier status synced", status: "done" });
+
+  await notifyUserSenderIdSubmitted(input.id, purpose).catch(() => undefined);
+
+  void notifySlackSenderIdAdminAction({
+    action: "submitted",
+    senderRecordId: input.id,
+    value: row.value,
+    memberName: row.user.fullName,
+    memberPhone: row.user.phone,
+    countryCode: row.countryCode,
+    actorName: actor.name,
+    actorId: actor.id,
+    outcome: "submitted",
+  }).catch(() => undefined);
+
+  revalidateSenderPaths(row.userId);
+  return {
+    ok: true,
+    message: `${row.value} submitted to carriers.`,
+    steps,
+  };
+}
+
+export async function syncSenderProvidersJsonAction(input: {
+  senderId: string;
+}): Promise<SenderIdMutationResult> {
+  await requireAdminSession();
+  const sender = await prisma.senderId.findUnique({
+    where: { id: input.senderId },
+    select: { userId: true, value: true },
+  });
+  if (!sender) return { ok: false, error: "notfound", message: "Sender ID not found." };
+
+  await syncSenderIdFromProviders(input.senderId);
+  revalidateSenderPaths(sender.userId);
+  return { ok: true, message: `${sender.value} synced with carriers.` };
+}
+
+export async function resubmitSenderProvidersJsonAction(input: {
+  senderId: string;
+}): Promise<SenderIdMutationResult> {
+  await requireAdminSession();
+  const result = await resubmitSenderIdToProviders(input.senderId);
+  if (!result.ok) return { ok: false, error: "notfound", message: "Sender ID not found." };
+
+  await syncSenderIdFromProviders(input.senderId);
+  const sender = await prisma.senderId.findUnique({
+    where: { id: input.senderId },
+    select: { userId: true, value: true },
+  });
+  revalidateSenderPaths(sender?.userId);
+  return { ok: true, message: `${sender?.value ?? "Sender ID"} re-submitted to carriers.` };
 }

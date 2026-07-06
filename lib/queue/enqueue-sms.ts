@@ -14,12 +14,16 @@ export async function enqueueSmsJob(
   const bullPriority = BULLMQ_PRIORITY[priority];
 
   if (queue && smsWorkersEnabled()) {
-    await queue.add("send", job, {
-      jobId: messageId,
-      priority: bullPriority,
-      removeOnComplete: true,
-    });
-    return;
+    try {
+      await queue.add("send", job, {
+        jobId: messageId,
+        priority: bullPriority,
+        removeOnComplete: true,
+      });
+      return;
+    } catch (err) {
+      console.error("[enqueueSmsJob] queue add failed, sending inline", messageId, err);
+    }
   }
 
   await processMessageJob(messageId, countryCode);

@@ -1,7 +1,35 @@
 import { getAdminOperationsDashboard } from "@/lib/admin/operations-dashboard";
 import { AdminOperationsView } from "@/components/admin/admin-operations-view";
 
-export default async function AdminOperationsPage() {
+function parseFlashParam(value: string | undefined) {
+  if (!value) return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+export default async function AdminOperationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    processed?: string;
+    sent?: string;
+    failed?: string;
+    remaining?: string;
+  }>;
+}) {
+  const params = await searchParams;
   const data = await getAdminOperationsDashboard();
-  return <AdminOperationsView data={data} />;
+
+  const processed = parseFlashParam(params.processed);
+  const flash =
+    processed != null
+      ? {
+          processed,
+          sent: parseFlashParam(params.sent),
+          failed: parseFlashParam(params.failed),
+          remaining: parseFlashParam(params.remaining),
+        }
+      : undefined;
+
+  return <AdminOperationsView data={data} flash={flash} />;
 }

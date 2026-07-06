@@ -6,13 +6,9 @@ import { SupportForm, SupportFormIntro } from "@/components/marketing/support-fo
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { supportPageMetadata } from "@/lib/seo/marketing-metadata";
 
-export const metadata: Metadata = {
-  title: "Support — Report bugs & get help",
-  description:
-    "Submit a support request for SplitSMS — bugs, errors, billing, API, WordPress plugin, and account help.",
-  alternates: { canonical: "/support" },
-};
+export const metadata: Metadata = supportPageMetadata;
 
 type PageProps = {
   searchParams: Promise<{ sent?: string }>;

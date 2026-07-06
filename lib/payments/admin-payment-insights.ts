@@ -4,15 +4,11 @@ import { verifyStripeCheckoutSession } from "@/lib/payments/stripe-verify";
 import { verifyPaystackPayment } from "@/lib/payments/paystack-verify";
 import { verifyFlutterwavePayment } from "@/lib/payments/flutterwave-verify";
 import { creditWalletFromPayment } from "@/lib/payments/wallet";
-import type { Payment, PaymentMethod, PaymentStatus } from "@/lib/generated/prisma/client";
+import type { Payment, PaymentStatus } from "@/lib/generated/prisma/client";
+import type { PaymentInsight } from "@/lib/payments/payment-display";
 
-export type PaymentInsight = {
-  label: string;
-  detail: string;
-  tone: "neutral" | "warning" | "success" | "danger";
-  providerPaid?: boolean;
-  canAutoCredit?: boolean;
-};
+export type { PaymentInsight } from "@/lib/payments/payment-display";
+export { methodLabel } from "@/lib/payments/payment-display";
 
 export async function findStripeSessionForPayment(paymentId: string, createdAfter?: Date) {
   const { config } = await loadStripeSettings();
@@ -333,15 +329,4 @@ export function statusBadgeVariant(
   if (status === "PENDING" && insight.providerPaid) return "outline";
   if (status === "PENDING") return "secondary";
   return "destructive";
-}
-
-export function methodLabel(method: PaymentMethod) {
-  const labels: Record<PaymentMethod, string> = {
-    PAYSTACK: "Paystack",
-    FLUTTERWAVE: "Flutterwave",
-    STRIPE: "Stripe",
-    MTN_MOMO: "MTN MoMo",
-    MANUAL: "Bank transfer",
-  };
-  return labels[method] ?? method;
 }

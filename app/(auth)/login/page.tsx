@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { AuthLayout, AuthCard } from "@/components/auth/auth-layout";
 import { getRequestTenant } from "@/lib/reseller/request-tenant";
 import { AuthAlert } from "@/components/auth/auth-alert";
@@ -6,6 +7,13 @@ import { AuthEntryTabs } from "@/components/auth/auth-entry-tabs";
 import { LoginPasswordForm } from "@/components/auth/login-password-form";
 import { LoginPhonePasswordForm } from "@/components/auth/login-phone-password-form";
 import { getSignupCountryOptions } from "@/lib/signup-countries";
+import { authPageMetadata } from "@/lib/seo/marketing-metadata";
+
+export const metadata: Metadata = authPageMetadata(
+  "/login",
+  "Sign in",
+  "Sign in to your SplitSMS account to send bulk SMS, manage campaigns, and access the REST API.",
+);
 
 export default async function LoginPage({
   searchParams,

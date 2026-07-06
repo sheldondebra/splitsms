@@ -4,17 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import {
-  adminSubmitSenderToProvidersAction,
-  adminSyncSenderProvidersAction,
-  adminResubmitSenderProvidersAction,
-  adminSyncAllSenderProvidersAction,
-  blockSenderIdAction,
-} from "@/lib/actions/admin-sender-ids";
-import {
   SenderIdApproveDialogTrigger,
   SenderIdDenyDialogTrigger,
   useSenderSummary,
 } from "@/components/admin/sender-id-action-dialogs";
+import {
+  ResubmitCarrierButton,
+  SubmitToCarriersButton,
+  SyncCarrierButton,
+} from "@/components/admin/sender-id-row-actions";
+import { blockSenderIdAction, adminSyncAllSenderProvidersAction } from "@/lib/actions/admin-sender-ids";
 import { SenderIdRegisterForm } from "@/components/admin/sender-id-register-form";
 import { SenderIdPolicyPanel } from "@/components/admin/sender-id-policy-panel";
 import { SenderIdBannedPanel } from "@/components/admin/sender-id-banned-panel";
@@ -35,14 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { SenderIdProviderRegistration } from "@/lib/generated/prisma/client";
 import { cn } from "@/lib/utils";
-import {
-  AlertTriangle,
-  BadgeCheck,
-  CheckCircle2,
-  RefreshCw,
-  RotateCcw,
-  Send,
-} from "lucide-react";
+import { AlertTriangle, BadgeCheck, CheckCircle2, RefreshCw } from "lucide-react";
 
 type SenderRow = {
   id: string;
@@ -59,33 +51,6 @@ type SenderRow = {
 };
 
 type TabId = "overview" | "pending" | "register" | "all" | "mnotify" | "banned";
-
-const SAVED_MESSAGES: Record<string, string> = {
-  created: "Sender ID created for the member.",
-  policy: "Reserved sender name rules saved.",
-  submitted: "Submitted to carriers — sync status after registration completes.",
-  sync: "Provider statuses refreshed.",
-  sync_all: "All active sender IDs synced with providers.",
-  resubmit: "Re-sent to carriers — check status after sync.",
-  approved: "Sender ID approved — member can send SMS and was notified.",
-  rejected: "Sender ID denied — member notified by email and SMS.",
-  blocked: "Sender ID blocked and added to the ban list.",
-  banned_added: "Name added to the ban list.",
-  banned_removed: "Name removed from the ban list.",
-};
-
-const ERROR_MESSAGES: Record<string, string> = {
-  provider_denied:
-    "Cannot approve — all carriers denied this sender ID. Re-submit after fixing the name or purpose.",
-  notfound: "Sender ID not found.",
-  duplicate: "This sender ID already exists for the member.",
-  limit: "Member has reached their sender ID limit.",
-  blocked: "Sender ID registration is blocked for this member.",
-  invalid: "Invalid sender ID value.",
-  reserved:
-    "Reserved or protected name — use admin override only with verified authorization.",
-  user: "Member not found.",
-};
 
 function activeProviderRegs(regs: SenderIdProviderRegistration[]) {
   return regs.filter((r) => r.status !== "SKIPPED");
@@ -214,15 +179,6 @@ export function AdminSenderIdsView({
 
   return (
     <div className="space-y-4 md:space-y-5">
-      {saved && SAVED_MESSAGES[saved] && (
-        <AdminAlert variant="success">{SAVED_MESSAGES[saved]}</AdminAlert>
-      )}
-      {error && (
-        <AdminAlert variant="warning">
-          {ERROR_MESSAGES[error] ?? `Could not complete action (${error}).`}
-        </AdminAlert>
-      )}
-
       {dashboard.stats.mismatchCount > 0 && (
         <AdminAlert variant="warning">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -415,7 +371,7 @@ function SenderIdAdminRow({
   const summary = useSenderSummary(s, returnTo);
 
   return (
-    <li className="px-2 py-3 first:pt-1 last:pb-1">
+    <li className="px-2 py-3 first:pt-1 last:pb-1 rounded-xl border border-transparent hover:border-border/50 hover:bg-muted/15 transition-colors">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -466,24 +422,16 @@ function SenderIdAdminRow({
           <SenderIdProviderPanel registrations={s.providerRegistrations} compact />
         </div>
 
-        <div className="flex flex-col gap-2 shrink-0 w-full lg:w-[220px]">
+        <div className="flex flex-col gap-2 shrink-0 w-full lg:w-[240px] rounded-lg border border-border/50 bg-muted/10 p-2.5">
           {s.status === "PENDING" && (
             <div className="grid grid-cols-1 gap-2">
               {!submitted ? (
                 <>
-                  <form action={adminSubmitSenderToProvidersAction}>
-                    <input type="hidden" name="id" value={s.id} />
-                    <input type="hidden" name="returnTo" value={returnTo} />
-                    <input
-                      type="hidden"
-                      name="purpose"
-                      value={summary.defaultPurpose}
-                    />
-                    <Button type="submit" variant="secondary" size="sm" className="w-full h-8 gap-1.5 text-xs">
-                      <Send className="h-3.5 w-3.5" />
-                      Submit to carriers
-                    </Button>
-                  </form>
+                  <SubmitToCarriersButton
+                    senderId={s.id}
+                    purpose={summary.defaultPurpose}
+                    className="w-full h-8 text-xs"
+                  />
                   <SenderIdApproveDialogTrigger
                     sender={summary}
                     mode="approve_submit"
@@ -504,23 +452,13 @@ function SenderIdAdminRow({
           )}
 
           <div className="flex flex-wrap gap-2">
-            <form action={adminSyncSenderProvidersAction} className="flex-1 min-w-[7rem]">
-              <input type="hidden" name="senderId" value={s.id} />
-              <input type="hidden" name="returnTo" value={returnTo} />
-              <Button type="submit" variant="outline" size="sm" className="w-full h-8 gap-1 text-xs">
-                <RefreshCw className="h-3 w-3" />
-                Sync
-              </Button>
-            </form>
+            <SyncCarrierButton senderId={s.id} className="flex-1 min-w-[7rem] h-8 text-xs" />
             {canResubmit && (
-              <form action={adminResubmitSenderProvidersAction} className="flex-1 min-w-[7rem]">
-                <input type="hidden" name="senderId" value={s.id} />
-                <input type="hidden" name="returnTo" value={returnTo} />
-                <Button type="submit" variant="outline" size="sm" className="w-full h-8 gap-1 text-xs">
-                  <RotateCcw className="h-3 w-3" />
-                  {resubmitLabel}
-                </Button>
-              </form>
+              <ResubmitCarrierButton
+                senderId={s.id}
+                label={resubmitLabel}
+                className="flex-1 min-w-[7rem] h-8 text-xs"
+              />
             )}
           </div>
 

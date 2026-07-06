@@ -5,6 +5,7 @@ import { SiteHeaderWithAccount } from "@/components/layout/site-header-with-acco
 import { SiteFooter } from "@/components/layout/site-footer";
 import { PublicPricingExplorer } from "@/components/marketing/public-pricing-explorer";
 import { PublicPricingHeroPrice } from "@/components/marketing/public-pricing-hero";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { formatRowPrice } from "@/lib/billing/pricing-format";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import {
@@ -15,13 +16,10 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DollarSign, ArrowRight } from "lucide-react";
+import { pricingPageMetadata } from "@/lib/seo/marketing-metadata";
+import { breadcrumbJsonLd, pricingPageJsonLd } from "@/lib/seo/site";
 
-export const metadata: Metadata = {
-  title: "SMS Pricing by Country — Transparent Bulk SMS Rates | SplitSMS",
-  description:
-    "View SplitSMS bulk SMS pricing per country. Select your destination, see per-segment rates, credits, and provider. Pay-as-you-go with no hidden fees.",
-  alternates: { canonical: "/pricing" },
-};
+export const metadata: Metadata = pricingPageMetadata;
 
 export default async function PricingPage({
   searchParams,
@@ -42,6 +40,15 @@ export default async function PricingPage({
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <JsonLdScript
+        data={[
+          pricingPageJsonLd(),
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "Pricing", path: "/pricing" },
+          ]),
+        ]}
+      />
       <SiteHeaderWithAccount />
       <main className="flex-1">
         {/* Hero */}

@@ -6,10 +6,12 @@ import {
   AdminPageHeader,
 } from "@/components/admin/admin-page-shell";
 import { AdminSenderIdsView } from "@/components/admin/admin-sender-ids-view";
+import { SenderIdAdminToasts } from "@/components/admin/sender-id-admin-toasts";
 import { buildMnotifySenderInventory } from "@/lib/sender-ids/mnotify-inventory";
 import { getAdminBannedSendersDashboard } from "@/lib/admin/sender-id-banned-dashboard";
 import { loadSenderIdReservedConfig } from "@/lib/sender-ids/reserved-names";
 import { BadgeCheck } from "lucide-react";
+import { Suspense } from "react";
 
 const senderInclude = {
   user: { select: { id: true, fullName: true, phone: true } },
@@ -79,6 +81,9 @@ export default async function AdminSenderIdsPage({
         description="Review requests, submit to carriers, and approve when registration is confirmed."
         icon={BadgeCheck}
       />
+      <Suspense fallback={null}>
+        <SenderIdAdminToasts />
+      </Suspense>
       <AdminSenderIdsView
         dashboard={dashboard}
         pending={pending}

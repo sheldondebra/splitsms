@@ -184,6 +184,13 @@ export function GeneralSlackForm({
             { name: "notifyOfflinePayments", label: "Offline / bank transfer top-ups (pending)", default: config.notifyOfflinePayments },
             { name: "notifyOnlinePayments", label: "Online payments completed", default: config.notifyOnlinePayments },
             { name: "notifySupportTickets", label: "New support tickets", default: config.notifySupportTickets },
+            { name: "notifyStuckSms", label: "SMS stuck in queue (5+ minutes)", default: config.notifyStuckSms },
+            { name: "notifySmsFailures", label: "Individual SMS send failures", default: config.notifySmsFailures },
+            {
+              name: "notifySmsBatchResults",
+              label: "SMS batch results (manual runs + cron failures)",
+              default: config.notifySmsBatchResults,
+            },
           ].map((item) => (
             <label key={item.name} className="flex items-center gap-2 text-sm cursor-pointer">
               <input

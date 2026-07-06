@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { resetPasswordAction } from "@/lib/actions/auth";
@@ -7,6 +8,13 @@ import { AuthAlert } from "@/components/auth/auth-alert";
 import { PasswordField } from "@/components/auth/password-field";
 import { Button } from "@/components/ui/button";
 import { Lock } from "lucide-react";
+import { authPageMetadata } from "@/lib/seo/marketing-metadata";
+
+export const metadata: Metadata = authPageMetadata(
+  "/reset-password",
+  "Reset password",
+  "Choose a new password for your SplitSMS account.",
+);
 
 export default async function ResetPasswordPage({
   searchParams,

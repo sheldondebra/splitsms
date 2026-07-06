@@ -12,12 +12,24 @@ import {
   capturePaymentDetails,
   readPaymentInstrument,
 } from "@/lib/payments/payment-details";
+import { serializeAdminPayment } from "@/lib/admin/payments-serialize";
 import { AdminPaymentsView } from "@/components/admin/admin-payments-view";
+import { PaymentAdminToasts } from "@/components/admin/payment-admin-toasts";
+
+import { Suspense } from "react";
+
+type TabId = "action" | "pending" | "completed" | "gateways";
+
+function parseTab(tab: string | undefined): TabId {
+  if (tab === "pending" || tab === "completed" || tab === "gateways") return tab;
+  return "action";
+}
 
 export default async function AdminPaymentsPage({
   searchParams,
 }: {
   searchParams: Promise<{
+    tab?: string;
     saved?: string;
     error?: string;
     synced?: string;
@@ -28,6 +40,7 @@ export default async function AdminPaymentsPage({
   }>;
 }) {
   const params = await searchParams;
+  const initialTab = parseTab(params.tab);
 
   const autoSync = await reconcileAllPendingOnlinePayments();
 
@@ -65,13 +78,17 @@ export default async function AdminPaymentsPage({
       if (!instrument && insight.canAutoCredit) {
         instrument = (await capturePaymentDetails(p.id).catch(() => null)) ?? null;
       }
-      return { payment: p, insight, instrument };
+      return {
+        payment: serializeAdminPayment(p),
+        insight,
+        instrument,
+      };
     }),
   );
 
   const completedWithDetails = await Promise.all(
     recentCompleted.map(async (p) => ({
-      payment: p,
+      payment: serializeAdminPayment(p),
       instrument: await ensurePaymentDetails(p),
     })),
   );
@@ -79,23 +96,28 @@ export default async function AdminPaymentsPage({
   const syncedCount = params.synced ? Number(params.synced) : autoSync.credited;
 
   return (
-    <AdminPaymentsView
-      alerts={params}
-      syncedCount={syncedCount}
-      stats={{
-        pendingTotal: pendingPayments.length,
-        pendingManual,
-        pendingOnline,
-        recentCount: recentCompleted.length,
-      }}
-      pending={pendingWithInsights}
-      completed={completedWithDetails}
-      gateways={gateways}
-      lastTests={{
-        paystack: paystackTest,
-        flutterwave: flutterwaveTest,
-        stripe: stripeTest,
-      }}
-    />
+    <>
+      <Suspense fallback={null}>
+        <PaymentAdminToasts />
+      </Suspense>
+      <AdminPaymentsView
+        syncedCount={syncedCount}
+        stats={{
+          pendingTotal: pendingPayments.length,
+          pendingManual,
+          pendingOnline,
+          recentCount: recentCompleted.length,
+        }}
+        pending={pendingWithInsights}
+        completed={completedWithDetails}
+        gateways={gateways}
+        lastTests={{
+          paystack: paystackTest,
+          flutterwave: flutterwaveTest,
+          stripe: stripeTest,
+        }}
+        initialTab={initialTab}
+      />
+    </>
   );
 }

@@ -42,21 +42,21 @@ export const defaultKeywords = [
   "SplitSMS",
 ];
 
-/** Brand wordmark served from /public — 1024×343 PNG */
+/** Brand wordmark — SVG in /public for crisp scaling */
 export const brandLogo = {
-  path: "/smslogo.png",
-  url: `${siteUrl}/smslogo.png`,
-  width: 1024,
-  height: 343,
+  path: "/brand-wordmark.svg",
+  url: `${siteUrl}/brand-wordmark.svg`,
+  width: 220,
+  height: 40,
   alt: "SplitSMS — Bulk SMS platform and SMS API",
 } as const;
 
 export const defaultOpenGraphImages = [
   {
-    url: brandLogo.path,
-    width: brandLogo.width,
-    height: brandLogo.height,
-    alt: brandLogo.alt,
+    url: "/opengraph-image",
+    width: 1200,
+    height: 630,
+    alt: "SplitSMS — Bulk SMS Platform & SMS API for 190+ Countries",
   },
 ];
 
@@ -160,6 +160,8 @@ export function articleJsonLd(input: {
   description: string;
   path: string;
   datePublished?: string;
+  dateModified?: string;
+  image?: string;
 }) {
   return {
     "@type": "Article",
@@ -167,9 +169,52 @@ export function articleJsonLd(input: {
     description: input.description,
     url: `${siteUrl}${input.path}`,
     datePublished: input.datePublished,
+    dateModified: input.dateModified ?? input.datePublished,
+    image: input.image ?? `${siteUrl}/opengraph-image`,
     author: { "@id": `${siteUrl}/#organization` },
     publisher: { "@id": `${siteUrl}/#organization` },
     mainEntityOfPage: `${siteUrl}${input.path}`,
+  };
+}
+
+export function blogCollectionJsonLd(postCount: number) {
+  return {
+    "@type": "Blog",
+    "@id": `${siteUrl}/blog#blog`,
+    url: `${siteUrl}/blog`,
+    name: "SplitSMS Blog",
+    description:
+      "Bulk SMS marketing tips, OTP API guides, WooCommerce SMS, Ghana & Nigeria pricing, and integration tutorials.",
+    publisher: { "@id": `${siteUrl}/#organization` },
+    blogPost: {
+      "@type": "ItemList",
+      numberOfItems: postCount,
+    },
+  };
+}
+
+export function pricingPageJsonLd() {
+  return {
+    "@type": "WebPage",
+    "@id": `${siteUrl}/pricing#webpage`,
+    url: `${siteUrl}/pricing`,
+    name: "SplitSMS SMS Pricing by Country",
+    description:
+      "Transparent bulk SMS rates per country. Pay-as-you-go credits with no monthly minimum.",
+    isPartOf: { "@id": `${siteUrl}/#website` },
+    mainEntity: {
+      "@type": "Product",
+      name: "SplitSMS Bulk SMS",
+      description: "Pay-as-you-go bulk SMS and OTP API with country-based pricing.",
+      brand: { "@id": `${siteUrl}/#organization` },
+      offers: {
+        "@type": "AggregateOffer",
+        priceCurrency: "GHS",
+        lowPrice: "0.029",
+        offerCount: "190+",
+        url: `${siteUrl}/pricing`,
+      },
+    },
   };
 }
 

@@ -92,7 +92,7 @@ export async function approvePaymentAction(formData: FormData) {
 
   const paymentId = String(formData.get("paymentId"));
   await approveManualPayment(paymentId, session.userId);
-  redirect("/admin/payments");
+  redirect("/admin/payments?saved=approved&tab=action");
 }
 
 export async function applyPromoAction(formData: FormData) {

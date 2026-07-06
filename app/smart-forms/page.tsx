@@ -18,22 +18,9 @@ import { MarketingPageShell } from "@/components/marketing/marketing-page-shell"
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { siteUrl } from "@/lib/seo/site";
+import { smartFormsMetadata } from "@/lib/seo/marketing-metadata";
 
-export const metadata: Metadata = {
-  title: "Smart Forms — Build custom forms with SMS automation | SplitSMS",
-  description:
-    "Create custom forms, design them to match your brand, share with short links and QR codes, collect leads, and send instant SMS replies automatically.",
-  alternates: {
-    canonical: "/smart-forms",
-  },
-  openGraph: {
-    title: "SplitSMS Smart Forms",
-    description:
-      "Build, brand, share, and automate forms in one dashboard. Collect responses and trigger SMS follow-ups instantly.",
-    url: `${siteUrl}/smart-forms`,
-    type: "website",
-  },
-};
+export const metadata: Metadata = smartFormsMetadata;
 
 const featureCards = [
   {

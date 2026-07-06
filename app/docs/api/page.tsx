@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 import { DocsSubpage } from "@/components/marketing/docs-subpage";
 import Link from "next/link";
 import { getSiteUrl } from "@/lib/site-config";
+import { docsApiMetadata } from "@/lib/seo/marketing-metadata";
 
-export const metadata: Metadata = {
-  title: "API documentation — SplitSMS Connect",
-  description: "REST API for SMS, wallet, sender IDs, customer provisioning, and WordPress sync.",
-};
+export const metadata: Metadata = docsApiMetadata;
 
 export default function DocsApiPage() {
   const base = `${getSiteUrl()}/api/v1`;

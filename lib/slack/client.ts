@@ -1,4 +1,5 @@
 import { loadSlackOfficeConfig, type SlackOfficeConfig } from "@/lib/slack/config";
+import { SLACK, slackAction } from "@/lib/slack/formatters";
 import { buildSlackNotification } from "@/lib/slack/message-layout";
 import { buildSlackGoUrl } from "@/lib/slack/quick-actions";
 
@@ -45,25 +46,24 @@ export async function postSlackMessage(
 
 export async function testSlackConnection(config?: SlackOfficeConfig) {
   const blocks = buildSlackNotification({
-    category: "action_required",
-    title: "SplitSMS Slack alerts are live",
-    summary: "Your team can approve sender IDs, credit wallets, and open the admin dashboard from Slack.",
-    fields: [
-      { label: "Delivery", value: "Incoming Webhook" },
-      { label: "Actions", value: "Signed admin links · sign in once" },
+    category: "operations",
+    status: "success",
+    title: "Slack connection verified",
+    summary: `> ${SLACK.success} SplitSMS can post alerts to this channel with one-tap admin actions.`,
+    metrics: [
+      { label: "Delivery", value: "Incoming Webhook", tone: "good" },
+      { label: "Actions", value: "Signed admin links", tone: "neutral" },
     ],
     actions: [
-      {
-        label: "Open admin",
-        url: buildSlackGoUrl("/admin"),
-        style: "primary",
-      },
+      slackAction("Open admin", buildSlackGoUrl("/admin"), { style: "primary", icon: SLACK.admin }),
+      slackAction("Operations", buildSlackGoUrl("/admin/operations"), { icon: SLACK.process }),
+      slackAction("Sender IDs", buildSlackGoUrl("/admin/sender-ids"), { icon: SLACK.senderId }),
     ],
   });
 
   return postSlackMessage(
     {
-      text: "SplitSMS Slack alerts connected.",
+      text: "SplitSMS Slack alerts connected successfully.",
       blocks,
     },
     config,

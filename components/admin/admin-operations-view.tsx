@@ -8,6 +8,7 @@ import {
   AdminPageHeader,
 } from "@/components/admin/admin-page-shell";
 import { OperationsActionList } from "@/components/admin/admin-operations-panel";
+import { AdminProcessPendingButton } from "@/components/admin/admin-process-pending-button";
 import type { getAdminOperationsDashboard } from "@/lib/admin/operations-dashboard";
 import { describeSmsDeliveryMode } from "@/lib/admin/operations-health";
 import { cn } from "@/lib/utils";
@@ -240,6 +241,8 @@ function SystemHealthCard({ data }: { data: OpsData }) {
         ))}
       </ul>
 
+      <AdminProcessPendingButton pendingCount={health.pendingMessages} />
+
       <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-x-3 gap-y-1">
         {platformLinks.map(({ href, label, icon: Icon }) => (
           <Link
@@ -256,17 +259,26 @@ function SystemHealthCard({ data }: { data: OpsData }) {
   );
 }
 
-function OperationsAlerts({ data }: { data: OpsData }) {
+function OperationsAlerts({ data, flash }: { data: OpsData; flash?: OpsFlash }) {
   const { health } = data;
   const alerts: ReactNode[] = [];
+
+  if (flash?.processed != null) {
+    alerts.push(
+      <AdminAlert key="processed" variant="success">
+        Processed {flash.processed} message{flash.processed !== 1 ? "s" : ""}: {flash.sent ?? 0}{" "}
+        sent, {flash.failed ?? 0} failed
+        {(flash.remaining ?? 0) > 0 ? ` · ${flash.remaining} still pending` : ""}.
+      </AdminAlert>,
+    );
+  }
 
   if (health.stuckMessages > 0) {
     alerts.push(
       <AdminAlert key="stuck" variant="warning">
         {health.stuckMessages} message{health.stuckMessages !== 1 ? "s" : ""} stuck in PENDING for
-        over 30 minutes. Schedule{" "}
-        <code className="text-[11px]">/api/cron/process-sms</code> with{" "}
-        <code className="text-[11px]">CRON_SECRET</code>, then check mNotify and sender IDs.
+        over 30 minutes. Use <strong>Process pending now</strong> in System health, verify Vercel
+        cron and mNotify, or check worker / Redis settings.
       </AdminAlert>,
     );
   }
@@ -298,7 +310,20 @@ function OperationsAlerts({ data }: { data: OpsData }) {
   return <div className="space-y-2">{alerts}</div>;
 }
 
-export function AdminOperationsView({ data }: { data: OpsData }) {
+type OpsFlash = {
+  processed?: number;
+  sent?: number;
+  failed?: number;
+  remaining?: number;
+};
+
+export function AdminOperationsView({
+  data,
+  flash,
+}: {
+  data: OpsData;
+  flash?: OpsFlash;
+}) {
   const { actions, counts } = data;
 
   return (
@@ -311,7 +336,7 @@ export function AdminOperationsView({ data }: { data: OpsData }) {
 
       <HealthBanner data={data} />
       <QueueStatsBar counts={counts} />
-      <OperationsAlerts data={data} />
+      <OperationsAlerts data={data} flash={flash} />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
         <AdminCard

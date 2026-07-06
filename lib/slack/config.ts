@@ -20,6 +20,9 @@ function slackEnvDefaults(): Partial<SlackOfficeConfig> {
     notifyOnlinePayments: process.env.SLACK_NOTIFY_ONLINE_PAYMENTS !== "false",
     notifySupportTickets: process.env.SLACK_NOTIFY_SUPPORT !== "false",
     notifyAuthFailures: process.env.SLACK_NOTIFY_AUTH_FAILURES !== "false",
+    notifyStuckSms: process.env.SLACK_NOTIFY_STUCK_SMS !== "false",
+    notifySmsFailures: process.env.SLACK_NOTIFY_SMS_FAILURES !== "false",
+    notifySmsBatchResults: process.env.SLACK_NOTIFY_SMS_BATCH !== "false",
   };
 }
 
@@ -57,6 +60,9 @@ function mergeSlackOfficeConfig(
     notifyOnlinePayments: stored.notifyOnlinePayments ?? base.notifyOnlinePayments,
     notifySupportTickets: stored.notifySupportTickets ?? base.notifySupportTickets,
     notifyAuthFailures: stored.notifyAuthFailures ?? base.notifyAuthFailures,
+    notifyStuckSms: stored.notifyStuckSms ?? base.notifyStuckSms,
+    notifySmsFailures: stored.notifySmsFailures ?? base.notifySmsFailures,
+    notifySmsBatchResults: stored.notifySmsBatchResults ?? base.notifySmsBatchResults,
     updatedAt: stored.updatedAt,
   };
 }

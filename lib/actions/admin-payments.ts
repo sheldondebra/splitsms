@@ -12,7 +12,7 @@ export async function syncPendingPaymentsAction() {
 
   const result = await reconcileAllPendingOnlinePayments();
   revalidatePath("/admin/payments");
-  redirect(`/admin/payments?synced=${result.credited}&checked=${result.checked}`);
+  redirect(`/admin/payments?synced=${result.credited}&checked=${result.checked}&tab=pending`);
 }
 
 export async function creditStripePaymentAction(formData: FormData) {
@@ -24,9 +24,9 @@ export async function creditStripePaymentAction(formData: FormData) {
   revalidatePath("/admin/payments");
 
   if (result.ok) {
-    redirect("/admin/payments?saved=credited");
+    redirect("/admin/payments?saved=credited&tab=action");
   }
-  redirect("/admin/payments?error=not_paid");
+  redirect("/admin/payments?error=not_paid&tab=action");
 }
 
 export async function resendReceiptAction(formData: FormData) {
@@ -42,8 +42,8 @@ export async function resendReceiptAction(formData: FormData) {
   revalidatePath("/admin/payments");
 
   if (result.ok) {
-    redirect(`/admin/payments?receipt=sent&channel=${encodeURIComponent(channel)}`);
+    redirect(`/admin/payments?receipt=sent&channel=${encodeURIComponent(channel)}&tab=completed`);
   }
 
-  redirect(`/admin/payments?error=receipt&msg=${encodeURIComponent(result.error ?? "Failed")}`);
+  redirect(`/admin/payments?error=receipt&msg=${encodeURIComponent(result.error ?? "Failed")}&tab=completed`);
 }

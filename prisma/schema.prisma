@@ -168,6 +168,7 @@ model User {
   countryCode      String
   passwordHash     String
   role             UserRole        @default(MEMBER)
+  staffPermissions String[]        @default([])
   referralCode     String?
   email            String?         @unique
   isVerified       Boolean         @default(false)

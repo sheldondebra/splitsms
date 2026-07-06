@@ -1,9 +1,17 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { AuthLayout, AuthCard } from "@/components/auth/auth-layout";
 import { OtpForm } from "@/components/auth/otp-form";
 import { getOtpResendCooldownSec } from "@/lib/auth/otp";
 import { getRequestTenant } from "@/lib/reseller/request-tenant";
 import type { OtpPurpose } from "@/lib/generated/prisma/client";
+import { authPageMetadata } from "@/lib/seo/marketing-metadata";
+
+export const metadata: Metadata = authPageMetadata(
+  "/verify-otp",
+  "Verify code",
+  "Enter the verification code sent to your phone or email to continue.",
+);
 
 const purposeMap: Record<string, OtpPurpose> = {
   signup: "SIGNUP_VERIFY",

@@ -49,9 +49,6 @@ export const metadata: Metadata = {
     "Infobip alternative",
     "SplitSMS",
   ],
-  alternates: {
-    canonical: "/",
-  },
   openGraph: {
     type: "website",
     siteName: "SplitSMS",

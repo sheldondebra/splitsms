@@ -26,7 +26,11 @@ async function claimMessage(messageId: string) {
 }
 
 /** Credits are deducted before queue; worker only sends via provider. */
-export async function processMessageJob(messageId: string, countryCode: string) {
+export async function processMessageJob(
+  messageId: string,
+  countryCode: string,
+  options?: { notifySlackOnFailure?: boolean },
+) {
   await resetStaleProcessingMessages();
 
   const existing = await prisma.message.findUnique({
@@ -124,6 +128,12 @@ export async function processMessageJob(messageId: string, countryCode: string) 
   });
   await dispatchUserWebhooks(message.userId, failed);
   await syncCampaignStatus(message.campaignId);
+
+  if (options?.notifySlackOnFailure !== false) {
+    void import("@/lib/slack/notify")
+      .then(({ notifySlackSmsFailed }) => notifySlackSmsFailed(messageId))
+      .catch(() => undefined);
+  }
 }
 
 export async function updateMessageFromDlr(
@@ -162,6 +172,10 @@ export async function updateMessageFromDlr(
     } catch (err) {
       console.error("[updateMessageFromDlr] refund failed", message.id, err);
     }
+
+    void import("@/lib/slack/notify")
+      .then(({ notifySlackSmsFailed }) => notifySlackSmsFailed(message.id))
+      .catch(() => undefined);
   }
 
   await dispatchUserWebhooks(message.userId, updated);

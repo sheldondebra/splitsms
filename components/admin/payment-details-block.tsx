@@ -1,9 +1,9 @@
-import type { PaymentInstrumentDetails } from "@/lib/payments/payment-details";
+import type { PaymentInstrumentDetails } from "@/lib/payments/payment-display";
 import {
   formatInstrumentLabel,
   instrumentDetailRows,
   instrumentReferenceRows,
-} from "@/lib/payments/payment-details";
+} from "@/lib/payments/payment-display";
 import {
   CreditCard,
   Smartphone,

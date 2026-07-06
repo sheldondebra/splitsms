@@ -5,9 +5,7 @@ import { HomePageContent } from "@/components/marketing/home-page-content";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import {
-  organizationJsonLd,
   smsServiceJsonLd,
-  websiteJsonLd,
   webPageJsonLd,
 } from "@/lib/seo/site";
 
@@ -40,8 +38,6 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 const homeJsonLd = [
-  websiteJsonLd,
-  organizationJsonLd,
   smsServiceJsonLd,
   webPageJsonLd({
     name: "SplitSMS — Bulk SMS Platform & SMS API",

@@ -6,6 +6,9 @@ import {
   slackOfflinePaymentBlocks,
   slackOnlinePaymentBlocks,
   slackSenderIdRequestBlocks,
+  slackSmsBatchResultBlocks,
+  slackSmsFailedBlocks,
+  slackStuckSmsBlocks,
   slackUserLoginBlocks,
   slackUserRegistrationBlocks,
 } from "@/lib/slack/blocks";
@@ -151,4 +154,83 @@ export async function notifySlackOnlinePayment(paymentId: string) {
 export async function notifySlackSupportTicket(ticketId: string) {
   const { notifySlackSupportTicketWithFallback } = await import("@/lib/slack/support-threads");
   await notifySlackSupportTicketWithFallback(ticketId);
+}
+
+export async function notifySlackStuckSms(input: {
+  delayedCount: number;
+  pendingTotal: number;
+  oldestAgeMinutes: number;
+}) {
+  const config = await shouldNotify((c) => c.notifyStuckSms);
+  if (!config) return;
+
+  await postSlackMessage(
+    {
+      text: `SMS queue delayed: ${input.delayedCount} message(s) waiting over 5 minutes`,
+      blocks: slackStuckSmsBlocks(input),
+    },
+    config,
+  );
+}
+
+export async function notifySlackSmsFailed(messageId: string) {
+  const config = await shouldNotify((c) => c.notifySmsFailures);
+  if (!config) return;
+
+  const { prisma } = await import("@/lib/db");
+  const message = await prisma.message.findUnique({
+    where: { id: messageId },
+    select: {
+      id: true,
+      recipient: true,
+      senderId: true,
+      failureReason: true,
+      countryCode: true,
+      user: { select: { fullName: true } },
+    },
+  });
+  if (!message) return;
+
+  await postSlackMessage(
+    {
+      text: `SMS failed: ${message.recipient} (${message.user.fullName})`,
+      blocks: slackSmsFailedBlocks({
+        messageId: message.id,
+        recipient: message.recipient,
+        senderId: message.senderId,
+        memberName: message.user.fullName,
+        failureReason: message.failureReason,
+        countryCode: message.countryCode,
+      }),
+    },
+    config,
+  );
+}
+
+export async function notifySlackSmsBatchResult(input: {
+  processed: number;
+  sent: number;
+  failed: number;
+  remaining: number;
+  source: "cron" | "admin";
+  failedSamples?: Array<{
+    recipient: string;
+    memberName: string;
+    reason?: string | null;
+  }>;
+}) {
+  if (input.processed === 0) return;
+
+  const config = await shouldNotify((c) => c.notifySmsBatchResults);
+  if (!config) return;
+
+  if (input.source === "cron" && input.failed === 0) return;
+
+  await postSlackMessage(
+    {
+      text: `SMS batch: ${input.sent} sent, ${input.failed} failed, ${input.remaining} remaining`,
+      blocks: slackSmsBatchResultBlocks(input),
+    },
+    config,
+  );
 }

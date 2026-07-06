@@ -1,10 +1,18 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AuthLayout, AuthCard } from "@/components/auth/auth-layout";
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthEntryTabs } from "@/components/auth/auth-entry-tabs";
 import { getSignupCountryOptions } from "@/lib/signup-countries";
 import { getRequestTenant } from "@/lib/reseller/request-tenant";
+import { authPageMetadata } from "@/lib/seo/marketing-metadata";
+
+export const metadata: Metadata = authPageMetadata(
+  "/signup",
+  "Create account",
+  "Sign up for SplitSMS — send bulk SMS in Ghana and 190+ countries with 5 free starter credits.",
+);
 
 export default async function SignupPage({
   searchParams,

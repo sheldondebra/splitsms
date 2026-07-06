@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import { DocsSubpage } from "@/components/marketing/docs-subpage";
 import Link from "next/link";
+import { docsMobileMetadata } from "@/lib/seo/marketing-metadata";
 
-export const metadata: Metadata = {
-  title: "Mobile apps — SplitSMS API",
-  description: "Integrate SplitSMS SMS into iOS and Android apps via REST API.",
-};
+export const metadata: Metadata = docsMobileMetadata;
 
 export default function DocsMobilePage() {
   return (

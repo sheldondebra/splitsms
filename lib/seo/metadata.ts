@@ -12,6 +12,8 @@ export type BuildPageMetadataOptions = {
   noIndex?: boolean;
   /** Override full title (skips template) */
   absoluteTitle?: string;
+  publishedTime?: string;
+  modifiedTime?: string;
 };
 
 export function pageUrl(path: string): string {
@@ -28,6 +30,8 @@ export function buildPageMetadata(options: BuildPageMetadataOptions): Metadata {
     ogType = "website",
     noIndex = false,
     absoluteTitle,
+    publishedTime,
+    modifiedTime,
   } = options;
 
   const url = pageUrl(path);
@@ -46,6 +50,9 @@ export function buildPageMetadata(options: BuildPageMetadataOptions): Metadata {
       type: ogType,
       locale: "en",
       images: defaultOpenGraphImages,
+      ...(ogType === "article" && publishedTime
+        ? { publishedTime, ...(modifiedTime ? { modifiedTime } : {}) }
+        : {}),
     },
     twitter: {
       card: "summary_large_image",

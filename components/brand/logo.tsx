@@ -31,9 +31,9 @@ export function Logo({
   const h = heights[size];
   const img = (
     <Image
-      src="/smslogo.png"
+      src="/brand-wordmark.svg"
       alt="SplitSMS"
-      width={Math.round(h * 2.98)}
+      width={Math.round(h * 5.5)}
       height={h}
       unoptimized
       className={cn(

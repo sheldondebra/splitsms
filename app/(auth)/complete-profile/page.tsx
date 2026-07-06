@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AuthLayout, AuthCard } from "@/components/auth/auth-layout";
 import { AuthAlert } from "@/components/auth/auth-alert";
@@ -5,6 +6,13 @@ import { CompleteProfileForm } from "@/components/auth/complete-profile-form";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { userNeedsProfileCompletion } from "@/lib/auth/phone-auth";
+import { authPageMetadata } from "@/lib/seo/marketing-metadata";
+
+export const metadata: Metadata = authPageMetadata(
+  "/complete-profile",
+  "Complete profile",
+  "Finish setting up your SplitSMS account profile.",
+);
 
 export default async function CompleteProfilePage({
   searchParams,

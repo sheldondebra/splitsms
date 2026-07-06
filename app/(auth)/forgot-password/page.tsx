@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { forgotPasswordAction } from "@/lib/actions/auth";
 import { AuthLayout, AuthCard } from "@/components/auth/auth-layout";
 import { getRequestTenant } from "@/lib/reseller/request-tenant";
@@ -7,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { KeyRound } from "lucide-react";
+import { authPageMetadata } from "@/lib/seo/marketing-metadata";
+
+export const metadata: Metadata = authPageMetadata(
+  "/forgot-password",
+  "Forgot password",
+  "Reset your SplitSMS account password via SMS or email verification.",
+);
 
 export default async function ForgotPasswordPage({
   searchParams,

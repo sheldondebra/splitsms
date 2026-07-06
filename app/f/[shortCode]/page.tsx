@@ -6,6 +6,7 @@ import {
   getPublishedSmartFormByShortCode,
   recordSmartFormOpen,
 } from "@/lib/smart-forms/public";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 
 export async function generateMetadata({
   params,
@@ -14,11 +15,20 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { shortCode } = await params;
   const found = await getPublishedSmartFormByShortCode(shortCode);
-  if (!found) return { title: "Form not found" };
-  return {
+  if (!found) {
+    return buildPageMetadata({
+      title: "Form not found",
+      description: "This form may have been removed or the link is incorrect.",
+      path: `/f/${shortCode}`,
+      noIndex: true,
+    });
+  }
+  return buildPageMetadata({
     title: found.publicForm.name,
-    description: found.publicForm.description ?? undefined,
-  };
+    description: found.publicForm.description ?? "Submit this SplitSMS Smart Form.",
+    path: `/f/${shortCode}`,
+    noIndex: true,
+  });
 }
 
 export default async function PublicSmartFormPage({

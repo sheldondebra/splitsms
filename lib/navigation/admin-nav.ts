@@ -20,6 +20,8 @@ import {
   Activity,
   Send,
   MessagesSquare,
+  UserCog,
+  History,
 } from "lucide-react";
 
 export type AdminNavItem = {
@@ -50,6 +52,8 @@ export const adminNavSections: AdminNavSection[] = [
     label: "Users",
     items: [
       { href: "/admin/members", label: "Members", icon: Users },
+      { href: "/admin/staff", label: "Staff & roles", icon: UserCog },
+      { href: "/admin/activity", label: "Activity logs", icon: History },
       { href: "/admin/outreach", label: "Bulk messages", icon: MessagesSquare },
       { href: "/admin/resellers", label: "Resellers", icon: Store },
       { href: "/admin/enterprise", label: "Enterprise", icon: Building2 },

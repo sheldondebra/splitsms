@@ -10,6 +10,46 @@ export const ALL_SENDER_PROVIDERS: SenderIdProviderType[] = [
   "INFOBIP",
 ];
 
+const TERMINAL_PROVIDER_STATUSES: SenderIdProviderStatus[] = ["APPROVED", "REJECTED", "FAILED"];
+
+async function maybeNotifyProviderStatusChange(
+  senderId: string,
+  provider: SenderIdProviderType,
+  previousStatus: SenderIdProviderStatus | undefined,
+  next: {
+    status: SenderIdProviderStatus;
+    providerStatus?: string | null;
+  },
+) {
+  if (!previousStatus || previousStatus === next.status) return;
+  if (!TERMINAL_PROVIDER_STATUSES.includes(next.status)) return;
+  if (previousStatus === "SKIPPED" && next.status === "PENDING") return;
+
+  const ctx = await prisma.senderId.findUnique({
+    where: { id: senderId },
+    select: {
+      id: true,
+      value: true,
+      countryCode: true,
+      user: { select: { fullName: true, phone: true } },
+    },
+  });
+  if (!ctx) return;
+
+  const { notifySlackSenderIdProviderDecision } = await import("@/lib/slack/sender-id-events");
+  void notifySlackSenderIdProviderDecision({
+    senderRecordId: ctx.id,
+    value: ctx.value,
+    memberName: ctx.user.fullName,
+    memberPhone: ctx.user.phone,
+    countryCode: ctx.countryCode,
+    provider,
+    previousStatus: previousStatus ?? "PENDING",
+    newStatus: next.status,
+    providerStatus: next.providerStatus,
+  }).catch(() => undefined);
+}
+
 export async function ensureSenderProviderRows(senderId: string) {
   for (const provider of ALL_SENDER_PROVIDERS) {
     await prisma.senderIdProviderRegistration.upsert({
@@ -31,6 +71,11 @@ export async function updateSenderProviderRegistration(
     submittedAt?: Date;
   },
 ) {
+  const previous = await prisma.senderIdProviderRegistration.findUnique({
+    where: { senderId_provider: { senderId, provider } },
+    select: { status: true },
+  });
+
   await prisma.senderIdProviderRegistration.upsert({
     where: { senderId_provider: { senderId, provider } },
     create: {
@@ -50,6 +95,8 @@ export async function updateSenderProviderRegistration(
       submittedAt: data.submittedAt ?? new Date(),
     },
   });
+
+  await maybeNotifyProviderStatusChange(senderId, provider, previous?.status, data);
 }
 
 /** Backfill registration rows for senders created before multi-provider support. */

@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
+import type { GatewayConfigSource, GatewayLastTest, GatewayOverview } from "@/lib/payments/gateway-types";
+
+export type { GatewayConfigSource, GatewayLastTest, GatewayOverview } from "@/lib/payments/gateway-types";
 
 export const PAYSTACK_CONFIG_KEY = "paystack_config";
 export const FLUTTERWAVE_CONFIG_KEY = "flutterwave_config";
@@ -16,8 +19,6 @@ export type GatewayConfig = {
   defaultCurrency: string;
   updatedAt?: string;
 };
-
-export type GatewayConfigSource = "admin" | "environment" | "none";
 
 const defaultGateway = (currency: string): GatewayConfig => ({
   enabled: true,
@@ -253,18 +254,6 @@ export async function resolveDefaultPaymentMethod(
   return availableMethods[0] ?? null;
 }
 
-export type GatewayOverview = {
-  id: "paystack" | "flutterwave" | "stripe";
-  label: string;
-  enabled: boolean;
-  configured: boolean;
-  source: GatewayConfigSource;
-  maskedSecret: string;
-  defaultCurrency: string;
-  publicKeySet: boolean;
-  webhookSet: boolean;
-};
-
 export async function getPaymentGatewaysOverview(): Promise<GatewayOverview[]> {
   const [paystack, flutterwave, stripe] = await Promise.all([
     loadPaystackSettings(),
@@ -308,13 +297,6 @@ export async function getPaymentGatewaysOverview(): Promise<GatewayOverview[]> {
     },
   ];
 }
-
-export type GatewayLastTest = {
-  at: string;
-  ok: boolean;
-  error?: string | null;
-  details?: Record<string, unknown> | null;
-};
 
 export async function loadGatewayLastTest(key: string): Promise<GatewayLastTest | null> {
   const row = await prisma.platformSetting.findUnique({ where: { key } });

@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useFormStatus } from "react-dom";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
-  approveSenderIdAction,
-  rejectSenderIdAction,
+  approveSenderIdJsonAction,
+  rejectSenderIdJsonAction,
+  type SenderIdActionStep,
 } from "@/lib/actions/admin-sender-ids";
+import { SenderIdActionProgress } from "@/components/admin/sender-id-action-progress";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,32 +32,6 @@ type SenderSummary = {
   defaultPurpose: string;
 };
 
-function SubmitButton({
-  label,
-  pendingLabel,
-  variant = "default",
-  className,
-}: {
-  label: string;
-  pendingLabel: string;
-  variant?: "default" | "destructive";
-  className?: string;
-}) {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" variant={variant} disabled={pending} className={className}>
-      {pending ? (
-        <>
-          <Loader2 className="h-4 w-4 animate-spin" />
-          {pendingLabel}
-        </>
-      ) : (
-        label
-      )}
-    </Button>
-  );
-}
-
 export function SenderIdApproveDialog({
   sender,
   mode,
@@ -66,7 +43,10 @@ export function SenderIdApproveDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const router = useRouter();
   const [purpose, setPurpose] = useState(sender.defaultPurpose);
+  const [steps, setSteps] = useState<SenderIdActionStep[]>([]);
+  const [pending, startTransition] = useTransition();
 
   const title =
     mode === "confirm_approval" ? "Confirm sender ID approval?" : "Approve and submit to carriers?";
@@ -75,12 +55,53 @@ export function SenderIdApproveDialog({
       ? "The member can send SMS with this sender ID once you confirm. They will receive email and SMS notification."
       : "This submits the sender ID to mNotify and other configured carriers, then approves on SplitSMS when carriers respond.";
 
+  function runApprove() {
+    setSteps([
+      { id: "start", label: "Starting approval", status: "running" },
+    ]);
+    startTransition(async () => {
+      const toastId = toast.loading(`Processing ${sender.value}…`, {
+        description: "Submitting to carriers and syncing status",
+      });
+
+      try {
+        const result = await approveSenderIdJsonAction({
+          id: sender.id,
+          purpose,
+          setDefault: true,
+        });
+
+        if (!result.ok) {
+          setSteps(result.steps ?? [{ id: "error", label: "Approval failed", status: "error", detail: result.message }]);
+          toast.error("Could not approve", { id: toastId, description: result.message });
+          return;
+        }
+
+        setSteps(result.steps);
+        toast.success(
+          result.outcome === "approved" ? "Sender ID approved" : "Submitted to carriers",
+          { id: toastId, description: result.message },
+        );
+        onOpenChange(false);
+        router.refresh();
+      } catch {
+        toast.error("Could not approve", {
+          id: toastId,
+          description: "Something went wrong. Try again.",
+        });
+      }
+    });
+  }
+
   return (
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        onOpenChange(next);
-        if (next) setPurpose(sender.defaultPurpose);
+        if (!pending) onOpenChange(next);
+        if (next) {
+          setPurpose(sender.defaultPurpose);
+          setSteps([]);
+        }
       }}
     >
       <DialogContent className="sm:max-w-md gap-0 p-0 overflow-hidden">
@@ -106,48 +127,41 @@ export function SenderIdApproveDialog({
               <dt className="text-muted-foreground">Member</dt>
               <dd className="text-right">{sender.memberName}</dd>
             </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-muted-foreground">Phone</dt>
-              <dd>{sender.memberPhone}</dd>
-            </div>
           </dl>
 
-          <div className="mt-4 space-y-2">
-            <Label htmlFor={`purpose-${sender.id}`} className="text-xs">
-              Registration purpose (sent to mNotify & carriers)
-            </Label>
-            <Textarea
-              id={`purpose-${sender.id}`}
-              name="purpose"
-              value={purpose}
-              onChange={(e) => setPurpose(e.target.value)}
-              rows={3}
-              className="text-sm resize-none"
-              required
-            />
-          </div>
+          {!pending && steps.length === 0 && (
+            <div className="mt-4 space-y-2">
+              <Label htmlFor={`purpose-${sender.id}`} className="text-xs">
+                Registration purpose (sent to mNotify & carriers)
+              </Label>
+              <Textarea
+                id={`purpose-${sender.id}`}
+                value={purpose}
+                onChange={(e) => setPurpose(e.target.value)}
+                rows={3}
+                className="text-sm resize-none"
+                required
+              />
+            </div>
+          )}
+
+          {(pending || steps.length > 0) && (
+            <SenderIdActionProgress steps={steps.length > 0 ? steps : [{ id: "working", label: "Working…", status: "running" }]} className="mt-4" />
+          )}
         </div>
 
         <DialogFooter className="border-t border-border/60 bg-muted/20 px-5 py-4 flex-row gap-2 sm:justify-end">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-9">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-9" disabled={pending}>
             Cancel
           </Button>
-          <form
-            action={approveSenderIdAction}
-            className="flex-1 sm:flex-none"
-            onSubmit={() => onOpenChange(false)}
-          >
-            <input type="hidden" name="id" value={sender.id} />
-            <input type="hidden" name="setDefault" value="1" />
-            <input type="hidden" name="returnTo" value={sender.returnTo} />
-            <input type="hidden" name="purpose" value={purpose} />
-            <SubmitButton
-              label={mode === "confirm_approval" ? "Confirm approval" : "Approve & submit"}
-              pendingLabel="Submitting…"
-              className="h-9 w-full sm:min-w-[140px] gap-1.5"
-              variant="default"
-            />
-          </form>
+          <Button type="button" onClick={runApprove} className="h-9 gap-1.5" disabled={pending || !purpose.trim()}>
+            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {pending
+              ? "Processing…"
+              : mode === "confirm_approval"
+                ? "Confirm approval"
+                : "Approve & submit"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -163,14 +177,38 @@ export function SenderIdDenyDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const router = useRouter();
   const [reason, setReason] = useState("Does not meet naming requirements");
   const [ban, setBan] = useState(true);
+  const [pending, startTransition] = useTransition();
+
+  function runDeny() {
+    startTransition(async () => {
+      const toastId = toast.loading(`Denying ${sender.value}…`);
+      try {
+        const result = await rejectSenderIdJsonAction({
+          id: sender.id,
+          note: reason,
+          addToBanList: ban,
+        });
+        if (!result.ok) {
+          toast.error("Could not deny", { id: toastId, description: result.message });
+          return;
+        }
+        toast.success("Sender ID denied", { id: toastId, description: result.message });
+        onOpenChange(false);
+        router.refresh();
+      } catch {
+        toast.error("Could not deny", { id: toastId, description: "Something went wrong." });
+      }
+    });
+  }
 
   return (
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        onOpenChange(next);
+        if (!pending) onOpenChange(next);
         if (next) {
           setReason("Does not meet naming requirements");
           setBan(true);
@@ -185,25 +223,13 @@ export function SenderIdDenyDialog({
             </div>
             <DialogTitle>Deny sender ID request?</DialogTitle>
             <DialogDescription className="leading-relaxed">
-              The member will receive email and SMS with your reason and a link to register a
-              different sender ID.
+              The member will receive email and SMS with your reason.
             </DialogDescription>
           </DialogHeader>
 
-          <dl className="mt-4 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 text-xs space-y-1.5">
-            <div className="flex justify-between gap-3">
-              <dt className="text-muted-foreground">Sender ID</dt>
-              <dd className="font-mono font-semibold">{sender.value}</dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-muted-foreground">Member</dt>
-              <dd className="text-right">{sender.memberName}</dd>
-            </div>
-          </dl>
-
           <div className="mt-4 space-y-2">
             <Label htmlFor={`deny-reason-${sender.id}`} className="text-xs">
-              Reason for denial (included in member email)
+              Reason for denial
             </Label>
             <Textarea
               id={`deny-reason-${sender.id}`}
@@ -212,6 +238,7 @@ export function SenderIdDenyDialog({
               rows={3}
               className="text-sm resize-none"
               required
+              disabled={pending}
             />
           </div>
 
@@ -221,31 +248,20 @@ export function SenderIdDenyDialog({
               checked={ban}
               onChange={(e) => setBan(e.target.checked)}
               className="mt-0.5 rounded border-border"
+              disabled={pending}
             />
             Add this name to the ban list
           </label>
         </div>
 
         <DialogFooter className="border-t border-border/60 bg-muted/20 px-5 py-4 flex-row gap-2 sm:justify-end">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-9">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-9" disabled={pending}>
             Cancel
           </Button>
-          <form
-            action={rejectSenderIdAction}
-            className="flex-1 sm:flex-none"
-            onSubmit={() => onOpenChange(false)}
-          >
-            <input type="hidden" name="id" value={sender.id} />
-            <input type="hidden" name="returnTo" value={sender.returnTo} />
-            <input type="hidden" name="note" value={reason} />
-            <input type="hidden" name="addToBanList" value={ban ? "on" : "off"} />
-            <SubmitButton
-              label="Deny & notify member"
-              pendingLabel="Denying…"
-              variant="destructive"
-              className="h-9 w-full sm:min-w-[150px] gap-1.5"
-            />
-          </form>
+          <Button type="button" variant="destructive" onClick={runDeny} className="h-9 gap-1.5" disabled={pending || !reason.trim()}>
+            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {pending ? "Denying…" : "Deny & notify member"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -292,7 +308,7 @@ export function SenderIdApproveDialogTrigger({
       <Button
         type="button"
         size="sm"
-        variant={mode === "confirm_approval" ? "default" : "default"}
+        variant="default"
         className={className}
         disabled={disabled}
         onClick={() => setOpen(true)}
@@ -300,12 +316,7 @@ export function SenderIdApproveDialogTrigger({
         <CheckCircle2 className="h-3.5 w-3.5" />
         {label}
       </Button>
-      <SenderIdApproveDialog
-        sender={sender}
-        mode={mode}
-        open={open}
-        onOpenChange={setOpen}
-      />
+      <SenderIdApproveDialog sender={sender} mode={mode} open={open} onOpenChange={setOpen} />
     </>
   );
 }

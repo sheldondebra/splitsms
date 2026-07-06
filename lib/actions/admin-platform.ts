@@ -159,7 +159,7 @@ export async function rejectPaymentAction(formData: FormData) {
 
   revalidatePath("/admin/payments");
   revalidatePath("/admin/billing");
-  redirect("/admin/payments?saved=rejected");
+  redirect("/admin/payments?saved=rejected&tab=action");
 }
 
 export async function adminQuickSuspendMemberAction(formData: FormData) {

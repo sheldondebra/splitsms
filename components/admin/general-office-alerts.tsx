@@ -43,7 +43,7 @@ export function GeneralOfficeAlerts({
       )}
       {params.test === "slack" && params.result === "fail" && (
         <AdminAlert variant="warning">
-          Slack test failed. Check bot token, channel ID, and that the bot is invited to the channel.
+          Slack test failed. Check the incoming webhook URL is valid and Slack notifications are enabled.
         </AdminAlert>
       )}
 

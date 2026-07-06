@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { siteUrl } from "@/lib/seo/site";
-import { getAllBlogSlugs } from "@/lib/marketing/blog-posts";
+import { blogPosts, getAllBlogSlugs } from "@/lib/marketing/blog-posts";
 import { getAllIntegrationSlugs } from "@/lib/marketing/integrations-catalog";
 import { getAllSeoLandingSlugs } from "@/lib/marketing/seo-landing-pages";
 
@@ -10,14 +10,17 @@ function entry(
   path: string,
   priority: number,
   changeFrequency: SitemapEntry["changeFrequency"] = "monthly",
+  lastModified?: Date,
 ): SitemapEntry {
   return {
     url: `${siteUrl}${path}`,
-    lastModified: new Date(),
+    lastModified: lastModified ?? new Date("2026-06-01"),
     changeFrequency,
     priority,
   };
 }
+
+const blogLastModified = new Map(blogPosts.map((post) => [post.slug, new Date(post.published)]));
 
 /** Public marketing & docs URLs worth indexing (no auth, no redirects-only stubs). */
 const STATIC_ROUTES: { path: string; priority: number; changeFrequency?: SitemapEntry["changeFrequency"] }[] = [
@@ -42,8 +45,6 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency?: Sitemap
   { path: "/terms", priority: 0.4, changeFrequency: "yearly" },
   { path: "/data-protection", priority: 0.4, changeFrequency: "yearly" },
   { path: "/changelog", priority: 0.5, changeFrequency: "weekly" },
-  { path: "/signup", priority: 0.7, changeFrequency: "monthly" },
-  { path: "/login", priority: 0.35, changeFrequency: "yearly" },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -52,7 +53,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   );
 
   const blogEntries = getAllBlogSlugs().map((slug) =>
-    entry(`/blog/${slug}`, 0.7, "monthly"),
+    entry(`/blog/${slug}`, 0.7, "monthly", blogLastModified.get(slug)),
   );
 
   const integrationEntries = getAllIntegrationSlugs().map((slug) =>

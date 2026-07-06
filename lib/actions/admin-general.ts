@@ -170,6 +170,9 @@ export async function saveSlackOfficeConfigAction(formData: FormData) {
       notifyOfflinePayments: formData.get("notifyOfflinePayments") === "on",
       notifyOnlinePayments: formData.get("notifyOnlinePayments") === "on",
       notifySupportTickets: formData.get("notifySupportTickets") === "on",
+      notifyStuckSms: formData.get("notifyStuckSms") === "on",
+      notifySmsFailures: formData.get("notifySmsFailures") === "on",
+      notifySmsBatchResults: formData.get("notifySmsBatchResults") === "on",
     },
     session.userId,
   );

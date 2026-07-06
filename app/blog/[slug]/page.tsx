@@ -8,8 +8,6 @@ import { getAllBlogSlugs, getBlogPost } from "@/lib/marketing/blog-posts";
 import {
   articleJsonLd,
   breadcrumbJsonLd,
-  organizationJsonLd,
-  websiteJsonLd,
 } from "@/lib/seo/site";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -28,6 +26,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: post.excerpt,
     path: `/blog/${slug}`,
     ogType: "article",
+    publishedTime: post.published,
+    modifiedTime: post.published,
   });
 }
 
@@ -42,13 +42,12 @@ export default async function BlogPostPage({ params }: Props) {
     <MarketingPageShell>
       <JsonLdScript
         data={[
-          websiteJsonLd,
-          organizationJsonLd,
           articleJsonLd({
             title: post.title,
             description: post.excerpt,
             path,
             datePublished: post.published,
+            dateModified: post.published,
           }),
           breadcrumbJsonLd([
             { name: "Home", path: "/" },
