@@ -1,10 +1,17 @@
 "use client";
 
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { sendSmsAction } from "@/lib/actions/sms";
+import { saveSendDraftAction, sendSmsAction } from "@/lib/actions/sms";
+import {
+  clearSendCompose,
+  hasSendComposeContent,
+  loadSendCompose,
+  persistSendCompose,
+  type SendComposeSnapshot,
+} from "@/lib/sms/send-compose-storage";
 import { getMessagePreview } from "@/lib/sms/message-preview";
 import { SendCostPreview } from "@/components/sms/send-cost-preview";
 import { SmsSchedulePicker, isSmsScheduledForLater } from "@/components/sms/sms-schedule-picker";
@@ -30,21 +37,22 @@ import {
 import { TEMPLATE_VARIABLES } from "@/lib/sms/personalize";
 import { friendlyError } from "@/lib/ux/messages";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
-  ChevronDown,
   Clock3,
   FileText,
+  Globe,
   Loader2,
   MessageSquare,
   Phone,
   Pencil,
   CheckCircle2,
   Send,
+  Bookmark,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -54,12 +62,39 @@ export type SendTemplateOption = {
   content: string;
 };
 
+export type SendDraftInitial = {
+  id: string;
+  name: string;
+  recipientsText: string;
+  body: string;
+  senderId: string;
+  countryCode: string;
+  scheduledAt: string | null;
+};
+
+export type SendDraftOption = {
+  id: string;
+  name: string;
+  message: string;
+  recipientCount: number;
+  updatedAt: string;
+};
+
+export type SendPricingOption = {
+  countryCode: string;
+  countryName: string;
+};
+
 type SendSmsFormProps = {
+  userId: string;
   registeredSenders: RegisteredSenderOption[];
   templates: SendTemplateOption[];
+  pricingCountries?: SendPricingOption[];
   initialTemplateId?: string;
   initialRecipients?: string;
   defaultCountryCode?: string;
+  initialDraft?: SendDraftInitial | null;
+  savedDrafts?: SendDraftOption[];
   contacts?: SendContactOption[];
   contactGroups?: SendContactGroupOption[];
   totalContacts?: number;
@@ -86,19 +121,36 @@ function mergeRecipientPhones(existing: string, phones: string[]): string {
   return merged.join("\n");
 }
 
+function pickDefaultSender(registeredSenders: RegisteredSenderOption[], preferred?: string) {
+  if (preferred) return preferred;
+  const approved = registeredSenders.filter((s) => s.status === "APPROVED");
+  const picked = approved.find((s) => s.isDefault)?.value ?? approved[0]?.value;
+  if (picked) return picked;
+  return registeredSenders.find((s) => s.status === "PENDING")?.value ?? "";
+}
+
 export function SendSmsForm({
+  userId,
   registeredSenders,
   templates,
+  pricingCountries = [],
   initialTemplateId,
   initialRecipients = "",
   defaultCountryCode = DEFAULT_COUNTRY_CODE,
+  initialDraft = null,
+  savedDrafts = [],
   contacts = [],
   contactGroups = [],
   totalContacts = 0,
 }: SendSmsFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isSavingDraft, startSaveDraft] = useTransition();
   const [showSuccess, setShowSuccess] = useState(false);
+  const [restoredNotice, setRestoredNotice] = useState<"local" | "draft" | null>(
+    initialDraft ? "draft" : null,
+  );
+  const restoredFromStorageRef = useRef(false);
   const [lastSent, setLastSent] = useState<
     | { count: number; credits: number; scheduled?: false }
     | { count: number; credits: number; scheduled: true; scheduledAt: string; campaignId: string }
@@ -107,19 +159,80 @@ export function SendSmsForm({
   const initialTpl = initialTemplateId
     ? templates.find((t) => t.id === initialTemplateId)
     : undefined;
-  const [recipients, setRecipients] = useState(initialRecipients);
+  const [recipients, setRecipients] = useState(
+    initialDraft?.recipientsText ?? initialRecipients,
+  );
   const [recipientChips, setRecipientChips] = useState<RecipientChip[]>([]);
-  const [body, setBody] = useState(initialTpl?.content ?? "");
+  const [body, setBody] = useState(initialDraft?.body ?? initialTpl?.content ?? "");
   const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplateId ?? "");
-  const [senderId, setSenderId] = useState(() => {
-    const approved = registeredSenders.filter((s) => s.status === "APPROVED");
-    const picked = approved.find((s) => s.isDefault)?.value ?? approved[0]?.value;
-    if (picked) return picked;
-    return registeredSenders.find((s) => s.status === "PENDING")?.value ?? "";
-  });
-  const [countryCode, setCountryCode] = useState(defaultCountryCode);
-  const [scheduledAt, setScheduledAt] = useState("");
+  const [senderId, setSenderId] = useState(() =>
+    pickDefaultSender(registeredSenders, initialDraft?.senderId),
+  );
+  const [countryCode, setCountryCode] = useState(
+    initialDraft?.countryCode ?? defaultCountryCode,
+  );
+  const [scheduledAt, setScheduledAt] = useState(initialDraft?.scheduledAt ?? "");
   const [scheduleResetKey, setScheduleResetKey] = useState(0);
+  const [draftCampaignId, setDraftCampaignId] = useState(initialDraft?.id ?? "");
+
+  const applySavedSnapshot = useCallback((saved: SendComposeSnapshot) => {
+    if (!initialRecipients) setRecipients(saved.recipients);
+    if (!initialTemplateId) {
+      setBody(saved.body);
+      setSelectedTemplateId(saved.selectedTemplateId);
+    }
+    if (saved.senderId) setSenderId(saved.senderId);
+    if (!initialDraft) setCountryCode(saved.countryCode || defaultCountryCode);
+    setScheduledAt(saved.scheduledAt);
+    if (saved.draftCampaignId) setDraftCampaignId(saved.draftCampaignId);
+  }, [defaultCountryCode, initialDraft, initialRecipients, initialTemplateId]);
+
+  useEffect(() => {
+    if (initialDraft || restoredFromStorageRef.current) return;
+    restoredFromStorageRef.current = true;
+
+    const saved = loadSendCompose(userId);
+    if (!saved) return;
+
+    applySavedSnapshot(saved);
+    setRestoredNotice("local");
+  }, [applySavedSnapshot, initialDraft, userId]);
+
+  const composeSnapshot = useMemo<SendComposeSnapshot>(
+    () => ({
+      recipients,
+      body,
+      senderId,
+      countryCode,
+      selectedTemplateId,
+      scheduledAt,
+      draftCampaignId,
+      savedAt: new Date().toISOString(),
+    }),
+    [body, countryCode, draftCampaignId, recipients, scheduledAt, selectedTemplateId, senderId],
+  );
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (!hasSendComposeContent(composeSnapshot)) {
+        clearSendCompose(userId);
+        return;
+      }
+      persistSendCompose(userId, composeSnapshot);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [composeSnapshot, userId]);
+
+  const canSaveDraft = Boolean(body.trim() || recipients.trim());
+
+  const countryOptions = useMemo(() => {
+    const options = [...pricingCountries];
+    const code = countryCode.toUpperCase();
+    if (code && !options.some((o) => o.countryCode === code)) {
+      options.unshift({ countryCode: code, countryName: code });
+    }
+    return options;
+  }, [countryCode, pricingCountries]);
 
   const isScheduling = useMemo(() => isSmsScheduledForLater(scheduledAt), [scheduledAt]);
 
@@ -149,6 +262,74 @@ export function SendSmsForm({
   function addContactsFromPicker(phones: string[]) {
     if (phones.length === 0) return;
     setRecipients((prev) => mergeRecipientPhones(prev, phones));
+  }
+
+  function resetCompose() {
+    setRecipients("");
+    setRecipientChips([]);
+    setBody("");
+    setSelectedTemplateId("");
+    setScheduledAt("");
+    setScheduleResetKey((k) => k + 1);
+    setDraftCampaignId("");
+    setRestoredNotice(null);
+    clearSendCompose(userId);
+  }
+
+  function handleDiscard() {
+    resetCompose();
+    if (initialDraft) {
+      router.replace("/dashboard/send");
+    }
+    toast.success("Message cleared", {
+      description: "Your compose draft was removed from this page.",
+    });
+  }
+
+  function handleSaveDraft() {
+    if (!canSaveDraft) return;
+
+    const form = document.getElementById("send-sms-form") as HTMLFormElement | null;
+    if (!form) return;
+
+    const formData = new FormData(form);
+    if (draftCampaignId) {
+      formData.set("draftId", draftCampaignId);
+    }
+
+    const toastId = toast.loading("Saving draft…");
+    startSaveDraft(async () => {
+      try {
+        const result = await saveSendDraftAction(formData);
+        if (!result.ok) {
+          toast.error("Could not save draft", {
+            id: toastId,
+            description: friendlyError(result.error),
+          });
+          return;
+        }
+
+        setDraftCampaignId(result.draftId);
+        clearSendCompose(userId);
+        setRestoredNotice(null);
+        toast.success("Draft saved", {
+          id: toastId,
+          description: "You can continue later from Send SMS or Campaigns.",
+          duration: 5000,
+          action: {
+            label: "View campaigns",
+            onClick: () => router.push("/dashboard/campaigns?status=DRAFT"),
+          },
+        });
+        router.replace(`/dashboard/send?draft=${result.draftId}`);
+        router.refresh();
+      } catch {
+        toast.error("Could not save draft", {
+          id: toastId,
+          description: "Please try again in a moment.",
+        });
+      }
+    });
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -187,12 +368,7 @@ export function SendSmsForm({
             });
           }
           setShowSuccess(true);
-          setRecipients("");
-          setRecipientChips([]);
-          setBody("");
-          setSelectedTemplateId("");
-          setScheduledAt("");
-          setScheduleResetKey((k) => k + 1);
+          resetCompose();
 
           if (result.scheduled) {
             const when = new Date(result.scheduledAt).toLocaleString(undefined, {
@@ -241,6 +417,7 @@ export function SendSmsForm({
   }
 
   const pending = isPending;
+  const savingDraft = isSavingDraft;
 
   return (
     <>
@@ -269,10 +446,69 @@ export function SendSmsForm({
       )}
 
       <form
+        id="send-sms-form"
         onSubmit={handleSubmit}
         className="grid gap-6 xl:grid-cols-[1fr_minmax(300px,340px)] xl:items-start"
       >
         <div className="space-y-5 min-w-0">
+          {restoredNotice && (
+            <div
+              role="status"
+              className="flex items-start gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3.5"
+            >
+              <Bookmark className="h-5 w-5 shrink-0 text-primary mt-0.5" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">
+                  {restoredNotice === "draft"
+                    ? initialDraft
+                      ? `Editing saved draft: ${initialDraft.name}`
+                      : "Editing saved draft"
+                    : "We restored your unsent message"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {restoredNotice === "draft"
+                    ? "Changes auto-save locally until you send or discard."
+                    : "Your message is kept while you browse the dashboard. Send, save as draft, or discard to clear."}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 shrink-0"
+                onClick={() => setRestoredNotice(null)}
+                aria-label="Dismiss notice"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {savedDrafts.length > 0 && !initialDraft && (
+            <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3.5 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Saved drafts
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {savedDrafts.map((draft) => (
+                  <Link
+                    key={draft.id}
+                    href={`/dashboard/send?draft=${draft.id}`}
+                    className="inline-flex max-w-full items-center gap-2 rounded-lg border border-border/70 bg-background px-3 py-2 text-left text-xs hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                  >
+                    <FileText className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium text-foreground">{draft.name}</span>
+                      <span className="block truncate text-muted-foreground">
+                        {draft.recipientCount} recipient{draft.recipientCount === 1 ? "" : "s"}
+                      </span>
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
           {showSuccess && lastSent && (
             <div
               role="status"
@@ -508,7 +744,9 @@ export function SendSmsForm({
           </div>
 
           <input type="hidden" name="senderId" value={senderId} />
-          <input type="hidden" name="countryCode" value={countryCode} />
+          {draftCampaignId ? (
+            <input type="hidden" name="draftId" value={draftCampaignId} />
+          ) : null}
 
           <SmsSchedulePicker
             key={scheduleResetKey}
@@ -517,59 +755,104 @@ export function SendSmsForm({
             disabled={pending}
           />
 
-          <details className="group rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
-            <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-muted-foreground select-none">
-              Advanced options
-              <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 shrink-0" />
-            </summary>
-            <div className="mt-4 space-y-3 border-t border-border/60 pt-4">
-              <div>
-                <Label htmlFor="countryCode">Destination country code</Label>
-                <Input
-                  id="countryCode"
-                  value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value.toUpperCase())}
-                  disabled={pending}
-                  className="mt-1.5 h-11 text-base font-mono uppercase"
-                  placeholder="US"
-                  maxLength={10}
-                />
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  Used for per-country pricing (e.g. US, NG, GLOBAL).
-                </p>
+          <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3.5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-start gap-2.5">
+                <Globe className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <div className="min-w-0">
+                  <Label htmlFor="countryCode" className="text-sm font-medium">
+                    Destination country
+                  </Label>
+                  <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
+                    Used for per-country pricing in your cost estimate.
+                  </p>
+                </div>
               </div>
+              <select
+                id="countryCode"
+                name="countryCode"
+                value={countryCode}
+                onChange={(e) => setCountryCode(e.target.value)}
+                disabled={pending || countryOptions.length === 0}
+                className={cn(
+                  "flex h-10 w-full shrink-0 rounded-lg border border-input bg-background px-3 text-sm sm:w-auto sm:min-w-[200px]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                )}
+              >
+                {countryOptions.length === 0 ? (
+                  <option value={countryCode}>{countryCode}</option>
+                ) : (
+                  countryOptions.map((country) => (
+                    <option key={country.countryCode} value={country.countryCode}>
+                      {country.countryName} ({country.countryCode})
+                    </option>
+                  ))
+                )}
+              </select>
             </div>
-          </details>
+          </div>
 
           <div className="xl:hidden space-y-4">
             <SmsPreview message={body} senderLabel={senderId} showVariableHints={false} />
             <SendCostPreview message={body} recipientsRaw={recipients} countryCode={countryCode} />
           </div>
 
-          <Button
-            type="submit"
-            disabled={pending || recipientCount === 0 || hasInvalidRecipients || !body.trim() || !canUseSender}
-            className="h-12 w-full text-base font-semibold rounded-xl shadow-sm gap-2"
-          >
-            {pending ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                {isScheduling ? "Scheduling…" : "Sending…"}
-              </>
-            ) : isScheduling ? (
-              <>
-                <Clock3 className="h-5 w-5" />
-                Schedule for {recipientCount > 0 ? recipientCount : "…"} recipient
-                {recipientCount === 1 ? "" : "s"}
-              </>
-            ) : (
-              <>
-                <Send className="h-5 w-5" />
-                Send to {recipientCount > 0 ? recipientCount : "…"} recipient
-                {recipientCount === 1 ? "" : "s"}
-              </>
-            )}
-          </Button>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+            <div className="flex flex-1 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={pending || savingDraft || !hasSendComposeContent(composeSnapshot)}
+                className="h-11 flex-1 sm:flex-none rounded-xl"
+                onClick={handleDiscard}
+              >
+                Discard
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={pending || savingDraft || !canSaveDraft}
+                className="h-11 flex-1 sm:flex-none rounded-xl gap-2"
+                onClick={handleSaveDraft}
+              >
+                {savingDraft ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  <>
+                    <Bookmark className="h-4 w-4" />
+                    Save draft
+                  </>
+                )}
+              </Button>
+            </div>
+            <Button
+              type="submit"
+              disabled={pending || savingDraft || recipientCount === 0 || hasInvalidRecipients || !body.trim() || !canUseSender}
+              className="h-12 flex-1 sm:flex-[1.4] text-base font-semibold rounded-xl shadow-sm gap-2"
+            >
+              {pending ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  {isScheduling ? "Scheduling…" : "Sending…"}
+                </>
+              ) : isScheduling ? (
+                <>
+                  <Clock3 className="h-5 w-5" />
+                  Schedule for {recipientCount > 0 ? recipientCount : "…"} recipient
+                  {recipientCount === 1 ? "" : "s"}
+                </>
+              ) : (
+                <>
+                  <Send className="h-5 w-5" />
+                  Send to {recipientCount > 0 ? recipientCount : "…"} recipient
+                  {recipientCount === 1 ? "" : "s"}
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         <aside className="hidden xl:block xl:sticky xl:top-20 space-y-5">

@@ -41,6 +41,7 @@ export async function sendViaTwilio(params: SendParams): Promise<SendResult> {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body,
+      signal: AbortSignal.timeout(12_000),
     },
   );
 

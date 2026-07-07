@@ -1,8 +1,9 @@
-import { prisma } from "@/lib/db";
+import { prisma, warmDatabaseConnection } from "@/lib/db";
+import { after } from "next/server";
 import { countSmsUnits, normalizePhones } from "@/lib/sms/units";
 import { deductSmsCredits } from "@/lib/sms/billing";
 import { resolveSmsPriceForUser } from "@/lib/reseller/pricing";
-import { enqueueSmsJob } from "@/lib/queue/enqueue-sms";
+import { enqueueSmsJobsInline } from "@/lib/queue/enqueue-sms";
 import { resolveMessagePriority } from "@/lib/enterprise/priority";
 import { processSandboxMessage } from "@/lib/api/sandbox";
 import type { ApiContext } from "@/lib/api/context";
@@ -98,17 +99,24 @@ export async function apiSendMessages(ctx: ApiContext, input: SendSmsInput) {
     }
   }
 
-  const ids: string[] = [];
+  const ids: string[] = messages.map((m) => m.id);
   const priority = resolveMessagePriority({ channel: "api", body: input.message });
 
-  for (const message of messages) {
-    ids.push(message.id);
-
-    if (ctx.isSandbox) {
+  if (ctx.isSandbox) {
+    for (const message of messages) {
       await processSandboxMessage(message.id);
-    } else {
-      await enqueueSmsJob(message.id, input.countryCode, priority);
     }
+  } else {
+    after(async () => {
+      await warmDatabaseConnection().catch(() => undefined);
+      await enqueueSmsJobsInline(
+        messages.map((message) => ({
+          messageId: message.id,
+          countryCode: input.countryCode,
+          priority,
+        })),
+      );
+    });
   }
 
   return apiSuccess({

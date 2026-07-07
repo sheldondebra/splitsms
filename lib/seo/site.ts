@@ -42,12 +42,12 @@ export const defaultKeywords = [
   "SplitSMS",
 ];
 
-/** Brand wordmark — SVG in /public for crisp scaling */
+/** Brand logo — PNG wordmark with icon for structured data */
 export const brandLogo = {
-  path: "/brand-wordmark.svg",
-  url: `${siteUrl}/brand-wordmark.svg`,
-  width: 220,
-  height: 40,
+  path: "/smslogo.png",
+  url: `${siteUrl}/smslogo.png`,
+  width: 1024,
+  height: 343,
   alt: "SplitSMS — Bulk SMS platform and SMS API",
 } as const;
 

@@ -130,6 +130,14 @@ function CampaignActions({ campaign }: { campaign: CampaignRow }) {
 
   return (
     <div className="flex items-center justify-end gap-0.5">
+      {campaign.status === "DRAFT" && (
+        <Link
+          href={`/dashboard/send?draft=${campaign.id}`}
+          className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-primary hover:bg-primary/10"
+        >
+          Continue
+        </Link>
+      )}
       <Link
         href={`/dashboard/reports?campaign=${campaign.id}`}
         className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-primary hover:bg-primary/10"

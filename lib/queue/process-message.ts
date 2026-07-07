@@ -29,9 +29,11 @@ async function claimMessage(messageId: string) {
 export async function processMessageJob(
   messageId: string,
   countryCode: string,
-  options?: { notifySlackOnFailure?: boolean },
+  options?: { notifySlackOnFailure?: boolean; skipStaleReset?: boolean },
 ) {
-  await resetStaleProcessingMessages();
+  if (!options?.skipStaleReset) {
+    await resetStaleProcessingMessages();
+  }
 
   const existing = await prisma.message.findUnique({
     where: { id: messageId },

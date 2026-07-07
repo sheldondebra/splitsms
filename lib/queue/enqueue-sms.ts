@@ -1,8 +1,23 @@
 import { getSmsSendQueue, type SmsSendJob } from "@/lib/queue/sms-queue";
-import { processMessageJob } from "@/lib/queue/process-message";
+import { processMessageJob, resetStaleProcessingMessages } from "@/lib/queue/process-message";
 import { smsWorkersEnabled } from "@/lib/queue/sms-workers-enabled";
+import { SMS_INLINE_CONCURRENCY } from "@/lib/queue/sms-dispatch-config";
 import { BULLMQ_PRIORITY } from "@/lib/enterprise/priority";
 import type { MessagePriority } from "@/lib/generated/prisma/client";
+
+async function processInlineBatch(
+  jobs: Array<{ messageId: string; countryCode: string }>,
+) {
+  const concurrency = SMS_INLINE_CONCURRENCY;
+  for (let i = 0; i < jobs.length; i += concurrency) {
+    const batch = jobs.slice(i, i + concurrency);
+    await Promise.all(
+      batch.map(({ messageId, countryCode }) =>
+        processMessageJob(messageId, countryCode, { skipStaleReset: true }),
+      ),
+    );
+  }
+}
 
 export async function enqueueSmsJob(
   messageId: string,
@@ -26,13 +41,16 @@ export async function enqueueSmsJob(
     }
   }
 
-  await processMessageJob(messageId, countryCode);
+  await resetStaleProcessingMessages();
+  await processMessageJob(messageId, countryCode, { skipStaleReset: true });
 }
 
 /** Process many PENDING messages without blocking on BullMQ (Vercel-safe). */
 export async function enqueueSmsJobsInline(
   jobs: Array<{ messageId: string; countryCode: string; priority?: MessagePriority }>,
 ) {
+  if (jobs.length === 0) return;
+
   const queue = getSmsSendQueue();
   if (queue && smsWorkersEnabled()) {
     await Promise.all(
@@ -43,11 +61,8 @@ export async function enqueueSmsJobsInline(
     return;
   }
 
-  const concurrency = 5;
-  for (let i = 0; i < jobs.length; i += concurrency) {
-    const batch = jobs.slice(i, i + concurrency);
-    await Promise.all(
-      batch.map(({ messageId, countryCode }) => processMessageJob(messageId, countryCode)),
-    );
-  }
+  await resetStaleProcessingMessages();
+  await processInlineBatch(
+    jobs.map(({ messageId, countryCode }) => ({ messageId, countryCode })),
+  );
 }

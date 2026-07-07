@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { countSmsUnits } from "@/lib/sms/units";
 import { deductSmsCredits } from "@/lib/sms/billing";
 import { personalizeMessage } from "@/lib/sms/personalize";
-import { enqueueSmsJob } from "@/lib/queue/enqueue-sms";
+import { enqueueSmsJobsInline } from "@/lib/queue/enqueue-sms";
 import { resolveMessagePriority } from "@/lib/enterprise/priority";
 import { createNotification } from "@/lib/notifications";
 import type { CampaignRecurrence } from "@/lib/generated/prisma/client";
@@ -134,24 +134,34 @@ export async function dispatchCampaign(campaignId: string) {
     body: campaign.message,
   });
 
+  const createdMessages = [];
   for (const item of bodies) {
-    const msg = await prisma.message.create({
-      data: {
-        userId: campaign.userId,
-        campaignId: campaign.id,
-        recipient: item.recipient,
-        body: item.body,
-        countryCode,
-        senderId: campaign.senderId,
-        smsUnits: item.units,
-        cost: costPerUnit * item.units,
-        status: "PENDING",
-        priority,
-        channel: "campaign",
-      },
-    });
-    await enqueueSmsJob(msg.id, countryCode, priority);
+    createdMessages.push(
+      await prisma.message.create({
+        data: {
+          userId: campaign.userId,
+          campaignId: campaign.id,
+          recipient: item.recipient,
+          body: item.body,
+          countryCode,
+          senderId: campaign.senderId,
+          smsUnits: item.units,
+          cost: costPerUnit * item.units,
+          status: "PENDING",
+          priority,
+          channel: "campaign",
+        },
+      }),
+    );
   }
+
+  await enqueueSmsJobsInline(
+    createdMessages.map((msg) => ({
+      messageId: msg.id,
+      countryCode,
+      priority,
+    })),
+  );
 
   return { ok: true as const, sent: recipients.length };
 }

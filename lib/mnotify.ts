@@ -130,6 +130,7 @@ export async function sendMnotifyQuickSms(
         is_schedule: params.isSchedule ?? false,
         schedule_date: params.scheduleDate ?? "",
       }),
+      signal: AbortSignal.timeout(12_000),
     });
 
     const data = (await res.json()) as MnotifyQuickSmsResponse;

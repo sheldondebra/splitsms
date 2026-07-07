@@ -23,6 +23,7 @@ export async function sendViaInfobip(params: SendParams): Promise<SendResult> {
         },
       ],
     }),
+    signal: AbortSignal.timeout(12_000),
   });
 
   const data = (await res.json()) as {

@@ -2,6 +2,8 @@
 
 export const UX_ERRORS: Record<string, string> = {
   invalid: "Please add your phone numbers and message before sending.",
+  empty: "Add a message or at least one phone number before saving a draft.",
+  notfound: "That draft could not be found. It may have been sent or deleted.",
   sender: "Use an approved Sender ID before sending. Request one from Sender IDs.",
   access: "Your account cannot send SMS right now. Contact support if this is unexpected.",
   credits: "You need more balance to send these messages. Add money to continue.",

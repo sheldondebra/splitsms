@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { maybeNotifySlackStuckSms } from "@/lib/admin/sms-stuck-alert";
 import { processDueScheduledCampaigns } from "@/lib/campaigns/scheduler";
 import { processPendingMessagesBatch } from "@/lib/queue/process-pending-batch";
+import { SMS_CRON_BATCH_LIMIT } from "@/lib/queue/sms-dispatch-config";
 import { smsWorkersEnabled } from "@/lib/queue/sms-workers-enabled";
+import { warmDatabaseConnection } from "@/lib/db";
 import { syncPendingMnotifyDeliveries } from "@/lib/sms/sync-mnotify-dlr";
 
 /** When workers are enabled, only pick up messages the worker failed to claim in time. */
-const STALE_PENDING_MS = 90 * 1000;
+const STALE_PENDING_MS = 30 * 1000;
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -24,8 +26,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  await warmDatabaseConnection().catch(() => undefined);
+
   const params = new URL(request.url).searchParams;
-  const smsLimit = Math.min(50, Math.max(1, Number(params.get("limit") ?? 25)));
+  const smsLimit = Math.min(80, Math.max(1, Number(params.get("limit") ?? SMS_CRON_BATCH_LIMIT)));
   const campaignLimit = Math.min(20, Math.max(1, Number(params.get("campaigns") ?? 10)));
 
   const campaigns = await processDueScheduledCampaigns(campaignLimit);

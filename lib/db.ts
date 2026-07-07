@@ -12,7 +12,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /** Increment when Prisma schema changes require a fresh client in dev */
-const PRISMA_CLIENT_BUILD_ID = "support-ticket-reference-2026-06-24";
+const PRISMA_CLIENT_BUILD_ID = "staff-permissions-2026-07-07";
 
 const NEON_WAKE_DELAYS_MS = [500, 1500, 3000, 5000];
 
