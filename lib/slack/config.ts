@@ -23,6 +23,7 @@ function slackEnvDefaults(): Partial<SlackOfficeConfig> {
     notifyStuckSms: process.env.SLACK_NOTIFY_STUCK_SMS !== "false",
     notifySmsFailures: process.env.SLACK_NOTIFY_SMS_FAILURES !== "false",
     notifySmsBatchResults: process.env.SLACK_NOTIFY_SMS_BATCH !== "false",
+    notifyLowBalances: process.env.SLACK_NOTIFY_LOW_BALANCES !== "false",
   };
 }
 
@@ -63,6 +64,7 @@ function mergeSlackOfficeConfig(
     notifyStuckSms: stored.notifyStuckSms ?? base.notifyStuckSms,
     notifySmsFailures: stored.notifySmsFailures ?? base.notifySmsFailures,
     notifySmsBatchResults: stored.notifySmsBatchResults ?? base.notifySmsBatchResults,
+    notifyLowBalances: stored.notifyLowBalances ?? base.notifyLowBalances,
     updatedAt: stored.updatedAt,
   };
 }

@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { ArrowRight, Clock, Newspaper, Tag } from "lucide-react";
 import { getFeaturedBlogPosts } from "@/lib/marketing/blog-posts";
+import {
+  MarketingCtaArrow,
+  marketingCtaClass,
+} from "@/components/marketing/marketing-cta-arrow";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function HomeBlogSection() {
-  const posts = getFeaturedBlogPosts(3);
+  const posts = getFeaturedBlogPosts(6);
 
   return (
     <section className="py-20 border-t bg-background" aria-labelledby="home-blog-heading">
@@ -28,11 +32,12 @@ export function HomeBlogSection() {
             href="/blog"
             className={cn(
               buttonVariants({ variant: "outline", size: "lg" }),
-              "shrink-0 rounded-xl font-semibold gap-2 border-primary/30 hover:border-primary",
+              marketingCtaClass,
+              "shrink-0 border-primary/30 pl-5 pr-1.5 font-semibold hover:border-primary",
             )}
           >
             View all articles
-            <ArrowRight className="h-4 w-4" />
+            <MarketingCtaArrow />
           </Link>
         </div>
 
@@ -72,10 +77,14 @@ export function HomeBlogSection() {
         <p className="mt-8 text-center sm:hidden">
           <Link
             href="/blog"
-            className={cn(buttonVariants({ variant: "outline" }), "rounded-xl font-semibold gap-2")}
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              marketingCtaClass,
+              "pl-5 pr-1.5 font-semibold",
+            )}
           >
             View all articles
-            <ArrowRight className="h-4 w-4" />
+            <MarketingCtaArrow />
           </Link>
         </p>
       </div>

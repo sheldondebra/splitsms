@@ -20,7 +20,9 @@ function entry(
   };
 }
 
-const blogLastModified = new Map(blogPosts.map((post) => [post.slug, new Date(post.published)]));
+const blogLastModified = new Map(
+  blogPosts.map((post) => [post.slug, new Date(post.updated ?? post.published)]),
+);
 
 /** Public marketing & docs URLs worth indexing (no auth, no redirects-only stubs). */
 const STATIC_ROUTES: { path: string; priority: number; changeFrequency?: SitemapEntry["changeFrequency"] }[] = [

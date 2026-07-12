@@ -15,6 +15,7 @@ import {
   ActionBar,
 } from "@/components/admin/member-detail/member-detail-ui";
 import { MaskedBalance } from "@/components/admin/member-detail/masked-balance";
+import { MemberHeroMeta } from "@/components/admin/member-detail/member-hero-meta";
 import { MemberUsageCharts } from "@/components/admin/member-detail/member-usage-charts";
 import { MemberUserDetails } from "@/components/admin/member-detail/member-user-details";
 import { MemberMessagingPanel } from "@/components/admin/member-detail/member-messaging-panel";
@@ -66,8 +67,6 @@ import {
   BadgeCheck,
   Settings2,
   Lock,
-  Copy,
-  Check,
   Users,
   FileText,
   Zap,
@@ -262,24 +261,7 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1 border-t border-border/40">
-            <span>Joined {format(user.createdAt, "PP")}</span>
-            <span>·</span>
-            <span>{user.countryCode}</span>
-            <span>·</span>
-            <button
-              type="button"
-              onClick={copyId}
-              className="inline-flex items-center gap-1 font-mono hover:text-foreground transition-colors"
-            >
-              {id.slice(0, 14)}…
-              {copied ? (
-                <Check className="h-3 w-3 text-emerald-500" />
-              ) : (
-                <Copy className="h-3 w-3" />
-              )}
-            </button>
-          </div>
+          <MemberHeroMeta data={data} copied={copied} onCopyId={copyId} />
         </div>
       </div>
 
@@ -290,7 +272,7 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
               <TabsTrigger
                 key={value}
                 value={value}
-                className="gap-1.5 px-3 py-2 data-active:bg-background data-active:shadow-sm rounded-lg"
+                className="h-9 gap-1.5 rounded-lg px-3 text-xs sm:text-sm"
               >
                 <Icon className="h-3.5 w-3.5" />
                 {label}

@@ -497,14 +497,16 @@ export function AdminStaffView({
       </div>
 
       <Tabs defaultValue="users" className="gap-4">
-        <TabsList variant="line" className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
-          <TabsTrigger value="users" className="rounded-none px-3 py-2 text-xs sm:text-sm">
-            Staff users
-          </TabsTrigger>
-          <TabsTrigger value="permissions" className="rounded-none px-3 py-2 text-xs sm:text-sm">
-            Roles & permissions
-          </TabsTrigger>
-        </TabsList>
+        <div className="rounded-xl border border-border/60 bg-muted/25 p-1">
+          <TabsList variant="line" className="h-auto w-full justify-start gap-1 bg-transparent p-0">
+            <TabsTrigger value="users" className="h-9 rounded-lg px-3.5 text-xs sm:text-sm">
+              Staff users
+            </TabsTrigger>
+            <TabsTrigger value="permissions" className="h-9 rounded-lg px-3.5 text-xs sm:text-sm">
+              Roles & permissions
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="users" className="mt-0">
           <AdminCard title="Admin team" description="Platform staff with access to /admin" dense>

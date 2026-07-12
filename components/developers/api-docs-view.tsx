@@ -45,7 +45,7 @@ export function ApiDocsView({ baseUrl }: { baseUrl?: string }) {
                 <TabsTrigger
                   key={s.id}
                   value={s.id}
-                  className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-background rounded-lg"
+                  className="h-9 gap-1.5 rounded-lg px-3 text-xs sm:text-sm"
                 >
                   <Icon className="h-3.5 w-3.5" />
                   {s.title}

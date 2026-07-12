@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { AlertCircle, BadgeCheck, CheckCircle2, Loader2, Plus } from "lucide-react";
+import { AlertCircle, BadgeCheck, CheckCircle2, Loader2, Plus, Search } from "lucide-react";
 
 const REGISTER_NEW = "__register_new__";
 const MIN_REASON_LENGTH = 10;
@@ -30,6 +30,7 @@ export type RegisteredSenderOption = {
   value: string;
   status: SenderIdStatus;
   isDefault: boolean;
+  ownerName?: string | null;
 };
 
 type ValidationState =
@@ -43,6 +44,8 @@ type SendSmsSenderFieldProps = {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  /** Admin: search all approved platform senders + register new */
+  allowPlatformSearch?: boolean;
 };
 
 function pickInitialSender(registered: RegisteredSenderOption[]) {
@@ -231,15 +234,151 @@ function CompactRegisterPanel({
   );
 }
 
+function AdminSenderSearch({
+  registeredSenders,
+  value,
+  onChange,
+  disabled,
+  onRegisterNew,
+}: {
+  registeredSenders: RegisteredSenderOption[];
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  onRegisterNew: (prefill?: string) => void;
+}) {
+  const [query, setQuery] = useState(() => value || "");
+
+  const approved = useMemo(
+    () => registeredSenders.filter((s) => s.status === "APPROVED"),
+    [registeredSenders],
+  );
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toUpperCase();
+    if (!q) return approved;
+    return approved.filter(
+      (s) =>
+        s.value.toUpperCase().includes(q) ||
+        (s.ownerName ?? "").toUpperCase().includes(q),
+    );
+  }, [approved, query]);
+
+  const selected = approved.find((s) => s.value === value);
+  const exactMatch = approved.find((s) => s.value.toUpperCase() === query.trim().toUpperCase());
+  const canRegisterQuery =
+    normalizeSenderIdValue(query).length >= SENDER_ID_MIN_LENGTH && !exactMatch;
+
+  return (
+    <div className="space-y-2">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          id="senderId-admin-search"
+          value={query}
+          onChange={(e) => {
+            const next = e.target.value.toUpperCase().replace(/[^A-Z0-9\s]/g, "");
+            setQuery(next);
+          }}
+          disabled={disabled}
+          maxLength={SENDER_ID_MAX_LENGTH + 20}
+          placeholder="Search approved sender IDs…"
+          className="h-11 pl-9 font-mono uppercase tracking-wide"
+          autoComplete="off"
+        />
+      </div>
+
+      {selected ? (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs">
+          <div className="min-w-0">
+            <p className="font-mono font-semibold text-emerald-800 dark:text-emerald-200">
+              {selected.value}
+            </p>
+            {selected.ownerName ? (
+              <p className="truncate text-muted-foreground">Owner: {selected.ownerName}</p>
+            ) : null}
+          </div>
+          <span className="shrink-0 font-medium text-emerald-700 dark:text-emerald-300">Selected</span>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          {approved.length} approved sender{approved.length === 1 ? "" : "s"} available — pick one below,
+          or register a new ID if it is missing.
+        </p>
+      )}
+
+      <div className="max-h-72 overflow-y-auto rounded-lg border border-border/60 bg-background shadow-sm">
+        {filtered.length === 0 ? (
+          <p className="px-3 py-3 text-xs text-muted-foreground">No matching approved sender IDs.</p>
+        ) : (
+          <ul className="divide-y divide-border/50">
+            {filtered.map((s) => {
+              const active = s.value === value;
+              return (
+                <li key={`${s.value}-${s.ownerName ?? "platform"}`}>
+                  <button
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => {
+                      onChange(s.value);
+                      setQuery(s.value);
+                    }}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/50",
+                      active && "bg-primary/5",
+                    )}
+                  >
+                    <span className="min-w-0">
+                      <span className="block font-mono font-semibold">{s.value}</span>
+                      {s.ownerName ? (
+                        <span className="block truncate text-[11px] text-muted-foreground">
+                          {s.ownerName}
+                        </span>
+                      ) : null}
+                    </span>
+                    {active ? (
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                    ) : null}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <div className="border-t border-border/60 p-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="w-full justify-start gap-1.5"
+            disabled={disabled}
+            onClick={() => {
+              onRegisterNew(canRegisterQuery ? normalizeSenderIdValue(query) : "");
+            }}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {canRegisterQuery
+              ? `Register “${normalizeSenderIdValue(query)}”`
+              : "Register new sender ID…"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function SendSmsSenderField({
   registeredSenders,
   value,
   onChange,
   disabled,
+  allowPlatformSearch = false,
 }: SendSmsSenderFieldProps) {
   const hasRegistered = registeredSenders.length > 0;
-  const [showRegister, setShowRegister] = useState(!hasRegistered);
-  const [draftName, setDraftName] = useState("");
+  const [showRegister, setShowRegister] = useState(false);
+  const [draftName, setDraftName] = useState(() =>
+    hasRegistered || allowPlatformSearch ? "" : normalizeSenderIdValue(value),
+  );
 
   const registeredValues = useMemo(
     () => new Set(registeredSenders.map((s) => s.value.toUpperCase())),
@@ -252,14 +391,16 @@ export function SendSmsSenderField({
   const selectedPending = registeredSenders.find((s) => s.value === value && s.status === "PENDING");
 
   useEffect(() => {
+    if (allowPlatformSearch) return;
     if (!hasRegistered) {
       setShowRegister(true);
+      setDraftName(normalizeSenderIdValue(value));
       return;
     }
-    if (!value) {
+    if (!value || !registeredSenders.some((s) => s.value === value)) {
       onChange(pickInitialSender(registeredSenders));
     }
-  }, [hasRegistered, registeredSenders, value, onChange]);
+  }, [allowPlatformSearch, hasRegistered, registeredSenders, value, onChange]);
 
   function handleSelectChange(next: string) {
     if (next === REGISTER_NEW) {
@@ -271,12 +412,14 @@ export function SendSmsSenderField({
     onChange(next);
   }
 
-  function handleRegistered(value: string) {
+  function handleRegistered(registeredValue: string) {
     setShowRegister(false);
-    onChange(value);
+    setDraftName("");
+    onChange(registeredValue);
   }
 
-  const normalizedDraft = normalizeSenderIdValue(draftName);
+  const draftInputValue = hasRegistered || allowPlatformSearch ? draftName : value || draftName;
+  const normalizedDraft = normalizeSenderIdValue(draftInputValue);
   const draftIsNew =
     normalizedDraft.length >= SENDER_ID_MIN_LENGTH && !registeredValues.has(normalizedDraft);
 
@@ -287,10 +430,36 @@ export function SendSmsSenderField({
         <Label className="text-sm font-semibold">Sender name</Label>
       </div>
       <p className="text-xs text-muted-foreground -mt-1">
-        What recipients see as the message sender.
+        {allowPlatformSearch
+          ? "Admin: search approved platform sender IDs, or register a new one."
+          : "What recipients see as the message sender."}
       </p>
 
-      {hasRegistered && !showRegister ? (
+      {allowPlatformSearch ? (
+        showRegister ? (
+          <CompactRegisterPanel
+            initialName={draftName}
+            registeredValues={registeredValues}
+            onRegistered={handleRegistered}
+            onCancel={() => {
+              setShowRegister(false);
+              setDraftName("");
+            }}
+            disabled={disabled}
+          />
+        ) : (
+          <AdminSenderSearch
+            registeredSenders={registeredSenders}
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            onRegisterNew={(prefill) => {
+              setDraftName(prefill ?? "");
+              setShowRegister(true);
+            }}
+          />
+        )
+      ) : hasRegistered && !showRegister ? (
         <div className="space-y-2">
           <select
             id="senderId"
@@ -347,7 +516,7 @@ export function SendSmsSenderField({
           <div>
             <Input
               id="senderId-draft"
-              value={draftName}
+              value={draftInputValue}
               onChange={(e) => {
                 const next = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
                 setDraftName(next);
@@ -359,7 +528,9 @@ export function SendSmsSenderField({
               className="h-11 font-mono uppercase tracking-wide"
             />
             <p className="text-xs text-muted-foreground mt-1.5">
-              No sender ID yet. Type a name — if it&apos;s available, register it below.
+              {draftInputValue
+                ? "Using your sender name — register it below if it still needs approval."
+                : "No sender ID yet. Type a name — if it\u2019s available, register it below."}
             </p>
           </div>
 

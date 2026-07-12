@@ -9,6 +9,7 @@ import {
   slackSmsBatchResultBlocks,
   slackSmsFailedBlocks,
   slackStuckSmsBlocks,
+  slackLowBalanceBlocks,
   slackUserLoginBlocks,
   slackUserRegistrationBlocks,
 } from "@/lib/slack/blocks";
@@ -230,6 +231,27 @@ export async function notifySlackSmsBatchResult(input: {
     {
       text: `SMS batch: ${input.sent} sent, ${input.failed} failed, ${input.remaining} remaining`,
       blocks: slackSmsBatchResultBlocks(input),
+    },
+    config,
+  );
+}
+
+export async function notifySlackLowBalance(input: {
+  title: string;
+  summary: string;
+  provider: string;
+  display: string;
+  threshold: number;
+  queuedMessages?: number;
+  action: string;
+}) {
+  const config = await shouldNotify((c) => c.notifyLowBalances);
+  if (!config) return;
+
+  await postSlackMessage(
+    {
+      text: `${input.title}: ${input.display}`,
+      blocks: slackLowBalanceBlocks(input),
     },
     config,
   );

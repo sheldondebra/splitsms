@@ -69,7 +69,7 @@ export default async function ContactsPage({
     : undefined;
 
   const tabTriggerClass =
-    "min-h-10 rounded-lg px-3 py-2 text-sm font-medium gap-2 data-active:bg-primary data-active:text-primary-foreground data-active:shadow-sm data-active:shadow-primary/20 dark:data-active:bg-primary dark:data-active:text-primary-foreground";
+    "min-h-10 rounded-lg px-3 py-2 text-sm font-medium gap-2 hover:bg-muted/80 data-active:bg-primary data-active:text-primary-foreground data-active:shadow-sm data-active:shadow-primary/20 dark:data-active:bg-primary dark:data-active:text-primary-foreground dark:hover:bg-muted/50";
 
   return (
     <AppPage wide>

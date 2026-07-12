@@ -146,18 +146,18 @@ async function getPendingPaymentInsight(payment: Payment): Promise<PaymentInsigh
       return {
         label: "Pending — Paystack",
         detail:
-          "Waiting for Paystack confirmation. Credits when the member returns from checkout or the webhook fires.",
+          "Waiting for Paystack confirmation. Credits when the member returns from checkout or the webhook fires. Use Sync online if they already paid.",
         tone: "neutral",
-        canAutoCredit: Boolean(payment.providerReference && !payment.providerReference.startsWith("pending-")),
+        // A checkout reference is created before payment — it does not mean paid.
       };
 
     case "FLUTTERWAVE":
       return {
         label: "Pending — Flutterwave",
         detail:
-          "Waiting for Flutterwave confirmation. Credits when the member completes checkout or the webhook fires.",
+          "Waiting for Flutterwave confirmation. Credits when the member completes checkout or the webhook fires. Use Sync online if they already paid.",
         tone: "neutral",
-        canAutoCredit: Boolean(payment.providerReference && !payment.providerReference.startsWith("pending-")),
+        // A checkout reference is created before payment — it does not mean paid.
       };
 
     default:

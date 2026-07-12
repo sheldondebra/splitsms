@@ -7,7 +7,7 @@ import {
   QrCode,
   Send,
   Users,
-  ArrowRight,
+  ArrowUpRight,
   BadgeCheck,
   ChevronDown,
   CheckCircle2,
@@ -22,6 +22,10 @@ import {
   Webhook,
 } from "lucide-react";
 import { HomeBlogSection } from "@/components/marketing/home-blog-section";
+import {
+  MarketingCtaArrow,
+  marketingCtaClass,
+} from "@/components/marketing/marketing-cta-arrow";
 import { wordpressPlugin } from "@/lib/site-config";
 import { wordpressIntegrationFeatureGroups } from "@/lib/marketing/wordpress-integration-features";
 
@@ -150,17 +154,28 @@ export function HomePageContent() {
         <div className="absolute inset-0 bg-black/70" aria-hidden />
         <div className="relative mx-auto max-w-6xl px-4 py-16 md:py-24">
           <div className="max-w-3xl">
-            <p className="text-sm text-white/75 mb-4">
-              Bulk SMS · OTP · API · Built by{" "}
+            <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <div className="flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70">
+                {["Bulk SMS", "OTP", "API"].map((label, i) => (
+                  <span key={label} className="inline-flex items-center gap-2.5">
+                    {i > 0 && (
+                      <span className="h-1 w-1 rounded-full bg-primary" aria-hidden />
+                    )}
+                    {label}
+                  </span>
+                ))}
+              </div>
+              <span className="hidden h-4 w-px bg-white/25 sm:block" aria-hidden />
               <a
                 href="https://www.tecunitgh.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white underline underline-offset-4 hover:text-primary"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-white/80 transition-colors hover:text-primary"
               >
-                Tecunit
+                Built by Tecunit
+                <ArrowUpRight className="size-3.5 opacity-70" aria-hidden />
               </a>
-            </p>
+            </div>
             <h1
               id="hero-heading"
               className="text-4xl font-bold tracking-tight text-white md:text-5xl md:leading-[1.15]"
@@ -173,45 +188,52 @@ export function HomePageContent() {
               try it.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "font-semibold")}>
+              <Link
+                href="/signup"
+                className={cn(buttonVariants({ size: "lg" }), marketingCtaClass, "font-semibold pl-5 pr-1.5")}
+              >
                 Create account
+                <MarketingCtaArrow />
               </Link>
               <Link
                 href="/pricing"
                 className={cn(
                   buttonVariants({ size: "lg", variant: "outline" }),
-                  "border-white/40 bg-white/5 text-white hover:bg-white/15 hover:text-white",
+                  marketingCtaClass,
+                  "border-white/40 bg-white/5 pl-5 pr-1.5 text-white hover:bg-white/15 hover:text-white",
                 )}
               >
                 See pricing
+                <MarketingCtaArrow />
               </Link>
               <Link
                 href="/api-docs"
                 className={cn(
                   buttonVariants({ size: "lg", variant: "ghost" }),
-                  "gap-1 text-white hover:bg-white/10 hover:text-white",
+                  marketingCtaClass,
+                  "pl-5 pr-1.5 text-white hover:bg-white/10 hover:text-white",
                 )}
               >
                 API docs
-                <ArrowRight className="h-4 w-4" />
+                <MarketingCtaArrow />
               </Link>
             </div>
           </div>
 
           <div className="mt-14 grid gap-8 border-t border-white/20 pt-10 sm:grid-cols-3 text-sm">
-            <div>
+            <div className="rounded-xl border border-white/20 p-5">
               <p className="font-semibold text-white">Dashboard</p>
               <p className="mt-1 text-white/75 leading-relaxed">
                 Upload contacts, schedule blasts, register Sender IDs, and read delivery logs.
               </p>
             </div>
-            <div>
+            <div className="rounded-xl border border-white/20 p-5">
               <p className="font-semibold text-white">API</p>
               <p className="mt-1 text-white/75 leading-relaxed">
                 REST endpoints for send, OTP, wallet, webhooks. Sandbox keys for staging.
               </p>
             </div>
-            <div>
+            <div className="rounded-xl border border-white/20 p-5">
               <p className="font-semibold text-white">WordPress</p>
               <p className="mt-1 text-white/75 leading-relaxed">
                 Official plugin for WooCommerce orders, forms, and Crocoblock — paste your API key
@@ -268,15 +290,23 @@ export function HomePageContent() {
               </ul>
 
               <div className="mt-10 flex flex-wrap gap-3">
-                <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "font-semibold")}>
+                <Link
+                  href="/signup"
+                  className={cn(buttonVariants({ size: "lg" }), marketingCtaClass, "font-semibold pl-5 pr-1.5")}
+                >
                   Get 5 free SMS
+                  <MarketingCtaArrow />
                 </Link>
                 <Link
                   href="/company"
-                  className={cn(buttonVariants({ size: "lg", variant: "outline" }), "gap-1")}
+                  className={cn(
+                    buttonVariants({ size: "lg", variant: "outline" }),
+                    marketingCtaClass,
+                    "pl-5 pr-1.5",
+                  )}
                 >
                   About SplitSMS
-                  <ArrowRight className="h-4 w-4" />
+                  <MarketingCtaArrow />
                 </Link>
               </div>
             </div>
@@ -302,11 +332,12 @@ export function HomePageContent() {
               href="/features"
               className={cn(
                 buttonVariants({ variant: "outline", size: "sm" }),
-                "shrink-0 gap-1.5 self-start md:self-auto",
+                marketingCtaClass,
+                "shrink-0 self-start pl-3.5 pr-1 md:self-auto",
               )}
             >
               All features
-              <ArrowRight className="h-4 w-4" />
+              <MarketingCtaArrow size="sm" />
             </Link>
           </div>
 
@@ -378,8 +409,12 @@ export function HomePageContent() {
           </ol>
 
           <div className="mt-10 flex flex-wrap items-center gap-4">
-            <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "font-semibold")}>
+            <Link
+              href="/signup"
+              className={cn(buttonVariants({ size: "lg" }), marketingCtaClass, "font-semibold pl-5 pr-1.5")}
+            >
               Start step 1 — Create account
+              <MarketingCtaArrow />
             </Link>
             <Link
               href="/pricing"
@@ -413,19 +448,21 @@ export function HomePageContent() {
             <div className="mt-8 flex flex-wrap gap-4">
               <Link
                 href="/dashboard/forms/create"
-                className={cn(buttonVariants({ size: "lg" }), "font-semibold gap-2")}
+                className={cn(buttonVariants({ size: "lg" }), marketingCtaClass, "font-semibold pl-5 pr-1.5")}
               >
                 Create your first form
-                <ArrowRight className="h-4 w-4" />
+                <MarketingCtaArrow />
               </Link>
               <Link
                 href="/smart-forms"
                 className={cn(
                   buttonVariants({ variant: "outline", size: "lg" }),
-                  "font-semibold",
+                  marketingCtaClass,
+                  "font-semibold pl-5 pr-1.5",
                 )}
               >
                 Learn more
+                <MarketingCtaArrow />
               </Link>
             </div>
           </div>
@@ -470,11 +507,12 @@ export function HomePageContent() {
               href="/integrations"
               className={cn(
                 buttonVariants({ variant: "outline", size: "sm" }),
-                "shrink-0 gap-1.5 self-start md:self-auto",
+                marketingCtaClass,
+                "shrink-0 self-start pl-3.5 pr-1 md:self-auto",
               )}
             >
               Integration directory
-              <ArrowRight className="h-4 w-4" />
+              <MarketingCtaArrow size="sm" />
             </Link>
           </div>
 
@@ -525,15 +563,25 @@ export function HomePageContent() {
                 <div className="mt-8 flex flex-wrap gap-2 border-t border-border/60 pt-6">
                   <Link
                     href="/integrations/wordpress"
-                    className={cn(buttonVariants({ size: "sm" }), "font-semibold")}
+                    className={cn(
+                      buttonVariants({ size: "sm" }),
+                      marketingCtaClass,
+                      "font-semibold pl-3.5 pr-1",
+                    )}
                   >
                     WordPress setup guide
+                    <MarketingCtaArrow size="sm" />
                   </Link>
                   <Link
                     href={wordpressPlugin.downloadUrl}
-                    className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+                    className={cn(
+                      buttonVariants({ size: "sm", variant: "outline" }),
+                      marketingCtaClass,
+                      "pl-3.5 pr-1",
+                    )}
                   >
                     Download plugin
+                    <MarketingCtaArrow size="sm" />
                   </Link>
                 </div>
               </div>
@@ -591,14 +639,27 @@ export function HomePageContent() {
                 </ul>
 
                 <div className="mt-8 flex flex-wrap gap-2 border-t border-border/60 pt-6">
-                  <Link href="/docs/connect" className={cn(buttonVariants({ size: "sm" }), "font-semibold")}>
+                  <Link
+                    href="/docs/connect"
+                    className={cn(
+                      buttonVariants({ size: "sm" }),
+                      marketingCtaClass,
+                      "font-semibold pl-3.5 pr-1",
+                    )}
+                  >
                     Connect API docs
+                    <MarketingCtaArrow size="sm" />
                   </Link>
                   <Link
                     href="/developers"
-                    className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+                    className={cn(
+                      buttonVariants({ size: "sm", variant: "outline" }),
+                      marketingCtaClass,
+                      "pl-3.5 pr-1",
+                    )}
                   >
                     Developer portal
+                    <MarketingCtaArrow size="sm" />
                   </Link>
                 </div>
               </div>
@@ -653,21 +714,34 @@ export function HomePageContent() {
               </div>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/api-docs" className={cn(buttonVariants({ size: "lg" }), "font-semibold")}>
+                <Link
+                  href="/api-docs"
+                  className={cn(buttonVariants({ size: "lg" }), marketingCtaClass, "font-semibold pl-5 pr-1.5")}
+                >
                   API reference
+                  <MarketingCtaArrow />
                 </Link>
                 <Link
                   href="/developers"
-                  className={cn(buttonVariants({ size: "lg", variant: "outline" }), "gap-1")}
+                  className={cn(
+                    buttonVariants({ size: "lg", variant: "outline" }),
+                    marketingCtaClass,
+                    "pl-5 pr-1.5",
+                  )}
                 >
                   Developer portal
-                  <ArrowRight className="h-4 w-4" />
+                  <MarketingCtaArrow />
                 </Link>
                 <Link
                   href="/developers/postman"
-                  className={cn(buttonVariants({ size: "lg", variant: "ghost" }), "text-muted-foreground")}
+                  className={cn(
+                    buttonVariants({ size: "lg", variant: "ghost" }),
+                    marketingCtaClass,
+                    "pl-5 pr-1.5 text-muted-foreground",
+                  )}
                 >
                   Postman
+                  <MarketingCtaArrow />
                 </Link>
               </div>
           </div>
@@ -756,17 +830,27 @@ export function HomePageContent() {
           </ul>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "font-semibold px-8")}>
+            <Link
+              href="/signup"
+              className={cn(
+                buttonVariants({ size: "lg" }),
+                marketingCtaClass,
+                "font-semibold pl-6 pr-1.5",
+              )}
+            >
               Sign up
+              <MarketingCtaArrow />
             </Link>
             <Link
               href="/support"
               className={cn(
                 buttonVariants({ size: "lg", variant: "outline" }),
-                "border-white/40 bg-white/5 text-white hover:bg-white/15 hover:text-white px-8",
+                marketingCtaClass,
+                "border-white/40 bg-white/5 pl-6 pr-1.5 text-white hover:bg-white/15 hover:text-white",
               )}
             >
               Talk to support
+              <MarketingCtaArrow />
             </Link>
           </div>
         </div>

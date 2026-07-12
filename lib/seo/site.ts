@@ -177,7 +177,9 @@ export function articleJsonLd(input: {
   };
 }
 
-export function blogCollectionJsonLd(postCount: number) {
+export function blogCollectionJsonLd(
+  posts: { title: string; path: string; datePublished: string }[],
+) {
   return {
     "@type": "Blog",
     "@id": `${siteUrl}/blog#blog`,
@@ -188,7 +190,14 @@ export function blogCollectionJsonLd(postCount: number) {
     publisher: { "@id": `${siteUrl}/#organization` },
     blogPost: {
       "@type": "ItemList",
-      numberOfItems: postCount,
+      numberOfItems: posts.length,
+      itemListElement: posts.map((post, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: `${siteUrl}${post.path}`,
+        name: post.title,
+        datePublished: post.datePublished,
+      })),
     },
   };
 }

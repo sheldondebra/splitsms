@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { AdminReceiptActions } from "@/components/admin/admin-receipt-actions";
@@ -69,9 +70,17 @@ type AdminPaymentsViewProps = {
 
 function needsAdminAction(row: PendingRow) {
   const { payment, insight } = row;
+  // Bank transfers always need a human decision.
   if (payment.method === "MANUAL") return true;
+  // Online: only when the provider already confirmed payment and we can credit.
   if (insight.canAutoCredit) return true;
   return false;
+}
+
+function waitingStatusCopy(insight: PaymentInsight) {
+  if (insight.tone === "danger") return "No action needed — checkout ended without payment";
+  if (insight.providerPaid || insight.canAutoCredit) return "Ready to credit — use the button or Sync online";
+  return "Waiting on customer or provider — no action needed yet";
 }
 
 function insightIcon(tone: PaymentInsight["tone"]) {
@@ -120,6 +129,7 @@ function PaymentsStatsBar({ stats }: { stats: AdminPaymentsViewProps["stats"] })
       value: stats.pendingTotal,
       hot: stats.pendingTotal > 0,
       icon: Clock,
+      hint: "All pending",
     },
     {
       label: "Recent credited",
@@ -137,14 +147,14 @@ function PaymentsStatsBar({ stats }: { stats: AdminPaymentsViewProps["stats"] })
           <div
             key={label}
             className={cn(
-              "flex items-center gap-2.5 px-3 py-2.5 min-w-0",
+              "flex items-start gap-2.5 px-3.5 py-3 min-w-0",
               hot && primary && "bg-primary/[0.04]",
               hot && !primary && "bg-amber-500/[0.04]",
             )}
           >
             <div
               className={cn(
-                "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-md mt-0.5",
                 hot && primary
                   ? "bg-primary/12 text-primary"
                   : hot
@@ -157,17 +167,17 @@ function PaymentsStatsBar({ stats }: { stats: AdminPaymentsViewProps["stats"] })
             <div className="min-w-0">
               <p
                 className={cn(
-                  "text-base font-bold tabular-nums leading-none",
+                  "text-lg font-bold tabular-nums leading-none",
                   hot && primary && "text-primary",
                   hot && !primary && "text-amber-700 dark:text-amber-300",
                 )}
               >
                 {value}
               </p>
-              <p className="text-[10px] font-medium text-muted-foreground truncate mt-0.5">
-                {label}
-                {hint ? ` · ${hint}` : ""}
-              </p>
+              <p className="text-[11px] font-medium text-foreground mt-1 leading-tight">{label}</p>
+              {hint && (
+                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{hint}</p>
+              )}
             </div>
           </div>
         ))}
@@ -218,6 +228,9 @@ function PendingPaymentRow({ row }: { row: PendingRow }) {
   const { payment: p, insight, instrument } = row;
   const meta = readPaymentMetadata(p.metadata);
   const actionable = needsAdminAction(row);
+  const showApprove = p.method === "MANUAL";
+  const showCredit = p.method === "STRIPE" && Boolean(insight.canAutoCredit);
+  const hasPrimaryAction = showApprove || showCredit;
 
   return (
     <li className="px-2 py-3 first:pt-1 last:pb-1 rounded-xl border border-transparent hover:border-border/50 hover:bg-muted/15 transition-colors">
@@ -274,8 +287,13 @@ function PendingPaymentRow({ row }: { row: PendingRow }) {
           )}
         </div>
 
-        <div className="flex flex-col gap-2 shrink-0 w-full lg:w-[200px] rounded-lg border border-border/50 bg-muted/10 p-2.5">
-          {p.method === "MANUAL" && (
+        <div
+          className={cn(
+            "flex flex-col gap-2 shrink-0 w-full lg:w-[180px]",
+            hasPrimaryAction && "rounded-lg border border-border/50 bg-muted/10 p-2.5",
+          )}
+        >
+          {showApprove && (
             <>
               <form action={approvePaymentAction}>
                 <input type="hidden" name="paymentId" value={p.id} />
@@ -294,7 +312,7 @@ function PendingPaymentRow({ row }: { row: PendingRow }) {
             </>
           )}
 
-          {p.method === "STRIPE" && insight.canAutoCredit && (
+          {showCredit && (
             <form action={creditStripePaymentAction}>
               <input type="hidden" name="paymentId" value={p.id} />
               <Button type="submit" variant="secondary" size="sm" className="w-full h-8 text-xs gap-1.5">
@@ -304,17 +322,18 @@ function PendingPaymentRow({ row }: { row: PendingRow }) {
             </form>
           )}
 
-          {p.method !== "MANUAL" && !insight.canAutoCredit && (
-            <p className="text-[10px] text-muted-foreground text-center px-1 leading-snug">
-              Waiting on provider — no action needed yet
+          {!hasPrimaryAction && (
+            <p className="text-[10px] text-muted-foreground leading-snug lg:text-right">
+              {waitingStatusCopy(insight)}
             </p>
           )}
 
           <Link
             href={`/admin/members/${p.user.id}?tab=billing`}
             className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "w-full h-8 text-xs gap-1 text-muted-foreground",
+              buttonVariants({ variant: hasPrimaryAction ? "ghost" : "outline", size: "sm" }),
+              "w-full h-8 text-xs gap-1",
+              hasPrimaryAction && "text-muted-foreground",
             )}
           >
             View member
@@ -474,17 +493,25 @@ export function AdminPaymentsView({
   initialTab = "action",
 }: AdminPaymentsViewProps) {
   const router = useRouter();
-  const tab: TabId =
+  const resolvedInitial: TabId =
     initialTab === "pending" || initialTab === "completed" || initialTab === "gateways"
       ? initialTab
       : "action";
+  const [tab, setTab] = useState<TabId>(resolvedInitial);
+
+  useEffect(() => {
+    setTab(resolvedInitial);
+  }, [resolvedInitial]);
 
   const actionRows = pending.filter(needsAdminAction);
   const waitingRows = pending.filter((row) => !needsAdminAction(row));
 
   function onTabChange(value: string) {
+    const next: TabId =
+      value === "pending" || value === "completed" || value === "gateways" ? value : "action";
+    setTab(next);
     const params = new URLSearchParams();
-    if (value !== "action") params.set("tab", value);
+    if (next !== "action") params.set("tab", next);
     const qs = params.toString();
     router.replace(qs ? `/admin/payments?${qs}` : "/admin/payments", { scroll: false });
   }
@@ -528,33 +555,66 @@ export function AdminPaymentsView({
       <QuickGuide />
 
       <Tabs value={tab} onValueChange={onTabChange} className="gap-4">
-        <TabsList
-          variant="line"
-          className="w-full justify-start rounded-none border-b bg-transparent p-0 flex-wrap h-auto gap-0"
-        >
-          <TabsTrigger value="action" className="rounded-none px-3 py-2 text-xs sm:text-sm">
-            Needs action
-            {actionRows.length > 0 && (
-              <Badge variant="secondary" className="ml-1.5 text-[9px] px-1.5 py-0 h-4">
-                {actionRows.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="pending" className="rounded-none px-3 py-2 text-xs sm:text-sm">
-            All pending
-            {pending.length > 0 && (
-              <Badge variant="secondary" className="ml-1.5 text-[9px] px-1.5 py-0 h-4">
-                {pending.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="completed" className="rounded-none px-3 py-2 text-xs sm:text-sm">
-            Completed
-          </TabsTrigger>
-          <TabsTrigger value="gateways" className="rounded-none px-3 py-2 text-xs sm:text-sm">
-            Gateways
-          </TabsTrigger>
-        </TabsList>
+        <div className="rounded-xl border border-border/60 bg-muted/25 p-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsList
+            variant="line"
+            className="h-auto w-max min-w-full justify-start gap-1 bg-transparent p-0"
+          >
+            {(
+              [
+                {
+                  value: "action" as const,
+                  label: "Needs action",
+                  icon: Zap,
+                  count: actionRows.length,
+                  hot: actionRows.length > 0,
+                },
+                {
+                  value: "pending" as const,
+                  label: "All pending",
+                  icon: Clock,
+                  count: pending.length,
+                  hot: false,
+                },
+                {
+                  value: "completed" as const,
+                  label: "Completed",
+                  icon: CheckCircle2,
+                  count: null,
+                  hot: false,
+                },
+                {
+                  value: "gateways" as const,
+                  label: "Gateways",
+                  icon: ShieldCheck,
+                  count: null,
+                  hot: false,
+                },
+              ] as const
+            ).map(({ value, label, icon: Icon, count, hot }) => (
+              <TabsTrigger
+                key={value}
+                value={value}
+                className="h-9 gap-2 rounded-lg px-3.5 text-xs sm:text-sm"
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0" />
+                <span>{label}</span>
+                {count != null && count > 0 && (
+                  <span
+                    className={cn(
+                      "inline-flex h-5 min-w-5 items-center justify-center rounded-md px-1.5 text-[10px] font-semibold tabular-nums",
+                      hot
+                        ? "bg-amber-500/15 text-amber-800 dark:text-amber-200"
+                        : "bg-foreground/8 text-muted-foreground",
+                    )}
+                  >
+                    {count}
+                  </span>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         <TabsContent value="action" className="mt-0">
           <AdminCard

@@ -4,7 +4,7 @@ import { getSiteUrl } from "@/lib/site-config";
 import { defaultOpenGraphImages, organizationJsonLd, websiteJsonLd } from "@/lib/seo/site";
 import { googleSiteVerification } from "@/lib/seo/metadata";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { THEME_COOKIE, resolveThemeClass } from "@/lib/theme";
@@ -12,6 +12,12 @@ import "./globals.css";
 
 const sans = Inter({
   variable: "--font-sans",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const marketing = Bricolage_Grotesque({
+  variable: "--font-marketing",
   subsets: ["latin"],
   display: "swap",
 });
@@ -87,7 +93,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sans.variable} ${mono.variable} h-full ${themeClass}`}
+      className={`${sans.variable} ${marketing.variable} ${mono.variable} h-full ${themeClass}`}
       suppressHydrationWarning
     >
       <body className="min-h-full font-sans antialiased">

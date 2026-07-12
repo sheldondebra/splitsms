@@ -5,7 +5,6 @@ import {
   Store,
   Building2,
   CreditCard,
-  Receipt,
   DollarSign,
   BadgeCheck,
   Route,
@@ -22,6 +21,9 @@ import {
   MessagesSquare,
   UserCog,
   History,
+  ArrowLeftRight,
+  SlidersHorizontal,
+  TicketPercent,
 } from "lucide-react";
 
 export type AdminNavItem = {
@@ -64,8 +66,9 @@ export const adminNavSections: AdminNavSection[] = [
     label: "Revenue",
     items: [
       { href: "/admin/payments", label: "Payments", icon: CreditCard, badge: "pending-payments" },
-      { href: "/admin/payments/settings", label: "Payment settings", icon: CreditCard },
-      { href: "/admin/billing", label: "Billing & promos", icon: Receipt },
+      { href: "/admin/payments/transactions", label: "Provider transactions", icon: ArrowLeftRight },
+      { href: "/admin/payments/settings", label: "Payment settings", icon: SlidersHorizontal },
+      { href: "/admin/billing", label: "Billing & promos", icon: TicketPercent },
       { href: "/admin/pricing", label: "SMS pricing", icon: DollarSign },
     ],
   },
@@ -102,6 +105,8 @@ export const adminNavSections: AdminNavSection[] = [
 export function getAdminPageTitle(pathname: string): string {
   if (pathname === "/admin/mnotify" || pathname.startsWith("/admin/mnotify/"))
     return "Providers";
+  if (pathname === "/admin/payments/transactions") return "Provider transactions";
+  if (pathname === "/admin/payments/settings") return "Payment settings";
   if (/^\/admin\/members\/[^/]+$/.test(pathname)) return "Member detail";
   if (/^\/admin\/resellers\/[^/]+$/.test(pathname)) return "Reseller detail";
   for (const section of adminNavSections) {
@@ -114,5 +119,11 @@ export function getAdminPageTitle(pathname: string): string {
 }
 
 export function isAdminNavActive(pathname: string, href: string) {
-  return pathname === href || (href !== "/admin" && pathname.startsWith(href));
+  if (pathname === href) return true;
+  if (href === "/admin") return false;
+  const exactNavMatch = adminNavSections.some((section) =>
+    section.items.some((item) => item.href === pathname),
+  );
+  if (exactNavMatch) return false;
+  return pathname.startsWith(`${href}/`);
 }

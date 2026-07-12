@@ -141,33 +141,35 @@ export function ProvidersAdminView({
       </Card>
 
       <Tabs value={activeTab} onValueChange={onTabChange} className="gap-4">
-        <TabsList
-          variant="line"
-          className="h-auto w-full justify-start gap-1 rounded-none border-b bg-transparent p-0"
-        >
-          {(
-            [
-              { id: "mnotify" as const, label: "mNotify", icon: Radio },
-              { id: "infobip" as const, label: "Infobip", icon: Globe },
-              { id: "twilio" as const, label: "Twilio", icon: Cloud },
-            ] as const
-          ).map((tab) => (
-            <TabsTrigger
-              key={tab.id}
-              value={tab.id}
-              className="gap-2 rounded-none border-0 px-4 py-2.5 data-active:bg-transparent"
-            >
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <tab.icon className="h-3.5 w-3.5" />
-              </span>
-              {tab.label}
-            </TabsTrigger>
-          ))}
-          <span className="ml-auto hidden items-center gap-1.5 pr-2 text-xs text-muted-foreground sm:flex">
-            <CircleUser className="h-3.5 w-3.5" />
-            Admin configuration
-          </span>
-        </TabsList>
+        <div className="rounded-xl border border-border/60 bg-muted/25 p-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsList
+            variant="line"
+            className="h-auto w-max min-w-full justify-start gap-1 bg-transparent p-0"
+          >
+            {(
+              [
+                { id: "mnotify" as const, label: "mNotify", icon: Radio },
+                { id: "infobip" as const, label: "Infobip", icon: Globe },
+                { id: "twilio" as const, label: "Twilio", icon: Cloud },
+              ] as const
+            ).map((tab) => (
+              <TabsTrigger
+                key={tab.id}
+                value={tab.id}
+                className="h-9 gap-2 rounded-lg px-3.5 text-xs sm:text-sm"
+              >
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <tab.icon className="h-3.5 w-3.5" />
+                </span>
+                {tab.label}
+              </TabsTrigger>
+            ))}
+            <span className="ml-auto hidden items-center gap-1.5 pr-2 text-xs text-muted-foreground sm:flex">
+              <CircleUser className="h-3.5 w-3.5" />
+              Admin configuration
+            </span>
+          </TabsList>
+        </div>
 
         <TabsContent value="mnotify" className="mt-0 space-y-4">
           <MnotifyTab data={data} />

@@ -9,6 +9,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, monospace;
+  --font-marketing: var(--font-marketing), ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   --color-brand-orange: var(--brand-orange);
   --color-brand-black: var(--brand-black);

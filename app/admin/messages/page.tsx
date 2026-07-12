@@ -6,10 +6,13 @@ import {
 } from "@/lib/admin/messages-dashboard";
 import { prisma } from "@/lib/db";
 import {
+  AdminAlert,
   AdminPage,
   AdminPageHeader,
 } from "@/components/admin/admin-page-shell";
+import { AdminMessagesActions } from "@/components/admin/admin-messages-actions";
 import { ReportsDashboard } from "@/components/dashboard/reports-dashboard";
+import { fetchMnotifyBalance } from "@/lib/sms/provider-balances";
 import { Send } from "lucide-react";
 
 export default async function AdminMessagesPage({
@@ -23,13 +26,19 @@ export default async function AdminMessagesPage({
     country?: string;
     q?: string;
     page?: string;
+    processed?: string;
+    sent?: string;
+    failed?: string;
+    remaining?: string;
+    retried?: string;
+    error?: string;
   }>;
 }) {
   const params = await searchParams;
   const page = parseInt(params.page ?? "1", 10) || 1;
   const userId = params.userId?.trim() || undefined;
 
-  const [overview, { items, total, totalPages }, campaigns, campaignAnalytics, scopedMember] =
+  const [overview, { items, total, totalPages }, campaigns, campaignAnalytics, scopedMember, mnotifyBalance] =
     await Promise.all([
       getAdminReportsOverview(userId),
       getAdminMessageLogs({
@@ -50,6 +59,7 @@ export default async function AdminMessagesPage({
             select: { fullName: true, phone: true },
           })
         : Promise.resolve(null),
+      fetchMnotifyBalance().catch(() => null),
     ]);
 
   const messages = items.map((m) => ({
@@ -103,13 +113,84 @@ export default async function AdminMessagesPage({
     ? `Member: ${scopedMember?.fullName ?? scopedMember?.phone ?? userId}`
     : "All members";
 
+  const retryFailedCount = params.campaign
+    ? (campaignReport?.failed ?? overview.failed)
+    : overview.failed;
+
+  const mnotifyLow =
+    mnotifyBalance?.amount != null && mnotifyBalance.amount < 50 && overview.pending + overview.failed > 0;
+
   return (
     <AdminPage wide>
       <AdminPageHeader
         title="SMS logs"
         description={`Platform-wide delivery reports with filters, charts, and CSV export. ${scopeLabel}.`}
         icon={Send}
+        actions={
+          <AdminMessagesActions
+            pendingCount={overview.pending}
+            failedCount={retryFailedCount}
+            campaignId={params.campaign}
+          />
+        }
       />
+
+      {params.processed && (
+        <AdminAlert variant="info">
+          Processed {params.processed} messages — {params.sent ?? 0} sent, {params.failed ?? 0} failed
+          {params.remaining && Number(params.remaining) > 0
+            ? `, ${params.remaining} still pending`
+            : ""}
+          .
+        </AdminAlert>
+      )}
+
+      {params.retried && (
+        <AdminAlert variant="info">
+          Re-queued {params.retried} failed message{Number(params.retried) === 1 ? "" : "s"} for delivery.
+          {overview.pending > 0 ? " Use “Process pending now” to send immediately." : ""}
+        </AdminAlert>
+      )}
+
+      {params.error === "credits" && (
+        <AdminAlert variant="destructive">
+          Retry blocked — one or more members do not have enough SMS credits for a re-send. Top up member
+          credits or retry a smaller batch.
+        </AdminAlert>
+      )}
+
+      {(overview.pending > 0 || overview.failed > 0) && (
+        <AdminAlert variant={mnotifyLow ? "destructive" : "warning"}>
+          {overview.pending > 0 && (
+            <span>
+              {overview.pending.toLocaleString()} message{overview.pending === 1 ? " is" : "s are"} queued as{" "}
+              <strong>PENDING</strong>
+              {overview.failed > 0 ? "; " : ". "}
+            </span>
+          )}
+          {overview.failed > 0 && (
+            <span>
+              {overview.failed.toLocaleString()} message{overview.failed === 1 ? "" : "s"} failed delivery.{" "}
+            </span>
+          )}
+          {mnotifyLow ? (
+            <>
+              mNotify balance is low ({mnotifyBalance?.display ?? "unknown"}). Top up your mNotify account,
+              then use <strong>Retry failed</strong> and <strong>Process pending now</strong>.
+            </>
+          ) : mnotifyBalance?.status === "error" || mnotifyBalance?.status === "unconfigured" ? (
+            <>
+              Check provider configuration under Admin → Providers. Use <strong>Process pending now</strong> to
+              force the queue.
+            </>
+          ) : (
+            <>
+              Use <strong>Process pending now</strong> to bypass the worker, or <strong>Retry failed</strong>{" "}
+              after fixing provider issues (mNotify: {mnotifyBalance?.display ?? "—"}).
+            </>
+          )}
+        </AdminAlert>
+      )}
 
       <ReportsDashboard
         messages={messages}

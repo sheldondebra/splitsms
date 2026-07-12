@@ -10,6 +10,10 @@ import {
   HeaderAccountMenu,
   HeaderAccountMobileLinks,
 } from "@/components/layout/header-account-menu";
+import {
+  MarketingCtaArrow,
+  marketingCtaClass,
+} from "@/components/marketing/marketing-cta-arrow";
 import type { HeaderAccountProfile } from "@/lib/user/header-account-types";
 import { cn } from "@/lib/utils";
 import { Menu, X } from "lucide-react";
@@ -81,19 +85,23 @@ export function SiteHeader({ account = null }: { account?: HeaderAccountProfile 
                   href="/login"
                   className={cn(
                     buttonVariants({ variant: "ghost", size: "sm" }),
-                    "rounded-lg font-medium text-foreground/80",
+                    marketingCtaClass,
+                    "font-medium pl-3.5 pr-1 text-foreground/80",
                   )}
                 >
                   Log in
+                  <MarketingCtaArrow size="sm" />
                 </Link>
                 <Link
                   href="/signup"
                   className={cn(
                     buttonVariants({ size: "sm" }),
-                    "rounded-lg font-semibold px-4",
+                    marketingCtaClass,
+                    "font-semibold pl-3.5 pr-1",
                   )}
                 >
                   Get started
+                  <MarketingCtaArrow size="sm" />
                 </Link>
               </>
             )}
@@ -179,28 +187,40 @@ export function SiteHeader({ account = null }: { account?: HeaderAccountProfile 
                 />
                 <Link
                   href="/dashboard"
-                  className={cn(buttonVariants({ size: "lg" }), "w-full rounded-xl font-semibold mt-3")}
+                  className={cn(
+                    buttonVariants({ size: "lg" }),
+                    marketingCtaClass,
+                    "mt-3 w-full justify-between pl-5 pr-1.5 font-semibold",
+                  )}
                   onClick={() => setMenuOpen(false)}
                 >
                   Open dashboard
+                  <MarketingCtaArrow />
                 </Link>
               </>
             ) : (
               <>
                 <Link
                   href="/signup"
-                  className={cn(buttonVariants({ size: "lg" }), "w-full rounded-xl font-semibold")}
+                  className={cn(
+                    buttonVariants({ size: "lg" }),
+                    marketingCtaClass,
+                    "w-full justify-between pl-5 pr-1.5 font-semibold",
+                  )}
                 >
                   Get started free
+                  <MarketingCtaArrow />
                 </Link>
                 <Link
                   href="/login"
                   className={cn(
                     buttonVariants({ variant: "outline", size: "lg" }),
-                    "w-full rounded-xl font-medium",
+                    marketingCtaClass,
+                    "w-full justify-between pl-5 pr-1.5 font-medium",
                   )}
                 >
                   Log in
+                  <MarketingCtaArrow />
                 </Link>
               </>
             )}

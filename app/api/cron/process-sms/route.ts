@@ -52,6 +52,15 @@ export async function GET(request: Request) {
     delayedCount: 0,
   }));
 
+  const balances = await import("@/lib/admin/balance-alerts").then(({ maybeNotifyLowBalanceAlerts }) =>
+    maybeNotifyLowBalanceAlerts().catch(() => ({
+      checked: 0,
+      alerts: 0,
+      notified: 0,
+      sent: [],
+    })),
+  );
+
   if (sms.processed > 0) {
     void import("@/lib/slack/notify")
       .then(({ notifySlackSmsBatchResult }) =>
@@ -73,6 +82,7 @@ export async function GET(request: Request) {
     sms,
     dlr,
     slack,
+    balances,
     mode: workersEnabled ? "stale-fallback" : "inline",
   });
 }

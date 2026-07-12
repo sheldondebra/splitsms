@@ -34,7 +34,17 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { SenderIdProviderRegistration } from "@/lib/generated/prisma/client";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, BadgeCheck, CheckCircle2, RefreshCw } from "lucide-react";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  CheckCircle2,
+  Clock,
+  Globe,
+  Phone,
+  RefreshCw,
+  StickyNote,
+  User,
+} from "lucide-react";
 
 type SenderRow = {
   id: string;
@@ -208,39 +218,41 @@ export function AdminSenderIdsView({
       <SenderStatsBar stats={dashboard.stats} />
 
       <Tabs value={tab} onValueChange={onTabChange} className="gap-4">
-        <TabsList
-          variant="line"
-          className="w-full justify-start rounded-none border-b bg-transparent p-0 flex-wrap h-auto gap-0"
-        >
-          <TabsTrigger value="pending" className="rounded-none px-3 py-2 text-xs sm:text-sm">
-            Pending
-            {pending.length > 0 && (
-              <Badge variant="secondary" className="ml-1.5 text-[9px] px-1.5 py-0 h-4">
-                {pending.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="all" className="rounded-none px-3 py-2 text-xs sm:text-sm">
-            All
-          </TabsTrigger>
-          <TabsTrigger value="register" className="rounded-none px-3 py-2 text-xs sm:text-sm">
-            Register
-          </TabsTrigger>
-          <TabsTrigger value="overview" className="rounded-none px-3 py-2 text-xs sm:text-sm">
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="mnotify" className="rounded-none px-3 py-2 text-xs sm:text-sm">
-            mNotify
-          </TabsTrigger>
-          <TabsTrigger value="banned" className="rounded-none px-3 py-2 text-xs sm:text-sm">
-            Banned
-            {(bannedDashboard.config.bannedEntries.length ?? 0) > 0 && (
-              <Badge variant="secondary" className="ml-1.5 text-[9px] px-1.5 py-0 h-4">
-                {bannedDashboard.config.bannedEntries.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
+        <div className="rounded-xl border border-border/60 bg-muted/25 p-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsList
+            variant="line"
+            className="h-auto w-max min-w-full justify-start gap-1 bg-transparent p-0"
+          >
+            <TabsTrigger value="pending" className="h-9 rounded-lg px-3.5 text-xs sm:text-sm">
+              Pending
+              {pending.length > 0 && (
+                <Badge variant="secondary" className="ml-0.5 text-[9px] px-1.5 py-0 h-4">
+                  {pending.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="all" className="h-9 rounded-lg px-3.5 text-xs sm:text-sm">
+              All
+            </TabsTrigger>
+            <TabsTrigger value="register" className="h-9 rounded-lg px-3.5 text-xs sm:text-sm">
+              Register
+            </TabsTrigger>
+            <TabsTrigger value="overview" className="h-9 rounded-lg px-3.5 text-xs sm:text-sm">
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="mnotify" className="h-9 rounded-lg px-3.5 text-xs sm:text-sm">
+              mNotify
+            </TabsTrigger>
+            <TabsTrigger value="banned" className="h-9 rounded-lg px-3.5 text-xs sm:text-sm">
+              Banned
+              {(bannedDashboard.config.bannedEntries.length ?? 0) > 0 && (
+                <Badge variant="secondary" className="ml-0.5 text-[9px] px-1.5 py-0 h-4">
+                  {bannedDashboard.config.bannedEntries.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="pending" className="mt-0">
           <AdminCard
@@ -258,7 +270,7 @@ export function AdminSenderIdsView({
                 All sender ID requests are processed.
               </AdminEmpty>
             ) : (
-              <ul className="divide-y divide-border/50 -mx-2">
+              <ul className="space-y-2">
                 {pending.map((s) => (
                   <SenderIdAdminRow key={s.id} sender={s} returnTo="/admin/sender-ids?tab=pending" />
                 ))}
@@ -272,7 +284,7 @@ export function AdminSenderIdsView({
             {allSenders.length === 0 ? (
               <AdminEmpty dense>No sender IDs yet.</AdminEmpty>
             ) : (
-              <ul className="divide-y divide-border/50 -mx-2">
+              <ul className="space-y-2">
                 {allSenders.map((s) => (
                   <SenderIdAdminRow key={s.id} sender={s} returnTo="/admin/sender-ids?tab=all" />
                 ))}
@@ -340,6 +352,19 @@ export function AdminSenderIdsView({
   );
 }
 
+function statusBadgeClass(status: string) {
+  if (status === "APPROVED") {
+    return "border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200";
+  }
+  if (status === "PENDING") {
+    return "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200";
+  }
+  if (status === "REJECTED") {
+    return "border-destructive/40 bg-destructive/10 text-destructive";
+  }
+  return "";
+}
+
 function SenderIdAdminRow({
   sender: s,
   returnTo,
@@ -368,61 +393,106 @@ function SenderIdAdminRow({
         ? "All carriers denied — re-submit or deny on SplitSMS"
         : "Submitted — waiting on carrier registration. Resend if stuck on hold.";
 
+  const StatusHintIcon = !submitted
+    ? Clock
+    : approvedOnCarrier
+      ? CheckCircle2
+      : denied
+        ? AlertTriangle
+        : RefreshCw;
+
   const summary = useSenderSummary(s, returnTo);
 
   return (
-    <li className="px-2 py-3 first:pt-1 last:pb-1 rounded-xl border border-transparent hover:border-border/50 hover:bg-muted/15 transition-colors">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="font-mono text-sm font-bold tracking-tight">{s.value}</p>
-            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-5">
-              {s.countryCode}
-            </Badge>
-            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-5">
-              {s.status}
-            </Badge>
-            {s.isDefault && (
-              <Badge className="text-[9px] px-1.5 py-0 h-5">Default</Badge>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-            <Link
-              href={`/admin/members/${s.user.id}?tab=senders`}
-              className="font-medium text-foreground hover:text-primary hover:underline"
+    <li className="rounded-xl border border-border/50 bg-card/40 px-3 py-3.5 transition-colors hover:border-border hover:bg-muted/20 sm:px-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1 space-y-3">
+          <div className="flex items-start gap-3">
+            <div
+              className={cn(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                s.status === "APPROVED"
+                  ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"
+                  : s.status === "PENDING"
+                    ? "bg-amber-500/12 text-amber-700 dark:text-amber-300"
+                    : s.status === "REJECTED"
+                      ? "bg-destructive/12 text-destructive"
+                      : "bg-muted text-muted-foreground",
+              )}
             >
-              {s.user.fullName}
-            </Link>
-            <span>·</span>
-            <span>{s.user.phone}</span>
-            <span>·</span>
-            <span>{formatDistanceToNow(s.createdAt, { addSuffix: true })}</span>
+              <BadgeCheck className="h-5 w-5" />
+            </div>
+
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-mono text-base font-bold tracking-tight">{s.value}</p>
+                <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px]", statusBadgeClass(s.status))}>
+                  {s.status}
+                </Badge>
+                <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[10px]">
+                  <Globe className="h-3 w-3" />
+                  {s.countryCode}
+                </Badge>
+                {s.isDefault && (
+                  <Badge className="h-5 px-1.5 text-[10px]">Default</Badge>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+                <Link
+                  href={`/admin/members/${s.user.id}?tab=senders`}
+                  className="inline-flex items-center gap-1.5 font-medium text-foreground hover:text-primary"
+                >
+                  <User className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                  <span className="truncate max-w-[180px]">{s.user.fullName}</span>
+                </Link>
+                <span className="inline-flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                  {s.user.phone}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                  {formatDistanceToNow(s.createdAt, { addSuffix: true })}
+                </span>
+              </div>
+            </div>
           </div>
 
-          <p
+          <div
             className={cn(
-              "text-xs",
-              denied && "text-destructive",
-              approvedOnCarrier && "text-emerald-700 dark:text-emerald-300",
-              !denied && !approvedOnCarrier && "text-muted-foreground",
+              "flex items-start gap-2 rounded-lg border px-3 py-2 text-xs",
+              denied && "border-destructive/25 bg-destructive/5 text-destructive",
+              approvedOnCarrier &&
+                "border-emerald-500/25 bg-emerald-500/5 text-emerald-800 dark:text-emerald-200",
+              !denied &&
+                !approvedOnCarrier &&
+                "border-border/60 bg-muted/20 text-muted-foreground",
             )}
           >
-            {statusHint}
-          </p>
+            <StatusHintIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <div className="min-w-0 space-y-1">
+              <p className="font-medium leading-snug">{statusHint}</p>
+              {s.providerStatus ? (
+                <p className="font-mono text-[11px] opacity-80">{s.providerStatus}</p>
+              ) : null}
+            </div>
+          </div>
 
-          {s.providerStatus && (
-            <p className="text-[11px] text-muted-foreground">{s.providerStatus}</p>
-          )}
-
-          {s.adminNote && (
-            <p className="text-[11px] text-muted-foreground italic">{s.adminNote}</p>
-          )}
+          {s.adminNote ? (
+            <div className="flex items-start gap-2 rounded-lg border border-border/50 bg-muted/15 px-3 py-2 text-[11px] text-muted-foreground">
+              <StickyNote className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <p className="italic leading-relaxed">{s.adminNote}</p>
+            </div>
+          ) : null}
 
           <SenderIdProviderPanel registrations={s.providerRegistrations} compact />
         </div>
 
-        <div className="flex flex-col gap-2 shrink-0 w-full lg:w-[240px] rounded-lg border border-border/50 bg-muted/10 p-2.5">
+        <div className="flex w-full shrink-0 flex-col gap-2 rounded-xl border border-border/50 bg-muted/15 p-3 lg:w-[250px]">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Actions
+          </p>
+
           {s.status === "PENDING" && (
             <div className="grid grid-cols-1 gap-2">
               {!submitted ? (
@@ -430,13 +500,13 @@ function SenderIdAdminRow({
                   <SubmitToCarriersButton
                     senderId={s.id}
                     purpose={summary.defaultPurpose}
-                    className="w-full h-8 text-xs"
+                    className="h-8 w-full text-xs"
                   />
                   <SenderIdApproveDialogTrigger
                     sender={summary}
                     mode="approve_submit"
                     label="Approve & submit"
-                    className="w-full h-8 gap-1.5 text-xs"
+                    className="h-8 w-full gap-1.5 text-xs"
                   />
                 </>
               ) : (
@@ -445,28 +515,28 @@ function SenderIdAdminRow({
                   mode="confirm_approval"
                   label="Confirm approval"
                   disabled={denied && !approvedOnCarrier}
-                  className="w-full h-8 gap-1.5 text-xs"
+                  className="h-8 w-full gap-1.5 text-xs"
                 />
               )}
             </div>
           )}
 
           <div className="flex flex-wrap gap-2">
-            <SyncCarrierButton senderId={s.id} className="flex-1 min-w-[7rem] h-8 text-xs" />
+            <SyncCarrierButton senderId={s.id} className="h-8 min-w-[7rem] flex-1 text-xs" />
             {canResubmit && (
               <ResubmitCarrierButton
                 senderId={s.id}
                 label={resubmitLabel}
-                className="flex-1 min-w-[7rem] h-8 text-xs"
+                className="h-8 min-w-[7rem] flex-1 text-xs"
               />
             )}
           </div>
 
           {s.status === "PENDING" && (
-            <div className="pt-1 border-t border-border/40">
+            <div className="border-t border-border/40 pt-2">
               <SenderIdDenyDialogTrigger
                 sender={summary}
-                className="w-full h-8 text-xs gap-1"
+                className="h-8 w-full gap-1 text-xs"
               />
             </div>
           )}
@@ -477,7 +547,12 @@ function SenderIdAdminRow({
               <input type="hidden" name="returnTo" value={returnTo} />
               <input type="hidden" name="addToBanList" value="on" />
               <input type="hidden" name="note" value="Blocked by admin" />
-              <Button type="submit" variant="outline" size="sm" className="w-full h-8 text-xs text-destructive">
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                className="h-8 w-full text-xs text-destructive"
+              >
                 Block & ban
               </Button>
             </form>

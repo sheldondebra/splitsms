@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/auth/session";
+import { getSession, isAdminRole } from "@/lib/auth/session";
 import { getContactsForSendPicker } from "@/lib/contacts/send-picker";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import { parseSendToParam } from "@/lib/contacts/send-link";
@@ -30,6 +30,7 @@ export default async function SendSmsPage({
   const session = await getSession();
   if (!session) redirect("/login");
   const params = await searchParams;
+  const isAdmin = isAdminRole(session.role);
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
@@ -55,13 +56,30 @@ export default async function SendSmsPage({
       })
     : Promise.resolve(null);
 
-  const [senderIds, balance, templates, contactPicker, initialDraft, savedDrafts, pricingCountries] =
+  const ownSendersPromise = prisma.senderId.findMany({
+    where: { userId: session.userId },
+    orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
+    select: { value: true, status: true, isDefault: true },
+  });
+
+  const platformSendersPromise = isAdmin
+    ? prisma.senderId.findMany({
+        where: { status: "APPROVED" },
+        orderBy: [{ value: "asc" }, { isDefault: "desc" }],
+        take: 400,
+        select: {
+          value: true,
+          status: true,
+          isDefault: true,
+          user: { select: { fullName: true } },
+        },
+      })
+    : Promise.resolve([]);
+
+  const [ownSenders, platformSenders, balance, templates, contactPicker, initialDraft, savedDrafts, pricingCountries] =
     await Promise.all([
-      prisma.senderId.findMany({
-        where: { userId: session.userId },
-        orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
-        select: { value: true, status: true, isDefault: true },
-      }),
+      ownSendersPromise,
+      platformSendersPromise,
       getBalanceSnapshot(session.userId),
       prisma.smsTemplate.findMany({
         where: { userId: session.userId },
@@ -84,6 +102,40 @@ export default async function SendSmsPage({
       }),
       getWalletPricingOptions(session.userId),
     ]);
+
+  const senderIds = isAdmin
+    ? (() => {
+        const byValue = new Map<
+          string,
+          {
+            value: string;
+            status: (typeof ownSenders)[number]["status"];
+            isDefault: boolean;
+            ownerName?: string | null;
+          }
+        >();
+        for (const s of platformSenders) {
+          const key = s.value.toUpperCase();
+          if (byValue.has(key)) continue;
+          byValue.set(key, {
+            value: s.value,
+            status: s.status,
+            isDefault: s.isDefault,
+            ownerName: s.user.fullName,
+          });
+        }
+        for (const s of ownSenders) {
+          const key = s.value.toUpperCase();
+          const existing = byValue.get(key);
+          if (!existing) {
+            byValue.set(key, { ...s, ownerName: "You" });
+            continue;
+          }
+          if (s.isDefault) existing.isDefault = true;
+        }
+        return Array.from(byValue.values()).sort((a, b) => a.value.localeCompare(b.value));
+      })()
+    : ownSenders;
 
   if (params.draft && !initialDraft) {
     notFound();
@@ -119,6 +171,7 @@ export default async function SendSmsPage({
           <SendSmsForm
             userId={session.userId}
             registeredSenders={senderIds}
+            allowPlatformSearch={isAdmin}
             templates={templates}
             pricingCountries={pricingCountries.map((country) => ({
               countryCode: country.countryCode,

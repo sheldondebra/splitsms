@@ -173,6 +173,7 @@ export async function saveSlackOfficeConfigAction(formData: FormData) {
       notifyStuckSms: formData.get("notifyStuckSms") === "on",
       notifySmsFailures: formData.get("notifySmsFailures") === "on",
       notifySmsBatchResults: formData.get("notifySmsBatchResults") === "on",
+      notifyLowBalances: formData.get("notifyLowBalances") === "on",
     },
     session.userId,
   );

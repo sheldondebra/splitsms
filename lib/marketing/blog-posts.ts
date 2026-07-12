@@ -5,6 +5,10 @@ export type BlogPost = {
   category: string;
   readTime: string;
   published: string;
+  /** Optional last-updated date for sitemap / article metadata */
+  updated?: string;
+  /** Page-specific SEO keywords (falls back to site defaults) */
+  keywords?: string[];
   sections: { heading?: string; paragraphs: string[] }[];
 };
 
@@ -1246,6 +1250,15 @@ export const blogPosts: BlogPost[] = [
     category: "Guide",
     readTime: "7 min read",
     published: "2026-07-02",
+    updated: "2026-07-12",
+    keywords: [
+      "best SMS Ghana",
+      "bulk SMS Accra",
+      "SMS reseller Ghana",
+      "messaging platform Ghana",
+      "white label SMS",
+      "SplitSMS",
+    ],
     sections: [
       {
         paragraphs: [
@@ -1305,6 +1318,14 @@ export const blogPosts: BlogPost[] = [
     category: "Guide",
     readTime: "6 min read",
     published: "2026-07-02",
+    updated: "2026-07-12",
+    keywords: [
+      "mNotify alternative",
+      "mnotify",
+      "bulk SMS Ghana",
+      "SMS gateway Ghana",
+      "mNotify vs SplitSMS",
+    ],
     sections: [
       {
         paragraphs: [
@@ -1333,6 +1354,14 @@ export const blogPosts: BlogPost[] = [
     category: "Guide",
     readTime: "6 min read",
     published: "2026-07-02",
+    updated: "2026-07-12",
+    keywords: [
+      "Infobip alternative",
+      "SMS API Africa",
+      "Infobip vs SplitSMS",
+      "cheap SMS API",
+      "CPaaS Africa",
+    ],
     sections: [
       {
         paragraphs: [
@@ -1349,6 +1378,282 @@ export const blogPosts: BlogPost[] = [
         heading: "SplitSMS vs Infobip for marketers",
         paragraphs: [
           "Bulk SMS dashboard, contact groups, scheduling, delivery reports, and approved Sender IDs for Ghana. No monthly minimum — top up when you need credits.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "sender-id-registration-ghana",
+    title: "How to Register a Sender ID in Ghana (Step-by-Step)",
+    excerpt:
+      "Register an approved alphanumeric Sender ID for bulk SMS in Ghana. What carriers require, how SplitSMS handles approval, and tips to avoid rejection.",
+    category: "Guide",
+    readTime: "6 min read",
+    published: "2026-07-12",
+    keywords: [
+      "Sender ID Ghana",
+      "register Sender ID",
+      "alphanumeric Sender ID",
+      "bulk SMS Ghana",
+      "SMS brand name",
+      "SplitSMS Sender ID",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "A Sender ID is the name customers see instead of a phone number when your SMS arrives — for example MYBRAND or SCHOOLNAME. In Ghana, carriers typically require approval before you can send with a branded alphanumeric ID. Without it, messages may fail, land as a random short code, or look untrustworthy.",
+          "SplitSMS walks you through Sender ID registration from the dashboard. You submit the brand name, business details, and any supporting docs; we route the request through trusted Ghana carriers (including mNotify paths) and show status until it is approved.",
+        ],
+      },
+      {
+        heading: "What makes a strong Ghana Sender ID",
+        paragraphs: [
+          "Keep it short (usually up to 11 characters), match your legal or trading name, and avoid generic words like SMS, OTP, or BANK that carriers reject. Use letters only when possible — spaces and special characters often fail approval.",
+          "If you send for multiple brands, register each Sender ID separately. Clinics, schools, and SaaS products should each use their own brand so recipients recognize who texted them.",
+        ],
+      },
+      {
+        heading: "How to register on SplitSMS",
+        paragraphs: [
+          "Sign up, open Dashboard → Sender IDs, and submit a new request. Add your company name, intended use (promotional, transactional, or OTP), and sample message content. Top up your wallet so you can test as soon as approval lands.",
+          "Approval timing varies by carrier and name uniqueness. Track status in the same screen — pending, approved, or rejected with a reason you can fix and resubmit.",
+        ],
+      },
+      {
+        heading: "After approval: dashboard, API, and WordPress",
+        paragraphs: [
+          "Once approved, pick that Sender ID when sending campaigns, OTP, or WooCommerce order SMS. The same ID works across the REST API and the SplitSMS WordPress plugin — one registration, every channel.",
+          "Need help? Contact support with your business registration and preferred Sender ID before you launch a big campaign so approval is not the bottleneck on launch day.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "paystack-sms-notifications-woocommerce",
+    title: "Paystack SMS Notifications for WooCommerce Orders",
+    excerpt:
+      "Send SMS when Paystack marks an order paid — WooCommerce alerts customers instantly. Setup with the SplitSMS WordPress plugin and template tips.",
+    category: "Integrations",
+    readTime: "6 min read",
+    published: "2026-07-11",
+    keywords: [
+      "Paystack SMS",
+      "WooCommerce Paystack SMS",
+      "payment confirmation SMS",
+      "WooCommerce SMS Ghana",
+      "order paid SMS",
+      "SplitSMS WordPress",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Ghana shoppers pay with Paystack every day — but email receipts often sit unread. An SMS the moment payment clears builds trust: the customer sees the amount, order ID, and that their money went through.",
+          "SplitSMS’s WordPress plugin hooks WooCommerce status changes used by Paystack (and similar gateways), so you can fire a payment confirmation text without writing custom PHP.",
+        ],
+      },
+      {
+        heading: "What to send after Paystack success",
+        paragraphs: [
+          "Keep it short: thank them, confirm the amount, include the order number, and optionally a tracking or support line. Example: “Hi {customer_name}, we received GHS {order_total} for order #{order_id}. Thank you — {site_name}.”",
+          "Use merge fields the plugin already supports — customer name, order total, payment method, Paystack reference — so every text is accurate without manual copy-paste.",
+        ],
+      },
+      {
+        heading: "Setup checklist",
+        paragraphs: [
+          "Install the SplitSMS plugin, paste your API key, choose an approved Sender ID, and enable WooCommerce order events (especially paid → processing). Test with a real Paystack sandbox or small live order.",
+          "Ensure the checkout collects a valid Ghana mobile number (+233 / 0XX). Without a phone field, SMS cannot send even when payment succeeds.",
+        ],
+      },
+      {
+        heading: "Why SMS beats email for paid orders",
+        paragraphs: [
+          "Payment anxiety is highest in the first minutes after checkout. SMS open rates dwarf email — customers know instantly that Paystack and your store both succeeded. Pair SMS with your usual email receipt for a complete trail.",
+          "Same wallet powers marketing campaigns later: abandoned-cart nudges, restock alerts, and delivery updates — one SplitSMS account for checkout and growth.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "sms-delivery-webhooks-developer-guide",
+    title: "SMS Delivery Webhooks: Track Delivered, Failed & Pending",
+    excerpt:
+      "Use SplitSMS delivery webhooks to update your database when SMS status changes — signatures, retries, and a practical Node.js pattern.",
+    category: "Developers",
+    readTime: "7 min read",
+    published: "2026-07-10",
+    keywords: [
+      "SMS webhook",
+      "delivery report SMS",
+      "SMS DLR",
+      "SMS API webhook",
+      "delivery status API",
+      "SplitSMS webhooks",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Sending SMS is only half the job. Your app needs to know whether the message was delivered, rejected, or still pending — especially for OTP, payment alerts, and order updates. SplitSMS pushes signed delivery webhooks to your HTTPS endpoint as status changes.",
+          "Instead of polling message IDs, store the provider message reference when you send, then update your row when the webhook arrives. That pattern scales for bulk campaigns and transactional flows alike.",
+        ],
+      },
+      {
+        heading: "What a delivery webhook carries",
+        paragraphs: [
+          "Typical payloads include message ID, destination, status (delivered, failed, pending), timestamp, and an error reason when something went wrong (invalid number, blocked Sender ID, insufficient balance).",
+          "Verify the webhook signature before you trust the body. Reject unsigned or mismatched requests so attackers cannot forge “delivered” events into your system.",
+        ],
+      },
+      {
+        heading: "Implementation tips",
+        paragraphs: [
+          "Respond with HTTP 200 quickly, then process asynchronously if your work is heavy. SplitSMS may retry on non-2xx responses — make handlers idempotent so duplicate events do not double-credit or double-notify.",
+          "Map statuses into your UI: green for delivered, amber for pending, red for failed with a human-readable reason. Support teams will thank you when a customer asks “did my OTP arrive?”",
+        ],
+      },
+      {
+        heading: "Where to configure",
+        paragraphs: [
+          "Create an API key, set your webhook URL in the developer settings, and send a test SMS to your phone. Watch Dashboard → API logs and your server logs together until the flow is solid.",
+          "Full request shapes live in the SplitSMS API docs and Postman collection — start there, then wire production URLs behind HTTPS only.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "whatsapp-vs-sms-business-ghana",
+    title: "WhatsApp vs SMS for Business in Ghana: When to Use Each",
+    excerpt:
+      "Compare WhatsApp Business and bulk SMS in Ghana — reach, cost, OTP reliability, and when SplitSMS is the better channel for alerts and campaigns.",
+    category: "Strategy",
+    readTime: "6 min read",
+    published: "2026-07-09",
+    keywords: [
+      "WhatsApp vs SMS",
+      "SMS Ghana business",
+      "bulk SMS vs WhatsApp",
+      "OTP SMS Ghana",
+      "business messaging Ghana",
+      "SplitSMS",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "WhatsApp is ubiquitous in Ghana — but it is not a replacement for SMS. Opt-in requirements, template approvals, and internet dependency mean critical OTP codes and payment alerts still belong on SMS. Smart teams use both channels with clear jobs.",
+          "SplitSMS focuses on the SMS layer: campaigns, transactional texts, OTP API, and WooCommerce alerts that work on any handset, including feature phones and customers offline from data.",
+        ],
+      },
+      {
+        heading: "Where SMS wins",
+        paragraphs: [
+          "OTP login, bank-style alerts, appointment reminders, and flash sales that must interrupt the lock screen. SMS does not require the customer to have WhatsApp installed, data on, or your number saved.",
+          "Compliance for promotional SMS still matters — include opt-out language and use approved Sender IDs — but delivery does not depend on Meta template review cycles.",
+        ],
+      },
+      {
+        heading: "Where WhatsApp wins",
+        paragraphs: [
+          "Rich media catalogues, long support threads, and customers who already chat with your brand on WhatsApp. Use it for conversations; use SMS for time-critical notifications.",
+          "Many Accra retailers run WhatsApp for sales chat and SplitSMS for “order paid” and “out for delivery” pings so nothing important is missed in a flooded chat list.",
+        ],
+      },
+      {
+        heading: "A practical split for Ghana teams",
+        paragraphs: [
+          "Transactional + OTP → SMS via SplitSMS. Nurture conversations and media → WhatsApp. Marketing blasts → SMS for reach, WhatsApp broadcast lists only for opted-in chat audiences.",
+          "Start with SplitSMS free credits, register a Sender ID, and instrument your highest-value alerts first — payments and OTPs — before expanding into campaigns.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "bulk-sms-pricing-ghana-explained",
+    title: "Bulk SMS Pricing in Ghana Explained (GHS Per Segment)",
+    excerpt:
+      "Understand Ghana bulk SMS pricing: segments, GHS rates, Sender IDs, and how SplitSMS pay-as-you-go wallet billing works — no hidden monthly fees.",
+    category: "Guide",
+    readTime: "5 min read",
+    published: "2026-07-08",
+    keywords: [
+      "bulk SMS pricing Ghana",
+      "SMS cost Ghana",
+      "GHS SMS rate",
+      "SMS segment price",
+      "cheap bulk SMS Ghana",
+      "SplitSMS pricing",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Ghana SMS pricing is almost always quoted per segment — a chunk of characters that carriers bill as one unit. A short English message is usually one segment; longer text or Unicode (e.g. some special characters) can split into more segments and cost more.",
+          "SplitSMS publishes transparent country rates on the pricing page. Ghana often starts around GHS 0.029 per segment depending on route — you see the number before you send, then debit your prepaid wallet.",
+        ],
+      },
+      {
+        heading: "What affects your bill",
+        paragraphs: [
+          "Destination country, message length (segments), and volume. There is no mandatory monthly platform fee on SplitSMS — top up when you need credits via Paystack and send.",
+          "Failed sends due to invalid numbers may still consume attempts depending on provider rules; clean your contact list and normalize Ghana numbers to +233 to reduce waste.",
+        ],
+      },
+      {
+        heading: "How to estimate a campaign",
+        paragraphs: [
+          "Count recipients × segments per message × rate. Example: 2,000 customers × 1 segment × GHS 0.029 ≈ GHS 58 for a flash-sale blast — far cheaper than many paid social boosts with weaker open rates.",
+          "Use the SplitSMS pricing explorer to pick Ghana or Nigeria and see live rates. Test with free signup credits before you fund a large wallet.",
+        ],
+      },
+      {
+        heading: "Reseller and multi-country notes",
+        paragraphs: [
+          "Agencies can resell at their own markup through the SplitSMS reseller program. Direct accounts pay platform rates; resellers set client prices above cost and earn commission.",
+          "Sending outside Ghana? Rates differ by country — check pricing before you schedule a multi-country campaign so wallet balance covers every destination.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "sms-api-getting-started-ghana",
+    title: "SMS API Getting Started: Send Your First Text in Ghana",
+    excerpt:
+      "Ship your first Ghana SMS with the SplitSMS REST API — API keys, Sender ID, curl example, OTP next steps, and sandbox testing.",
+    category: "Developers",
+    readTime: "6 min read",
+    published: "2026-07-07",
+    keywords: [
+      "SMS API Ghana",
+      "REST SMS API",
+      "send SMS API",
+      "OTP SMS API",
+      "SMS gateway API",
+      "SplitSMS API",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "If you need to send SMS from a Node, PHP, Flutter, or Python app in Ghana, a REST SMS API is faster than wiring carrier accounts yourself. SplitSMS gives you Bearer auth, sandbox keys, OTP helpers, and delivery webhooks from one dashboard.",
+          "This guide gets a live “hello” SMS onto a Ghana handset, then points you to OTP and webhooks for production.",
+        ],
+      },
+      {
+        heading: "Prerequisites",
+        paragraphs: [
+          "Create a SplitSMS account, claim free credits, register or pick an approved Sender ID, and generate an API key with sms.send permission. Keep live keys server-side only — never in mobile apps or public repos.",
+          "Normalize destinations to international format without “+” noise in your client if required by the endpoint (e.g. 233201234567 for Ghana).",
+        ],
+      },
+      {
+        heading: "Send with curl",
+        paragraphs: [
+          "POST to the send endpoint with Authorization: Bearer sk_live_…, Content-Type application/json, and a body containing to, sender, and message. Check the JSON response for message IDs you will later match to webhooks.",
+          "Full schemas, error codes, and Postman collections live at /api-docs and /developers/postman. SDKs for JavaScript, PHP, and Flutter speed up common patterns.",
+        ],
+      },
+      {
+        heading: "Next: OTP and production hardening",
+        paragraphs: [
+          "Use dedicated OTP send/verify endpoints for login codes instead of rolling your own expiry logic poorly. Add delivery webhooks, rate limits, and idempotency keys for retries.",
+          "When you are ready for WooCommerce or WordPress without code, install the SplitSMS plugin — same wallet and Sender ID as your API traffic.",
         ],
       },
     ],

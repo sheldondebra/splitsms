@@ -140,12 +140,13 @@ export function AdminAlert({
   variant = "info",
 }: {
   children: ReactNode;
-  variant?: "info" | "success" | "warning";
+  variant?: "info" | "success" | "warning" | "destructive";
 }) {
   const styles = {
     info: "border-primary/30 bg-primary/5",
     success: "border-emerald-500/30 bg-emerald-500/10",
     warning: "border-amber-500/30 bg-amber-500/10",
+    destructive: "border-destructive/30 bg-destructive/10 text-destructive",
   };
   return (
     <div className={cn("rounded-xl border px-4 py-3.5 text-sm", styles[variant])}>

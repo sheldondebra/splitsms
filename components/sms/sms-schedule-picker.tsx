@@ -169,7 +169,7 @@ export function SmsSchedulePicker({ value, onChange, disabled }: SmsSchedulePick
         </div>
 
         <div
-          className="inline-flex rounded-xl border border-border/70 bg-muted/40 p-1 self-start sm:self-auto"
+          className="inline-flex rounded-lg border border-border/70 bg-muted/40 p-0.5 self-start sm:self-auto"
           role="tablist"
           aria-label="Delivery timing"
         >
@@ -180,13 +180,13 @@ export function SmsSchedulePicker({ value, onChange, disabled }: SmsSchedulePick
             disabled={disabled}
             onClick={switchToNow}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+              "inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all",
               mode === "now"
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <Send className="h-3.5 w-3.5" />
+            <Send className="h-3 w-3" />
             Send now
           </button>
           <button
@@ -196,13 +196,13 @@ export function SmsSchedulePicker({ value, onChange, disabled }: SmsSchedulePick
             disabled={disabled}
             onClick={switchToSchedule}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+              "inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all",
               mode === "schedule"
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <CalendarDays className="h-3.5 w-3.5" />
+            <CalendarDays className="h-3 w-3" />
             Schedule
           </button>
         </div>

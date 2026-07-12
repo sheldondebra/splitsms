@@ -516,3 +516,46 @@ export function slackSupportTicketBlocks(input: {
         }),
   });
 }
+
+export function slackLowBalanceBlocks(input: {
+  title: string;
+  summary: string;
+  provider: string;
+  display: string;
+  threshold: number;
+  queuedMessages?: number;
+  action: string;
+}): SlackBlock[] {
+  const isCoverage = input.provider === "SplitSMS";
+
+  return buildSlackNotification({
+    category: "operations",
+    status: "warning",
+    title: input.title,
+    summary: slackQuote(`${SLACK.warning} ${input.summary}`),
+    metrics: [
+      {
+        label: isCoverage ? "Queued" : "Balance",
+        value: isCoverage && input.queuedMessages != null ? String(input.queuedMessages) : input.display,
+        tone: "bad",
+      },
+      {
+        label: isCoverage ? "Credits left" : "Threshold",
+        value: isCoverage ? input.display.split("/")[1]?.trim() ?? input.display : `< ${input.threshold}`,
+        tone: "bad",
+      },
+    ],
+    fields: [
+      slackField("Provider", input.provider, providerIcon(isCoverage ? "MNOTIFY" : input.provider.toUpperCase())),
+      slackField("Current", input.display, SLACK.wallet),
+      slackField("Action needed", input.action, SLACK.open),
+    ],
+    actions: [
+      slackAction("Provider balances", buildSlackGoUrl("/admin/providers"), {
+        style: "primary",
+        icon: SLACK.wallet,
+      }),
+      slackAction("Operations", buildSlackGoUrl("/admin/operations"), { icon: SLACK.admin }),
+    ],
+  });
+}

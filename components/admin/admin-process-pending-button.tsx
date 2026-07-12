@@ -18,18 +18,24 @@ function SubmitButton() {
 export function AdminProcessPendingButton({
   pendingCount,
   limit = 50,
+  rounds = 3,
+  returnTo = "/admin/operations",
 }: {
   pendingCount: number;
   limit?: number;
+  rounds?: number;
+  returnTo?: string;
 }) {
   if (pendingCount <= 0) return null;
 
   return (
     <form action={adminProcessPendingSmsAction} className="mt-3 pt-3 border-t border-border/50">
       <input type="hidden" name="limit" value={String(limit)} />
+      <input type="hidden" name="rounds" value={String(rounds)} />
+      <input type="hidden" name="returnTo" value={returnTo} />
       <SubmitButton />
       <p className="text-[10px] text-muted-foreground mt-1.5 leading-snug">
-        Sends up to {limit} queued message{limit === 1 ? "" : "s"} immediately (bypasses worker delay).
+        Sends up to {limit * rounds} queued message{limit * rounds === 1 ? "" : "s"} immediately (bypasses worker delay).
       </p>
     </form>
   );

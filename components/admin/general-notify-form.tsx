@@ -66,7 +66,8 @@ export function GeneralNotifyForm({ config }: { config: GeneralOfficeConfig }) {
           className={textareaClassName}
         />
         <p className="text-[11px] text-muted-foreground">
-          SMS alerts use the platform mNotify account (Admin → mNotify).
+          SMS alerts use the platform mNotify account (Admin → mNotify). Includes low balance warnings for
+          mNotify and other providers.
         </p>
       </div>
 

@@ -88,6 +88,7 @@ export type SendPricingOption = {
 type SendSmsFormProps = {
   userId: string;
   registeredSenders: RegisteredSenderOption[];
+  allowPlatformSearch?: boolean;
   templates: SendTemplateOption[];
   pricingCountries?: SendPricingOption[];
   initialTemplateId?: string;
@@ -132,6 +133,7 @@ function pickDefaultSender(registeredSenders: RegisteredSenderOption[], preferre
 export function SendSmsForm({
   userId,
   registeredSenders,
+  allowPlatformSearch = false,
   templates,
   pricingCountries = [],
   initialTemplateId,
@@ -570,6 +572,7 @@ export function SendSmsForm({
             value={senderId}
             onChange={setSenderId}
             disabled={pending}
+            allowPlatformSearch={allowPlatformSearch}
           />
 
           {/* Template */}

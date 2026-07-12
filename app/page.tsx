@@ -110,7 +110,7 @@ const homeJsonLd = [
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background font-marketing">
       <JsonLdScript data={homeJsonLd} />
       <SiteHeaderWithAccount />
       <main className="flex-1">

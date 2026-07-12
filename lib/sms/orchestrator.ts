@@ -92,6 +92,7 @@ export async function sendSmsWithFailover(
   }
 
   let lastError = "No providers available";
+  let primaryError: string | null = null;
   for (const type of providerOrder) {
     const adapter = adapters[type];
     const result = await adapter.send(params);
@@ -119,6 +120,7 @@ export async function sendSmsWithFailover(
       return { ...result, provider: type, routeCountry };
     }
     lastError = result.error ?? "Unknown error";
+    if (!primaryError) primaryError = lastError;
   }
 
   await writeSmsRoutingLog({
@@ -135,5 +137,5 @@ export async function sendSmsWithFailover(
     enabled: policy.routingLogEnabled,
   });
 
-  return { success: false, error: lastError, routeCountry };
+  return { success: false, error: primaryError ?? lastError, routeCountry };
 }

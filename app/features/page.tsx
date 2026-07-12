@@ -77,7 +77,7 @@ const featuresJsonLd = [
 
 export default function FeaturesPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background font-marketing">
       <JsonLdScript data={featuresJsonLd} />
       <SiteHeaderWithAccount />
       <main className="flex-1">

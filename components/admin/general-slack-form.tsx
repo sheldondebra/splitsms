@@ -191,6 +191,11 @@ export function GeneralSlackForm({
               label: "SMS batch results (manual runs + cron failures)",
               default: config.notifySmsBatchResults,
             },
+            {
+              name: "notifyLowBalances",
+              label: "Low mNotify / provider balances",
+              default: config.notifyLowBalances,
+            },
           ].map((item) => (
             <label key={item.name} className="flex items-center gap-2 text-sm cursor-pointer">
               <input

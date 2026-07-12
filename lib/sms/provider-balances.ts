@@ -50,7 +50,7 @@ function formatSmsCredits(amount: number | null, bonus: number | null = null): s
   return `${formatted} credits`;
 }
 
-async function fetchMnotifyBalance(): Promise<ProviderSmsBalance> {
+export async function fetchMnotifyBalance(): Promise<ProviderSmsBalance> {
   const name = "mNotify";
   if (!(await isMnotifyConfigured())) {
     return {

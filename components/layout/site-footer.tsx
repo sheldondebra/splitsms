@@ -2,9 +2,12 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  MarketingCtaArrow,
+  marketingCtaClass,
+} from "@/components/marketing/marketing-cta-arrow";
 import { cn } from "@/lib/utils";
 import {
-  ArrowRight,
   Send,
   Code2,
   MapPin,
@@ -173,17 +176,23 @@ export function SiteFooter() {
                   href="/signup"
                   className={cn(
                     buttonVariants({ size: "lg" }),
-                    "orange-glow h-12 rounded-xl font-semibold gap-2 text-base px-8",
+                    marketingCtaClass,
+                    "orange-glow h-12 justify-between pl-6 pr-1.5 font-semibold text-base",
                   )}
                 >
                   Create free account
-                  <ArrowRight className="h-4 w-4" />
+                  <MarketingCtaArrow />
                 </Link>
                 <Link
                   href="/pricing"
-                  className={cn(buttonVariants({ size: "lg", variant: "outline" }), "h-12 rounded-xl px-8")}
+                  className={cn(
+                    buttonVariants({ size: "lg", variant: "outline" }),
+                    marketingCtaClass,
+                    "h-12 justify-between pl-6 pr-1.5",
+                  )}
                 >
                   View SMS pricing
+                  <MarketingCtaArrow />
                 </Link>
               </div>
             </div>
