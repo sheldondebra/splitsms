@@ -53,6 +53,39 @@ function normalizePhone(phone: string) {
   return phone.replace(/\s+/g, "").trim();
 }
 
+function normalizeEmail(email: string | undefined | null): string | undefined {
+  const trimmed = email?.trim();
+  return trimmed ? trimmed.toLowerCase() : undefined;
+}
+
+async function emailTakenByOther(email: string, excludeUserId?: string) {
+  const existing = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, fullName: true },
+  });
+  if (!existing) return null;
+  if (excludeUserId && existing.id === excludeUserId) return null;
+  return existing;
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "P2002"
+  );
+}
+
+function uniqueConstraintField(error: unknown): string | undefined {
+  if (!isUniqueConstraintError(error)) return undefined;
+  const meta = (error as { meta?: { target?: string[] | string } }).meta;
+  const target = meta?.target;
+  if (Array.isArray(target)) return target[0];
+  if (typeof target === "string") return target;
+  return undefined;
+}
+
 export async function createStaffUserJsonAction(input: {
   fullName: string;
   phone: string;
@@ -65,7 +98,7 @@ export async function createStaffUserJsonAction(input: {
 
   const fullName = input.fullName.trim();
   const phone = normalizePhone(input.phone);
-  const email = input.email?.trim() || undefined;
+  const email = normalizeEmail(input.email);
   const password = input.password.trim();
 
   if (!fullName || fullName.length < 2) {
@@ -84,31 +117,61 @@ export async function createStaffUserJsonAction(input: {
     return { ok: false, error: "forbidden", message: "Only Super Admins can create Super Admins." };
   }
 
-  const existing = await prisma.user.findUnique({ where: { phone } });
-  if (existing) {
+  const existingPhone = await prisma.user.findUnique({ where: { phone } });
+  if (existingPhone) {
     return { ok: false, error: "duplicate", message: "A user with this phone already exists." };
+  }
+
+  if (email) {
+    const existingEmail = await emailTakenByOther(email);
+    if (existingEmail) {
+      return {
+        ok: false,
+        error: "duplicate_email",
+        message: `Email is already used by ${existingEmail.fullName}. Leave it blank or use a different address.`,
+      };
+    }
   }
 
   const permissions = input.role === "SUPER_ADMIN" ? [] : parsePermissions(input.permissions);
   const passwordHash = await hashPassword(password);
   const accountNumber = await generateUniqueAccountNumber();
 
-  const user = await prisma.user.create({
-    data: {
-      accountNumber,
-      fullName,
-      phone,
-      email,
-      countryCode: "GH",
-      passwordHash,
-      role: input.role,
-      staffPermissions: permissions,
-      isVerified: true,
-      wallet: { create: { currency: "GHS" } },
-      smsCredit: { create: { balance: 0 } },
-      memberAccount: { create: {} },
-    },
-  });
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        accountNumber,
+        fullName,
+        phone,
+        email: email ?? null,
+        countryCode: "GH",
+        passwordHash,
+        role: input.role,
+        staffPermissions: permissions,
+        isVerified: true,
+        wallet: { create: { currency: "GHS" } },
+        smsCredit: { create: { balance: 0 } },
+        memberAccount: { create: {} },
+      },
+    });
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      const field = uniqueConstraintField(error);
+      if (field === "email") {
+        return {
+          ok: false,
+          error: "duplicate_email",
+          message: "That email is already in use. Leave it blank or use a different address.",
+        };
+      }
+      if (field === "phone") {
+        return { ok: false, error: "duplicate", message: "A user with this phone already exists." };
+      }
+      return { ok: false, error: "duplicate", message: "A user with these details already exists." };
+    }
+    throw error;
+  }
 
   await logStaffAction({
     actorId: actor.id,
@@ -163,15 +226,44 @@ export async function updateStaffUserJsonAction(input: {
       ? []
       : parsePermissions(input.permissions ?? target.staffPermissions ?? []);
 
-  await prisma.user.update({
-    where: { id: target.id },
-    data: {
-      ...(input.fullName?.trim() ? { fullName: input.fullName.trim() } : {}),
-      ...(input.email !== undefined ? { email: input.email.trim() || null } : {}),
-      role: nextRole,
-      staffPermissions: nextPermissions,
-    },
-  });
+  const nextEmail =
+    input.email !== undefined ? normalizeEmail(input.email) ?? null : undefined;
+
+  if (nextEmail) {
+    const existingEmail = await emailTakenByOther(nextEmail, target.id);
+    if (existingEmail) {
+      return {
+        ok: false,
+        error: "duplicate_email",
+        message: `Email is already used by ${existingEmail.fullName}. Leave it blank or use a different address.`,
+      };
+    }
+  }
+
+  try {
+    await prisma.user.update({
+      where: { id: target.id },
+      data: {
+        ...(input.fullName?.trim() ? { fullName: input.fullName.trim() } : {}),
+        ...(input.email !== undefined ? { email: nextEmail } : {}),
+        role: nextRole,
+        staffPermissions: nextPermissions,
+      },
+    });
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      const field = uniqueConstraintField(error);
+      if (field === "email") {
+        return {
+          ok: false,
+          error: "duplicate_email",
+          message: "That email is already in use. Leave it blank or use a different address.",
+        };
+      }
+      return { ok: false, error: "duplicate", message: "A user with these details already exists." };
+    }
+    throw error;
+  }
 
   await logStaffAction({
     actorId: actor.id,

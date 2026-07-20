@@ -40,15 +40,104 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
   Crown,
+  Eye,
+  EyeOff,
   KeyRound,
   Loader2,
   Pencil,
+  RefreshCw,
   Shield,
   ShieldCheck,
   Trash2,
   UserPlus,
   Users,
 } from "lucide-react";
+
+/** Cryptographically random temp password (avoids ambiguous chars). */
+function generateTempPassword(length = 14): string {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghijkmnopqrstuvwxyz";
+  const digits = "23456789";
+  const symbols = "!@#$%&*";
+  const pools = [upper, lower, digits, symbols];
+  const all = pools.join("");
+  const bytes = new Uint32Array(length);
+  crypto.getRandomValues(bytes);
+  const chars = pools.map((pool, i) => pool[bytes[i]! % pool.length]!);
+  for (let i = pools.length; i < length; i++) {
+    chars.push(all[bytes[i]! % all.length]!);
+  }
+  const shuffle = new Uint32Array(length);
+  crypto.getRandomValues(shuffle);
+  for (let i = length - 1; i > 0; i--) {
+    const j = shuffle[i]! % (i + 1);
+    [chars[i], chars[j]] = [chars[j]!, chars[i]!];
+  }
+  return chars.join("");
+}
+
+function StaffPasswordInput({
+  id,
+  label,
+  value,
+  onChange,
+  disabled,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+  disabled?: boolean;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  function generate() {
+    const next = generateTempPassword();
+    onChange(next);
+    setVisible(true);
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor={id}>{label}</Label>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+          onClick={generate}
+          disabled={disabled}
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          Auto generate
+        </Button>
+      </div>
+      <div className="relative">
+        <Input
+          id={id}
+          type={visible ? "text" : "password"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          minLength={8}
+          autoComplete="new-password"
+          className="pr-10 font-mono"
+        />
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => setVisible((v) => !v)}
+          disabled={disabled}
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground disabled:opacity-50"
+          aria-label={visible ? "Hide password" : "Show password"}
+        >
+          {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function PermissionPicker({
   value,
@@ -171,8 +260,12 @@ function StaffFormDialog({
         });
         onOpenChange(false);
         router.refresh();
-      } catch {
-        toast.error("Could not save", { id: toastId, description: "Something went wrong." });
+      } catch (error) {
+        const description =
+          error instanceof Error && error.message && !error.message.includes("NEXT_REDIRECT")
+            ? error.message
+            : "Something went wrong.";
+        toast.error("Could not save", { id: toastId, description });
       }
     });
   }
@@ -185,7 +278,7 @@ function StaffFormDialog({
         if (next) resetForm();
       }}
     >
-      <DialogContent className="sm:max-w-lg gap-0 p-0 overflow-hidden max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-2xl gap-0 p-0 overflow-hidden max-h-[90vh] flex flex-col">
         <div className="px-5 pt-5 pb-4 overflow-y-auto">
           <DialogHeader className="text-left gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary mb-1">
@@ -225,13 +318,12 @@ function StaffFormDialog({
               />
             </div>
             {mode === "create" && (
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="staff-password">Temporary password</Label>
-                <Input
+              <div className="sm:col-span-2">
+                <StaffPasswordInput
                   id="staff-password"
-                  type="password"
+                  label="Temporary password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={setPassword}
                   disabled={pending}
                 />
               </div>
@@ -317,16 +409,13 @@ function ResetPasswordDialog({
           <DialogTitle>Reset password</DialogTitle>
           <DialogDescription>Set a new password for {user.fullName}.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-2">
-          <Label htmlFor="reset-password">New password</Label>
-          <Input
-            id="reset-password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={pending}
-          />
-        </div>
+        <StaffPasswordInput
+          id="reset-password"
+          label="New password"
+          value={password}
+          onChange={setPassword}
+          disabled={pending}
+        />
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
             Cancel
