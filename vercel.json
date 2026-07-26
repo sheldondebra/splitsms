@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron/process-sms",
+      "schedule": "* * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/api-docs",

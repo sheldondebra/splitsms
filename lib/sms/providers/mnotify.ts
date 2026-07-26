@@ -14,7 +14,7 @@ export async function sendViaMnotify(params: SendParams): Promise<SendResult> {
 
   return {
     success: true,
-    providerRef: result.providerRef,
+    providerRef: result.providerRef ?? undefined,
   };
 }
 

@@ -134,6 +134,8 @@ export function ThemeProvider({
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
+export default ThemeProvider;
+
 export function useTheme() {
   const ctx = useContext(ThemeContext);
   if (!ctx) {

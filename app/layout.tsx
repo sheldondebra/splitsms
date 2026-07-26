@@ -6,7 +6,7 @@ import { googleSiteVerification } from "@/lib/seo/metadata";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
-import { ThemeProvider } from "@/components/theme-provider";
+import ThemeProvider from "@/components/theme-provider";
 import { THEME_COOKIE, resolveThemeClass } from "@/lib/theme";
 import "./globals.css";
 

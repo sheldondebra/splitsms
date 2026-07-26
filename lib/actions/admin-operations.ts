@@ -4,15 +4,26 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { warmDatabaseConnection } from "@/lib/db";
-import { getSession, isAdminRole } from "@/lib/auth/session";
+import { getSession, isAdminRole, isSuperAdmin } from "@/lib/auth/session";
 import { processPendingMessagesBatch } from "@/lib/queue/process-pending-batch";
 import { SMS_CRON_BATCH_LIMIT } from "@/lib/queue/sms-dispatch-config";
 import { enqueueSmsJobsInline } from "@/lib/queue/enqueue-sms";
 import { syncPendingMnotifyDeliveries } from "@/lib/sms/sync-mnotify-dlr";
+import { processDueScheduledCampaigns } from "@/lib/campaigns/scheduler";
+import { syncAllSendingCampaigns } from "@/lib/campaigns/sync-status";
+import { fetchAllSmsProviderBalances } from "@/lib/sms/provider-balances";
+import { maybeNotifyLowBalanceAlerts } from "@/lib/admin/balance-alerts";
+import { maybeNotifySlackStuckSms } from "@/lib/admin/sms-stuck-alert";
 
 async function requireAdmin() {
   const session = await getSession();
   if (!session || !isAdminRole(session.role)) redirect("/admin");
+  return session;
+}
+
+async function requireSuperAdmin() {
+  const session = await getSession();
+  if (!session || !isSuperAdmin(session.role)) redirect("/admin");
   return session;
 }
 
@@ -96,6 +107,103 @@ export async function adminProcessPendingSmsAction(formData: FormData) {
     sent: String(totalSent),
     failed: String(totalFailed),
     remaining: String(remaining),
+  });
+  redirect(`${returnTo}?${q.toString()}`);
+}
+
+export async function adminSystemSyncAction(formData: FormData) {
+  const session = await requireSuperAdmin();
+  const returnTo = String(formData.get("returnTo") ?? "/admin").trim() || "/admin";
+  const limit = 200;
+  const maxRounds = 5;
+
+  await warmDatabaseConnection().catch(() => undefined);
+
+  const resumedPaused = await prisma.campaign.updateMany({
+    where: {
+      status: "PAUSED",
+      scheduledAt: { lte: new Date() },
+    },
+    data: { status: "SCHEDULED" },
+  });
+
+  const scheduled = await processDueScheduledCampaigns(50);
+
+  let totalProcessed = 0;
+  let totalSent = 0;
+  let totalFailed = 0;
+  let remaining = 0;
+  const failedSamples: Array<{ recipient: string; memberName: string; reason?: string | null }> = [];
+
+  for (let round = 0; round < maxRounds; round++) {
+    const sms = await processPendingMessagesBatch(limit);
+    totalProcessed += sms.processed;
+    totalSent += sms.sent;
+    totalFailed += sms.failed;
+    remaining = sms.remaining;
+    for (const sample of sms.failedSamples) {
+      if (failedSamples.length < 5) failedSamples.push(sample);
+    }
+    if (sms.processed === 0 || sms.remaining === 0) break;
+  }
+
+  const [dlr, balances, sendingCampaigns, stuckAlert, balanceAlerts] = await Promise.all([
+    syncPendingMnotifyDeliveries(200).catch(() => ({ campaigns: 0, rowsUpdated: 0 })),
+    fetchAllSmsProviderBalances().catch(() => []),
+    syncAllSendingCampaigns(100).catch(() => 0),
+    maybeNotifySlackStuckSms().catch(() => ({ notified: false as const, delayedCount: 0 })),
+    maybeNotifyLowBalanceAlerts().catch(() => ({
+      checked: 0,
+      alerts: 0,
+      notified: 0,
+      sent: [],
+    })),
+  ]);
+
+  const result = {
+    resumedPaused: resumedPaused.count,
+    scheduledProcessed: scheduled.processed,
+    pendingProcessed: totalProcessed,
+    sent: totalSent,
+    failed: totalFailed,
+    remaining,
+    deliveryRowsUpdated: dlr.rowsUpdated,
+    deliveryCampaignsChecked: dlr.campaigns,
+    sendingCampaignsChecked: sendingCampaigns,
+    providerBalancesChecked: balances.length,
+    balanceAlerts,
+    stuckAlert,
+    failedSamples,
+  };
+
+  await prisma.auditLog.create({
+    data: {
+      actorId: session.userId,
+      action: "SYSTEM_SYNC_TRIGGERED",
+      entityType: "System",
+      entityId: "global",
+      metadata: result,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/messages");
+  revalidatePath("/admin/campaigns");
+  revalidatePath("/admin/providers");
+  revalidatePath("/admin/routes");
+  revalidatePath("/admin/mnotify");
+
+  const q = new URLSearchParams({
+    systemSync: "1",
+    processed: String(totalProcessed),
+    sent: String(totalSent),
+    failed: String(totalFailed),
+    remaining: String(remaining),
+    dlr: String(dlr.rowsUpdated),
+    scheduled: String(scheduled.processed),
+    resumed: String(resumedPaused.count),
+    balances: String(balances.length),
   });
   redirect(`${returnTo}?${q.toString()}`);
 }

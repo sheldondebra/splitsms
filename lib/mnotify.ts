@@ -23,8 +23,15 @@ export type MnotifyQuickSmsResponse = {
   status?: string;
   code?: string;
   message?: string;
-  summary?: Record<string, unknown>;
+  summary?: Record<string, unknown> & {
+    _id?: string | number;
+    id?: string | number;
+    message_id?: string | number;
+  };
   campaign_id?: string;
+  _id?: string | number;
+  id?: string | number;
+  message_id?: string | number;
   [key: string]: unknown;
 };
 
@@ -76,6 +83,24 @@ function parseMnotifyError(
     return msg || "mNotify forbidden (HTTP 403) — sender ID may not be approved for this account.";
   }
   return msg || `mNotify HTTP ${status}`;
+}
+
+function readMnotifyId(value: unknown) {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return null;
+}
+
+function extractMnotifyProviderRef(data: MnotifyQuickSmsResponse) {
+  return (
+    readMnotifyId(data.summary?._id) ??
+    readMnotifyId(data.campaign_id) ??
+    readMnotifyId(data._id) ??
+    readMnotifyId(data.summary?.message_id) ??
+    readMnotifyId(data.message_id) ??
+    readMnotifyId(data.summary?.id) ??
+    readMnotifyId(data.id)
+  );
 }
 
 /** Lightweight check that the stored API key is accepted by mNotify. */
@@ -143,7 +168,14 @@ export async function sendMnotifyQuickSms(
       };
     }
 
-    const providerRef = String(data.campaign_id ?? data.code ?? `mnotify-${Date.now()}`);
+    const providerRef = extractMnotifyProviderRef(data);
+    if (!providerRef) {
+      console.warn("[mnotify] SMS accepted without delivery report id", {
+        status: data.status,
+        code: data.code,
+        message: data.message,
+      });
+    }
 
     const cached = cacheBalanceFromMnotifyResponse(data, "sms/quick response");
     if (cached) {
@@ -190,10 +222,21 @@ export async function fetchCampaignDeliveryReport(
   }
 
   const statusPath = statusFilter ? `/${statusFilter}` : "";
-  const url = `${config.baseUrl}/api/campaign/${encodeURIComponent(campaignId)}${statusPath}?key=${encodeURIComponent(config.apiKey)}`;
+  const url = buildMnotifyUrl(
+    config.baseUrl,
+    `/api/campaign/${encodeURIComponent(campaignId)}${statusPath}`,
+    config.apiKey,
+  );
 
   try {
-    const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: trimApiKey(config.apiKey),
+      },
+      cache: "no-store",
+    });
     const data = (await res.json()) as {
       status?: string;
       report?: MnotifyDeliveryRow[];
@@ -211,6 +254,43 @@ export async function fetchCampaignDeliveryReport(
   }
 }
 
+/** Date-range delivery report, useful when old sends lack a valid campaign id. */
+export async function fetchPeriodicDeliveryReport(from: string, to = from) {
+  const config = await getMnotifyConfig();
+  if (!config.apiKey) {
+    return { ok: false as const, error: "mNotify API key not configured" };
+  }
+
+  const url = new URL(buildMnotifyUrl(config.baseUrl, "/api/report", config.apiKey));
+  url.searchParams.set("from", from);
+  url.searchParams.set("to", to);
+
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: trimApiKey(config.apiKey),
+      },
+      cache: "no-store",
+    });
+    const data = (await res.json()) as {
+      status?: string;
+      report?: MnotifyDeliveryRow[];
+      message?: string;
+    };
+    if (!res.ok) {
+      return { ok: false as const, error: data?.message ?? `mNotify HTTP ${res.status}` };
+    }
+    return { ok: true as const, report: data.report ?? [], raw: data };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "Failed to fetch periodic delivery report",
+    };
+  }
+}
+
 /** Single-message delivery report (use _id from campaign report rows) */
 export async function fetchMessageDeliveryReport(messageId: string) {
   const config = await getMnotifyConfig();
@@ -218,10 +298,21 @@ export async function fetchMessageDeliveryReport(messageId: string) {
     return { ok: false as const, error: "mNotify API key not configured" };
   }
 
-  const url = `${config.baseUrl}/api/status/${encodeURIComponent(messageId)}?key=${encodeURIComponent(config.apiKey)}`;
+  const url = buildMnotifyUrl(
+    config.baseUrl,
+    `/api/status/${encodeURIComponent(messageId)}`,
+    config.apiKey,
+  );
 
   try {
-    const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: trimApiKey(config.apiKey),
+      },
+      cache: "no-store",
+    });
     const data = (await res.json()) as {
       status?: string;
       report?: MnotifyDeliveryRow;

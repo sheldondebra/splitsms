@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import {
   fetchCampaignDeliveryReport,
+  fetchPeriodicDeliveryReport,
   normalizeMnotifyPhone,
 } from "@/lib/mnotify";
 import { dispatchUserWebhooks } from "@/lib/webhooks/dispatch";
@@ -57,11 +58,13 @@ async function applyDeliveryUpdate(
   },
   status: "DELIVERED" | "FAILED" | "SENT",
   failureReason?: string,
+  providerRef?: string | null,
 ) {
   const updatedMsg = await prisma.message.update({
     where: { id: message.id },
     data: {
       status,
+      ...(providerRef ? { providerRef } : {}),
       ...(status === "DELIVERED" ? { deliveredAt: new Date() } : {}),
       ...(status === "FAILED"
         ? { failedAt: new Date(), failureReason: failureReason ?? "Delivery failed" }
@@ -85,6 +88,77 @@ async function applyDeliveryUpdate(
   await dispatchUserWebhooks(message.userId, updatedMsg);
   await syncCampaignStatus(updatedMsg.campaignId);
   return updatedMsg;
+}
+
+type PendingMnotifyMessage = {
+  id: string;
+  userId: string;
+  status: string;
+  channel: string | null;
+  countryCode: string | null;
+  recipient: string;
+  body: string;
+  senderId: string;
+  providerRef: string | null;
+  sentAt: Date | null;
+  createdAt: Date;
+  smsUnits: number;
+  cost: { toNumber: () => number } | null;
+  user: { wallet: { currency: string } | null };
+};
+
+function reportDate(date: Date | null) {
+  return (date ?? new Date()).toISOString().slice(0, 10);
+}
+
+function invalidProviderRef(ref: string | null) {
+  return !ref || ref === "2000" || ref.startsWith("mnotify-");
+}
+
+function matchesPeriodicRow(message: PendingMnotifyMessage, row: { recipient?: string; sender?: string; message?: string }) {
+  if (!row.recipient) return false;
+  const variants = phoneVariants(row.recipient);
+  if (!variants.includes(message.recipient)) return false;
+
+  const sender = row.sender?.trim().toLowerCase();
+  if (sender && sender !== message.senderId.trim().toLowerCase()) return false;
+
+  const body = row.message?.trim();
+  if (body && body !== message.body.trim()) return false;
+
+  return true;
+}
+
+async function syncPeriodicDeliveries(messages: PendingMnotifyMessage[]) {
+  const repairable = messages.filter((message) => invalidProviderRef(message.providerRef));
+  const byDate = new Map<string, PendingMnotifyMessage[]>();
+
+  for (const message of repairable) {
+    const key = reportDate(message.sentAt ?? message.createdAt);
+    byDate.set(key, [...(byDate.get(key) ?? []), message]);
+  }
+
+  let updated = 0;
+  const matched = new Set<string>();
+
+  for (const [date, datedMessages] of byDate) {
+    const result = await fetchPeriodicDeliveryReport(date);
+    if (!result.ok) continue;
+
+    for (const row of result.report) {
+      const message = datedMessages.find(
+        (candidate) => !matched.has(candidate.id) && matchesPeriodicRow(candidate, row),
+      );
+      if (!message) continue;
+
+      const status = mapMnotifyStatus(row.status ?? "SENT");
+      await applyDeliveryUpdate(message, status, row.status, row.campaign_id);
+      matched.add(message.id);
+      updated++;
+    }
+  }
+
+  return updated;
 }
 
 /** Poll mNotify campaign report and update messages matched by campaign providerRef + recipient */
@@ -142,17 +216,25 @@ export async function syncUserPendingMnotifyDeliveries(userId: string, limit = 3
       status: { in: ["SENT", "PENDING"] },
       providerRef: { not: null },
     },
+    include: { user: { include: { wallet: true } } },
     orderBy: { sentAt: "desc" },
     take: limit,
   });
 
-  const campaignIds = [...new Set(pending.map((m) => m.providerRef).filter(Boolean))] as string[];
+  const campaignIds = [
+    ...new Set(
+      pending
+        .map((m) => m.providerRef)
+        .filter((ref): ref is string => Boolean(ref) && !invalidProviderRef(ref)),
+    ),
+  ];
   let totalUpdated = 0;
 
   for (const campaignId of campaignIds) {
     const r = await syncMnotifyCampaignDelivery(campaignId);
     if (r.ok) totalUpdated += r.updated;
   }
+  totalUpdated += await syncPeriodicDeliveries(pending);
 
   return { campaigns: campaignIds.length, rowsUpdated: totalUpdated };
 }
@@ -165,17 +247,25 @@ export async function syncPendingMnotifyDeliveries(limit = 50) {
       status: { in: ["SENT", "PENDING"] },
       providerRef: { not: null },
     },
+    include: { user: { include: { wallet: true } } },
     orderBy: { sentAt: "desc" },
     take: limit,
   });
 
-  const campaignIds = [...new Set(pending.map((m) => m.providerRef).filter(Boolean))] as string[];
+  const campaignIds = [
+    ...new Set(
+      pending
+        .map((m) => m.providerRef)
+        .filter((ref): ref is string => Boolean(ref) && !invalidProviderRef(ref)),
+    ),
+  ];
   let totalUpdated = 0;
 
   for (const campaignId of campaignIds) {
     const r = await syncMnotifyCampaignDelivery(campaignId);
     if (r.ok) totalUpdated += r.updated;
   }
+  totalUpdated += await syncPeriodicDeliveries(pending);
 
   return { campaigns: campaignIds.length, rowsUpdated: totalUpdated };
 }

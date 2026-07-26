@@ -7,10 +7,10 @@ import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { AdminMobileHeader } from "@/components/layout/admin-mobile-header";
 import { AdminNavDrawer } from "@/components/layout/admin-nav-drawer";
 import { HeaderAccountMenu } from "@/components/layout/header-account-menu";
+import { AdminSystemSyncButton } from "@/components/admin/admin-system-sync-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { HeaderAccountProfile } from "@/lib/user/header-account-types";
 import { getAdminPageTitle } from "@/lib/navigation/admin-nav";
-import { cn } from "@/lib/utils";
 import { Shield } from "lucide-react";
 import type { AdminNavItem } from "@/lib/navigation/admin-nav";
 
@@ -90,6 +90,7 @@ export function AdminAppShell({ children, subtitle, profile, badges }: AdminAppS
                 )}
               </div>
             )}
+            {profile.role === "SUPER_ADMIN" && <AdminSystemSyncButton />}
             <ThemeToggle className="h-9 w-9 rounded-lg shrink-0" />
             <HeaderAccountMenu profile={profile} variant="pill" />
           </div>

@@ -47,13 +47,35 @@ const quickActions: {
   { href: "/admin/providers", label: "Providers", icon: Radio },
 ];
 
-export default async function AdminDashboardPage() {
+function parseFlashParam(value: string | undefined) {
+  if (!value) return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    systemSync?: string;
+    processed?: string;
+    sent?: string;
+    failed?: string;
+    remaining?: string;
+    dlr?: string;
+    scheduled?: string;
+    resumed?: string;
+    balances?: string;
+  }>;
+}) {
+  const params = await searchParams;
   const [stats, operations] = await Promise.all([
     getAdminDashboardOverview(),
     getAdminOperationsDashboard(),
   ]);
 
   const delivery = describeSmsDeliveryMode(operations.health);
+  const systemSyncRan = params.systemSync === "1";
 
   return (
     <AdminPage wide>
@@ -73,6 +95,21 @@ export default async function AdminDashboardPage() {
           ) : undefined
         }
       />
+
+      {systemSyncRan && (
+        <AdminAlert variant="success">
+          System sync complete: processed {parseFlashParam(params.processed) ?? 0} pending SMS,{" "}
+          {parseFlashParam(params.sent) ?? 0} sent, {parseFlashParam(params.failed) ?? 0} failed,{" "}
+          {parseFlashParam(params.dlr) ?? 0} delivery update
+          {(parseFlashParam(params.dlr) ?? 0) === 1 ? "" : "s"},{" "}
+          {parseFlashParam(params.scheduled) ?? 0} scheduled campaign
+          {(parseFlashParam(params.scheduled) ?? 0) === 1 ? "" : "s"} started,{" "}
+          {parseFlashParam(params.resumed) ?? 0} due paused campaign
+          {(parseFlashParam(params.resumed) ?? 0) === 1 ? "" : "s"} resumed, and{" "}
+          {parseFlashParam(params.balances) ?? 0} provider balance
+          {(parseFlashParam(params.balances) ?? 0) === 1 ? "" : "s"} checked.
+        </AdminAlert>
+      )}
 
       {!stats.mnotify.configured && (
         <AdminAlert variant="warning">
