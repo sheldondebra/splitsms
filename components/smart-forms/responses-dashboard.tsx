@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import { extractDisplayFields } from "@/lib/smart-forms/export";
 import { EmptyState } from "@/components/dashboard/empty-state";
@@ -8,7 +8,7 @@ import { AppCard, AppCardBody } from "@/components/dashboard/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ClipboardList, Download, Search } from "lucide-react";
+import { ChevronDown, ClipboardList, Download, Search } from "lucide-react";
 
 export type ResponseRow = {
   id: string;
@@ -42,6 +42,7 @@ export function ResponsesDashboard({
   const [contactFilter, setContactFilter] = useState("all");
   const [reviewedFilter, setReviewedFilter] = useState("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const sources = useMemo(() => {
     const set = new Set(responses.map((r) => r.source).filter(Boolean) as string[]);
@@ -72,6 +73,15 @@ export function ResponsesDashboard({
 
   function toggleOne(id: string) {
     setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleExpanded(id: string) {
+    setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -177,46 +187,98 @@ export function ResponsesDashboard({
             <tbody>
               {filtered.map((row) => {
                 const { name, phone, email } = extractDisplayFields(row.answers);
+                const isExpanded = expanded.has(row.id);
                 return (
-                  <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
-                    <td className="p-3">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(row.id)}
-                        onChange={() => toggleOne(row.id)}
-                        aria-label="Select row"
-                      />
-                    </td>
-                    <td className="p-3 whitespace-nowrap text-muted-foreground">
-                      {new Date(row.submittedAt).toLocaleString()}
-                    </td>
-                    <td className="p-3">{name || "—"}</td>
-                    <td className="p-3 font-mono text-xs">{phone || "—"}</td>
-                    <td className="p-3">{email || "—"}</td>
-                    <td className="p-3">{row.source ?? "—"}</td>
-                    <td className="p-3">
-                      <Badge
-                        variant="secondary"
-                        className={cn("text-xs", CONTACT_BADGE[row.contactSaveStatus])}
-                      >
-                        {row.contactSaveStatus.toLowerCase()}
-                      </Badge>
-                    </td>
-                    <td className="p-3">
-                      <span className="text-xs" title={row.smsError ?? undefined}>
-                        {row.smsStatus.toLowerCase()}
-                      </span>
-                    </td>
-                    <td className="p-3">{row.reviewedAt ? "Yes" : "No"}</td>
-                    <td className="p-3">
-                      <Link
-                        href={`/dashboard/forms/${formId}/responses/${row.id}`}
-                        className="font-semibold text-primary hover:underline"
-                      >
-                        View
-                      </Link>
-                    </td>
-                  </tr>
+                  <Fragment key={row.id}>
+                    <tr className="border-b last:border-0 hover:bg-muted/20">
+                      <td className="p-3">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(row.id)}
+                          onChange={() => toggleOne(row.id)}
+                          aria-label="Select row"
+                        />
+                      </td>
+                      <td className="p-3 whitespace-nowrap text-muted-foreground">
+                        {new Date(row.submittedAt).toLocaleString()}
+                      </td>
+                      <td className="p-3">{name || "—"}</td>
+                      <td className="p-3 font-mono text-xs">{phone || "—"}</td>
+                      <td className="p-3">{email || "—"}</td>
+                      <td className="p-3">{row.source ?? "—"}</td>
+                      <td className="p-3">
+                        <Badge
+                          variant="secondary"
+                          className={cn("text-xs", CONTACT_BADGE[row.contactSaveStatus])}
+                        >
+                          {row.contactSaveStatus.toLowerCase()}
+                        </Badge>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-xs" title={row.smsError ?? undefined}>
+                          {row.smsStatus.toLowerCase()}
+                        </span>
+                      </td>
+                      <td className="p-3">{row.reviewedAt ? "Yes" : "No"}</td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-3 whitespace-nowrap">
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+                            aria-expanded={isExpanded}
+                            aria-controls={`response-data-${row.id}`}
+                            onClick={() => toggleExpanded(row.id)}
+                          >
+                            <ChevronDown
+                              className={cn(
+                                "h-3.5 w-3.5 transition-transform",
+                                isExpanded && "rotate-180",
+                              )}
+                            />
+                            {isExpanded ? "Hide data" : "View data"}
+                          </button>
+                          <Link
+                            href={`/dashboard/forms/${formId}/responses/${row.id}`}
+                            className="font-semibold text-muted-foreground hover:text-primary hover:underline"
+                          >
+                            Full page
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                    {isExpanded ? (
+                      <tr className="border-b bg-muted/15">
+                        <td colSpan={10} className="px-3 pb-4 pt-0">
+                          <div
+                            id={`response-data-${row.id}`}
+                            className="rounded-xl border border-border/60 bg-background p-4 shadow-sm"
+                          >
+                            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-sm font-semibold">Full submitted data</p>
+                              <p className="text-xs text-muted-foreground">
+                                {row.answers.length} field{row.answers.length === 1 ? "" : "s"}
+                              </p>
+                            </div>
+                            <dl className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                              {row.answers.map((answer) => (
+                                <div
+                                  key={`${row.id}-${answer.fieldKey}`}
+                                  className="rounded-lg bg-muted/35 px-3 py-2"
+                                >
+                                  <dt className="text-xs font-medium text-muted-foreground">
+                                    {answer.fieldLabel}
+                                  </dt>
+                                  <dd className="mt-1 whitespace-pre-wrap break-words text-sm">
+                                    {answer.value || "—"}
+                                  </dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </Fragment>
                 );
               })}
             </tbody>
