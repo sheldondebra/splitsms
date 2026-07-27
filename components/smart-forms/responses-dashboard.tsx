@@ -1,14 +1,14 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
-import Link from "next/link";
+import { useMemo, useState } from "react";
 import { extractDisplayFields } from "@/lib/smart-forms/export";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { AppCard, AppCardBody } from "@/components/dashboard/page-shell";
 import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ClipboardList, Download, Search } from "lucide-react";
+import { ClipboardList, Download, Search } from "lucide-react";
 
 export type ResponseRow = {
   id: string;
@@ -28,6 +28,18 @@ const CONTACT_BADGE: Record<string, string> = {
   PENDING: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
 };
 
+const SMS_BADGE: Record<string, string> = {
+  SENT: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  DELIVERED: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  FAILED: "bg-destructive/10 text-destructive",
+  PENDING: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  SKIPPED: "bg-muted text-muted-foreground",
+};
+
+function getAnswerValue(row: ResponseRow, fieldKey: string) {
+  return row.answers.find((answer) => answer.fieldKey === fieldKey)?.value ?? "";
+}
+
 export function ResponsesDashboard({
   formId,
   formName,
@@ -42,26 +54,88 @@ export function ResponsesDashboard({
   const [contactFilter, setContactFilter] = useState("all");
   const [reviewedFilter, setReviewedFilter] = useState("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [fieldFilters, setFieldFilters] = useState<Record<string, string>>({});
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const sources = useMemo(() => {
     const set = new Set(responses.map((r) => r.source).filter(Boolean) as string[]);
     return ["all", ...Array.from(set)];
   }, [responses]);
 
+  const fieldColumns = useMemo(() => {
+    const columns = new Map<string, string>();
+    for (const row of responses) {
+      for (const answer of row.answers) {
+        if (!columns.has(answer.fieldKey)) {
+          columns.set(answer.fieldKey, answer.fieldLabel);
+        }
+      }
+    }
+    return Array.from(columns, ([key, label]) => ({ key, label }));
+  }, [responses]);
+
+  const fieldFilterOptions = useMemo(() => {
+    const options = new Map<string, string[]>();
+    for (const field of fieldColumns) {
+      const values = new Set<string>();
+      for (const row of responses) {
+        const value = getAnswerValue(row, field.key).trim();
+        if (value) values.add(value);
+      }
+      options.set(field.key, Array.from(values).sort((a, b) => a.localeCompare(b)));
+    }
+    return options;
+  }, [fieldColumns, responses]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const activeFieldFilters = Object.entries(fieldFilters).filter(([, value]) => value.trim());
     return responses.filter((row) => {
       if (sourceFilter !== "all" && row.source !== sourceFilter) return false;
       if (contactFilter !== "all" && row.contactSaveStatus !== contactFilter) return false;
       if (reviewedFilter === "reviewed" && !row.reviewedAt) return false;
       if (reviewedFilter === "unreviewed" && row.reviewedAt) return false;
+      for (const [fieldKey, value] of activeFieldFilters) {
+        if (getAnswerValue(row, fieldKey).trim() !== value.trim()) {
+          return false;
+        }
+      }
       if (!q) return true;
       const { name, phone, email } = extractDisplayFields(row.answers);
       const hay = [name, phone, email, ...row.answers.map((a) => a.value)].join(" ").toLowerCase();
       return hay.includes(q);
     });
-  }, [responses, query, sourceFilter, contactFilter, reviewedFilter]);
+  }, [responses, query, sourceFilter, contactFilter, reviewedFilter, fieldFilters]);
+
+  const stats = useMemo(
+    () => [
+      { label: "Visible", value: filtered.length, hint: `${responses.length} total` },
+      {
+        label: "Reviewed",
+        value: responses.filter((row) => row.reviewedAt).length,
+        hint: "Checked submissions",
+      },
+      {
+        label: "Contacts saved",
+        value: responses.filter((row) => row.contactSaveStatus === "SAVED").length,
+        hint: "Added to contacts",
+      },
+      {
+        label: "SMS failed",
+        value: responses.filter((row) => row.smsStatus === "FAILED").length,
+        hint: "Needs attention",
+        hot: responses.some((row) => row.smsStatus === "FAILED"),
+      },
+    ],
+    [filtered.length, responses],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const visibleRows = filtered.slice(pageStart, pageStart + pageSize);
+  const fieldFilterCount = Object.values(fieldFilters).filter((value) => value.trim()).length;
 
   function toggleAll() {
     if (selected.size === filtered.length) {
@@ -80,11 +154,12 @@ export function ResponsesDashboard({
     });
   }
 
-  function toggleExpanded(id: string) {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+  function updateFieldFilter(fieldKey: string, value: string) {
+    setPage(1);
+    setFieldFilters((prev) => {
+      const next = { ...prev };
+      if (value) next[fieldKey] = value;
+      else delete next[fieldKey];
       return next;
     });
   }
@@ -113,7 +188,10 @@ export function ResponsesDashboard({
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setPage(1);
+              setQuery(e.target.value);
+            }}
             placeholder="Search name, phone, email…"
             className="pl-9 h-11"
           />
@@ -121,7 +199,10 @@ export function ResponsesDashboard({
         <div className="flex flex-wrap gap-2">
           <select
             value={sourceFilter}
-            onChange={(e) => setSourceFilter(e.target.value)}
+            onChange={(e) => {
+              setPage(1);
+              setSourceFilter(e.target.value);
+            }}
             className="h-10 rounded-lg border bg-background px-3 text-sm"
           >
             {sources.map((s) => (
@@ -132,7 +213,10 @@ export function ResponsesDashboard({
           </select>
           <select
             value={contactFilter}
-            onChange={(e) => setContactFilter(e.target.value)}
+            onChange={(e) => {
+              setPage(1);
+              setContactFilter(e.target.value);
+            }}
             className="h-10 rounded-lg border bg-background px-3 text-sm"
           >
             <option value="all">All contact status</option>
@@ -143,29 +227,121 @@ export function ResponsesDashboard({
           </select>
           <select
             value={reviewedFilter}
-            onChange={(e) => setReviewedFilter(e.target.value)}
+            onChange={(e) => {
+              setPage(1);
+              setReviewedFilter(e.target.value);
+            }}
             className="h-10 rounded-lg border bg-background px-3 text-sm"
           >
             <option value="all">All review status</option>
             <option value="reviewed">Reviewed</option>
             <option value="unreviewed">Unreviewed</option>
           </select>
-          <a
-            href={exportHref}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground"
-          >
+          <a href={exportHref} className={cn(buttonVariants({ size: "lg" }), "h-10 gap-2")}>
             <Download className="h-4 w-4" />
             Export CSV{selected.size > 0 ? ` (${selected.size})` : ""}
           </a>
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
+        <div>
+          <p className="text-sm font-semibold">Excel-style full data table</p>
+          <p className="text-xs text-muted-foreground">
+            Every submitted field is shown as a column. Use dropdown filters to narrow the data.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span>
+            {fieldColumns.length} data field{fieldColumns.length === 1 ? "" : "s"} detected
+          </span>
+          {fieldFilterCount > 0 ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={() => {
+                setPage(1);
+                setFieldFilters({});
+              }}
+            >
+              Clear {fieldFilterCount} field filter{fieldFilterCount === 1 ? "" : "s"}
+            </Button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map((item) => (
+          <div
+            key={item.label}
+            className={cn(
+              "rounded-xl border border-border/60 bg-card px-4 py-3 shadow-sm",
+              item.hot && "border-destructive/30 bg-destructive/[0.04]",
+            )}
+          >
+            <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
+            <p
+              className={cn(
+                "mt-1 text-2xl font-bold tracking-tight",
+                item.hot && "text-destructive",
+              )}
+            >
+              {item.value}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{item.hint}</p>
+          </div>
+        ))}
+      </div>
+
+      {fieldColumns.length > 0 ? (
+        <AppCard>
+          <AppCardBody className="p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold">Data field filters</p>
+                <p className="text-xs text-muted-foreground">
+                  Filters are created automatically from the fields submitted with this form.
+                </p>
+              </div>
+              {fieldFilterCount > 0 ? (
+                <Badge variant="secondary" className="text-xs">
+                  {fieldFilterCount} active
+                </Badge>
+              ) : null}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {fieldColumns.map((field) => (
+                <label key={field.key} className="space-y-1.5">
+                  <span className="block truncate text-xs font-medium text-muted-foreground">
+                    {field.label}
+                  </span>
+                  <select
+                    value={fieldFilters[field.key] ?? ""}
+                    onChange={(e) => updateFieldFilter(field.key, e.target.value)}
+                    className="h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                    title={`Filter ${field.label}`}
+                  >
+                    <option value="">All {field.label}</option>
+                    {(fieldFilterOptions.get(field.key) ?? []).map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+            </div>
+          </AppCardBody>
+        </AppCard>
+      ) : null}
+
       <AppCard>
         <AppCardBody className="p-0 overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[960px] border-separate border-spacing-0 text-sm">
             <thead>
-              <tr className="border-b bg-muted/40 text-left">
-                <th className="p-3 w-10">
+              <tr className="text-left">
+                <th className="sticky left-0 z-20 w-10 border-b border-r bg-muted/60 p-3">
                   <input
                     type="checkbox"
                     checked={selected.size === filtered.length && filtered.length > 0}
@@ -173,114 +349,61 @@ export function ResponsesDashboard({
                     aria-label="Select all"
                   />
                 </th>
-                <th className="p-3 font-medium">Submitted</th>
-                <th className="p-3 font-medium">Name</th>
-                <th className="p-3 font-medium">Phone</th>
-                <th className="p-3 font-medium">Email</th>
-                <th className="p-3 font-medium">Source</th>
-                <th className="p-3 font-medium">Contact</th>
-                <th className="p-3 font-medium">SMS</th>
-                <th className="p-3 font-medium">Reviewed</th>
-                <th className="p-3 font-medium" />
+                <th className="border-b bg-muted/60 p-3 font-medium">Submitted</th>
+                {fieldColumns.map((field) => (
+                  <th key={field.key} className="min-w-[220px] border-b bg-muted/60 p-3 font-medium">
+                    {field.label}
+                  </th>
+                ))}
+                <th className="border-b bg-muted/60 p-3 font-medium">Source</th>
+                <th className="border-b bg-muted/60 p-3 font-medium">Contact</th>
+                <th className="border-b bg-muted/60 p-3 font-medium">SMS</th>
+                <th className="border-b bg-muted/60 p-3 font-medium">Reviewed</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((row) => {
-                const { name, phone, email } = extractDisplayFields(row.answers);
-                const isExpanded = expanded.has(row.id);
-                return (
-                  <Fragment key={row.id}>
-                    <tr className="border-b last:border-0 hover:bg-muted/20">
-                      <td className="p-3">
-                        <input
-                          type="checkbox"
-                          checked={selected.has(row.id)}
-                          onChange={() => toggleOne(row.id)}
-                          aria-label="Select row"
-                        />
+              {visibleRows.map((row) => (
+                <tr key={row.id} className="transition-colors hover:bg-muted/20">
+                  <td className="sticky left-0 z-10 border-b border-r bg-background p-3">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(row.id)}
+                      onChange={() => toggleOne(row.id)}
+                      aria-label="Select row"
+                    />
+                  </td>
+                  <td className="border-b p-3 whitespace-nowrap text-muted-foreground">
+                    {new Date(row.submittedAt).toLocaleString()}
+                  </td>
+                  {fieldColumns.map((field) => {
+                    const value = getAnswerValue(row, field.key);
+                    return (
+                      <td key={`${row.id}-${field.key}`} className="max-w-[320px] border-b p-3 align-top">
+                        <span className="whitespace-pre-wrap break-words">{value || "—"}</span>
                       </td>
-                      <td className="p-3 whitespace-nowrap text-muted-foreground">
-                        {new Date(row.submittedAt).toLocaleString()}
-                      </td>
-                      <td className="p-3">{name || "—"}</td>
-                      <td className="p-3 font-mono text-xs">{phone || "—"}</td>
-                      <td className="p-3">{email || "—"}</td>
-                      <td className="p-3">{row.source ?? "—"}</td>
-                      <td className="p-3">
-                        <Badge
-                          variant="secondary"
-                          className={cn("text-xs", CONTACT_BADGE[row.contactSaveStatus])}
-                        >
-                          {row.contactSaveStatus.toLowerCase()}
-                        </Badge>
-                      </td>
-                      <td className="p-3">
-                        <span className="text-xs" title={row.smsError ?? undefined}>
-                          {row.smsStatus.toLowerCase()}
-                        </span>
-                      </td>
-                      <td className="p-3">{row.reviewedAt ? "Yes" : "No"}</td>
-                      <td className="p-3">
-                        <div className="flex items-center gap-3 whitespace-nowrap">
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
-                            aria-expanded={isExpanded}
-                            aria-controls={`response-data-${row.id}`}
-                            onClick={() => toggleExpanded(row.id)}
-                          >
-                            <ChevronDown
-                              className={cn(
-                                "h-3.5 w-3.5 transition-transform",
-                                isExpanded && "rotate-180",
-                              )}
-                            />
-                            {isExpanded ? "Hide data" : "View data"}
-                          </button>
-                          <Link
-                            href={`/dashboard/forms/${formId}/responses/${row.id}`}
-                            className="font-semibold text-muted-foreground hover:text-primary hover:underline"
-                          >
-                            Full page
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                    {isExpanded ? (
-                      <tr className="border-b bg-muted/15">
-                        <td colSpan={10} className="px-3 pb-4 pt-0">
-                          <div
-                            id={`response-data-${row.id}`}
-                            className="rounded-xl border border-border/60 bg-background p-4 shadow-sm"
-                          >
-                            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                              <p className="text-sm font-semibold">Full submitted data</p>
-                              <p className="text-xs text-muted-foreground">
-                                {row.answers.length} field{row.answers.length === 1 ? "" : "s"}
-                              </p>
-                            </div>
-                            <dl className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                              {row.answers.map((answer) => (
-                                <div
-                                  key={`${row.id}-${answer.fieldKey}`}
-                                  className="rounded-lg bg-muted/35 px-3 py-2"
-                                >
-                                  <dt className="text-xs font-medium text-muted-foreground">
-                                    {answer.fieldLabel}
-                                  </dt>
-                                  <dd className="mt-1 whitespace-pre-wrap break-words text-sm">
-                                    {answer.value || "—"}
-                                  </dd>
-                                </div>
-                              ))}
-                            </dl>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : null}
-                  </Fragment>
-                );
-              })}
+                    );
+                  })}
+                  <td className="border-b p-3">{row.source ?? "—"}</td>
+                  <td className="border-b p-3">
+                    <Badge
+                      variant="secondary"
+                      className={cn("text-xs", CONTACT_BADGE[row.contactSaveStatus])}
+                    >
+                      {row.contactSaveStatus.toLowerCase()}
+                    </Badge>
+                  </td>
+                  <td className="border-b p-3">
+                    <Badge variant="secondary" className={cn("text-xs", SMS_BADGE[row.smsStatus])}>
+                      {row.smsStatus.toLowerCase()}
+                    </Badge>
+                  </td>
+                  <td className="border-b p-3">
+                    <Badge variant={row.reviewedAt ? "secondary" : "outline"} className="text-xs">
+                      {row.reviewedAt ? "reviewed" : "open"}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
           {filtered.length === 0 ? (
@@ -289,9 +412,49 @@ export function ResponsesDashboard({
         </AppCardBody>
       </AppCard>
 
-      <p className="text-xs text-muted-foreground">
-        Showing {filtered.length} of {responses.length} responses for {formName}.
-      </p>
+      <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-muted-foreground">
+          Showing {filtered.length === 0 ? 0 : pageStart + 1}-
+          {Math.min(pageStart + pageSize, filtered.length)} of {filtered.length} filtered responses
+          for {formName}.
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPage(1);
+              setPageSize(Number(e.target.value));
+            }}
+            className="h-8 rounded-lg border bg-background px-2 text-xs"
+          >
+            <option value={10}>10 / page</option>
+            <option value={25}>25 / page</option>
+            <option value={50}>50 / page</option>
+            <option value={100}>100 / page</option>
+          </select>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={currentPage <= 1}
+            onClick={() => setPage((value) => Math.max(1, value - 1))}
+          >
+            Previous
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={currentPage >= totalPages}
+            onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
