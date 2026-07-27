@@ -9,6 +9,7 @@ import {
   AdminEmpty,
 } from "@/components/admin/admin-page-shell";
 import { StatusPill } from "@/components/admin/member-detail/member-detail-ui";
+import { ResellerAdminCharts } from "@/components/admin/resellers/reseller-admin-charts";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +35,9 @@ import {
   Ban,
   ExternalLink,
   Settings2,
+  MessageSquare,
+  Tags,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -49,9 +53,10 @@ function flashMessage(saved: string) {
   const map: Record<string, string> = {
     approved: "Reseller approved and portal access enabled.",
     rejected: "Application rejected.",
-    suspended: "Reseller suspended.",
+    suspended: "Reseller suspended. Portal and commission earning are blocked.",
     reactivated: "Reseller reactivated.",
     created: "New reseller created from member account.",
+    deleted: "Reseller account deleted. Owner was demoted to member.",
   };
   return map[saved] ?? "Changes saved.";
 }
@@ -73,6 +78,7 @@ function ResellerAvatar({ name }: { name: string }) {
 function ResellerCard({ r }: { r: ResellerRow }) {
   const rate = r.commissionRate.toNumber();
   const wallet = r.user.wallet;
+  const pricingPreview = r.countryPricing ?? [];
 
   return (
     <article
@@ -104,14 +110,27 @@ function ResellerCard({ r }: { r: ResellerRow }) {
             </p>
             <div className="flex flex-wrap gap-2 mt-3">
               <MetaChip icon={Percent} label={`${rate}% commission`} />
-              <MetaChip icon={Users} label={`${r._count.subUsers} sub-users`} />
+              <MetaChip
+                icon={Users}
+                label={`${r._count.subUsers} sub-users${r.suspendedSubUsers ? ` · ${r.suspendedSubUsers} suspended` : ""}`}
+              />
               <MetaChip
                 icon={Wallet}
                 label={`GHS ${r.commissionEarned.toFixed(2)} earned`}
               />
-              {r.domain && (
-                <MetaChip icon={Globe} label={r.domain} mono />
-              )}
+              <MetaChip
+                icon={MessageSquare}
+                label={`${r.smsLast30Days.toLocaleString()} SMS · 30d`}
+              />
+              <MetaChip
+                icon={Tags}
+                label={
+                  r._count.countryPricing > 0
+                    ? `${r._count.countryPricing} price routes`
+                    : "Platform defaults"
+                }
+              />
+              {r.domain && <MetaChip icon={Globe} label={r.domain} mono />}
               {r.branding?.primaryColor && (
                 <span
                   className="inline-flex items-center gap-1 rounded-md border border-border/50 px-2 py-0.5 text-[10px]"
@@ -125,9 +144,34 @@ function ResellerCard({ r }: { r: ResellerRow }) {
                 </span>
               )}
             </div>
+
+            {pricingPreview.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {pricingPreview.map((p) => (
+                  <span
+                    key={p.id}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border/50 bg-muted/30 px-2 py-0.5 text-[10px] font-medium"
+                  >
+                    <span className="font-mono font-semibold">{p.countryCode}</span>
+                    <span className="tabular-nums text-muted-foreground">
+                      {p.currency} {Number(p.sellPrice).toFixed(2)}
+                    </span>
+                  </span>
+                ))}
+                {r._count.countryPricing > pricingPreview.length && (
+                  <span className="text-[10px] text-muted-foreground self-center">
+                    +{r._count.countryPricing - pricingPreview.length} more
+                  </span>
+                )}
+              </div>
+            )}
+
             <p className="text-[10px] text-muted-foreground mt-2">
               Joined {formatDistanceToNow(r.createdAt, { addSuffix: true })} ·{" "}
               {format(r.createdAt, "MMM d, yyyy")}
+              {r.spendLast30Days > 0 && (
+                <> · Spend 30d GHS {r.spendLast30Days.toFixed(2)}</>
+              )}
             </p>
           </div>
         </div>
@@ -230,8 +274,75 @@ function MetaChip({
   );
 }
 
+function PlatformPricingPanel({
+  pricing,
+}: {
+  pricing: AdminResellersDashboard["platformPricing"];
+}) {
+  if (pricing.length === 0) {
+    return (
+      <AdminCard title="Platform wholesale rates" description="Reseller cost basis by country">
+        <AdminEmpty>No active SMS pricing routes configured.</AdminEmpty>
+      </AdminCard>
+    );
+  }
+
+  return (
+    <AdminCard
+      title="Platform wholesale rates"
+      description={`${pricing.length} active routes · member vs reseller cost`}
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
+          <thead>
+            <tr className="text-left text-xs text-muted-foreground border-b border-border/50">
+              <th className="pb-2 pr-3 font-medium">Country</th>
+              <th className="pb-2 pr-3 font-medium text-right">Member</th>
+              <th className="pb-2 pr-3 font-medium text-right">Reseller</th>
+              <th className="pb-2 pr-3 font-medium text-right">Cost</th>
+              <th className="pb-2 font-medium text-right">Margin</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/40">
+            {pricing.map((p) => {
+              const margin = p.resellerPrice - p.costPrice;
+              return (
+                <tr key={p.id} className="hover:bg-muted/20">
+                  <td className="py-2.5 pr-3">
+                    <span className="font-medium">{p.countryName}</span>
+                    <span className="ml-2 font-mono text-[10px] text-muted-foreground">
+                      {p.countryCode}
+                    </span>
+                  </td>
+                  <td className="py-2.5 pr-3 text-right tabular-nums text-muted-foreground">
+                    {p.currency} {p.memberPrice.toFixed(3)}
+                  </td>
+                  <td className="py-2.5 pr-3 text-right tabular-nums font-semibold">
+                    {p.currency} {p.resellerPrice.toFixed(3)}
+                  </td>
+                  <td className="py-2.5 pr-3 text-right tabular-nums text-muted-foreground">
+                    {p.currency} {p.costPrice.toFixed(3)}
+                  </td>
+                  <td
+                    className={cn(
+                      "py-2.5 text-right tabular-nums text-xs font-medium",
+                      margin >= 0 ? "text-emerald-600" : "text-destructive",
+                    )}
+                  >
+                    {p.currency} {margin.toFixed(3)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </AdminCard>
+  );
+}
+
 export function ResellersAdminView({ data, flash, filter }: Props) {
-  const { stats, candidates, pending, approved, suspended } = data;
+  const { stats, candidates, pending, approved, suspended, charts, platformPricing } = data;
 
   const list =
     filter === "pending"
@@ -261,12 +372,17 @@ export function ResellersAdminView({ data, flash, filter }: Props) {
       {flash?.error === "name" && (
         <AdminAlert variant="warning">Business name is required.</AdminAlert>
       )}
+      {flash?.error === "delete_confirm" && (
+        <AdminAlert variant="warning">
+          Type DELETE exactly to confirm permanent reseller removal.
+        </AdminAlert>
+      )}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <AdminStatCard
           label="Total partners"
           value={stats.total}
-          hint={`${stats.approved} active`}
+          hint={`${stats.approved} approved`}
           icon={Store}
           variant="primary"
         />
@@ -277,17 +393,32 @@ export function ResellersAdminView({ data, flash, filter }: Props) {
           variant={stats.pending > 0 ? "warning" : "default"}
         />
         <AdminStatCard
-          label="Sub-users"
-          value={stats.totalSubUsers.toLocaleString()}
+          label="Active sub-users"
+          value={stats.activeSubUsers.toLocaleString()}
+          hint={`${stats.totalSubUsers} total`}
           icon={Users}
         />
         <AdminStatCard
-        label="Commission accrued"
-        hint="Unpaid + paid ledger"
-        value={`GHS ${stats.totalCommissions.toFixed(2)}`}
+          label="SMS (30d)"
+          value={stats.totalSms30d.toLocaleString()}
+          hint={`GHS ${stats.totalSpend30d.toFixed(2)} spend`}
+          icon={Activity}
+        />
+        <AdminStatCard
+          label="Commission accrued"
+          hint="Unpaid + paid ledger"
+          value={`GHS ${stats.totalCommissions.toFixed(2)}`}
           icon={Wallet}
         />
+        <AdminStatCard
+          label="Price overrides"
+          value={stats.totalPricingOverrides}
+          hint={`${stats.platformPricingRoutes} platform routes`}
+          icon={Tags}
+        />
       </div>
+
+      <ResellerAdminCharts charts={charts} />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,340px)_1fr]">
         <AdminCard
@@ -399,7 +530,7 @@ export function ResellersAdminView({ data, flash, filter }: Props) {
                     ? "Suspended & rejected"
                     : "All resellers"
             }
-            description={`${list.length} shown`}
+            description={`${list.length} shown · Manage opens settings, pricing, suspend & delete`}
           >
             {list.length === 0 ? (
               <AdminEmpty>
@@ -416,6 +547,8 @@ export function ResellersAdminView({ data, flash, filter }: Props) {
             )}
           </AdminCard>
 
+          <PlatformPricingPanel pricing={platformPricing} />
+
           <div className="rounded-xl border border-border/50 bg-muted/15 px-4 py-3 text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
             <span className="inline-flex items-center gap-1">
               <Palette className="h-3.5 w-3.5" />
@@ -423,7 +556,7 @@ export function ResellersAdminView({ data, flash, filter }: Props) {
             </span>
             <span className="inline-flex items-center gap-1">
               <Ban className="h-3.5 w-3.5" />
-              Suspending blocks portal access; sub-users stop earning commissions
+              Suspend blocks portal access; delete removes the partner account permanently
             </span>
           </div>
         </div>

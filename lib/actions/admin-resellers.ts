@@ -11,10 +11,41 @@ function resellersPath(query?: Record<string, string>) {
   return `/admin/resellers${q}`;
 }
 
+function resellerDetailPath(resellerId: string, query?: Record<string, string>) {
+  const q = query ? `?${new URLSearchParams(query).toString()}` : "";
+  return `/admin/resellers/${resellerId}${q}`;
+}
+
+function redirectAfterResellerAction(
+  formData: FormData,
+  resellerId: string,
+  query: Record<string, string>,
+) {
+  const stayOnDetail = formData.get("returnTo") === "detail";
+  redirect(stayOnDetail ? resellerDetailPath(resellerId, query) : resellersPath(query));
+}
+
 async function requireAdmin() {
   const session = await getSession();
   if (!session || !isAdminRole(session.role)) redirect("/admin");
   return session;
+}
+
+/** Staff/enterprise roles must never be overwritten by reseller approve/suspend/delete. */
+const PROTECTED_USER_ROLES = new Set(["ADMIN", "SUPER_ADMIN", "ENTERPRISE"]);
+
+async function syncUserRoleForReseller(userId: string, nextRole: "RESELLER" | "MEMBER") {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+  if (!user || PROTECTED_USER_ROLES.has(user.role)) return;
+  if (nextRole === "MEMBER" && user.role !== "RESELLER") return;
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { role: nextRole },
+  });
 }
 
 export async function approveResellerAction(formData: FormData) {
@@ -29,10 +60,7 @@ export async function approveResellerAction(formData: FormData) {
     data: { status: "APPROVED", isActive: true, commissionRate },
   });
 
-  await prisma.user.update({
-    where: { id: reseller.userId },
-    data: { role: "RESELLER" },
-  });
+  await syncUserRoleForReseller(reseller.userId, "RESELLER");
 
   await prisma.auditLog.create({
     data: {
@@ -44,8 +72,9 @@ export async function approveResellerAction(formData: FormData) {
     },
   });
 
+  revalidatePath(`/admin/resellers/${resellerId}`);
   revalidatePath("/admin/resellers");
-  redirect(resellersPath({ saved: "approved" }));
+  redirectAfterResellerAction(formData, resellerId, { saved: "approved" });
 }
 
 export async function rejectResellerAction(formData: FormData) {
@@ -59,10 +88,7 @@ export async function rejectResellerAction(formData: FormData) {
     data: { status: "REJECTED", isActive: false },
   });
 
-  await prisma.user.update({
-    where: { id: reseller.userId },
-    data: { role: "MEMBER" },
-  });
+  await syncUserRoleForReseller(reseller.userId, "MEMBER");
 
   await prisma.auditLog.create({
     data: {
@@ -73,8 +99,9 @@ export async function rejectResellerAction(formData: FormData) {
     },
   });
 
+  revalidatePath(`/admin/resellers/${resellerId}`);
   revalidatePath("/admin/resellers");
-  redirect(resellersPath({ saved: "rejected" }));
+  redirectAfterResellerAction(formData, resellerId, { saved: "rejected" });
 }
 
 export async function suspendResellerAction(formData: FormData) {
@@ -87,10 +114,7 @@ export async function suspendResellerAction(formData: FormData) {
     data: { status: "SUSPENDED", isActive: false },
   });
 
-  await prisma.user.update({
-    where: { id: reseller.userId },
-    data: { role: "MEMBER" },
-  });
+  await syncUserRoleForReseller(reseller.userId, "MEMBER");
 
   await prisma.auditLog.create({
     data: {
@@ -101,8 +125,9 @@ export async function suspendResellerAction(formData: FormData) {
     },
   });
 
+  revalidatePath(`/admin/resellers/${resellerId}`);
   revalidatePath("/admin/resellers");
-  redirect(resellersPath({ saved: "suspended" }));
+  redirectAfterResellerAction(formData, resellerId, { saved: "suspended" });
 }
 
 export async function reactivateResellerAction(formData: FormData) {
@@ -115,10 +140,7 @@ export async function reactivateResellerAction(formData: FormData) {
     data: { status: "APPROVED", isActive: true },
   });
 
-  await prisma.user.update({
-    where: { id: reseller.userId },
-    data: { role: "RESELLER" },
-  });
+  await syncUserRoleForReseller(reseller.userId, "RESELLER");
 
   await prisma.auditLog.create({
     data: {
@@ -129,8 +151,9 @@ export async function reactivateResellerAction(formData: FormData) {
     },
   });
 
+  revalidatePath(`/admin/resellers/${resellerId}`);
   revalidatePath("/admin/resellers");
-  redirect(resellersPath({ saved: "reactivated" }));
+  redirectAfterResellerAction(formData, resellerId, { saved: "reactivated" });
 }
 
 export async function createResellerFromUserAction(formData: FormData) {
@@ -166,10 +189,7 @@ export async function createResellerFromUserAction(formData: FormData) {
     },
   });
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: { role: "RESELLER" },
-  });
+  await syncUserRoleForReseller(userId, "RESELLER");
 
   await prisma.auditLog.create({
     data: {
@@ -183,6 +203,44 @@ export async function createResellerFromUserAction(formData: FormData) {
 
   revalidatePath("/admin/resellers");
   redirect(resellersPath({ saved: "created" }));
+}
+
+export async function deleteResellerAction(formData: FormData) {
+  const session = await requireAdmin();
+  const resellerId = String(formData.get("resellerId"));
+  const confirmation = String(formData.get("confirmation") ?? "").trim().toUpperCase();
+
+  if (confirmation !== "DELETE") {
+    redirect(resellerDetailPath(resellerId, { error: "delete_confirm" }));
+  }
+
+  const reseller = await prisma.reseller.findUnique({
+    where: { id: resellerId },
+    select: { id: true, userId: true, businessName: true, status: true },
+  });
+  if (!reseller) redirect(resellersPath());
+
+  await syncUserRoleForReseller(reseller.userId, "MEMBER");
+
+  await prisma.$transaction([
+    prisma.auditLog.create({
+      data: {
+        actorId: session.userId,
+        action: "RESELLER_DELETED",
+        entityType: "Reseller",
+        entityId: reseller.id,
+        metadata: {
+          businessName: reseller.businessName,
+          previousStatus: reseller.status,
+          userId: reseller.userId,
+        },
+      },
+    }),
+    prisma.reseller.delete({ where: { id: reseller.id } }),
+  ]);
+
+  revalidatePath("/admin/resellers");
+  redirect(resellersPath({ saved: "deleted" }));
 }
 
 export async function updateResellerSettingsAction(formData: FormData) {

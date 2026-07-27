@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { getAdminResellerDetail } from "@/lib/admin/reseller-detail";
 import {
   AdminPage,
@@ -16,6 +16,7 @@ import {
   reactivateResellerAction,
   updateResellerSettingsAction,
   adminPayoutCommissionsAction,
+  deleteResellerAction,
 } from "@/lib/actions/admin-resellers";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,8 +30,23 @@ import {
   Percent,
   Globe,
   CheckCircle2,
+  Trash2,
+  Ban,
+  Tags,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+function detailFlash(saved?: string) {
+  const map: Record<string, string> = {
+    payout: "Unpaid commissions transferred to reseller wallet.",
+    updated: "Settings saved.",
+    approved: "Reseller approved and portal access enabled.",
+    rejected: "Application rejected.",
+    suspended: "Reseller suspended. Portal access is blocked.",
+    reactivated: "Reseller reactivated.",
+  };
+  return map[saved ?? ""] ?? "Action completed.";
+}
 
 export default async function AdminResellerDetailPage({
   params,
@@ -41,7 +57,7 @@ export default async function AdminResellerDetailPage({
 }) {
   const { id } = await params;
   const q = await searchParams;
-  const { reseller, unpaidCommissions, paidCommissions, smsLast30Days } =
+  const { reseller, unpaidCommissions, paidCommissions, smsLast30Days, pricingComparison, platformPricing } =
     await getAdminResellerDetail(id);
   const r = reseller;
   const wallet = r.user.wallet;
@@ -59,15 +75,16 @@ export default async function AdminResellerDetailPage({
       {q.saved && (
         <AdminAlert variant="success">
           <CheckCircle2 className="h-4 w-4 inline mr-2" />
-          {q.saved === "payout"
-            ? "Unpaid commissions transferred to reseller wallet."
-            : q.saved === "updated"
-              ? "Settings saved."
-              : "Action completed."}
+          {detailFlash(q.saved)}
         </AdminAlert>
       )}
       {q.error === "payout" && (
         <AdminAlert variant="warning">No unpaid commissions to payout.</AdminAlert>
+      )}
+      {q.error === "delete_confirm" && (
+        <AdminAlert variant="warning">
+          Type <strong>DELETE</strong> exactly in the danger zone to confirm permanent removal.
+        </AdminAlert>
       )}
 
       <div className="rounded-2xl border border-border/60 bg-card p-5 md:p-6 shadow-sm">
@@ -76,6 +93,11 @@ export default async function AdminResellerDetailPage({
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold">{r.businessName}</h1>
               <StatusPill status={r.status} />
+              {!r.isActive && (
+                <Badge variant="secondary" className="text-[10px]">
+                  Inactive
+                </Badge>
+              )}
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               {r.user.fullName} · <span className="font-mono">{r.user.phone}</span>
@@ -92,6 +114,7 @@ export default async function AdminResellerDetailPage({
               <>
                 <form action={approveResellerAction} className="flex items-center gap-2">
                   <input type="hidden" name="resellerId" value={r.id} />
+                  <input type="hidden" name="returnTo" value="detail" />
                   <Input
                     name="commissionRate"
                     type="number"
@@ -104,6 +127,7 @@ export default async function AdminResellerDetailPage({
                 </form>
                 <form action={rejectResellerAction}>
                   <input type="hidden" name="resellerId" value={r.id} />
+                  <input type="hidden" name="returnTo" value="detail" />
                   <Button type="submit" size="sm" variant="destructive">
                     Reject
                   </Button>
@@ -113,19 +137,30 @@ export default async function AdminResellerDetailPage({
             {r.status === "APPROVED" && (
               <form action={suspendResellerAction}>
                 <input type="hidden" name="resellerId" value={r.id} />
+                <input type="hidden" name="returnTo" value="detail" />
                 <Button type="submit" size="sm" variant="outline" className="text-destructive">
-                  Suspend
+                  <Ban className="h-3.5 w-3.5 mr-1" />
+                  Suspend account
                 </Button>
               </form>
             )}
             {(r.status === "SUSPENDED" || r.status === "REJECTED") && (
               <form action={reactivateResellerAction}>
                 <input type="hidden" name="resellerId" value={r.id} />
+                <input type="hidden" name="returnTo" value="detail" />
                 <Button type="submit" size="sm">
                   Reactivate
                 </Button>
               </form>
             )}
+            <Link
+              href="/reseller"
+              target="_blank"
+              rel="noreferrer"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              Open portal
+            </Link>
           </div>
         </div>
       </div>
@@ -233,24 +268,114 @@ export default async function AdminResellerDetailPage({
         </AdminCard>
       </div>
 
-      <AdminCard title="Country pricing" description={`${r.countryPricing.length} routes`}>
-        {r.countryPricing.length === 0 ? (
-          <AdminEmpty>Reseller uses platform default sell prices until they set pricing.</AdminEmpty>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {r.countryPricing.map((p) => (
-              <div
-                key={p.id}
-                className="rounded-lg border border-border/50 px-3 py-2 text-sm flex justify-between"
-              >
-                <span className="font-mono font-semibold">{p.countryCode}</span>
-                <span className="tabular-nums">
-                  {p.currency} {p.sellPrice.toString()}
-                </span>
+      <AdminCard
+        title="Reseller pricing"
+        description={
+          pricingComparison.length > 0
+            ? `${pricingComparison.length} sell-price overrides vs platform wholesale`
+            : "Partner uses platform defaults until they set custom rates"
+        }
+      >
+        {pricingComparison.length === 0 ? (
+          <div className="space-y-4">
+            <AdminEmpty>
+              No custom country pricing. Showing platform wholesale rates they would pay.
+            </AdminEmpty>
+            {platformPricing.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[560px]">
+                  <thead>
+                    <tr className="text-left text-xs text-muted-foreground border-b">
+                      <th className="pb-2 pr-3">Country</th>
+                      <th className="pb-2 pr-3 text-right">Wholesale</th>
+                      <th className="pb-2 pr-3 text-right">Member</th>
+                      <th className="pb-2 text-right">Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {platformPricing.map((p) => (
+                      <tr key={p.countryCode}>
+                        <td className="py-2.5 pr-3">
+                          <span className="font-medium">{p.countryName}</span>
+                          <span className="ml-2 font-mono text-[10px] text-muted-foreground">
+                            {p.countryCode}
+                          </span>
+                        </td>
+                        <td className="py-2.5 pr-3 text-right tabular-nums font-semibold">
+                          {p.currency} {p.resellerPrice.toFixed(3)}
+                        </td>
+                        <td className="py-2.5 pr-3 text-right tabular-nums text-muted-foreground">
+                          {p.currency} {p.memberPrice.toFixed(3)}
+                        </td>
+                        <td className="py-2.5 text-right tabular-nums text-muted-foreground">
+                          {p.currency} {p.costPrice.toFixed(3)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
+            )}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground border-b">
+                  <th className="pb-2 pr-3">Country</th>
+                  <th className="pb-2 pr-3 text-right">Sell price</th>
+                  <th className="pb-2 pr-3 text-right">Wholesale</th>
+                  <th className="pb-2 pr-3 text-right">Markup</th>
+                  <th className="pb-2">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {pricingComparison.map((p) => (
+                  <tr key={p.id}>
+                    <td className="py-2.5 pr-3">
+                      <span className="font-mono font-semibold">{p.countryCode}</span>
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums font-semibold">
+                      {p.currency} {p.sellPrice.toFixed(3)}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums text-muted-foreground">
+                      {p.wholesale != null
+                        ? `${p.currency} ${p.wholesale.toFixed(3)}`
+                        : "—"}
+                    </td>
+                    <td
+                      className={cn(
+                        "py-2.5 pr-3 text-right tabular-nums text-xs font-medium",
+                        p.margin == null
+                          ? "text-muted-foreground"
+                          : p.margin >= 0
+                            ? "text-emerald-600"
+                            : "text-destructive",
+                      )}
+                    >
+                      {p.margin == null
+                        ? "—"
+                        : `${p.margin >= 0 ? "+" : ""}${p.currency} ${p.margin.toFixed(3)}`}
+                    </td>
+                    <td className="py-2.5">
+                      {p.isActive ? (
+                        <Badge variant="outline" className="text-emerald-700 border-emerald-500/40">
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">Off</Badge>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
+        <p className="mt-3 text-[11px] text-muted-foreground inline-flex items-center gap-1">
+          <Tags className="h-3 w-3" />
+          Sell prices are set by the partner in the reseller portal; wholesale is your platform rate.
+        </p>
       </AdminCard>
 
       <AdminCard title="Sub-users" description={`${r.subUsers.length} clients`}>
@@ -323,6 +448,58 @@ export default async function AdminResellerDetailPage({
             ))}
           </ul>
         )}
+      </AdminCard>
+
+      <AdminCard
+        title="Danger zone"
+        description="Suspend temporarily, or permanently delete this reseller account"
+      >
+        <div className="space-y-5">
+          {r.status === "APPROVED" && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+              <p className="text-sm font-medium mb-1">Suspend partner</p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Blocks portal access and commission earning. Sub-users stop sending under this partner.
+                The owner account remains as a member. You can reactivate later.
+              </p>
+              <form action={suspendResellerAction}>
+                <input type="hidden" name="resellerId" value={r.id} />
+                <input type="hidden" name="returnTo" value="detail" />
+                <Button type="submit" size="sm" variant="outline" className="text-amber-700 border-amber-500/40">
+                  <Ban className="h-3.5 w-3.5 mr-1" />
+                  Suspend reseller
+                </Button>
+              </form>
+            </div>
+          )}
+
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+            <p className="text-sm font-medium mb-1 flex items-center gap-2">
+              <Trash2 className="h-4 w-4 text-destructive" />
+              Delete reseller account
+            </p>
+            <p className="text-xs text-muted-foreground mb-3">
+              Permanently removes this partner, their pricing overrides, sub-user links, and commission
+              ledger. The owner user is demoted to MEMBER and kept. Type <strong>DELETE</strong> to confirm.
+            </p>
+            <form action={deleteResellerAction} className="flex flex-col sm:flex-row gap-2 sm:items-end max-w-md">
+              <input type="hidden" name="resellerId" value={r.id} />
+              <div className="space-y-2 flex-1">
+                <Label htmlFor="delete-confirm">Confirmation</Label>
+                <Input
+                  id="delete-confirm"
+                  name="confirmation"
+                  placeholder="Type DELETE"
+                  autoComplete="off"
+                  required
+                />
+              </div>
+              <Button type="submit" variant="destructive" size="sm">
+                Delete forever
+              </Button>
+            </form>
+          </div>
+        </div>
       </AdminCard>
     </AdminPage>
   );
