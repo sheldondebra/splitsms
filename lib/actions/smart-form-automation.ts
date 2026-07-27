@@ -74,3 +74,43 @@ export async function retryRespondentSmsAction(formId: string, responseId: strin
   revalidatePath(`/dashboard/forms/${formId}/responses/${responseId}`);
   return result;
 }
+
+export async function retryRespondentSmsBulkAction(formId: string, responseIds: string[]) {
+  const session = await getSession();
+  if (!session) return { ok: false as const, error: "Not signed in." };
+
+  const ids = [...new Set(responseIds)].slice(0, 200);
+  if (ids.length === 0) {
+    return { ok: false as const, error: "Select at least one response." };
+  }
+
+  let sent = 0;
+  let failed = 0;
+  let skipped = 0;
+  const errors: string[] = [];
+
+  for (const responseId of ids) {
+    const result = await retryRespondentSms(session.userId, formId, responseId);
+    if (result.ok) {
+      sent++;
+      continue;
+    }
+    if (result.error === "SMS was not sent.") {
+      skipped++;
+      continue;
+    }
+    failed++;
+    if (errors.length < 3) errors.push(result.error);
+  }
+
+  revalidatePath(`/dashboard/forms/${formId}/responses`);
+
+  return {
+    ok: true as const,
+    attempted: ids.length,
+    sent,
+    failed,
+    skipped,
+    errors,
+  };
+}

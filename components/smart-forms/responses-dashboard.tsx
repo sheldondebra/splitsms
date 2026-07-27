@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { extractDisplayFields } from "@/lib/smart-forms/export";
+import { retryRespondentSmsBulkAction } from "@/lib/actions/smart-form-automation";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { AppCard, AppCardBody } from "@/components/dashboard/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ClipboardList, Download, Search } from "lucide-react";
+import { ClipboardList, Download, RefreshCw, Search, Send } from "lucide-react";
 
 export type ResponseRow = {
   id: string;
@@ -36,8 +39,24 @@ const SMS_BADGE: Record<string, string> = {
   SKIPPED: "bg-muted text-muted-foreground",
 };
 
+const SMS_SENT_STATUSES = new Set(["SENT", "DELIVERED"]);
+
 function getAnswerValue(row: ResponseRow, fieldKey: string) {
   return row.answers.find((answer) => answer.fieldKey === fieldKey)?.value ?? "";
+}
+
+function isNameOrPhoneField(field: { key: string; label: string }) {
+  const text = `${field.key} ${field.label}`.toLowerCase();
+  return text.includes("name") || text.includes("phone");
+}
+
+function buildSendToUrl(rows: ResponseRow[]) {
+  const phones = rows
+    .map((row) => extractDisplayFields(row.answers).phone)
+    .filter((phone): phone is string => Boolean(phone));
+  if (phones.length === 0) return "";
+  const params = new URLSearchParams({ to: phones.join(",") });
+  return `/dashboard/send?${params.toString()}`;
 }
 
 export function ResponsesDashboard({
@@ -49,9 +68,12 @@ export function ResponsesDashboard({
   formName: string;
   responses: ResponseRow[];
 }) {
+  const router = useRouter();
+  const [isRetrying, startRetry] = useTransition();
   const [query, setQuery] = useState("");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [contactFilter, setContactFilter] = useState("all");
+  const [smsFilter, setSmsFilter] = useState("all");
   const [reviewedFilter, setReviewedFilter] = useState("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [fieldFilters, setFieldFilters] = useState<Record<string, string>>({});
@@ -75,6 +97,11 @@ export function ResponsesDashboard({
     return Array.from(columns, ([key, label]) => ({ key, label }));
   }, [responses]);
 
+  const filterableFieldColumns = useMemo(
+    () => fieldColumns.filter((field) => !isNameOrPhoneField(field)),
+    [fieldColumns],
+  );
+
   const fieldFilterOptions = useMemo(() => {
     const options = new Map<string, string[]>();
     for (const field of fieldColumns) {
@@ -94,6 +121,16 @@ export function ResponsesDashboard({
     return responses.filter((row) => {
       if (sourceFilter !== "all" && row.source !== sourceFilter) return false;
       if (contactFilter !== "all" && row.contactSaveStatus !== contactFilter) return false;
+      if (smsFilter === "sent" && !SMS_SENT_STATUSES.has(row.smsStatus)) return false;
+      if (smsFilter === "not_sent" && SMS_SENT_STATUSES.has(row.smsStatus)) return false;
+      if (
+        smsFilter !== "all" &&
+        smsFilter !== "sent" &&
+        smsFilter !== "not_sent" &&
+        row.smsStatus !== smsFilter
+      ) {
+        return false;
+      }
       if (reviewedFilter === "reviewed" && !row.reviewedAt) return false;
       if (reviewedFilter === "unreviewed" && row.reviewedAt) return false;
       for (const [fieldKey, value] of activeFieldFilters) {
@@ -106,7 +143,7 @@ export function ResponsesDashboard({
       const hay = [name, phone, email, ...row.answers.map((a) => a.value)].join(" ").toLowerCase();
       return hay.includes(q);
     });
-  }, [responses, query, sourceFilter, contactFilter, reviewedFilter, fieldFilters]);
+  }, [responses, query, sourceFilter, contactFilter, smsFilter, reviewedFilter, fieldFilters]);
 
   const stats = useMemo(
     () => [
@@ -136,6 +173,10 @@ export function ResponsesDashboard({
   const pageStart = (currentPage - 1) * pageSize;
   const visibleRows = filtered.slice(pageStart, pageStart + pageSize);
   const fieldFilterCount = Object.values(fieldFilters).filter((value) => value.trim()).length;
+  const selectedRows = responses.filter((row) => selected.has(row.id));
+  const selectedSendHref = buildSendToUrl(selectedRows);
+  const resendScopeRows = selected.size > 0 ? selectedRows : filtered;
+  const resendTargetRows = resendScopeRows.filter((row) => !SMS_SENT_STATUSES.has(row.smsStatus));
 
   function toggleAll() {
     if (selected.size === filtered.length) {
@@ -161,6 +202,28 @@ export function ResponsesDashboard({
       if (value) next[fieldKey] = value;
       else delete next[fieldKey];
       return next;
+    });
+  }
+
+  function retryNotSentSms() {
+    if (resendTargetRows.length === 0) {
+      toast.info("No not-sent SMS to resend.");
+      return;
+    }
+
+    startRetry(async () => {
+      const result = await retryRespondentSmsBulkAction(
+        formId,
+        resendTargetRows.map((row) => row.id),
+      );
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("SMS resend complete", {
+        description: `${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped.`,
+      });
+      router.refresh();
     });
   }
 
@@ -226,6 +289,22 @@ export function ResponsesDashboard({
             <option value="PENDING">Pending</option>
           </select>
           <select
+            value={smsFilter}
+            onChange={(e) => {
+              setPage(1);
+              setSmsFilter(e.target.value);
+            }}
+            className="h-10 rounded-lg border bg-background px-3 text-sm"
+          >
+            <option value="all">All SMS status</option>
+            <option value="sent">SMS sent</option>
+            <option value="not_sent">SMS not sent</option>
+            <option value="FAILED">Failed</option>
+            <option value="PENDING">Pending</option>
+            <option value="NONE">None</option>
+            <option value="SKIPPED">Skipped</option>
+          </select>
+          <select
             value={reviewedFilter}
             onChange={(e) => {
               setPage(1);
@@ -251,8 +330,33 @@ export function ResponsesDashboard({
             Every submitted field is shown as a column. Use dropdown filters to narrow the data.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span>
+        <div className="flex flex-wrap items-center gap-2">
+          {selectedSendHref ? (
+            <a
+              href={selectedSendHref}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 gap-1.5")}
+            >
+              <Send className="h-3.5 w-3.5" />
+              Send SMS to selected
+            </a>
+          ) : (
+            <Button type="button" variant="outline" size="sm" disabled className="h-8 gap-1.5">
+              <Send className="h-3.5 w-3.5" />
+              Send SMS to selected
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5"
+            disabled={isRetrying || resendTargetRows.length === 0}
+            onClick={retryNotSentSms}
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", isRetrying && "animate-spin")} />
+            {selected.size > 0 ? "Resend selected not sent" : "Resend all not sent"}
+          </Button>
+          <span className="text-xs text-muted-foreground">
             {fieldColumns.length} data field{fieldColumns.length === 1 ? "" : "s"} detected
           </span>
           {fieldFilterCount > 0 ? (
@@ -294,14 +398,15 @@ export function ResponsesDashboard({
         ))}
       </div>
 
-      {fieldColumns.length > 0 ? (
+      {filterableFieldColumns.length > 0 ? (
         <AppCard>
           <AppCardBody className="p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="text-sm font-semibold">Data field filters</p>
                 <p className="text-xs text-muted-foreground">
-                  Filters are created automatically from the fields submitted with this form.
+                  Filters are created from submitted fields. Name and phone fields stay visible but are
+                  not included here.
                 </p>
               </div>
               {fieldFilterCount > 0 ? (
@@ -311,7 +416,7 @@ export function ResponsesDashboard({
               ) : null}
             </div>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {fieldColumns.map((field) => (
+              {filterableFieldColumns.map((field) => (
                 <label key={field.key} className="space-y-1.5">
                   <span className="block truncate text-xs font-medium text-muted-foreground">
                     {field.label}
