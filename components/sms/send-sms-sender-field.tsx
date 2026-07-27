@@ -82,36 +82,40 @@ function CompactRegisterPanel({
   const [validation, setValidation] = useState<ValidationState>({ status: "idle" });
 
   useEffect(() => {
-    setValue(initialName);
+    const timer = window.setTimeout(() => {
+      setValue(initialName);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [initialName]);
 
   useEffect(() => {
-    const normalized = normalizeSenderIdValue(value);
-    if (!normalized) {
-      setValidation({ status: "idle" });
-      return;
-    }
-
-    if (registeredValues.has(normalized)) {
-      setValidation({
-        status: "error",
-        message: "You already registered this Sender ID — pick it from the list above.",
-        blocked: false,
-      });
-      return;
-    }
-
-    if (normalized.length < SENDER_ID_MIN_LENGTH) {
-      setValidation({
-        status: "error",
-        message: `Sender ID must be at least ${SENDER_ID_MIN_LENGTH} characters`,
-        blocked: false,
-      });
-      return;
-    }
-
-    setValidation({ status: "checking" });
     const timer = window.setTimeout(() => {
+      const normalized = normalizeSenderIdValue(value);
+      if (!normalized) {
+        setValidation({ status: "idle" });
+        return;
+      }
+
+      if (registeredValues.has(normalized)) {
+        setValidation({
+          status: "error",
+          message: "You already registered this Sender ID — pick it from the list above.",
+          blocked: false,
+        });
+        return;
+      }
+
+      if (normalized.length < SENDER_ID_MIN_LENGTH) {
+        setValidation({
+          status: "error",
+          message: `Sender ID must be at least ${SENDER_ID_MIN_LENGTH} characters`,
+          blocked: false,
+        });
+        return;
+      }
+
+      setValidation({ status: "checking" });
       void previewSenderIdRegistrationAction(normalized).then((result) => {
         if (!result.ok) {
           setValidation({
@@ -130,11 +134,16 @@ function CompactRegisterPanel({
 
   useEffect(() => {
     if (!state.ok || !state.value) return;
-    onRegistered(state.value);
-    setValue("");
-    setReason("");
-    setValidation({ status: "idle" });
-    router.refresh();
+
+    const timer = window.setTimeout(() => {
+      onRegistered(state.value ?? "");
+      setValue("");
+      setReason("");
+      setValidation({ status: "idle" });
+      router.refresh();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [state, onRegistered, router]);
 
   const reasonTrimmed = reason.trim();
@@ -391,15 +400,19 @@ export function SendSmsSenderField({
   const selectedPending = registeredSenders.find((s) => s.value === value && s.status === "PENDING");
 
   useEffect(() => {
-    if (allowPlatformSearch) return;
-    if (!hasRegistered) {
-      setShowRegister(true);
-      setDraftName(normalizeSenderIdValue(value));
-      return;
-    }
-    if (!value || !registeredSenders.some((s) => s.value === value)) {
-      onChange(pickInitialSender(registeredSenders));
-    }
+    const timer = window.setTimeout(() => {
+      if (allowPlatformSearch) return;
+      if (!hasRegistered) {
+        setShowRegister(true);
+        setDraftName(normalizeSenderIdValue(value));
+        return;
+      }
+      if (!value || !registeredSenders.some((s) => s.value === value)) {
+        onChange(pickInitialSender(registeredSenders));
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [allowPlatformSearch, hasRegistered, registeredSenders, value, onChange]);
 
   function handleSelectChange(next: string) {

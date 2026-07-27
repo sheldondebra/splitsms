@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { AdminReceiptActions } from "@/components/admin/admin-receipt-actions";
@@ -81,13 +81,6 @@ function waitingStatusCopy(insight: PaymentInsight) {
   if (insight.tone === "danger") return "No action needed — checkout ended without payment";
   if (insight.providerPaid || insight.canAutoCredit) return "Ready to credit — use the button or Sync online";
   return "Waiting on customer or provider — no action needed yet";
-}
-
-function insightIcon(tone: PaymentInsight["tone"]) {
-  if (tone === "success") return CheckCircle2;
-  if (tone === "danger") return XCircle;
-  if (tone === "warning") return Zap;
-  return Clock;
 }
 
 function insightBoxClass(tone: PaymentInsight["tone"]) {
@@ -211,11 +204,17 @@ function QuickGuide() {
   );
 }
 
+function InsightIcon({ tone, className }: { tone: PaymentInsight["tone"]; className?: string }) {
+  if (tone === "success") return <CheckCircle2 className={className} />;
+  if (tone === "danger") return <XCircle className={className} />;
+  if (tone === "warning") return <Zap className={className} />;
+  return <Clock className={className} />;
+}
+
 function InsightCallout({ insight }: { insight: PaymentInsight }) {
-  const Icon = insightIcon(insight.tone);
   return (
     <div className={cn("rounded-lg border px-3 py-2 flex gap-2.5", insightBoxClass(insight.tone))}>
-      <Icon className="h-4 w-4 shrink-0 mt-0.5 opacity-80" />
+      <InsightIcon tone={insight.tone} className="h-4 w-4 shrink-0 mt-0.5 opacity-80" />
       <div className="min-w-0 text-xs leading-snug">
         <p className="font-semibold">{insight.label}</p>
         {insight.detail && <p className="mt-0.5 opacity-90">{insight.detail}</p>}
@@ -498,10 +497,6 @@ export function AdminPaymentsView({
       ? initialTab
       : "action";
   const [tab, setTab] = useState<TabId>(resolvedInitial);
-
-  useEffect(() => {
-    setTab(resolvedInitial);
-  }, [resolvedInitial]);
 
   const actionRows = pending.filter(needsAdminAction);
   const waitingRows = pending.filter((row) => !needsAdminAction(row));

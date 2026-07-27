@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    ".tmp-plugin-zip/**",
+    "wordpress-plugin/**/webpack.config.js",
   ]),
 ]);
 

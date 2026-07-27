@@ -43,6 +43,34 @@ async function logAdminSmsAction(
   });
 }
 
+export type AdminSystemSyncTask = {
+  id: string;
+  label: string;
+  ok: boolean;
+  detail: string;
+};
+
+export type AdminSystemSyncState = {
+  status: "idle" | "success" | "error";
+  message: string;
+  submittedAt?: number;
+  tasks: AdminSystemSyncTask[];
+  summary?: {
+    pendingProcessed: number;
+    sent: number;
+    failed: number;
+    remaining: number;
+    deliveryRowsUpdated: number;
+    scheduledProcessed: number;
+    resumedPaused: number;
+    providerBalancesChecked: number;
+  };
+};
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unexpected error";
+}
+
 export async function adminProcessPendingSmsAction(formData: FormData) {
   const session = await requireAdmin();
   const limit = Math.min(200, Math.max(1, Number(formData.get("limit") ?? SMS_CRON_BATCH_LIMIT)));
@@ -111,23 +139,56 @@ export async function adminProcessPendingSmsAction(formData: FormData) {
   redirect(`${returnTo}?${q.toString()}`);
 }
 
-export async function adminSystemSyncAction(formData: FormData) {
-  const session = await requireSuperAdmin();
-  const returnTo = String(formData.get("returnTo") ?? "/admin").trim() || "/admin";
+async function runAdminSystemSync(session: { userId: string }) {
   const limit = 200;
   const maxRounds = 5;
+  const tasks: AdminSystemSyncTask[] = [];
 
   await warmDatabaseConnection().catch(() => undefined);
 
-  const resumedPaused = await prisma.campaign.updateMany({
-    where: {
-      status: "PAUSED",
-      scheduledAt: { lte: new Date() },
-    },
-    data: { status: "SCHEDULED" },
-  });
+  let resumedPaused = 0;
+  try {
+    const result = await prisma.campaign.updateMany({
+      where: {
+        status: "PAUSED",
+        scheduledAt: { lte: new Date() },
+      },
+      data: { status: "SCHEDULED" },
+    });
+    resumedPaused = result.count;
+    tasks.push({
+      id: "paused",
+      label: "Due paused campaigns",
+      ok: true,
+      detail: `${resumedPaused} resumed`,
+    });
+  } catch (error) {
+    tasks.push({
+      id: "paused",
+      label: "Due paused campaigns",
+      ok: false,
+      detail: errorMessage(error),
+    });
+  }
 
-  const scheduled = await processDueScheduledCampaigns(50);
+  let scheduledProcessed = 0;
+  try {
+    const scheduled = await processDueScheduledCampaigns(50);
+    scheduledProcessed = scheduled.processed;
+    tasks.push({
+      id: "scheduled",
+      label: "Scheduled campaigns",
+      ok: true,
+      detail: `${scheduledProcessed} started`,
+    });
+  } catch (error) {
+    tasks.push({
+      id: "scheduled",
+      label: "Scheduled campaigns",
+      ok: false,
+      detail: errorMessage(error),
+    });
+  }
 
   let totalProcessed = 0;
   let totalSent = 0;
@@ -135,34 +196,141 @@ export async function adminSystemSyncAction(formData: FormData) {
   let remaining = 0;
   const failedSamples: Array<{ recipient: string; memberName: string; reason?: string | null }> = [];
 
-  for (let round = 0; round < maxRounds; round++) {
-    const sms = await processPendingMessagesBatch(limit);
-    totalProcessed += sms.processed;
-    totalSent += sms.sent;
-    totalFailed += sms.failed;
-    remaining = sms.remaining;
-    for (const sample of sms.failedSamples) {
-      if (failedSamples.length < 5) failedSamples.push(sample);
+  try {
+    for (let round = 0; round < maxRounds; round++) {
+      const sms = await processPendingMessagesBatch(limit);
+      totalProcessed += sms.processed;
+      totalSent += sms.sent;
+      totalFailed += sms.failed;
+      remaining = sms.remaining;
+      for (const sample of sms.failedSamples) {
+        if (failedSamples.length < 5) failedSamples.push(sample);
+      }
+      if (sms.processed === 0 || sms.remaining === 0) break;
     }
-    if (sms.processed === 0 || sms.remaining === 0) break;
+    tasks.push({
+      id: "pending-sms",
+      label: "Pending SMS",
+      ok: true,
+      detail: `${totalProcessed} processed, ${totalSent} sent, ${totalFailed} failed`,
+    });
+  } catch (error) {
+    tasks.push({
+      id: "pending-sms",
+      label: "Pending SMS",
+      ok: false,
+      detail: errorMessage(error),
+    });
   }
 
-  const [dlr, balances, sendingCampaigns, stuckAlert, balanceAlerts] = await Promise.all([
-    syncPendingMnotifyDeliveries(200).catch(() => ({ campaigns: 0, rowsUpdated: 0 })),
-    fetchAllSmsProviderBalances().catch(() => []),
-    syncAllSendingCampaigns(100).catch(() => 0),
-    maybeNotifySlackStuckSms().catch(() => ({ notified: false as const, delayedCount: 0 })),
-    maybeNotifyLowBalanceAlerts().catch(() => ({
-      checked: 0,
-      alerts: 0,
-      notified: 0,
-      sent: [],
-    })),
-  ]);
+  let dlr = { campaigns: 0, rowsUpdated: 0 };
+  try {
+    dlr = await syncPendingMnotifyDeliveries(200);
+    tasks.push({
+      id: "delivery",
+      label: "In-transit delivery reports",
+      ok: true,
+      detail: `${dlr.rowsUpdated} updated across ${dlr.campaigns} campaign checks`,
+    });
+  } catch (error) {
+    tasks.push({
+      id: "delivery",
+      label: "In-transit delivery reports",
+      ok: false,
+      detail: errorMessage(error),
+    });
+  }
+
+  let balances: Awaited<ReturnType<typeof fetchAllSmsProviderBalances>> = [];
+  try {
+    balances = await fetchAllSmsProviderBalances();
+    const failed = balances.filter((balance) => balance.status === "error").length;
+    tasks.push({
+      id: "balances",
+      label: "Provider balances",
+      ok: failed === 0,
+      detail:
+        failed === 0
+          ? `${balances.length} provider balances checked`
+          : `${failed} of ${balances.length} provider balances failed`,
+    });
+  } catch (error) {
+    tasks.push({
+      id: "balances",
+      label: "Provider balances",
+      ok: false,
+      detail: errorMessage(error),
+    });
+  }
+
+  let sendingCampaigns = 0;
+  try {
+    sendingCampaigns = await syncAllSendingCampaigns(100);
+    tasks.push({
+      id: "campaign-status",
+      label: "Campaign status refresh",
+      ok: true,
+      detail: `${sendingCampaigns} sending campaign${sendingCampaigns === 1 ? "" : "s"} checked`,
+    });
+  } catch (error) {
+    tasks.push({
+      id: "campaign-status",
+      label: "Campaign status refresh",
+      ok: false,
+      detail: errorMessage(error),
+    });
+  }
+
+  let stuckAlert: { notified: boolean; delayedCount: number; deduped?: boolean } = {
+    notified: false,
+    delayedCount: 0,
+  };
+  try {
+    stuckAlert = await maybeNotifySlackStuckSms();
+    tasks.push({
+      id: "stuck-alerts",
+      label: "Stuck SMS alert check",
+      ok: true,
+      detail:
+        stuckAlert.delayedCount > 0
+          ? `${stuckAlert.delayedCount} delayed SMS detected`
+          : "No delayed SMS detected",
+    });
+  } catch (error) {
+    tasks.push({
+      id: "stuck-alerts",
+      label: "Stuck SMS alert check",
+      ok: false,
+      detail: errorMessage(error),
+    });
+  }
+
+  let balanceAlerts: Awaited<ReturnType<typeof maybeNotifyLowBalanceAlerts>> = {
+    checked: 0,
+    alerts: 0,
+    notified: 0,
+    sent: [],
+  };
+  try {
+    balanceAlerts = await maybeNotifyLowBalanceAlerts();
+    tasks.push({
+      id: "balance-alerts",
+      label: "Low-balance alert check",
+      ok: true,
+      detail: `${balanceAlerts.checked} checked, ${balanceAlerts.alerts} alert${balanceAlerts.alerts === 1 ? "" : "s"}`,
+    });
+  } catch (error) {
+    tasks.push({
+      id: "balance-alerts",
+      label: "Low-balance alert check",
+      ok: false,
+      detail: errorMessage(error),
+    });
+  }
 
   const result = {
-    resumedPaused: resumedPaused.count,
-    scheduledProcessed: scheduled.processed,
+    resumedPaused,
+    scheduledProcessed,
     pendingProcessed: totalProcessed,
     sent: totalSent,
     failed: totalFailed,
@@ -174,6 +342,7 @@ export async function adminSystemSyncAction(formData: FormData) {
     balanceAlerts,
     stuckAlert,
     failedSamples,
+    tasks,
   };
 
   await prisma.auditLog.create({
@@ -182,7 +351,7 @@ export async function adminSystemSyncAction(formData: FormData) {
       action: "SYSTEM_SYNC_TRIGGERED",
       entityType: "System",
       entityId: "global",
-      metadata: result,
+      metadata: result as Parameters<typeof prisma.auditLog.create>[0]["data"]["metadata"],
     },
   });
 
@@ -194,18 +363,73 @@ export async function adminSystemSyncAction(formData: FormData) {
   revalidatePath("/admin/routes");
   revalidatePath("/admin/mnotify");
 
+  return result;
+}
+
+export async function adminSystemSyncAction(formData: FormData) {
+  const session = await requireSuperAdmin();
+  const returnTo = String(formData.get("returnTo") ?? "/admin").trim() || "/admin";
+  const result = await runAdminSystemSync(session);
+
   const q = new URLSearchParams({
     systemSync: "1",
-    processed: String(totalProcessed),
-    sent: String(totalSent),
-    failed: String(totalFailed),
-    remaining: String(remaining),
-    dlr: String(dlr.rowsUpdated),
-    scheduled: String(scheduled.processed),
-    resumed: String(resumedPaused.count),
-    balances: String(balances.length),
+    processed: String(result.pendingProcessed),
+    sent: String(result.sent),
+    failed: String(result.failed),
+    remaining: String(result.remaining),
+    dlr: String(result.deliveryRowsUpdated),
+    scheduled: String(result.scheduledProcessed),
+    resumed: String(result.resumedPaused),
+    balances: String(result.providerBalancesChecked),
   });
   redirect(`${returnTo}?${q.toString()}`);
+}
+
+export async function adminSystemSyncStateAction(
+  _previousState: AdminSystemSyncState,
+  formData: FormData,
+): Promise<AdminSystemSyncState> {
+  void _previousState;
+  void formData;
+
+  try {
+    const session = await requireSuperAdmin();
+    const result = await runAdminSystemSync(session);
+    const failedTasks = result.tasks.filter((task) => !task.ok);
+    return {
+      status: failedTasks.length > 0 ? "error" : "success",
+      message:
+        failedTasks.length > 0
+          ? `System sync finished with ${failedTasks.length} issue${failedTasks.length === 1 ? "" : "s"}.`
+          : "System sync complete.",
+      submittedAt: Date.now(),
+      tasks: result.tasks,
+      summary: {
+        pendingProcessed: result.pendingProcessed,
+        sent: result.sent,
+        failed: result.failed,
+        remaining: result.remaining,
+        deliveryRowsUpdated: result.deliveryRowsUpdated,
+        scheduledProcessed: result.scheduledProcessed,
+        resumedPaused: result.resumedPaused,
+        providerBalancesChecked: result.providerBalancesChecked,
+      },
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: errorMessage(error),
+      submittedAt: Date.now(),
+      tasks: [
+        {
+          id: "system-sync",
+          label: "System sync",
+          ok: false,
+          detail: errorMessage(error),
+        },
+      ],
+    };
+  }
 }
 
 /** Re-queue failed messages after provider issues are fixed (e.g. mNotify top-up). */

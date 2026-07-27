@@ -55,24 +55,29 @@ export function OnboardingWizard({
   const [finishPending, setFinishPending] = useState(false);
 
   useEffect(() => {
-    if (senderState.ok) {
-      setStep(2);
-      router.refresh();
-    } else if (senderState.errorCode) {
-      const code =
-        senderState.errorCode === "reason" ? "sender_reason_required" : senderState.errorCode;
-      setSenderError(friendlyError(code) ?? "Something went wrong. Please try again.");
-    }
+    const timer = window.setTimeout(() => {
+      if (senderState.ok) {
+        setStep(2);
+        router.refresh();
+      } else if (senderState.errorCode) {
+        const code =
+          senderState.errorCode === "reason" ? "sender_reason_required" : senderState.errorCode;
+        setSenderError(friendlyError(code) ?? "Something went wrong. Please try again.");
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [senderState, router]);
 
   useEffect(() => {
-    if (!value || value.length < SENDER_ID_MIN_LENGTH) {
-      setSenderError(null);
-      return;
-    }
-
-    setChecking(true);
     const timer = window.setTimeout(() => {
+      if (!value || value.length < SENDER_ID_MIN_LENGTH) {
+        setSenderError(null);
+        setChecking(false);
+        return;
+      }
+
+      setChecking(true);
       void previewSenderIdRegistrationAction(value).then((result) => {
         setChecking(false);
         if (!result.ok) setSenderError(result.error);

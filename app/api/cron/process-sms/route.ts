@@ -9,6 +9,9 @@ import { syncPendingMnotifyDeliveries } from "@/lib/sms/sync-mnotify-dlr";
 
 /** When workers are enabled, only pick up messages the worker failed to claim in time. */
 const STALE_PENDING_MS = 30 * 1000;
+const SMS_DRAIN_INTERVAL_MS = 5 * 1000;
+const SMS_DRAIN_MAX_RUNTIME_MS = 52 * 1000;
+const SMS_DRAIN_MAX_ROUNDS = 9;
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -21,6 +24,58 @@ function authorized(request: Request) {
   return auth === `Bearer ${secret}`;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+type SmsBatchResult = Awaited<ReturnType<typeof processPendingMessagesBatch>>;
+
+async function drainPendingSmsEveryFiveSeconds({
+  limit,
+  minAgeMs,
+  maxRounds,
+}: {
+  limit: number;
+  minAgeMs?: number;
+  maxRounds: number;
+}) {
+  const startedAt = Date.now();
+  const batches: Array<
+    Pick<SmsBatchResult, "processed" | "sent" | "failed" | "remaining" | "staleOnly">
+  > = [];
+  const failedSamples: SmsBatchResult["failedSamples"] = [];
+  let processed = 0;
+  let sent = 0;
+  let failed = 0;
+  let remaining = 0;
+  let staleOnly = Boolean(minAgeMs);
+
+  for (let round = 0; round < maxRounds; round++) {
+    const batch = await processPendingMessagesBatch(limit, { minAgeMs });
+    processed += batch.processed;
+    sent += batch.sent;
+    failed += batch.failed;
+    remaining = batch.remaining;
+    staleOnly = batch.staleOnly;
+    for (const sample of batch.failedSamples) {
+      if (failedSamples.length < 5) failedSamples.push(sample);
+    }
+    batches.push({
+      processed: batch.processed,
+      sent: batch.sent,
+      failed: batch.failed,
+      remaining: batch.remaining,
+      staleOnly: batch.staleOnly,
+    });
+
+    if (batch.processed === 0 || batch.remaining === 0) break;
+    if (Date.now() + SMS_DRAIN_INTERVAL_MS - startedAt >= SMS_DRAIN_MAX_RUNTIME_MS) break;
+    await sleep(SMS_DRAIN_INTERVAL_MS);
+  }
+
+  return { processed, sent, failed, remaining, staleOnly, failedSamples, batches };
+}
+
 export async function GET(request: Request) {
   if (!authorized(request)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -31,12 +86,19 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const smsLimit = Math.min(80, Math.max(1, Number(params.get("limit") ?? SMS_CRON_BATCH_LIMIT)));
   const campaignLimit = Math.min(20, Math.max(1, Number(params.get("campaigns") ?? 10)));
+  const smsRounds = Math.min(
+    SMS_DRAIN_MAX_ROUNDS,
+    Math.max(1, Number(params.get("rounds") ?? SMS_DRAIN_MAX_ROUNDS)),
+  );
+  const forcePending = params.get("force") === "1" || process.env.SMS_CRON_FORCE_PENDING === "true";
 
   const campaigns = await processDueScheduledCampaigns(campaignLimit);
   const workersEnabled = smsWorkersEnabled();
 
-  const sms = await processPendingMessagesBatch(smsLimit, {
-    minAgeMs: workersEnabled ? STALE_PENDING_MS : undefined,
+  const sms = await drainPendingSmsEveryFiveSeconds({
+    limit: smsLimit,
+    minAgeMs: workersEnabled && !forcePending ? STALE_PENDING_MS : undefined,
+    maxRounds: smsRounds,
   });
 
   const dlr =
@@ -83,6 +145,7 @@ export async function GET(request: Request) {
     dlr,
     slack,
     balances,
-    mode: workersEnabled ? "stale-fallback" : "inline",
+    mode: workersEnabled && !forcePending ? "stale-fallback" : "inline-drain",
+    forcePending,
   });
 }

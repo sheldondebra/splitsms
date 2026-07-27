@@ -48,22 +48,22 @@ export function SenderIdRequestForm({ onRegistered }: { onRegistered?: () => voi
   const [submittedValue, setSubmittedValue] = useState("");
 
   useEffect(() => {
-    if (!value) {
-      setValidation({ status: "idle" });
-      return;
-    }
-
-    if (value.length < SENDER_ID_MIN_LENGTH) {
-      setValidation({
-        status: "error",
-        message: `Sender ID must be at least ${SENDER_ID_MIN_LENGTH} characters`,
-        blocked: false,
-      });
-      return;
-    }
-
-    setValidation({ status: "checking" });
     const timer = window.setTimeout(() => {
+      if (!value) {
+        setValidation({ status: "idle" });
+        return;
+      }
+
+      if (value.length < SENDER_ID_MIN_LENGTH) {
+        setValidation({
+          status: "error",
+          message: `Sender ID must be at least ${SENDER_ID_MIN_LENGTH} characters`,
+          blocked: false,
+        });
+        return;
+      }
+
+      setValidation({ status: "checking" });
       void previewSenderIdRegistrationAction(value).then((result) => {
         if (!result.ok) {
           setValidation({
@@ -83,13 +83,17 @@ export function SenderIdRequestForm({ onRegistered }: { onRegistered?: () => voi
   useEffect(() => {
     if (!state.ok || !state.value) return;
 
-    setSubmittedValue(state.value);
-    setSuccessOpen(true);
-    setValue("");
-    setReason("");
-    setValidation({ status: "idle" });
-    onRegistered?.();
-    router.refresh();
+    const timer = window.setTimeout(() => {
+      setSubmittedValue(state.value ?? "");
+      setSuccessOpen(true);
+      setValue("");
+      setReason("");
+      setValidation({ status: "idle" });
+      onRegistered?.();
+      router.refresh();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [state, router, onRegistered]);
 
   const reasonTrimmed = reason.trim();

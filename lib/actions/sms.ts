@@ -236,28 +236,21 @@ export async function sendSmsAction(formData: FormData): Promise<SendSmsResult> 
 
   const priority = resolveMessagePriority({ channel: "dashboard", body });
 
-  const messages = await prisma.$transaction(async (tx) => {
-    const created = [];
-    for (const recipient of recipients) {
-      created.push(
-        await tx.message.create({
-          data: {
-            userId: session.userId,
-            campaignId: campaign.id,
-            recipient,
-            body,
-            countryCode,
-            senderId,
-            smsUnits: units,
-            cost: costPerUnit * units,
-            status: "PENDING",
-            priority,
-            channel: "dashboard",
-          },
-        }),
-      );
-    }
-    return created;
+  const messages = await prisma.message.createManyAndReturn({
+    data: recipients.map((recipient) => ({
+      userId: session.userId,
+      campaignId: campaign.id,
+      recipient,
+      body,
+      countryCode,
+      senderId,
+      smsUnits: units,
+      cost: costPerUnit * units,
+      status: "PENDING",
+      priority,
+      channel: "dashboard",
+    })),
+    select: { id: true },
   });
 
   try {

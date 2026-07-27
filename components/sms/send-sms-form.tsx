@@ -196,8 +196,12 @@ export function SendSmsForm({
     const saved = loadSendCompose(userId);
     if (!saved) return;
 
-    applySavedSnapshot(saved);
-    setRestoredNotice("local");
+    const timer = window.setTimeout(() => {
+      applySavedSnapshot(saved);
+      setRestoredNotice("local");
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [applySavedSnapshot, initialDraft, userId]);
 
   const composeSnapshot = useMemo<SendComposeSnapshot>(

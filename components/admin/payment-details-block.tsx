@@ -35,12 +35,18 @@ const ROW_KEY_ICONS: Record<string, LucideIcon> = {
   paymentId: Hash,
 };
 
-function resolveInstrumentIcon(instrument: PaymentInstrumentDetails | null): LucideIcon {
+function InstrumentIcon({
+  instrument,
+  className,
+}: {
+  instrument: PaymentInstrumentDetails | null;
+  className?: string;
+}) {
   const channel = instrument?.channel?.toLowerCase() ?? "";
-  if (channel.includes("mobile") || instrument?.network) return Smartphone;
-  if (channel.includes("bank")) return Building2;
-  if (channel.includes("card") || instrument?.last4) return CreditCard;
-  return Wallet;
+  if (channel.includes("mobile") || instrument?.network) return <Smartphone className={className} />;
+  if (channel.includes("bank")) return <Building2 className={className} />;
+  if (channel.includes("card") || instrument?.last4) return <CreditCard className={className} />;
+  return <Wallet className={className} />;
 }
 
 export function PaymentDetailsBlock({
@@ -59,7 +65,6 @@ export function PaymentDetailsBlock({
   const rows = instrumentDetailRows(instrument);
   const refs = instrumentReferenceRows(instrument, paymentId, providerReference);
   const summary = formatInstrumentLabel(instrument) ?? "Payment details";
-  const Icon = resolveInstrumentIcon(instrument);
   const subtitle = instrument?.payerName ?? instrument?.payerEmail ?? null;
 
   if (rows.length === 0 && refs.length === 0 && !summary) return null;
@@ -80,7 +85,7 @@ export function PaymentDetailsBlock({
         )}
       >
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-          <Icon className="h-3.5 w-3.5" />
+          <InstrumentIcon instrument={instrument} className="h-3.5 w-3.5" />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block font-medium text-foreground truncate">{summary}</span>

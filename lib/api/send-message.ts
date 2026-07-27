@@ -58,29 +58,25 @@ export async function apiSendMessages(ctx: ApiContext, input: SendSmsInput) {
     },
   });
 
-  const messages = await prisma.$transaction(async (tx) => {
-    const created = [];
-    for (const recipient of recipientList) {
-      created.push(
-        await tx.message.create({
-          data: {
-            userId: ctx.user.id,
-            campaignId: campaign.id,
-            recipient,
-            body: input.message,
-            senderId: approvedSender,
-            countryCode: input.countryCode,
-            smsUnits: units,
-            cost: ctx.isSandbox ? 0 : costPerUnit * units,
-            status: "PENDING",
-            isSandbox: ctx.isSandbox,
-            priority: ctx.isSandbox ? "MEDIUM" : resolveMessagePriority({ channel: "api", body: input.message }),
-            channel: "api",
-          },
-        }),
-      );
-    }
-    return created;
+  const priority = ctx.isSandbox
+    ? "MEDIUM"
+    : resolveMessagePriority({ channel: "api", body: input.message });
+  const messages = await prisma.message.createManyAndReturn({
+    data: recipientList.map((recipient) => ({
+      userId: ctx.user.id,
+      campaignId: campaign.id,
+      recipient,
+      body: input.message,
+      senderId: approvedSender,
+      countryCode: input.countryCode,
+      smsUnits: units,
+      cost: ctx.isSandbox ? 0 : costPerUnit * units,
+      status: "PENDING",
+      isSandbox: ctx.isSandbox,
+      priority,
+      channel: "api",
+    })),
+    select: { id: true },
   });
 
   if (!ctx.isSandbox) {
@@ -100,7 +96,6 @@ export async function apiSendMessages(ctx: ApiContext, input: SendSmsInput) {
   }
 
   const ids: string[] = messages.map((m) => m.id);
-  const priority = resolveMessagePriority({ channel: "api", body: input.message });
 
   if (ctx.isSandbox) {
     for (const message of messages) {

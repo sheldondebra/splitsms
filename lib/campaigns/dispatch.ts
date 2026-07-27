@@ -134,26 +134,22 @@ export async function dispatchCampaign(campaignId: string) {
     body: campaign.message,
   });
 
-  const createdMessages = [];
-  for (const item of bodies) {
-    createdMessages.push(
-      await prisma.message.create({
-        data: {
-          userId: campaign.userId,
-          campaignId: campaign.id,
-          recipient: item.recipient,
-          body: item.body,
-          countryCode,
-          senderId: campaign.senderId,
-          smsUnits: item.units,
-          cost: costPerUnit * item.units,
-          status: "PENDING",
-          priority,
-          channel: "campaign",
-        },
-      }),
-    );
-  }
+  const createdMessages = await prisma.message.createManyAndReturn({
+    data: bodies.map((item) => ({
+      userId: campaign.userId,
+      campaignId: campaign.id,
+      recipient: item.recipient,
+      body: item.body,
+      countryCode,
+      senderId: campaign.senderId,
+      smsUnits: item.units,
+      cost: costPerUnit * item.units,
+      status: "PENDING",
+      priority,
+      channel: "campaign",
+    })),
+    select: { id: true },
+  });
 
   await enqueueSmsJobsInline(
     createdMessages.map((msg) => ({
