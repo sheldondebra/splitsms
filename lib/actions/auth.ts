@@ -27,6 +27,8 @@ import {
 import { generateUniqueAccountNumber } from "@/lib/auth/account-number";
 import { getSession } from "@/lib/auth/session";
 import { isEmailConfiguredAsync } from "@/lib/email/config";
+import { sendEmail } from "@/lib/email";
+import { accountWelcomeEmailContent } from "@/lib/email/templates";
 import type { OtpDeliveryChannel } from "@/lib/auth/otp";
 import { getCountryByCode } from "@/lib/countries-data";
 import {
@@ -166,6 +168,27 @@ async function grantWelcomeCredits(userId: string) {
     where: { userId, balance: 0 },
     data: { balance: 5 },
   });
+}
+
+async function sendWelcomeEmailIfAvailable(user: {
+  id: string;
+  fullName: string;
+  email?: string | null;
+}) {
+  const email = user.email?.trim().toLowerCase();
+  if (!email) return;
+  if (!(await isEmailConfiguredAsync())) return;
+
+  const { subject, text, html } = accountWelcomeEmailContent({
+    memberName: user.fullName,
+  });
+  await sendEmail({
+    to: email,
+    toName: user.fullName,
+    subject,
+    text,
+    html,
+  }).catch(() => undefined);
 }
 
 async function attachResellerInviteFromForm(userId: string, formData: FormData) {
@@ -671,6 +694,7 @@ export async function verifyOtpAction(formData: FormData) {
 
   if (otpPurpose === "SIGNUP_VERIFY") {
     await grantWelcomeCredits(user!.id);
+    await sendWelcomeEmailIfAvailable(user!);
   }
 
   await logAuthEvent("PHONE_VERIFIED", { phone }, user!.id);

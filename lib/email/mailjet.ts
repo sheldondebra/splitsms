@@ -46,11 +46,11 @@ export async function sendMailjetEmail(
   }
 
   if (config.sandbox) {
-    console.info("[Mailjet sandbox] Would send:", {
-      to: params.to,
-      subject: params.subject,
-      from: config.fromEmail,
-    });
+    return {
+      ok: false,
+      error:
+        "Mailjet sandbox mode is enabled. Disable sandbox to deliver real emails.",
+    };
   }
 
   const auth = Buffer.from(`${config.apiKey}:${config.apiSecret}`).toString("base64");
@@ -71,7 +71,6 @@ export async function sendMailjetEmail(
         Subject: params.subject,
         TextPart: params.text,
         HTMLPart: params.html ?? params.text.replace(/\n/g, "<br>"),
-        ...(config.sandbox ? { SandboxMode: true } : {}),
       },
     ],
   };
@@ -101,13 +100,6 @@ export async function sendMailjetEmail(
       ok: false,
       error: formatMailjetError(data, "Mailjet rejected the message"),
       status: res.status,
-    };
-  }
-
-  if (config.sandbox) {
-    return {
-      ok: true,
-      messageId: "sandbox",
     };
   }
 

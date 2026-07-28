@@ -17,6 +17,7 @@ export async function deductSmsCredits(
   const billableUnits = units * price.creditsPerSms;
   await assertUserCanSendSms(userId, billableUnits);
   const providerCost = units * price.platformCost;
+  let creditsAfter = 0;
 
   await prisma.$transaction(async (tx) => {
     const credit = await tx.smsCredit.findUnique({ where: { userId } });
@@ -54,9 +55,13 @@ export async function deductSmsCredits(
         },
       },
     });
+
+    creditsAfter = creditsBefore - billableUnits;
   });
 
   await recordSmsCommission(userId, units, countryCode, messageId);
+  const { ensureLowBalanceNotification } = await import("@/lib/notifications");
+  await ensureLowBalanceNotification(userId, creditsAfter).catch(() => undefined);
 }
 
 export async function refundSmsCredits(

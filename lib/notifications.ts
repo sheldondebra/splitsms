@@ -1,6 +1,9 @@
 import { cache } from "react";
 import { prisma } from "@/lib/db";
 import type { NotificationType, Prisma } from "@/lib/generated/prisma/client";
+import { sendEmail } from "@/lib/email";
+import { lowCreditBalanceEmailContent } from "@/lib/email/templates";
+import { getSiteUrl } from "@/lib/site-config";
 
 export type NotificationListItem = {
   id: string;
@@ -108,6 +111,25 @@ export async function ensureLowBalanceNotification(userId: string, balance: numb
   });
   if (existing) return existing;
   await emitWalletLowBalance(userId, balance);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { fullName: true, email: true },
+  });
+  if (user?.email) {
+    const { subject, text, html } = lowCreditBalanceEmailContent({
+      memberName: user.fullName,
+      balance,
+      threshold: 10,
+      topupUrl: `${getSiteUrl()}/dashboard/wallet`,
+    });
+    await sendEmail({
+      to: user.email,
+      toName: user.fullName,
+      subject,
+      text,
+      html,
+    }).catch(() => undefined);
+  }
   return createNotification(
     userId,
     "LOW_BALANCE",

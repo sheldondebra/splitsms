@@ -65,6 +65,77 @@ If you received this, your email provider is configured correctly for OTP and tr
   return { subject, text, html };
 }
 
+export function accountWelcomeEmailContent(params: {
+  memberName: string;
+  dashboardUrl?: string;
+}) {
+  const firstName = params.memberName.trim().split(/\s+/)[0] || "there";
+  const dashboardUrl = params.dashboardUrl ?? `${getSiteUrl()}/dashboard`;
+  const subject = `Welcome to ${siteName}`;
+  const text = `Hi ${firstName},
+
+Welcome to ${siteName}. Your account is now active.
+
+Next steps:
+- Complete your profile
+- Top up wallet or use free credits
+- Send your first SMS campaign
+
+Open dashboard: ${dashboardUrl}
+
+— ${siteName}`;
+
+  const html = marketingEmailLayout({
+    headline: `Welcome to ${siteName}`,
+    preheader: "Your account is active.",
+    greeting: `Hi ${firstName},`,
+    bodyHtml: textToEmailParagraphs(
+      "Welcome to SplitSMS. Your account is now active.\n\nYou can complete your profile, top up your wallet, and send your first SMS campaign from your dashboard.",
+    ),
+    ctaHref: dashboardUrl,
+    ctaLabel: "Open dashboard",
+    footerNote: "If this wasn't you, contact support immediately.",
+  });
+
+  return { subject, text, html };
+}
+
+export function lowCreditBalanceEmailContent(params: {
+  memberName: string;
+  balance: number;
+  threshold?: number;
+  topupUrl?: string;
+}) {
+  const firstName = params.memberName.trim().split(/\s+/)[0] || "there";
+  const threshold = params.threshold ?? 10;
+  const topupUrl = params.topupUrl ?? `${getSiteUrl()}/dashboard/wallet`;
+  const subject = `${siteName}: Low SMS credit balance`;
+  const text = `Hi ${firstName},
+
+Your SMS credit balance is low: ${params.balance} credits remaining.
+
+Top up now to avoid failed message delivery.
+Top up wallet: ${topupUrl}
+
+Low-balance threshold: ${threshold} credits.
+
+— ${siteName}`;
+
+  const html = marketingEmailLayout({
+    headline: "Low SMS credit balance",
+    preheader: `${params.balance} credits remaining`,
+    greeting: `Hi ${firstName},`,
+    bodyHtml: textToEmailParagraphs(
+      `Your SMS credit balance is low: ${params.balance} credits remaining.\n\nTop up now to avoid failed message delivery.`,
+    ),
+    ctaHref: topupUrl,
+    ctaLabel: "Top up wallet",
+    footerNote: `Low-balance threshold: ${threshold} credits.`,
+  });
+
+  return { subject, text, html };
+}
+
 export function senderIdAdminAlertContent(params: {
   value: string;
   countryCode: string;
