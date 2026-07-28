@@ -30,20 +30,17 @@ export async function ensureResellerInviteCode(resellerId: string): Promise<stri
 
   for (let attempt = 0; attempt < 12; attempt++) {
     const inviteCode = randomBytes(6).toString("base64url").slice(0, 8);
-    try {
-      const updated = await prisma.reseller.update({
-        where: { id: resellerId, inviteCode: null },
-        data: { inviteCode },
-        select: { inviteCode: true },
-      });
-      if (updated.inviteCode) return updated.inviteCode;
-    } catch {
-      const row = await prisma.reseller.findUnique({
-        where: { id: resellerId },
-        select: { inviteCode: true },
-      });
-      if (row?.inviteCode) return row.inviteCode;
-    }
+    const updated = await prisma.reseller.updateMany({
+      where: { id: resellerId, inviteCode: null },
+      data: { inviteCode },
+    });
+    if (updated.count > 0) return inviteCode;
+
+    const row = await prisma.reseller.findUnique({
+      where: { id: resellerId },
+      select: { inviteCode: true },
+    });
+    if (row?.inviteCode) return row.inviteCode;
   }
 
   const row = await prisma.reseller.findUnique({
