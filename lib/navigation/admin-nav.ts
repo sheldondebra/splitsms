@@ -27,6 +27,8 @@ import {
   Banknote,
 } from "lucide-react";
 
+import type { AdminPermission } from "@/lib/auth/admin-permissions";
+
 export type AdminNavItem = {
   href: string;
   label: string;
@@ -37,6 +39,8 @@ export type AdminNavItem = {
     | "open-support-tickets"
     | "operations-attention"
     | "pending-reseller-payouts";
+  /** Omit = all admin roles. Super Admin always sees every item. */
+  permission?: AdminPermission | readonly AdminPermission[];
 };
 
 export type AdminNavSection = {
@@ -51,65 +55,66 @@ export const adminNavSections: AdminNavSection[] = [
     label: "Main",
     items: [
       { href: "/admin", label: "Overview", icon: LayoutDashboard },
-      { href: "/admin/operations", label: "Operations", icon: Activity, badge: "operations-attention" },
-      { href: "/admin/general", label: "Settings", icon: Settings },
+      { href: "/admin/operations", label: "Operations", icon: Activity, badge: "operations-attention", permission: "operations.read" },
+      { href: "/admin/general", label: "Settings", icon: Settings, permission: "settings.read" },
     ],
   },
   {
     id: "users",
     label: "Users",
     items: [
-      { href: "/admin/members", label: "Members", icon: Users },
-      { href: "/admin/staff", label: "Staff & roles", icon: UserCog },
-      { href: "/admin/activity", label: "Activity logs", icon: History },
-      { href: "/admin/outreach", label: "Bulk messages", icon: MessagesSquare },
-      { href: "/admin/resellers", label: "Resellers", icon: Store },
+      { href: "/admin/members", label: "Members", icon: Users, permission: "members.read" },
+      { href: "/admin/staff", label: "Staff & roles", icon: UserCog, permission: ["staff.read", "staff.write"] },
+      { href: "/admin/activity", label: "Activity logs", icon: History, permission: "activity.read" },
+      { href: "/admin/outreach", label: "Bulk messages", icon: MessagesSquare, permission: "members.write" },
+      { href: "/admin/resellers", label: "Resellers", icon: Store, permission: "members.read" },
       {
         href: "/admin/reseller-payouts",
         label: "Reseller payouts",
         icon: Banknote,
         badge: "pending-reseller-payouts",
+        permission: "payments.read",
       },
-      { href: "/admin/enterprise", label: "Enterprise", icon: Building2 },
+      { href: "/admin/enterprise", label: "Enterprise", icon: Building2, permission: "members.read" },
     ],
   },
   {
     id: "revenue",
     label: "Revenue",
     items: [
-      { href: "/admin/payments", label: "Payments", icon: CreditCard, badge: "pending-payments" },
-      { href: "/admin/payments/transactions", label: "Provider transactions", icon: ArrowLeftRight },
-      { href: "/admin/payments/settings", label: "Payment settings", icon: SlidersHorizontal },
-      { href: "/admin/billing", label: "Billing & promos", icon: TicketPercent },
-      { href: "/admin/pricing", label: "SMS pricing", icon: DollarSign },
+      { href: "/admin/payments", label: "Payments", icon: CreditCard, badge: "pending-payments", permission: "payments.read" },
+      { href: "/admin/payments/transactions", label: "Provider transactions", icon: ArrowLeftRight, permission: "payments.read" },
+      { href: "/admin/payments/settings", label: "Payment settings", icon: SlidersHorizontal, permission: "payments.settings" },
+      { href: "/admin/billing", label: "Billing & promos", icon: TicketPercent, permission: "payments.write" },
+      { href: "/admin/pricing", label: "SMS pricing", icon: DollarSign, permission: "pricing.write" },
     ],
   },
   {
     id: "sms",
     label: "SMS platform",
     items: [
-      { href: "/admin/sender-ids", label: "Sender IDs", icon: BadgeCheck, badge: "pending-sender-ids" },
-      { href: "/admin/messages", label: "SMS logs", icon: Send },
-      { href: "/admin/routes", label: "Routes", icon: Route },
-      { href: "/admin/providers", label: "Providers", icon: Layers3 },
+      { href: "/admin/sender-ids", label: "Sender IDs", icon: BadgeCheck, badge: "pending-sender-ids", permission: "sender_ids.read" },
+      { href: "/admin/messages", label: "SMS logs", icon: Send, permission: "operations.read" },
+      { href: "/admin/routes", label: "Routes", icon: Route, permission: "routes.write" },
+      { href: "/admin/providers", label: "Providers", icon: Layers3, permission: "providers.write" },
     ],
   },
   {
     id: "products",
     label: "Products",
     items: [
-      { href: "/admin/forms", label: "Smart Forms", icon: FileText },
-      { href: "/admin/campaigns", label: "Campaigns", icon: Megaphone },
-      { href: "/admin/support", label: "Support", icon: LifeBuoy, badge: "open-support-tickets" },
+      { href: "/admin/forms", label: "Smart Forms", icon: FileText, permission: "members.read" },
+      { href: "/admin/campaigns", label: "Campaigns", icon: Megaphone, permission: "operations.read" },
+      { href: "/admin/support", label: "Support", icon: LifeBuoy, badge: "open-support-tickets", permission: "support.read" },
     ],
   },
   {
     id: "insights",
     label: "Insights",
     items: [
-      { href: "/admin/api-logs", label: "API logs", icon: ScrollText },
-      { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-      { href: "/admin/fraud", label: "Fraud", icon: ShieldAlert },
+      { href: "/admin/api-logs", label: "API logs", icon: ScrollText, permission: "activity.read" },
+      { href: "/admin/analytics", label: "Analytics", icon: BarChart3, permission: "activity.read" },
+      { href: "/admin/fraud", label: "Fraud", icon: ShieldAlert, permission: "activity.read" },
     ],
   },
 ];

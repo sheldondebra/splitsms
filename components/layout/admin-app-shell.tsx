@@ -10,6 +10,8 @@ import { HeaderAccountMenu } from "@/components/layout/header-account-menu";
 import { AdminSystemSyncButton } from "@/components/admin/admin-system-sync-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { HeaderAccountProfile } from "@/lib/user/header-account-types";
+import type { AdminActor } from "@/lib/auth/admin-route-access";
+import { filterAdminNavSections } from "@/lib/auth/admin-route-access";
 import { getAdminPageTitle } from "@/lib/navigation/admin-nav";
 import { Shield } from "lucide-react";
 import type { AdminNavItem } from "@/lib/navigation/admin-nav";
@@ -18,10 +20,19 @@ type AdminAppShellProps = {
   children: React.ReactNode;
   subtitle?: string;
   profile: HeaderAccountProfile;
+  staffAccess?: AdminActor;
+  banner?: React.ReactNode;
   badges?: Partial<Record<NonNullable<AdminNavItem["badge"]>, number>>;
 };
 
-export function AdminAppShell({ children, subtitle, profile, badges }: AdminAppShellProps) {
+export function AdminAppShell({
+  children,
+  subtitle,
+  profile,
+  staffAccess,
+  banner,
+  badges,
+}: AdminAppShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const title = getAdminPageTitle(pathname);
@@ -32,9 +43,10 @@ export function AdminAppShell({ children, subtitle, profile, badges }: AdminAppS
 
   return (
     <div className="flex min-h-[100dvh] bg-background">
-      <AdminSidebar badges={badges} className="hidden md:flex" />
+      <AdminSidebar badges={badges} staffAccess={staffAccess} className="hidden md:flex" />
 
       <div className="flex flex-1 flex-col min-w-0 w-full max-w-[100vw]">
+        {banner}
         <AdminMobileHeader
           onMenuOpen={() => setMenuOpen(true)}
           subtitle={subtitle}
@@ -101,7 +113,12 @@ export function AdminAppShell({ children, subtitle, profile, badges }: AdminAppS
         </main>
       </div>
 
-      <AdminNavDrawer open={menuOpen} onClose={() => setMenuOpen(false)} badges={badges} />
+      <AdminNavDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        badges={badges}
+        staffAccess={staffAccess}
+      />
     </div>
   );
 }

@@ -6,13 +6,16 @@ import type { AdminNavItem } from "@/lib/navigation/admin-nav";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import type { AdminActor } from "@/lib/auth/admin-route-access";
+
 type AdminNavDrawerProps = {
   open: boolean;
   onClose: () => void;
   badges?: Partial<Record<NonNullable<AdminNavItem["badge"]>, number>>;
+  staffAccess?: AdminActor;
 };
 
-export function AdminNavDrawer({ open, onClose, badges }: AdminNavDrawerProps) {
+export function AdminNavDrawer({ open, onClose, badges, staffAccess }: AdminNavDrawerProps) {
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -40,6 +43,7 @@ export function AdminNavDrawer({ open, onClose, badges }: AdminNavDrawerProps) {
       >
         <AdminSidebar
           badges={badges}
+          staffAccess={staffAccess}
           onNavigate={onClose}
           className="h-full w-[min(100vw,240px)] shadow-2xl"
         />

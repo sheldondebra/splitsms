@@ -13,10 +13,11 @@ export type SessionPayload = {
   userId: string;
   role: UserRole;
   phone: string;
-  /** Present when an admin is viewing the portal as a reseller. */
+  /** Present when an admin is viewing the portal as a reseller or staff user. */
   impersonatorId?: string;
   impersonatedResellerId?: string;
   impersonatedBusinessName?: string;
+  impersonatedStaffName?: string;
 };
 
 function getSecret() {
@@ -84,14 +85,28 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
   const imp = await readImpersonationCookie();
   if (!imp || imp.adminUserId !== real.userId) return real;
 
-  return {
-    userId: imp.targetUserId,
-    role: "RESELLER",
-    phone: imp.targetPhone,
-    impersonatorId: real.userId,
-    impersonatedResellerId: imp.resellerId,
-    impersonatedBusinessName: imp.businessName,
-  };
+  if (imp.kind === "staff" && imp.targetRole) {
+    return {
+      userId: imp.targetUserId,
+      role: imp.targetRole,
+      phone: imp.targetPhone,
+      impersonatorId: real.userId,
+      impersonatedStaffName: imp.targetName,
+    };
+  }
+
+  if (imp.resellerId) {
+    return {
+      userId: imp.targetUserId,
+      role: "RESELLER",
+      phone: imp.targetPhone,
+      impersonatorId: real.userId,
+      impersonatedResellerId: imp.resellerId,
+      impersonatedBusinessName: imp.businessName,
+    };
+  }
+
+  return real;
 });
 
 export async function clearSession() {

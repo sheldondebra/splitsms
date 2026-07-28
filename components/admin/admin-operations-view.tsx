@@ -204,7 +204,7 @@ function SystemHealthCard({ data }: { data: OpsData }) {
     {
       label: "Gateways",
       value: health.smsGateway ? "SMS ready" : "Not configured",
-      detail: `${health.activePaymentGateways} payment · Mailjet ${health.mailjet ? "on" : "off"}`,
+      detail: `${health.activePaymentGateways} payment · Email ${health.mailjet ? "on" : "off"}`,
       ok: health.smsGateway,
     },
   ];

@@ -13,6 +13,7 @@ const SAVED_MESSAGES: Record<string, string> = {
 const ERROR_MESSAGES: Record<string, string> = {
   forbidden: "You do not have permission to manage staff.",
   duplicate: "A user with this phone already exists.",
+  duplicate_email: "That email is already in use.",
   notfound: "Staff user not found.",
   self: "You cannot perform this action on your own account.",
   name: "Enter a valid full name.",

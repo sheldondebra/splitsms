@@ -26,7 +26,7 @@ import {
 } from "@/lib/auth/phone-auth";
 import { generateUniqueAccountNumber } from "@/lib/auth/account-number";
 import { getSession } from "@/lib/auth/session";
-import { isMailjetConfiguredAsync } from "@/lib/email/config";
+import { isEmailConfiguredAsync } from "@/lib/email/config";
 import type { OtpDeliveryChannel } from "@/lib/auth/otp";
 import { getCountryByCode } from "@/lib/countries-data";
 import {
@@ -95,7 +95,7 @@ async function emailOtpDelivery(email: string): Promise<{
 }> {
   return {
     email,
-    channel: (await isMailjetConfiguredAsync()) ? "email" : "sms",
+    channel: (await isEmailConfiguredAsync()) ? "email" : "sms",
   };
 }
 
@@ -802,7 +802,7 @@ export async function forgotPasswordAction(formData: FormData) {
   const user = await findUserByIdentifier(identifier);
 
   if (user && !isAccountLocked(user.lockedUntil)) {
-    const useEmail = Boolean(user.email && (await isMailjetConfiguredAsync()));
+    const useEmail = Boolean(user.email && (await isEmailConfiguredAsync()));
     const deliveryOpts = useEmail && user.email ? await emailOtpDelivery(user.email) : undefined;
 
     try {

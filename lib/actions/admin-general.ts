@@ -3,10 +3,13 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
-import { testMailjetConnection } from "@/lib/email/mailjet";
-import { sendEmail, isMailjetConfiguredAsync } from "@/lib/email";
+import { testEmailConnection, sendEmail, isEmailConfiguredAsync } from "@/lib/email";
 import { testEmailContent } from "@/lib/email/templates";
-import { saveMailjetOfficeConfig } from "@/lib/email/office-config";
+import {
+  saveEmailOfficeConfig,
+  loadEmailOfficeStored,
+  type EmailProvider,
+} from "@/lib/email/office-config";
 import {
   parseNotifyEmails,
   parseNotifyPhones,
@@ -33,11 +36,16 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-export async function saveMailjetOfficeConfigAction(formData: FormData) {
+export async function saveEmailOfficeConfigAction(formData: FormData) {
   const session = await requireAdmin();
 
   const fromEmail = String(formData.get("fromEmail") ?? "").trim();
   const fromName = String(formData.get("fromName") ?? "").trim();
+  const providerRaw = String(formData.get("provider") ?? "mailjet").trim();
+  const provider: EmailProvider = providerRaw === "smtp" ? "smtp" : "mailjet";
+  const smtpHost = String(formData.get("smtpHost") ?? "").trim();
+  const smtpUser = String(formData.get("smtpUser") ?? "").trim();
+  const smtpPortRaw = Number(String(formData.get("smtpPort") ?? "").trim());
 
   if (!fromEmail || !isValidEmail(fromEmail)) {
     redirect("/admin/general?error=from_email");
@@ -45,21 +53,36 @@ export async function saveMailjetOfficeConfigAction(formData: FormData) {
   if (!fromName) {
     redirect("/admin/general?error=from_name");
   }
+  if (provider === "smtp" && !smtpHost) {
+    redirect("/admin/general?error=smtp_host");
+  }
+  if (provider === "smtp" && !smtpUser) {
+    redirect("/admin/general?error=smtp_user");
+  }
 
-  await saveMailjetOfficeConfig(
+  await saveEmailOfficeConfig(
     {
+      provider,
       apiKey: String(formData.get("apiKey") ?? "").trim() || undefined,
       apiSecret: String(formData.get("apiSecret") ?? "").trim() || undefined,
       fromEmail,
       fromName,
       sandbox: formData.get("sandbox") === "on",
+      smtpHost,
+      smtpPort: Number.isFinite(smtpPortRaw) && smtpPortRaw > 0 ? smtpPortRaw : undefined,
+      smtpSecure: formData.get("smtpSecure") === "on",
+      smtpUser,
+      smtpPassword: String(formData.get("smtpPassword") ?? "").trim() || undefined,
     },
     session.userId,
   );
 
   revalidateGeneral();
-  redirect("/admin/general?saved=mailjet");
+  redirect("/admin/general?saved=email");
 }
+
+/** @deprecated Use saveEmailOfficeConfigAction */
+export const saveMailjetOfficeConfigAction = saveEmailOfficeConfigAction;
 
 export async function saveGeneralOfficeConfigAction(formData: FormData) {
   const session = await requireAdmin();
@@ -77,31 +100,32 @@ export async function saveGeneralOfficeConfigAction(formData: FormData) {
   redirect("/admin/general?saved=alerts");
 }
 
-export async function testMailjetConnectionAction() {
+export async function testEmailConnectionAction() {
   await requireAdmin();
 
-  if (!(await isMailjetConfiguredAsync())) {
-    await saveGatewayLastTest("mailjet_connection_test", {
+  if (!(await isEmailConfiguredAsync())) {
+    await saveGatewayLastTest("email_connection_test", {
       ok: false,
       error:
-        "Set Mailjet API keys below or add MAILJET_API_KEY and MAILJET_API_SECRET to .env",
+        "Configure Mailjet API keys or SMTP credentials below, or add them to .env",
     });
     revalidateGeneral();
     redirect("/admin/general?test=connection&result=fail");
   }
 
-  const result = await testMailjetConnection();
-  const { loadMailjetOfficeConfig } = await import("@/lib/email/office-config");
-  const config = await loadMailjetOfficeConfig();
+  const result = await testEmailConnection();
+  const stored = await loadEmailOfficeStored();
 
-  await saveGatewayLastTest("mailjet_connection_test", {
+  await saveGatewayLastTest("email_connection_test", {
     ok: result.ok,
     error: result.error ?? null,
     details: result.ok
       ? {
-          fromEmail: result.fromEmail ?? config?.fromEmail,
-          fromName: config?.fromName,
-          sandbox: config?.sandbox ?? false,
+          provider: stored.provider,
+          fromEmail: "fromEmail" in result ? result.fromEmail : stored.fromEmail,
+          fromName: stored.fromName,
+          host: "host" in result ? result.host : undefined,
+          sandbox: stored.provider === "mailjet" ? stored.sandbox : false,
         }
       : null,
   });
@@ -109,6 +133,9 @@ export async function testMailjetConnectionAction() {
   revalidateGeneral();
   redirect(`/admin/general?test=connection&result=${result.ok ? "ok" : "fail"}`);
 }
+
+/** @deprecated Use testEmailConnectionAction */
+export const testMailjetConnectionAction = testEmailConnectionAction;
 
 export async function sendTestEmailAction(formData: FormData) {
   await requireAdmin();
@@ -118,26 +145,26 @@ export async function sendTestEmailAction(formData: FormData) {
     redirect("/admin/general?error=email");
   }
 
-  if (!(await isMailjetConfiguredAsync())) {
+  if (!(await isEmailConfiguredAsync())) {
     redirect("/admin/general?error=not_configured");
   }
 
   const { subject, text, html } = testEmailContent();
-  const { loadMailjetOfficeConfig } = await import("@/lib/email/office-config");
-  const activeConfig = await loadMailjetOfficeConfig();
+  const stored = await loadEmailOfficeStored();
   const result = await sendEmail({ to, subject, text, html });
 
-  await saveGatewayLastTest("mailjet_send_test", {
+  await saveGatewayLastTest("email_send_test", {
     ok: result.ok,
     error: !result.ok ? result.error : null,
     details: result.ok
       ? {
           to,
-          fromEmail: activeConfig?.fromEmail,
-          fromName: activeConfig?.fromName,
+          provider: stored.provider,
+          fromEmail: stored.fromEmail,
+          fromName: stored.fromName,
           messageId: "messageId" in result ? result.messageId : undefined,
         }
-      : { to, fromEmail: activeConfig?.fromEmail },
+      : { to, fromEmail: stored.fromEmail, provider: stored.provider },
   });
 
   revalidateGeneral();

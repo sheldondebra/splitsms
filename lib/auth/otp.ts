@@ -2,7 +2,7 @@ import { createHash, randomInt } from "crypto";
 import { prisma } from "@/lib/db";
 import { sendOtpSms } from "@/lib/sms/otp-sender";
 import { sendOtpEmail, type OtpEmailPurpose } from "@/lib/email";
-import { isMailjetConfiguredAsync } from "@/lib/email/config";
+import { isEmailConfiguredAsync } from "@/lib/email/config";
 import type { OtpPurpose } from "@/lib/generated/prisma/client";
 
 const OTP_TTL_MS = 10 * 60 * 1000;
@@ -13,7 +13,7 @@ export type OtpDeliveryChannel = "sms" | "email" | "both";
 
 export type CreateAndSendOtpOptions = {
   email?: string;
-  /** Default sms. Use email when user signs in with email and Mailjet is configured. */
+  /** Default sms. Use email when user signs in with email and email delivery is configured. */
   channel?: OtpDeliveryChannel;
 };
 
@@ -79,9 +79,9 @@ export async function createAndSendOtp(
 
   const email = options?.email?.trim().toLowerCase();
   let channel = options?.channel ?? "sms";
-  const mailjetReady = await isMailjetConfiguredAsync();
+  const emailReady = await isEmailConfiguredAsync();
 
-  if (channel === "email" && (!email || !mailjetReady)) {
+  if (channel === "email" && (!email || !emailReady)) {
     channel = "sms";
   }
 

@@ -5,13 +5,12 @@ import { GeneralOfficeAlerts } from "@/components/admin/general-office-alerts";
 import { GeneralOfficeNotifyPanel } from "@/components/admin/general-office-notify-panel";
 import {
   getMailjetEnvDiagnostics,
+  getSmtpEnvDiagnostics,
   isMailjetConfigured,
+  isSmtpEnvConfigured,
 } from "@/lib/email/config";
-import { isMailjetConfiguredAsync } from "@/lib/email";
-import {
-  loadMailjetOfficeRaw,
-  loadMailjetOfficeStored,
-} from "@/lib/email/office-config";
+import { isEmailConfiguredAsync } from "@/lib/email";
+import { loadEmailOfficeRaw, loadEmailOfficeStored } from "@/lib/email/office-config";
 import { loadGeneralOfficeConfig } from "@/lib/general-office/config";
 import { loadSlackOfficeConfig } from "@/lib/slack/config";
 import { getSiteUrl } from "@/lib/site-config";
@@ -34,16 +33,18 @@ export default async function AdminGeneralOfficePage({
   const params = await searchParams;
   const [configured, stored, raw, officeConfig, slackConfig, connectionTest, sendTest] =
     await Promise.all([
-      isMailjetConfiguredAsync(),
-      loadMailjetOfficeStored(),
-      loadMailjetOfficeRaw(),
+      isEmailConfiguredAsync(),
+      loadEmailOfficeStored(),
+      loadEmailOfficeRaw(),
       loadGeneralOfficeConfig(),
       loadSlackOfficeConfig(),
-      loadGatewayLastTest("mailjet_connection_test"),
-      loadGatewayLastTest("mailjet_send_test"),
+      loadGatewayLastTest("email_connection_test"),
+      loadGatewayLastTest("email_send_test"),
     ]);
-  const envConfigured = isMailjetConfigured();
-  const envDiag = getMailjetEnvDiagnostics();
+  const envMailjetConfigured = isMailjetConfigured();
+  const envSmtpConfigured = isSmtpEnvConfigured();
+  const envMailjetDiag = getMailjetEnvDiagnostics();
+  const envSmtpDiag = getSmtpEnvDiagnostics();
   const senderSavedInDashboard = Boolean(raw?.fromEmail?.trim());
 
   return (
@@ -55,14 +56,16 @@ export default async function AdminGeneralOfficePage({
       <GeneralOfficeAlerts
         params={params}
         configured={configured}
-        envDiag={envDiag}
+        envMailjetDiag={envMailjetDiag}
+        envSmtpDiag={envSmtpDiag}
         stored={stored}
       />
 
       <GeneralEmailPanel
         configured={configured}
         stored={stored}
-        envConfigured={envConfigured}
+        envMailjetConfigured={envMailjetConfigured}
+        envSmtpConfigured={envSmtpConfigured}
         senderSavedInDashboard={senderSavedInDashboard}
         connectionTest={connectionTest}
         sendTest={sendTest}

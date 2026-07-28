@@ -1,3 +1,8 @@
+import {
+  marketingEmailLayout,
+  stripSignatureFooter,
+  textToEmailParagraphs,
+} from "@/lib/email/layout";
 import { getSiteUrl, siteName } from "@/lib/site-config";
 
 export function otpEmailContent(params: {
@@ -46,20 +51,16 @@ export function testEmailContent() {
   const subject = `${siteName} — test email`;
   const text = `This is a test email from ${siteName}.
 
-If you received this, Mailjet is configured correctly for OTP and transactional email.
+If you received this, your email provider is configured correctly for OTP and transactional email.`;
 
-— ${siteName}`;
-
-  const html = `
-<!DOCTYPE html>
-<html>
-<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #171717; max-width: 480px; margin: 0 auto; padding: 24px;">
-  <p style="font-size: 15px;">This is a <strong>test email</strong> from ${siteName}.</p>
-  <p style="font-size: 14px; color: #525252;">If you received this, Mailjet is configured correctly for OTP and transactional email.</p>
-  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
-  <p style="font-size: 12px; color: #a3a3a3;">${siteName}</p>
-</body>
-</html>`.trim();
+  const html = marketingEmailLayout({
+    headline: "Test email",
+    preheader: "Your email delivery is working.",
+    bodyHtml: textToEmailParagraphs(
+      "This is a test email from your platform.\n\nIf you received this, email delivery is configured correctly for OTP codes, receipts, support replies, and marketing messages.",
+    ),
+    footerNote: "This message was sent from Admin → General.",
+  });
 
   return { subject, text, html };
 }
@@ -138,31 +139,24 @@ export function adminMemberOutreachEmailContent(params: {
   ctaLabel?: string;
 }) {
   const subject = params.subject;
-  const text = params.bodyText;
-  const ctaBlock =
-    params.ctaHref && params.ctaLabel
-      ? `<p style="margin: 20px 0;"><a href="${params.ctaHref}" style="display:inline-block;background:#ea580c;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600;">${params.ctaLabel}</a></p>`
-      : "";
+  const bodyText = stripSignatureFooter(params.bodyText);
+  const firstName = params.memberName.trim().split(/\s+/)[0] || "there";
   const ctaText =
-    params.ctaHref && params.ctaLabel ? `\n${params.ctaLabel}: ${params.ctaHref}\n` : "";
+    params.ctaHref && params.ctaLabel ? `\n\n${params.ctaLabel}: ${params.ctaHref}` : "";
 
-  const htmlBody = params.bodyText
-    .split("\n")
-    .map((line) => `<p style="margin:0 0 12px;font-size:14px;color:#525252;line-height:1.5;">${line || "&nbsp;"}</p>`)
-    .join("");
+  const text = `Hi ${firstName},\n\n${bodyText}${ctaText}`;
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #171717; max-width: 520px; margin: 0 auto; padding: 24px;">
-  ${htmlBody}
-  ${ctaBlock}
-  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
-  <p style="font-size: 12px; color: #a3a3a3;">${siteName}</p>
-</body>
-</html>`.trim();
+  const html = marketingEmailLayout({
+    headline: params.subject,
+    preheader: bodyText.split("\n").find((line) => line.trim()) ?? params.subject,
+    greeting: `Hi ${firstName},`,
+    bodyHtml: textToEmailParagraphs(bodyText),
+    ctaHref: params.ctaHref,
+    ctaLabel: params.ctaLabel,
+    footerNote: "You are receiving this because you have an account with us.",
+  });
 
-  return { subject, text: text + ctaText, html };
+  return { subject, text, html };
 }
 
 export function senderIdSubmittedMemberContent(params: {

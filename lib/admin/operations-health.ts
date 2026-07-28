@@ -2,7 +2,7 @@ import IORedis from "ioredis";
 import { Queue } from "bullmq";
 import { prisma } from "@/lib/db";
 import { SMS_SEND_QUEUE } from "@/lib/queue/sms-queue";
-import { isMailjetConfigured } from "@/lib/email/config";
+import { isEmailConfigured } from "@/lib/email/config";
 import { getMnotifyStatus } from "@/lib/mnotify";
 import { getPaymentGatewaysOverview } from "@/lib/payments/gateway-settings";
 import { smsWorkersEnabled } from "@/lib/queue/sms-workers-enabled";
@@ -115,7 +115,7 @@ export async function getOperationsHealth(): Promise<OperationsHealth> {
     databaseOk = false;
   }
 
-  const mailjet = isMailjetConfigured();
+  const mailjet = isEmailConfigured();
   const smsGateway = mnotify.configured;
   const activePaymentGateways = gateways.filter((g) => g.configured && g.enabled).length;
   const redisOk = redisProbe.ok;

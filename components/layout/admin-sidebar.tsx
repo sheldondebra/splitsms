@@ -8,16 +8,22 @@ import {
   isAdminNavActive,
   type AdminNavItem,
 } from "@/lib/navigation/admin-nav";
+import type { AdminActor } from "@/lib/auth/admin-route-access";
+import { filterAdminNavSections } from "@/lib/auth/admin-route-access";
 import { cn } from "@/lib/utils";
 
 type AdminSidebarProps = {
   badges?: Partial<Record<NonNullable<AdminNavItem["badge"]>, number>>;
+  staffAccess?: AdminActor;
   onNavigate?: () => void;
   className?: string;
 };
 
-export function AdminSidebar({ badges, onNavigate, className }: AdminSidebarProps) {
+export function AdminSidebar({ badges, staffAccess, onNavigate, className }: AdminSidebarProps) {
   const pathname = usePathname();
+  const sections = staffAccess
+    ? filterAdminNavSections(adminNavSections, staffAccess)
+    : adminNavSections;
 
   return (
     <aside
@@ -35,7 +41,7 @@ export function AdminSidebar({ badges, onNavigate, className }: AdminSidebarProp
 
       <nav className="sidebar-scroll flex-1 overflow-y-auto overscroll-contain px-3 py-4 min-h-0">
         <div className="space-y-5">
-          {adminNavSections.map((section) => (
+          {sections.map((section) => (
             <div key={section.id}>
               <p className="mb-2 px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/40">
                 {section.label}

@@ -3,14 +3,15 @@
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { saveMailjetOfficeConfigAction } from "@/lib/actions/admin-general";
-import type { MailjetOfficeStored } from "@/lib/email/office-config";
+import { saveEmailOfficeConfigAction } from "@/lib/actions/admin-general";
+import type { EmailOfficeStored } from "@/lib/email/office-config";
 import { maskTailSecret } from "@/lib/mask-secret";
 import { Loader2, Save } from "lucide-react";
 
-type GeneralMailjetFormProps = {
-  stored: MailjetOfficeStored;
-  envConfigured: boolean;
+type GeneralEmailFormProps = {
+  stored: EmailOfficeStored;
+  envMailjetConfigured: boolean;
+  envSmtpConfigured: boolean;
   senderSavedInDashboard: boolean;
 };
 
@@ -27,22 +28,57 @@ function SaveButton() {
   );
 }
 
-export function GeneralMailjetForm({
+export function GeneralEmailForm({
   stored,
-  envConfigured,
+  envMailjetConfigured,
+  envSmtpConfigured,
   senderSavedInDashboard,
-}: GeneralMailjetFormProps) {
+}: GeneralEmailFormProps) {
+  const isSmtp = stored.provider === "smtp";
+
   return (
     <form
       key={stored.updatedAt ?? "default"}
-      action={saveMailjetOfficeConfigAction}
+      action={saveEmailOfficeConfigAction}
       className="space-y-6"
     >
+      <section className="space-y-4 rounded-xl border border-border/60 bg-muted/10 p-4">
+        <div>
+          <p className="text-sm font-semibold">Delivery provider</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Choose Mailjet API or connect your own SMTP server (Gmail, SendGrid, Amazon SES, etc.).
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-4">
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="radio"
+              name="provider"
+              value="mailjet"
+              defaultChecked={!isSmtp}
+              className="h-4 w-4 accent-primary"
+            />
+            Mailjet API
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="radio"
+              name="provider"
+              value="smtp"
+              defaultChecked={isSmtp}
+              className="h-4 w-4 accent-primary"
+            />
+            SMTP
+          </label>
+        </div>
+      </section>
+
       <section className="space-y-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
         <div>
           <p className="text-sm font-semibold">Sender identity</p>
           <p className="text-xs text-muted-foreground mt-1">
-            This address appears on OTP codes, receipts, support emails, and alerts.
+            This address appears on OTP codes, receipts, support emails, and marketing messages.
             {senderSavedInDashboard ? " Saved in dashboard." : " Using site default until saved."}
           </p>
         </div>
@@ -59,9 +95,6 @@ export function GeneralMailjetForm({
               placeholder="noreply@yourdomain.com"
               className={inputClassName}
             />
-            <p className="text-[11px] text-muted-foreground">
-              Must be verified as a sender in Mailjet.
-            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="fromName">From name</Label>
@@ -82,7 +115,7 @@ export function GeneralMailjetForm({
         <div>
           <p className="text-sm font-semibold">Mailjet API</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Leave keys blank to keep existing values. Keys in .env are used until saved here.
+            Used when Mailjet is selected. Leave keys blank to keep existing values.
           </p>
         </div>
 
@@ -126,12 +159,91 @@ export function GeneralMailjetForm({
         </label>
       </section>
 
+      <section className="space-y-4 rounded-xl border border-border/60 bg-muted/10 p-4">
+        <div>
+          <p className="text-sm font-semibold">SMTP server</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Used when SMTP is selected. Common ports: 587 (STARTTLS) or 465 (SSL).
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="smtpHost">SMTP host</Label>
+            <input
+              id="smtpHost"
+              name="smtpHost"
+              type="text"
+              defaultValue={stored.smtpHost}
+              placeholder="smtp.gmail.com"
+              className={inputClassName}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="smtpPort">Port</Label>
+            <input
+              id="smtpPort"
+              name="smtpPort"
+              type="number"
+              min={1}
+              max={65535}
+              defaultValue={stored.smtpPort}
+              placeholder="587"
+              className={inputClassName}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="smtpUser">Username</Label>
+            <input
+              id="smtpUser"
+              name="smtpUser"
+              type="text"
+              defaultValue={stored.smtpUser}
+              placeholder="user@yourdomain.com"
+              autoComplete="off"
+              className={inputClassName}
+            />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="smtpPassword">Password</Label>
+            <input
+              id="smtpPassword"
+              name="smtpPassword"
+              type="password"
+              placeholder={
+                stored.smtpPassword
+                  ? maskTailSecret(stored.smtpPassword)
+                  : "SMTP password or app password"
+              }
+              autoComplete="new-password"
+              className={inputClassName}
+            />
+          </div>
+        </div>
+
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            name="smtpSecure"
+            defaultChecked={stored.smtpSecure}
+            className="h-4 w-4 rounded accent-primary"
+          />
+          Use SSL/TLS (typically port 465)
+        </label>
+      </section>
+
       <div className="flex flex-wrap items-center gap-3">
         <SaveButton />
-        {envConfigured && (
-          <span className="text-[11px] text-muted-foreground">.env keys detected</span>
+        {envMailjetConfigured && (
+          <span className="text-[11px] text-muted-foreground">Mailjet .env keys detected</span>
+        )}
+        {envSmtpConfigured && (
+          <span className="text-[11px] text-muted-foreground">SMTP .env vars detected</span>
         )}
       </div>
     </form>
   );
 }
+
+/** @deprecated Use GeneralEmailForm */
+export const GeneralMailjetForm = GeneralEmailForm;

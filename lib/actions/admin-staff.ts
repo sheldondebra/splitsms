@@ -18,7 +18,17 @@ import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
 import type { UserRole } from "@/lib/generated/prisma/client";
 
 export type StaffMutationResult =
-  | { ok: true; message: string }
+  | {
+      ok: true;
+      message: string;
+      credentials?: {
+        loginUrl: string;
+        phone: string;
+        email?: string | null;
+        password?: string;
+        identifier: string;
+      };
+    }
   | { ok: false; error: string; message: string };
 
 async function requireStaffManager() {
@@ -188,9 +198,19 @@ export async function createStaffUserJsonAction(input: {
 
   revalidatePath("/admin/staff");
   revalidatePath("/admin/activity");
+  const { getSiteUrl } = await import("@/lib/site-config");
+  const loginUrl = `${getSiteUrl()}/login`;
+  const identifier = email ?? phone;
   return {
     ok: true,
     message: `${fullName} added as ${input.role === "SUPER_ADMIN" ? "Super Admin" : "Admin"}.`,
+    credentials: {
+      loginUrl,
+      phone,
+      email: email ?? null,
+      password,
+      identifier,
+    },
   };
 }
 

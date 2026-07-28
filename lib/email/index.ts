@@ -1,8 +1,32 @@
-import { isMailjetConfigured, isMailjetConfiguredAsync, getMailjetConfig } from "@/lib/email/config";
+import {
+  isMailjetConfigured,
+  isEmailConfigured,
+  isEmailConfiguredAsync,
+  isMailjetConfiguredAsync,
+  getMailjetConfig,
+  getActiveEmailProvider,
+} from "@/lib/email/config";
 import { sendMailjetEmail, testMailjetConnection } from "@/lib/email/mailjet";
+import { sendSmtpEmail, testSmtpConnection } from "@/lib/email/smtp";
 import { otpEmailContent } from "@/lib/email/templates";
 
-export { isMailjetConfigured, isMailjetConfiguredAsync, getMailjetConfig, testMailjetConnection };
+export {
+  isMailjetConfigured,
+  isEmailConfigured,
+  isEmailConfiguredAsync,
+  isMailjetConfiguredAsync,
+  getMailjetConfig,
+  getActiveEmailProvider,
+  testMailjetConnection,
+  testSmtpConnection,
+};
+
+export async function testEmailConnection() {
+  const provider = await getActiveEmailProvider();
+  if (provider === "smtp") return testSmtpConnection();
+  if (provider === "mailjet") return testMailjetConnection();
+  return { ok: false as const, error: "Email is not configured" };
+}
 
 export type OtpEmailPurpose = "login" | "signup" | "reset";
 
@@ -12,20 +36,20 @@ export async function sendOtpEmail(
   purpose: OtpEmailPurpose,
 ) {
   const { subject, text, html } = otpEmailContent({ code, purpose });
-  const configured = await isMailjetConfiguredAsync();
+  const configured = await isEmailConfiguredAsync();
 
   if (!configured) {
     if (process.env.NODE_ENV === "development") {
       console.log(`[DEV OTP EMAIL] ${to}: ${code} (${purpose})`);
       return { ok: true as const };
     }
-    return { ok: false as const, error: "Mailjet is not configured" };
+    return { ok: false as const, error: "Email is not configured" };
   }
 
-  const result = await sendMailjetEmail({ to, subject, text, html });
+  const result = await sendEmail({ to, subject, text, html });
   if (!result.ok) {
     if (process.env.NODE_ENV === "development") {
-      console.log(`[DEV OTP EMAIL] ${to}: ${code} (Mailjet failed: ${result.error})`);
+      console.log(`[DEV OTP EMAIL] ${to}: ${code} (send failed: ${result.error})`);
       return { ok: true as const };
     }
     return result;
@@ -41,8 +65,12 @@ export async function sendEmail(params: {
   html?: string;
   toName?: string;
 }) {
-  if (!(await isMailjetConfiguredAsync())) {
-    return { ok: false as const, error: "Mailjet is not configured" };
+  const provider = await getActiveEmailProvider();
+  if (!provider) {
+    return { ok: false as const, error: "Email is not configured" };
+  }
+  if (provider === "smtp") {
+    return sendSmtpEmail(params);
   }
   return sendMailjetEmail(params);
 }

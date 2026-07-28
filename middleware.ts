@@ -5,6 +5,7 @@ import {
   attachTenantHeaders,
   fetchTenantForMiddleware,
 } from "@/lib/reseller/middleware-tenant";
+import { verifyImpersonationToken } from "@/lib/auth/impersonation";
 import { isPlatformHost, normalizeHost } from "@/lib/reseller/tenant-host";
 import { shouldBlockAuthBot } from "@/lib/auth/bot-guard";
 
@@ -159,7 +160,10 @@ export async function middleware(request: NextRequest) {
       (session.role === "ADMIN" || session.role === "SUPER_ADMIN") &&
       impToken
     ) {
-      return NextResponse.redirect(new URL("/reseller", request.url));
+      const imp = await verifyImpersonationToken(impToken);
+      if (imp?.kind === "reseller" || imp?.resellerId) {
+        return NextResponse.redirect(new URL("/reseller", request.url));
+      }
     }
     const external = externalResellerPortal(session, tenant);
     if (external) {

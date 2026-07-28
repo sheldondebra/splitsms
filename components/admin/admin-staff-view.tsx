@@ -10,6 +10,8 @@ import {
   resetStaffPasswordJsonAction,
   updateStaffUserJsonAction,
 } from "@/lib/actions/admin-staff";
+import { startStaffImpersonationAction } from "@/lib/actions/admin-impersonation";
+import { CopyButton } from "@/components/developers/copy-button";
 import type { AdminStaffDashboard, SerializedStaffUser } from "@/lib/admin/staff-serialize";
 import { staffPermissionSummary } from "@/lib/admin/staff-serialize";
 import {
@@ -43,6 +45,7 @@ import {
   Eye,
   EyeOff,
   KeyRound,
+  LogIn,
   Loader2,
   Pencil,
   RefreshCw,
@@ -192,6 +195,80 @@ function PermissionPicker({
   );
 }
 
+function StaffCredentialsDialog({
+  open,
+  onOpenChange,
+  credentials,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  credentials: {
+    loginUrl: string;
+    phone: string;
+    email?: string | null;
+    password?: string;
+    identifier: string;
+  };
+}) {
+  const shareText = [
+    `SplitSMS admin login: ${credentials.loginUrl}`,
+    `Sign in with: ${credentials.identifier}`,
+    credentials.password ? `Password: ${credentials.password}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Staff login details</DialogTitle>
+          <DialogDescription>
+            Share these credentials securely. The staff member signs in at the login page with email
+            or phone and password.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 text-sm">
+          <div className="space-y-1.5">
+            <Label>Login URL</Label>
+            <div className="flex gap-2">
+              <Input readOnly value={credentials.loginUrl} className="font-mono text-xs" />
+              <CopyButton value={credentials.loginUrl} label="Copy" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Sign-in identifier</Label>
+            <div className="flex gap-2">
+              <Input readOnly value={credentials.identifier} className="font-mono text-xs" />
+              <CopyButton value={credentials.identifier} label="Copy" />
+            </div>
+            {credentials.email ? (
+              <p className="text-xs text-muted-foreground">Email login enabled for this account.</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                No email set — use phone on the login page (password mode).
+              </p>
+            )}
+          </div>
+          {credentials.password ? (
+            <div className="space-y-1.5">
+              <Label>Temporary password</Label>
+              <div className="flex gap-2">
+                <Input readOnly value={credentials.password} className="font-mono text-xs" />
+                <CopyButton value={credentials.password} label="Copy" />
+              </div>
+            </div>
+          ) : null}
+        </div>
+        <DialogFooter className="gap-2 sm:justify-between">
+          <CopyButton value={shareText} label="Copy all" />
+          <Button type="button" onClick={() => onOpenChange(false)}>Done</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function StaffFormDialog({
   mode,
   user,
@@ -207,6 +284,14 @@ function StaffFormDialog({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [credentialsOpen, setCredentialsOpen] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    loginUrl: string;
+    phone: string;
+    email?: string | null;
+    password?: string;
+    identifier: string;
+  } | null>(null);
   const [fullName, setFullName] = useState(user?.fullName ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
@@ -259,6 +344,10 @@ function StaffFormDialog({
           description: result.message,
         });
         onOpenChange(false);
+        if (mode === "create" && result.ok && result.credentials) {
+          setCreatedCredentials(result.credentials);
+          setCredentialsOpen(true);
+        }
         router.refresh();
       } catch (error) {
         const description =
@@ -271,14 +360,15 @@ function StaffFormDialog({
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        if (!pending) onOpenChange(next);
-        if (next) resetForm();
-      }}
-    >
-      <DialogContent className="sm:max-w-2xl gap-0 p-0 overflow-hidden max-h-[90vh] flex flex-col">
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (!pending) onOpenChange(next);
+          if (next) resetForm();
+        }}
+      >
+        <DialogContent className="sm:max-w-2xl gap-0 p-0 overflow-hidden max-h-[90vh] flex flex-col">
         <div className="px-5 pt-5 pb-4 overflow-y-auto">
           <DialogHeader className="text-left gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary mb-1">
@@ -371,6 +461,14 @@ function StaffFormDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+      {createdCredentials ? (
+        <StaffCredentialsDialog
+          open={credentialsOpen}
+          onOpenChange={setCredentialsOpen}
+          credentials={createdCredentials}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -488,6 +586,21 @@ function StaffRow({
 
           {canManage && (
             <div className="flex flex-wrap gap-2 shrink-0">
+              {!isSelf && (
+                <form action={startStaffImpersonationAction}>
+                  <input type="hidden" name="userId" value={user.id} />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs gap-1"
+                    disabled={pending || (user.role === "SUPER_ADMIN" && !canAssignSuperAdmin)}
+                  >
+                    <LogIn className="h-3.5 w-3.5" />
+                    Login as
+                  </Button>
+                </form>
+              )}
               <Button type="button" size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => setEditOpen(true)}>
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
@@ -584,6 +697,19 @@ export function AdminStaffView({
           </div>
         ))}
       </div>
+
+      <AdminCard
+        title="Staff sign-in"
+        description="Staff use the main SplitSMS login page with email or phone and password."
+        dense
+      >
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          After creating a staff user, copy their login URL and password. They land on{" "}
+          <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">/admin</code> after
+          sign-in. Use <strong className="text-foreground">Login as</strong> to preview their
+          permission scope without sharing credentials.
+        </p>
+      </AdminCard>
 
       <Tabs defaultValue="users" className="gap-4">
         <div className="rounded-xl border border-border/60 bg-muted/25 p-1">

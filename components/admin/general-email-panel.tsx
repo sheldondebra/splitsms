@@ -1,27 +1,32 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AdminCard } from "@/components/admin/admin-page-shell";
-import { GeneralMailjetForm } from "@/components/admin/general-mailjet-form";
+import { GeneralEmailForm } from "@/components/admin/general-mailjet-form";
 import { GeneralTestEmailForm } from "@/components/admin/general-test-email-form";
 import { MailjetTestResult } from "@/components/admin/mailjet-test-result";
-import { testMailjetConnectionAction } from "@/lib/actions/admin-general";
-import type { MailjetOfficeStored } from "@/lib/email/office-config";
+import { testEmailConnectionAction } from "@/lib/actions/admin-general";
+import type { EmailOfficeStored } from "@/lib/email/office-config";
 import type { GatewayLastTest } from "@/lib/payments/gateway-settings";
 import { Mail, Plug } from "lucide-react";
 
 type GeneralEmailPanelProps = {
   configured: boolean;
-  stored: MailjetOfficeStored;
-  envConfigured: boolean;
+  stored: EmailOfficeStored;
+  envMailjetConfigured: boolean;
+  envSmtpConfigured: boolean;
   senderSavedInDashboard: boolean;
   connectionTest: GatewayLastTest | null;
   sendTest: GatewayLastTest | null;
 };
 
+const providerLabel = (provider: EmailOfficeStored["provider"]) =>
+  provider === "smtp" ? "SMTP" : "Mailjet";
+
 export function GeneralEmailPanel({
   configured,
   stored,
-  envConfigured,
+  envMailjetConfigured,
+  envSmtpConfigured,
   senderSavedInDashboard,
   connectionTest,
   sendTest,
@@ -29,15 +34,21 @@ export function GeneralEmailPanel({
   return (
     <AdminCard
       title="Email delivery"
-      description="Mailjet powers OTP, receipts, support replies, and admin alerts."
+      description="Connect Mailjet or SMTP for OTP, receipts, support replies, and marketing emails."
       actions={
         <Badge variant={configured ? "default" : "secondary"}>
-          {configured ? "Connected" : "Not configured"}
+          {configured ? `Connected · ${providerLabel(stored.provider)}` : "Not configured"}
         </Badge>
       }
     >
       <div className="space-y-6">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-border/60 bg-muted/20 px-4 py-3 text-sm">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Provider
+            </p>
+            <p className="mt-0.5 font-medium">{providerLabel(stored.provider)}</p>
+          </div>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
               Active sender
@@ -50,31 +61,46 @@ export function GeneralEmailPanel({
             </p>
             <p className="mt-0.5">{stored.fromName}</p>
           </div>
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Sandbox
-            </p>
-            <p className="mt-0.5">{stored.sandbox ? "On — emails are not delivered" : "Off"}</p>
-          </div>
+          {stored.provider === "mailjet" ? (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Sandbox
+              </p>
+              <p className="mt-0.5">
+                {stored.sandbox ? "On — emails are not delivered" : "Off"}
+              </p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                SMTP host
+              </p>
+              <p className="font-mono text-sm mt-0.5">
+                {stored.smtpHost || "—"}
+                {stored.smtpHost ? `:${stored.smtpPort}` : ""}
+              </p>
+            </div>
+          )}
         </div>
 
-        {stored.sandbox ? (
+        {stored.provider === "mailjet" && stored.sandbox ? (
           <p className="text-sm text-amber-800 dark:text-amber-300 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
-            Sandbox mode is enabled. Mailjet accepts sends but does not deliver real email. Turn it off
-            under Mailjet API settings to go live.
+            Sandbox mode is enabled. Mailjet accepts sends but does not deliver real email. Turn it
+            off under Mailjet API settings to go live.
           </p>
         ) : null}
 
-        <GeneralMailjetForm
+        <GeneralEmailForm
           stored={stored}
-          envConfigured={envConfigured}
+          envMailjetConfigured={envMailjetConfigured}
+          envSmtpConfigured={envSmtpConfigured}
           senderSavedInDashboard={senderSavedInDashboard}
         />
 
         <div className="border-t border-border/60 pt-6 space-y-4">
           <p className="text-sm font-semibold">Diagnostics</p>
           <div className="flex flex-wrap gap-2">
-            <form action={testMailjetConnectionAction}>
+            <form action={testEmailConnectionAction}>
               <Button
                 type="submit"
                 variant="outline"

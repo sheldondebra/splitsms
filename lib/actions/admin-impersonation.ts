@@ -7,6 +7,7 @@ import {
   setImpersonationCookie,
 } from "@/lib/auth/impersonation";
 import { logStaffAction } from "@/lib/auth/staff-audit";
+import { hasStaffPermission, isSuperAdminRole } from "@/lib/auth/admin-permissions";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -32,6 +33,7 @@ export async function startResellerImpersonationAction(formData: FormData) {
     adminUserId: session.userId,
     targetUserId: reseller.userId,
     targetPhone: reseller.user.phone,
+    kind: "reseller",
     resellerId: reseller.id,
     businessName: reseller.businessName,
   });
@@ -65,7 +67,7 @@ export async function stopResellerImpersonationAction() {
 
   await clearImpersonationCookie();
 
-  if (imp) {
+  if (imp?.resellerId) {
     await logStaffAction({
       actorId: session.userId,
       action: "RESELLER_IMPERSONATION_END",
@@ -80,5 +82,93 @@ export async function stopResellerImpersonationAction() {
 
   revalidatePath("/reseller");
   revalidatePath("/admin/resellers");
-  redirect(imp ? `/admin/resellers/${imp.resellerId}` : "/admin/resellers");
+  redirect(imp?.resellerId ? `/admin/resellers/${imp.resellerId}` : "/admin/resellers");
+}
+
+export async function startStaffImpersonationAction(formData: FormData) {
+  const session = await getRealSession();
+  if (!session || !isAdminRole(session.role)) redirect("/admin");
+
+  const userId = String(formData.get("userId") ?? "").trim();
+  if (!userId) redirect("/admin/staff");
+
+  const actor = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { role: true, staffPermissions: true },
+  });
+  if (
+    !actor ||
+    !hasStaffPermission(
+      { role: actor.role, staffPermissions: actor.staffPermissions ?? [] },
+      "staff.write",
+    )
+  ) {
+    redirect("/admin/staff?error=forbidden");
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, phone: true, fullName: true, role: true },
+  });
+  if (!target || (target.role !== "ADMIN" && target.role !== "SUPER_ADMIN")) {
+    redirect("/admin/staff?error=notfound");
+  }
+  if (target.role === "SUPER_ADMIN" && !isSuperAdminRole(actor.role)) {
+    redirect("/admin/staff?error=forbidden");
+  }
+  if (target.id === session.userId) {
+    redirect("/admin/staff?error=self");
+  }
+
+  await setImpersonationCookie({
+    adminUserId: session.userId,
+    targetUserId: target.id,
+    targetPhone: target.phone,
+    kind: "staff",
+    targetRole: target.role as "ADMIN" | "SUPER_ADMIN",
+    targetName: target.fullName,
+  });
+
+  await logStaffAction({
+    actorId: session.userId,
+    action: "STAFF_IMPERSONATION_START",
+    entityType: "StaffUser",
+    entityId: target.id,
+    metadata: {
+      targetName: target.fullName,
+      targetRole: target.role,
+      targetPhone: target.phone,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/staff");
+  redirect("/admin");
+}
+
+export async function stopStaffImpersonationAction() {
+  const session = await getRealSession();
+  if (!session || !isAdminRole(session.role)) {
+    await clearImpersonationCookie();
+    redirect("/login");
+  }
+
+  const { readImpersonationCookie } = await import("@/lib/auth/impersonation");
+  const imp = await readImpersonationCookie();
+
+  await clearImpersonationCookie();
+
+  if (imp?.kind === "staff") {
+    await logStaffAction({
+      actorId: session.userId,
+      action: "STAFF_IMPERSONATION_END",
+      entityType: "StaffUser",
+      entityId: imp.targetUserId,
+      metadata: { targetName: imp.targetName, targetRole: imp.targetRole },
+    });
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/staff");
+  redirect("/admin/staff");
 }

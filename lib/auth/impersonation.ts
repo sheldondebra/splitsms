@@ -8,8 +8,11 @@ export type ImpersonationPayload = {
   adminUserId: string;
   targetUserId: string;
   targetPhone: string;
-  resellerId: string;
-  businessName: string;
+  kind: "reseller" | "staff";
+  resellerId?: string;
+  businessName?: string;
+  targetRole?: "ADMIN" | "SUPER_ADMIN";
+  targetName?: string;
 };
 
 function getSecret() {
@@ -56,8 +59,13 @@ export const readImpersonationCookie = cache(
     try {
       const { payload } = await jwtVerify(token, getSecret());
       const data = payload as unknown as ImpersonationPayload;
-      if (!data.adminUserId || !data.targetUserId || !data.resellerId) return null;
-      return data;
+      if (!data.adminUserId || !data.targetUserId) return null;
+      if (data.kind === "staff") {
+        if (!data.targetRole || !data.targetName) return null;
+        return data;
+      }
+      if (!data.resellerId) return null;
+      return { ...data, kind: data.kind ?? "reseller" };
     } catch {
       return null;
     }
@@ -74,8 +82,13 @@ export async function verifyImpersonationToken(
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
     const data = payload as unknown as ImpersonationPayload;
-    if (!data.adminUserId || !data.targetUserId || !data.resellerId) return null;
-    return data;
+    if (!data.adminUserId || !data.targetUserId) return null;
+    if (data.kind === "staff") {
+      if (!data.targetRole || !data.targetName) return null;
+      return data;
+    }
+    if (!data.resellerId) return null;
+    return { ...data, kind: data.kind ?? "reseller" };
   } catch {
     return null;
   }
