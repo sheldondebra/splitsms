@@ -66,6 +66,7 @@ export default async function LoginPage({
             countries={countries}
             intent="login"
             defaultMethod={method === "phone" ? "phone" : "email"}
+            defaultEmail={email}
           />
         ) : phonePasswordMode ? (
           <LoginPhonePasswordForm returnTo={returnTo} />

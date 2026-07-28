@@ -7,7 +7,7 @@ const messages: Record<string, { text: string; variant: "error" | "success" | "i
     variant: "error",
   },
   use_otp: {
-    text: "Use a one-time code to sign in. Accounts created with phone/email verification sign in with a code until you set a password.",
+    text: "That password didn’t work. Request a one-time code below to sign in, or use Forgot password to set a new one.",
     variant: "info",
   },
   email_send: {
@@ -55,7 +55,7 @@ const messages: Record<string, { text: string; variant: "error" | "success" | "i
   },
   name: { text: "Please enter your name (at least 2 characters).", variant: "error" },
   email_not_found: {
-    text: "No account found for this email. Sign up or try your phone number.",
+    text: "No account uses this email. If you signed up with your phone, use “Sign in with SMS / email code”, or add this email from Settings after signing in.",
     variant: "error",
   },
   slack_link: {

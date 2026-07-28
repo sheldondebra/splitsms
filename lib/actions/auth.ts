@@ -88,7 +88,11 @@ function passwordLoginRedirect(params?: Record<string, string>): never {
 }
 
 function passwordLoginRedirectPhone(params?: Record<string, string>): never {
-  authRedirect("/login", { phone: "1", ...params });
+  authRedirect("/login", { mode: "password", phone: "1", ...params });
+}
+
+function otpLoginRedirect(params?: Record<string, string>): never {
+  authRedirect("/login", { mode: "sms", ...params });
 }
 
 async function emailOtpDelivery(email: string): Promise<{
@@ -498,13 +502,11 @@ export async function completeProfileAction(formData: FormData) {
 
   const { fullName, email, password } = parsed.data;
 
-  if (email) {
-    const taken = await prisma.user.findFirst({
-      where: { email, id: { not: session.userId } },
-    });
-    if (taken) {
-      authRedirect("/complete-profile", { error: "email_taken" });
-    }
+  const taken = await prisma.user.findFirst({
+    where: { email, id: { not: session.userId } },
+  });
+  if (taken) {
+    authRedirect("/complete-profile", { error: "email_taken" });
   }
 
   const passwordHash = await hashPassword(password);
@@ -513,8 +515,8 @@ export async function completeProfileAction(formData: FormData) {
     where: { id: session.userId },
     data: {
       fullName,
+      email,
       passwordHash,
-      ...(email ? { email } : {}),
     },
   });
 
@@ -783,28 +785,77 @@ export async function loginPasswordAction(formData: FormData) {
   }
 
   const user = await findUserByIdentifier(identifier);
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  if (!user) {
     await recordFailedAttempt(rateLimitKey("login", identifier));
-    if (user) {
-      const count = user.failedLoginCount + 1;
-      const lockedUntil =
-        count >= 5 ? new Date(Date.now() + 30 * 60 * 1000) : user.lockedUntil;
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { failedLoginCount: count, lockedUntil },
-      });
+    await logAuthEvent("LOGIN_FAILED", {
+      identifier,
+      reason: "user_not_found",
+    });
+    if (usePhoneForm) passwordLoginRedirectPhone({ error: "invalid" });
+    // Email login: distinguish missing account so users who signed up phone-only get a clear path
+    passwordLoginRedirect({
+      error: "email_not_found",
+      ...(emailRaw ? { email: emailRaw } : {}),
+    });
+  }
+
+  // Drop expired lock counters so users are not stuck after the lock window
+  if (!isAccountLocked(user.lockedUntil) && user.failedLoginCount > 0) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { failedLoginCount: 0, lockedUntil: null },
+    });
+    user.failedLoginCount = 0;
+    user.lockedUntil = null;
+  }
+
+  if (isAccountLocked(user.lockedUntil)) {
+    await logAuthEvent("LOGIN_FAILED", {
+      identifier,
+      reason: "locked",
+      userId: user.id,
+    });
+    if (usePhoneForm) passwordLoginRedirectPhone({ error: "locked" });
+    passwordLoginRedirect({ error: "locked", ...(emailRaw ? { email: emailRaw } : {}) });
+  }
+
+  if (!(await verifyPassword(password, user.passwordHash))) {
+    await recordFailedAttempt(rateLimitKey("login", identifier));
+    const count = user.failedLoginCount + 1;
+    const lockedUntil =
+      count >= 5 ? new Date(Date.now() + 30 * 60 * 1000) : user.lockedUntil;
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { failedLoginCount: count, lockedUntil },
+    });
+    await logAuthEvent("LOGIN_FAILED", {
+      identifier,
+      reason: "bad_password",
+      userId: user.id,
+    });
+
+    // OTP-era / forgotten password: steer verified users to code login instead of dead-end
+    if (user.isVerified) {
+      if (user.email && emailRaw) {
+        otpLoginRedirect({
+          method: "email",
+          email: user.email,
+          error: "use_otp",
+        });
+      }
+      if (usePhoneForm || user.phone) {
+        otpLoginRedirect({
+          method: "phone",
+          error: "use_otp",
+        });
+      }
     }
-    await logAuthEvent("LOGIN_FAILED", { identifier });
+
     if (usePhoneForm) passwordLoginRedirectPhone({ error: "invalid" });
     passwordLoginRedirect({
       error: "invalid",
       ...(emailRaw ? { email: emailRaw } : {}),
     });
-  }
-
-  if (isAccountLocked(user.lockedUntil)) {
-    if (usePhoneForm) passwordLoginRedirectPhone({ error: "locked" });
-    passwordLoginRedirect({ error: "locked", ...(emailRaw ? { email: emailRaw } : {}) });
   }
 
   if (user.role === "MEMBER") {

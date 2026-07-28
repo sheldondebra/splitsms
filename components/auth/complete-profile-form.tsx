@@ -19,7 +19,8 @@ export function CompleteProfileForm({
       <div className="rounded-lg border border-primary/25 bg-primary/5 px-4 py-3 text-sm text-muted-foreground flex gap-2">
         <Gift className="h-5 w-5 text-primary shrink-0" />
         <p>
-          Phone verified! Add your name and create a password so you can sign in again later.
+          Phone verified! Add your name, email, and password so you can sign in again with email
+          and password.
         </p>
       </div>
 
@@ -37,7 +38,7 @@ export function CompleteProfileForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email">Email {emailLocked ? "" : "(optional)"}</Label>
+        <Label htmlFor="email">Email</Label>
         <Input
           id="email"
           name="email"
@@ -45,13 +46,12 @@ export function CompleteProfileForm({
           placeholder="you@company.com"
           defaultValue={defaultEmail ?? undefined}
           readOnly={emailLocked}
+          required
           autoComplete="email"
           className="h-11"
         />
         <p className="text-xs text-muted-foreground">
-          {emailLocked
-            ? "Used for login codes, receipts, and account recovery."
-            : "For receipts and account recovery. You can add this later in settings."}
+          Used to sign in with email and password, and for receipts and account recovery.
         </p>
       </div>
 

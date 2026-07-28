@@ -96,10 +96,8 @@ export const emailAuthSignupSchema = z.object({
 export const completeProfileSchema = z
   .object({
     fullName: z.string().min(2, "Name is too short").max(120),
-    email: z
-      .string()
-      .optional()
-      .transform((v) => (v?.trim() ? v.trim().toLowerCase() : undefined)),
+    // Required so email+password login works after OTP signup
+    email: emailSchema,
     password: passwordSchema,
     confirmPassword: z.string(),
   })

@@ -18,12 +18,14 @@ type EmailAuthFormProps = {
   countries: SignupCountryOption[];
   intent?: "login" | "signup";
   resellerInvite?: string;
+  defaultEmail?: string;
 };
 
 export function EmailAuthForm({
   countries,
   intent = "login",
   resellerInvite,
+  defaultEmail,
 }: EmailAuthFormProps) {
   const isSignup = intent === "signup";
   const initial = isSignup ? initialCountryState(countries) : { countryCode: DEFAULT_COUNTRY_CODE, dialCode: "+233" };
@@ -55,13 +57,14 @@ export function EmailAuthForm({
           inputMode="email"
           autoComplete="email"
           placeholder="you@company.com"
+          defaultValue={defaultEmail}
           required
           className="h-11 text-base"
         />
         <p className="text-xs text-muted-foreground">
           {isSignup
             ? "We’ll email you a verification code (and verify your mobile number on file)."
-            : "We’ll email a login code to this address when Mailjet is configured."}
+            : "We’ll email a login code to this address."}
         </p>
       </div>
 
