@@ -21,6 +21,11 @@ import {
   reactivateResellerAction,
   createResellerFromUserAction,
 } from "@/lib/actions/admin-resellers";
+import { startResellerImpersonationAction } from "@/lib/actions/admin-impersonation";
+import {
+  getResellerClientLoginHref,
+  getResellerOwnerAdminHref,
+} from "@/lib/admin/reseller-portal-url";
 import type { AdminResellersDashboard } from "@/lib/admin/resellers-dashboard";
 import {
   Store,
@@ -33,11 +38,16 @@ import {
   CheckCircle2,
   Clock,
   Ban,
-  ExternalLink,
   Settings2,
   MessageSquare,
   Tags,
   Activity,
+  Coins,
+  LayoutGrid,
+  Table2,
+  Trophy,
+  UserRound,
+  Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +57,7 @@ type Props = {
   data: AdminResellersDashboard;
   flash?: { saved?: string; error?: string };
   filter?: string;
+  view?: string;
 };
 
 function flashMessage(saved: string) {
@@ -77,8 +88,9 @@ function ResellerAvatar({ name }: { name: string }) {
 
 function ResellerCard({ r }: { r: ResellerRow }) {
   const rate = r.commissionRate.toNumber();
-  const wallet = r.user.wallet;
   const pricingPreview = r.countryPricing ?? [];
+  const loginHref = getResellerClientLoginHref(r.domain);
+  const ownerHref = getResellerOwnerAdminHref(r.userId);
 
   return (
     <article
@@ -96,6 +108,12 @@ function ResellerCard({ r }: { r: ResellerRow }) {
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="font-semibold text-base truncate">{r.businessName}</h3>
               <StatusPill status={r.status} />
+              {r.performanceRank != null && r.performanceRank <= 10 && (
+                <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-800 dark:text-amber-200">
+                  <Trophy className="h-3 w-3 mr-1" />
+                  #{r.performanceRank}
+                </Badge>
+              )}
               {!r.isActive && r.status === "APPROVED" && (
                 <Badge variant="secondary" className="text-[10px]">
                   Inactive
@@ -112,15 +130,16 @@ function ResellerCard({ r }: { r: ResellerRow }) {
               <MetaChip icon={Percent} label={`${rate}% commission`} />
               <MetaChip
                 icon={Users}
-                label={`${r._count.subUsers} sub-users${r.suspendedSubUsers ? ` · ${r.suspendedSubUsers} suspended` : ""}`}
+                label={`${r._count.subUsers} clients${r.suspendedSubUsers ? ` · ${r.suspendedSubUsers} suspended` : ""}`}
               />
-              <MetaChip
-                icon={Wallet}
-                label={`GHS ${r.commissionEarned.toFixed(2)} earned`}
-              />
+              <MetaChip icon={Wallet} label={`GHS ${r.commissionEarned.toFixed(2)} earned`} />
               <MetaChip
                 icon={MessageSquare}
                 label={`${r.smsLast30Days.toLocaleString()} SMS · 30d`}
+              />
+              <MetaChip
+                icon={Coins}
+                label={`Owner GHS ${r.ownerWalletBalance.toFixed(2)} · Clients GHS ${r.clientsWalletBalance.toFixed(2)}`}
               />
               <MetaChip
                 icon={Tags}
@@ -144,6 +163,20 @@ function ResellerCard({ r }: { r: ResellerRow }) {
                 </span>
               )}
             </div>
+
+            {r.badges.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {r.badges.map((badge) => (
+                  <Badge
+                    key={badge}
+                    variant="outline"
+                    className="text-[10px] border-amber-500/30 bg-amber-500/5 text-amber-800 dark:text-amber-200"
+                  >
+                    {badge}
+                  </Badge>
+                ))}
+              </div>
+            )}
 
             {pricingPreview.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5">
@@ -172,16 +205,23 @@ function ResellerCard({ r }: { r: ResellerRow }) {
               {r.spendLast30Days > 0 && (
                 <> · Spend 30d GHS {r.spendLast30Days.toFixed(2)}</>
               )}
+              {r.performanceScore > 0 && <> · Score {r.performanceScore.toFixed(1)}</>}
             </p>
           </div>
         </div>
 
         <div className="flex flex-col gap-2 sm:items-end shrink-0 w-full sm:w-auto">
-          {wallet && (
-            <p className="text-xs text-muted-foreground text-right tabular-nums">
-              Wallet {wallet.currency} {wallet.balance.toString()}
+          <div className="text-right text-xs text-muted-foreground space-y-0.5 tabular-nums">
+            <p>
+              Credits {r.ownerSmsCredits.toLocaleString()}
+              {r.clientsSmsCredits > 0 && (
+                <span className="text-muted-foreground/80">
+                  {" "}
+                  · clients {r.clientsSmsCredits.toLocaleString()}
+                </span>
+              )}
             </p>
-          )}
+          </div>
           <div className="flex flex-wrap gap-2 sm:justify-end">
             <Link
               href={`/admin/resellers/${r.id}`}
@@ -189,6 +229,13 @@ function ResellerCard({ r }: { r: ResellerRow }) {
             >
               <Settings2 className="h-3.5 w-3.5 mr-1" />
               Manage
+            </Link>
+            <Link
+              href={ownerHref}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              <UserRound className="h-3.5 w-3.5 mr-1" />
+              Owner
             </Link>
             {r.status === "PENDING" && (
               <>
@@ -225,15 +272,23 @@ function ResellerCard({ r }: { r: ResellerRow }) {
             )}
             {r.status === "APPROVED" && (
               <>
-                <Link
-                  href="/reseller"
-                  target="_blank"
-                  rel="noreferrer"
-                  className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                >
-                  <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                  Portal
-                </Link>
+                <form action={startResellerImpersonationAction}>
+                  <input type="hidden" name="resellerId" value={r.id} />
+                  <Button type="submit" size="sm" variant="outline">
+                    <Eye className="h-3.5 w-3.5 mr-1" />
+                    Portal
+                  </Button>
+                </form>
+                {loginHref && (
+                  <Link
+                    href={loginHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+                  >
+                    Client login
+                  </Link>
+                )}
                 <form action={suspendResellerAction}>
                   <input type="hidden" name="resellerId" value={r.id} />
                   <Button type="submit" size="sm" variant="ghost" className="text-destructive">
@@ -254,6 +309,81 @@ function ResellerCard({ r }: { r: ResellerRow }) {
         </div>
       </div>
     </article>
+  );
+}
+
+function FundsTable({ rows }: { rows: ResellerRow[] }) {
+  const sorted = [...rows].sort(
+    (a, b) =>
+      b.totalFundsUnderManagement - a.totalFundsUnderManagement ||
+      b.commissionEarned - a.commissionEarned,
+  );
+
+  if (sorted.length === 0) {
+    return <AdminEmpty>No resellers to show.</AdminEmpty>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm min-w-[980px]">
+        <thead>
+          <tr className="text-left text-[11px] text-muted-foreground border-b border-border/50">
+            <th className="pb-2 pr-3 font-medium">Partner</th>
+            <th className="pb-2 pr-3 font-medium">Status</th>
+            <th className="pb-2 pr-3 font-medium text-right">Owner wallet</th>
+            <th className="pb-2 pr-3 font-medium text-right">Client wallets</th>
+            <th className="pb-2 pr-3 font-medium text-right">Owner credits</th>
+            <th className="pb-2 pr-3 font-medium text-right">Client credits</th>
+            <th className="pb-2 pr-3 font-medium text-right">Clients</th>
+            <th className="pb-2 pr-3 font-medium text-right">SMS 30d</th>
+            <th className="pb-2 pr-3 font-medium text-right">Commission</th>
+            <th className="pb-2 font-medium text-right">Score</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border/40">
+          {sorted.map((r) => (
+            <tr key={r.id} className="hover:bg-muted/20">
+              <td className="py-3 pr-3">
+                <Link
+                  href={`/admin/resellers/${r.id}`}
+                  className="font-medium hover:text-primary hover:underline"
+                >
+                  {r.businessName}
+                </Link>
+                <p className="text-[10px] text-muted-foreground font-mono mt-0.5">{r.user.phone}</p>
+              </td>
+              <td className="py-3 pr-3">
+                <StatusPill status={r.status} />
+              </td>
+              <td className="py-3 pr-3 text-right tabular-nums">
+                GHS {r.ownerWalletBalance.toFixed(2)}
+              </td>
+              <td className="py-3 pr-3 text-right tabular-nums text-muted-foreground">
+                GHS {r.clientsWalletBalance.toFixed(2)}
+              </td>
+              <td className="py-3 pr-3 text-right tabular-nums">
+                {r.ownerSmsCredits.toLocaleString()}
+              </td>
+              <td className="py-3 pr-3 text-right tabular-nums text-muted-foreground">
+                {r.clientsSmsCredits.toLocaleString()}
+              </td>
+              <td className="py-3 pr-3 text-right tabular-nums">{r._count.subUsers}</td>
+              <td className="py-3 pr-3 text-right tabular-nums">{r.smsLast30Days.toLocaleString()}</td>
+              <td className="py-3 pr-3 text-right tabular-nums">
+                GHS {r.commissionEarned.toFixed(2)}
+              </td>
+              <td className="py-3 text-right tabular-nums font-semibold">
+                {r.performanceRank != null ? (
+                  <span title={`Rank #${r.performanceRank}`}>{r.performanceScore.toFixed(1)}</span>
+                ) : (
+                  "—"
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -341,8 +471,17 @@ function PlatformPricingPanel({
   );
 }
 
-export function ResellersAdminView({ data, flash, filter }: Props) {
+function viewHref(view: string, filter?: string) {
+  const params = new URLSearchParams();
+  if (filter) params.set("filter", filter);
+  if (view === "table") params.set("view", "table");
+  const q = params.toString();
+  return q ? `/admin/resellers?${q}` : "/admin/resellers";
+}
+
+export function ResellersAdminView({ data, flash, filter, view }: Props) {
   const { stats, candidates, pending, approved, suspended, charts, platformPricing } = data;
+  const isTable = view === "table";
 
   const list =
     filter === "pending"
@@ -351,13 +490,19 @@ export function ResellersAdminView({ data, flash, filter }: Props) {
         ? approved
         : filter === "suspended"
           ? suspended
-          : data.resellers;
+          : filter === "top"
+            ? [...approved].sort(
+                (a, b) =>
+                  b.performanceScore - a.performanceScore ||
+                  b.commissionEarned - a.commissionEarned,
+              )
+            : data.resellers;
 
   return (
     <AdminPage wide>
       <AdminPageHeader
         title="Resellers"
-        description="Partner accounts with sub-users, custom pricing, commissions, and optional white-label branding."
+        description="Partner accounts with wallets, client funds, commissions, promos, and white-label portals."
         icon={Store}
       />
 
@@ -393,28 +538,28 @@ export function ResellersAdminView({ data, flash, filter }: Props) {
           variant={stats.pending > 0 ? "warning" : "default"}
         />
         <AdminStatCard
-          label="Active sub-users"
+          label="Active clients"
           value={stats.activeSubUsers.toLocaleString()}
           hint={`${stats.totalSubUsers} total`}
           icon={Users}
         />
         <AdminStatCard
-          label="SMS (30d)"
-          value={stats.totalSms30d.toLocaleString()}
-          hint={`GHS ${stats.totalSpend30d.toFixed(2)} spend`}
-          icon={Activity}
-        />
-        <AdminStatCard
-          label="Commission accrued"
-          hint="Unpaid + paid ledger"
-          value={`GHS ${stats.totalCommissions.toFixed(2)}`}
+          label="Partner wallets"
+          value={`GHS ${stats.totalOwnerWallets.toFixed(0)}`}
+          hint={`Clients GHS ${stats.totalClientWallets.toFixed(0)}`}
           icon={Wallet}
         />
         <AdminStatCard
-          label="Price overrides"
-          value={stats.totalPricingOverrides}
-          hint={`${stats.platformPricingRoutes} platform routes`}
-          icon={Tags}
+          label="SMS credits"
+          value={stats.totalCreditsUnderManagement.toLocaleString()}
+          hint={`Owners ${stats.totalOwnerCredits.toLocaleString()} · clients ${stats.totalClientCredits.toLocaleString()}`}
+          icon={Coins}
+        />
+        <AdminStatCard
+          label="Commission accrued"
+          hint={`SMS 30d ${stats.totalSms30d.toLocaleString()}`}
+          value={`GHS ${stats.totalCommissions.toFixed(2)}`}
+          icon={Activity}
         />
       </div>
 
@@ -479,27 +624,57 @@ export function ResellersAdminView({ data, flash, filter }: Props) {
         </AdminCard>
 
         <div className="space-y-4 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <FilterTab href="/admin/resellers" active={!filter} label="All" count={stats.total} />
-            <FilterTab
-              href="/admin/resellers?filter=pending"
-              active={filter === "pending"}
-              label="Pending"
-              count={stats.pending}
-              highlight={stats.pending > 0}
-            />
-            <FilterTab
-              href="/admin/resellers?filter=approved"
-              active={filter === "approved"}
-              label="Approved"
-              count={stats.approved}
-            />
-            <FilterTab
-              href="/admin/resellers?filter=suspended"
-              active={filter === "suspended"}
-              label="Suspended"
-              count={stats.suspended}
-            />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <FilterTab href={viewHref(view ?? "", undefined)} active={!filter} label="All" count={stats.total} />
+              <FilterTab
+                href={viewHref(view ?? "", "pending")}
+                active={filter === "pending"}
+                label="Pending"
+                count={stats.pending}
+                highlight={stats.pending > 0}
+              />
+              <FilterTab
+                href={viewHref(view ?? "", "approved")}
+                active={filter === "approved"}
+                label="Approved"
+                count={stats.approved}
+              />
+              <FilterTab
+                href={viewHref(view ?? "", "top")}
+                active={filter === "top"}
+                label="Top performers"
+                count={Math.min(stats.approved, 10)}
+              />
+              <FilterTab
+                href={viewHref(view ?? "", "suspended")}
+                active={filter === "suspended"}
+                label="Suspended"
+                count={stats.suspended}
+              />
+            </div>
+            <div className="inline-flex rounded-lg border border-border/60 p-0.5 bg-muted/30">
+              <Link
+                href={viewHref("cards", filter)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-semibold",
+                  !isTable ? "bg-background shadow-sm text-foreground" : "text-muted-foreground",
+                )}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Cards
+              </Link>
+              <Link
+                href={viewHref("table", filter)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-semibold",
+                  isTable ? "bg-background shadow-sm text-foreground" : "text-muted-foreground",
+                )}
+              >
+                <Table2 className="h-3.5 w-3.5" />
+                Funds table
+              </Link>
+            </div>
           </div>
 
           {stats.pending > 0 && filter !== "pending" && (
@@ -512,7 +687,7 @@ export function ResellersAdminView({ data, flash, filter }: Props) {
                 </span>
               </div>
               <Link
-                href="/admin/resellers?filter=pending"
+                href={viewHref(view ?? "", "pending")}
                 className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
               >
                 Review now
@@ -528,9 +703,17 @@ export function ResellersAdminView({ data, flash, filter }: Props) {
                   ? "Approved partners"
                   : filter === "suspended"
                     ? "Suspended & rejected"
-                    : "All resellers"
+                    : filter === "top"
+                      ? "Top performing partners"
+                      : isTable
+                        ? "Reseller funds overview"
+                        : "All resellers"
             }
-            description={`${list.length} shown · Manage opens settings, pricing, suspend & delete`}
+            description={
+              isTable
+                ? `${list.length} partners · Owner + client wallets and SMS credits`
+                : `${list.length} shown · Manage opens settings, clients, bonus credits & portal`
+            }
           >
             {list.length === 0 ? (
               <AdminEmpty>
@@ -538,6 +721,8 @@ export function ResellersAdminView({ data, flash, filter }: Props) {
                   ? "No resellers in this category."
                   : "No reseller accounts yet. Create one from a member."}
               </AdminEmpty>
+            ) : isTable ? (
+              <FundsTable rows={list} />
             ) : (
               <div className="space-y-4">
                 {list.map((r) => (
@@ -552,7 +737,7 @@ export function ResellersAdminView({ data, flash, filter }: Props) {
           <div className="rounded-xl border border-border/50 bg-muted/15 px-4 py-3 text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
             <span className="inline-flex items-center gap-1">
               <Palette className="h-3.5 w-3.5" />
-              Partners configure logos & colors in the reseller portal
+              Portal opens the partner account as staff (impersonation); Owner opens their admin member account
             </span>
             <span className="inline-flex items-center gap-1">
               <Ban className="h-3.5 w-3.5" />

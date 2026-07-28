@@ -3,13 +3,19 @@ import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { getPaymentAdapter } from "@/lib/payments";
 import type { PaymentMethod } from "@/lib/generated/prisma/client";
-import { getPaymentMethodOptions } from "@/lib/payments/methods";
+import { getPaymentMethodOptions, getPaymentMethodOptionsForUser } from "@/lib/payments/methods";
 import { resolveCheckoutAppUrl } from "@/lib/payments/checkout-url";
+import { sanitizeWalletReturnPath } from "@/lib/payments/return-path";
+import {
+  buildCheckoutMetadata,
+  resolveResellerCheckoutContext,
+} from "@/lib/payments/reseller-checkout";
 import { z } from "zod";
 
 const schema = z.object({
   amount: z.number().positive(),
   method: z.enum(["PAYSTACK", "FLUTTERWAVE", "STRIPE", "MTN_MOMO", "MANUAL"]),
+  returnPath: z.string().optional(),
   offline: z
     .object({
       payerName: z.string().optional(),
@@ -33,7 +39,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: { message: "Invalid amount or method" } }, { status: 400 });
   }
 
-  const methods = await getPaymentMethodOptions();
+  const methods = await getPaymentMethodOptionsForUser(session.userId);
   const selected = methods.find((m) => m.value === body.data.method);
   if (!selected) {
     return NextResponse.json({ success: false, error: { message: "Payment method disabled" } }, { status: 400 });
@@ -48,6 +54,9 @@ export async function POST(request: Request) {
   }
 
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
+  const checkoutCtx = await resolveResellerCheckoutContext(session.userId);
+  const checkoutMeta = buildCheckoutMetadata(checkoutCtx);
+
   const payment = await prisma.payment.create({
     data: {
       userId: session.userId,
@@ -66,7 +75,7 @@ export async function POST(request: Request) {
               paidAt: body.data.offline?.paidAt?.trim() || null,
               note: body.data.offline?.note?.trim() || null,
             }
-          : undefined,
+          : checkoutMeta,
     },
   });
 
@@ -83,6 +92,16 @@ export async function POST(request: Request) {
   }
 
   const adapter = getPaymentAdapter(body.data.method);
+  const returnPath = sanitizeWalletReturnPath(body.data.returnPath);
+  const gatewayOverride =
+    checkoutCtx.mode === "OWN"
+      ? body.data.method === "PAYSTACK"
+        ? (checkoutCtx.paystack ?? undefined)
+        : body.data.method === "STRIPE"
+          ? (checkoutCtx.stripe ?? undefined)
+          : undefined
+      : undefined;
+
   const checkout = await adapter.initializeTopUp({
     userId: session.userId,
     paymentId: payment.id,
@@ -90,6 +109,8 @@ export async function POST(request: Request) {
     currency: wallet.currency,
     email: user?.email ?? undefined,
     appUrl: resolveCheckoutAppUrl(request),
+    returnPath,
+    gatewayOverride,
   });
 
   if (checkout.redirectUrl && body.data.method !== "STRIPE") {

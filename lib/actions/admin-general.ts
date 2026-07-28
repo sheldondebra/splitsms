@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { getSession, isAdminRole } from "@/lib/auth/session";
+import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
 import { testMailjetConnection } from "@/lib/email/mailjet";
 import { sendEmail, isMailjetConfiguredAsync } from "@/lib/email";
 import { testEmailContent } from "@/lib/email/templates";

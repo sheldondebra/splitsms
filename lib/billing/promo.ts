@@ -11,6 +11,12 @@ export async function applyPromoCode(userId: string, code: string) {
   if (promo.userId && promo.userId !== userId) {
     return { ok: false as const, error: "Promo not available for your account" };
   }
+  if (promo.resellerId) {
+    const membership = await prisma.resellerUser.findUnique({ where: { userId } });
+    if (!membership || membership.resellerId !== promo.resellerId) {
+      return { ok: false as const, error: "Promo is only for this partner's clients" };
+    }
+  }
   if (promo.expiresAt && promo.expiresAt < new Date()) {
     return { ok: false as const, error: "Promo code expired" };
   }

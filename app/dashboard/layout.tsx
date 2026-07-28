@@ -4,6 +4,7 @@ import { requireActiveMemberSession } from "@/lib/auth/require-active-member";
 import { enforceTenantMemberAccess } from "@/lib/reseller/require-tenant-member";
 import { resolveTenantForMemberUser } from "@/lib/reseller/tenant";
 import { getRequestTenant } from "@/lib/reseller/request-tenant";
+import { getResellerByUserId } from "@/lib/reseller/context";
 import {
   getNotificationsSummary,
   ensureLowBalanceNotification,
@@ -40,13 +41,14 @@ export default async function DashboardLayout({
   const memberTenant =
     hostTenant ?? (await resolveTenantForMemberUser(session.userId));
 
-  const [user, balance, { notifications, unreadCount }] = await Promise.all([
+  const [user, balance, { notifications, unreadCount }, reseller] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.userId },
       select: { fullName: true, email: true, phone: true },
     }),
     getBalanceSnapshot(session.userId),
     getNotificationsSummary(session.userId, 15),
+    getResellerByUserId(session.userId),
   ]);
 
   after(async () => {
@@ -61,6 +63,9 @@ export default async function DashboardLayout({
   }
 
   const firstName = user?.fullName?.split(" ")[0] ?? "there";
+  const showResellerPortal =
+    Boolean(reseller && reseller.status === "APPROVED" && reseller.isActive) ||
+    ["ADMIN", "SUPER_ADMIN", "RESELLER"].includes(session.role);
 
   return (
     <TenantThemeWrap tenant={memberTenant}>
@@ -76,6 +81,7 @@ export default async function DashboardLayout({
         unreadCount={unreadCount}
         balance={balance}
         tenant={memberTenant}
+        showResellerPortal={showResellerPortal}
       >
         {children}
       </MemberAppShell>

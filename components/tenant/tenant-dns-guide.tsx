@@ -1,4 +1,4 @@
-import { normalizeHost } from "@/lib/reseller/tenant";
+import { normalizeHost } from "@/lib/reseller/tenant-host";
 
 function platformHostname() {
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL;
@@ -42,8 +42,9 @@ export function TenantDnsGuide({
         </li>
       </ol>
       <p className="text-[10px] text-muted-foreground">
-        Reseller portal and admin stay on the main platform URL. Sub-user signup on your domain is
-        disabled — create accounts from your reseller dashboard.
+        Reseller portal and admin stay on the main platform URL. Clients can sign up on your domain
+        via <code className="font-mono">/signup</code>, or you can create accounts from your
+        dashboard.
       </p>
     </div>
   );

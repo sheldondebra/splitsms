@@ -7,6 +7,7 @@ import { NotificationBell, type NotificationItem } from "@/components/dashboard/
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DashboardBalance } from "@/components/dashboard/dashboard-balance";
 import { PortalSwitch } from "@/components/dashboard/portal-switch";
+import { WorkspacePortalSwitch } from "@/components/shared/workspace-portal-switch";
 import {
   UserProfileMenu,
   type MemberProfileSummary,
@@ -25,6 +26,7 @@ type MobileAppHeaderProps = {
   notifications: NotificationItem[];
   unreadCount: number;
   balance: BalanceSnapshot;
+  showResellerPortal?: boolean;
 };
 
 export function MobileAppHeader({
@@ -33,6 +35,7 @@ export function MobileAppHeader({
   notifications,
   unreadCount,
   balance,
+  showResellerPortal = false,
 }: MobileAppHeaderProps) {
   const pathname = usePathname();
   const pageTitle = getMemberPageTitle(pathname);
@@ -63,6 +66,12 @@ export function MobileAppHeader({
           <UserProfileMenu profile={profile} />
         </div>
       </div>
+
+      {showResellerPortal && !isDevelopers ? (
+        <div className="border-t border-border/50 px-4 py-2">
+          <WorkspacePortalSwitch />
+        </div>
+      ) : null}
 
       {isDevelopers && (
         <div className="border-t border-border/50 px-4 py-2 space-y-2">

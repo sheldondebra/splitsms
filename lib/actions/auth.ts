@@ -53,8 +53,19 @@ import {
   assertSignupAllowed,
   readSignupGuardFields,
 } from "@/lib/auth/signup-guard";
+import {
+  isResellerLinkedUser,
+  linkSignupUserToReseller,
+  resolveResellerInvite,
+} from "@/lib/reseller/invite";
+import { getRequestTenant } from "@/lib/reseller/request-tenant";
 import { redirect } from "next/navigation";
 import type { OtpPurpose, UserRole } from "@/lib/generated/prisma/client";
+
+function inviteRedirectParams(formData: FormData): Record<string, string> {
+  const r = String(formData.get("resellerInvite") ?? "").trim();
+  return r ? { r } : {};
+}
 
 function authRedirect(path: string, params?: Record<string, string>): never {
   const q = params ? `?${new URLSearchParams(params).toString()}` : "";
@@ -150,21 +161,32 @@ async function finishLogin(
 }
 
 async function grantWelcomeCredits(userId: string) {
+  if (await isResellerLinkedUser(userId)) return;
   await prisma.smsCredit.updateMany({
     where: { userId, balance: 0 },
     data: { balance: 5 },
   });
 }
 
+async function attachResellerInviteFromForm(userId: string, formData: FormData) {
+  const tenant = await getRequestTenant();
+  const inviteParam = String(formData.get("resellerInvite") ?? "").trim();
+  const resellerId = tenant?.resellerId ?? (await resolveResellerInvite(inviteParam))?.resellerId;
+  if (!resellerId) return;
+  const source = tenant ? "domain" : "share";
+  await linkSignupUserToReseller(userId, resellerId, source);
+}
+
 /** Unified phone login / signup — sends OTP, creates account if new */
 export async function requestPhoneAuthAction(formData: FormData) {
   const intent = String(formData.get("intent") ?? "login");
   const returnPath = intent === "signup" ? "/signup" : "/login";
+  const inviteParams = intent === "signup" ? inviteRedirectParams(formData) : {};
   const guardFields = readSignupGuardFields(formData);
 
   const otpGuard = await assertOtpRequestAllowed(guardFields);
   if (!otpGuard.ok) {
-    authRedirect(returnPath, { error: "rate_limit" });
+    authRedirect(returnPath, { error: "rate_limit", ...inviteParams });
   }
 
   const parsed = phoneAuthSchema.safeParse({
@@ -174,7 +196,7 @@ export async function requestPhoneAuthAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    authRedirect(returnPath, { error: "invalid_phone" });
+    authRedirect(returnPath, { error: "invalid_phone", ...inviteParams });
   }
 
   const { countryCode, dialCode } = parsed.data;
@@ -182,12 +204,12 @@ export async function requestPhoneAuthAction(formData: FormData) {
 
   const phoneCheck = phone.length >= 10 ? { success: true as const } : { success: false as const };
   if (!phoneCheck.success) {
-    authRedirect(returnPath, { error: "invalid_phone" });
+    authRedirect(returnPath, { error: "invalid_phone", ...inviteParams });
   }
 
   const limit = await checkRateLimit(rateLimitKey("otp_request", phone));
   if (!limit.allowed) {
-    authRedirect(returnPath, { error: "rate_limit" });
+    authRedirect(returnPath, { error: "rate_limit", ...inviteParams });
   }
 
   let user = await prisma.user.findUnique({ where: { phone } });
@@ -197,7 +219,7 @@ export async function requestPhoneAuthAction(formData: FormData) {
   if (!user) {
     const signupGuard = await assertSignupAllowed(guardFields);
     if (!signupGuard.ok) {
-      authRedirect(returnPath, { error: "rate_limit" });
+      authRedirect(returnPath, { error: "rate_limit", ...inviteParams });
     }
 
     const passwordHash = await hashPassword(generateOtpOnlyPassword());
@@ -214,6 +236,7 @@ export async function requestPhoneAuthAction(formData: FormData) {
         memberAccount: { create: {} },
       },
     });
+    await attachResellerInviteFromForm(user.id, formData);
     otpPurpose = "SIGNUP_VERIFY";
     purposeParam = "signup";
     const country = getCountryByCode(countryCode);
@@ -260,16 +283,17 @@ export async function requestEmailAuthAction(formData: FormData) {
   const returnPath = intent === "signup" ? "/signup" : "/login";
 
   if (intent === "signup") {
+    const inviteParams = inviteRedirectParams(formData);
     const guardFields = readSignupGuardFields(formData);
 
     const otpGuard = await assertOtpRequestAllowed(guardFields);
     if (!otpGuard.ok) {
-      authRedirect(returnPath, { error: "rate_limit", method: "email" });
+      authRedirect(returnPath, { error: "rate_limit", method: "email", ...inviteParams });
     }
 
     const signupGuard = await assertSignupAllowed(guardFields);
     if (!signupGuard.ok) {
-      authRedirect(returnPath, { error: "rate_limit", method: "email" });
+      authRedirect(returnPath, { error: "rate_limit", method: "email", ...inviteParams });
     }
 
     const parsed = emailAuthSignupSchema.safeParse({
@@ -284,6 +308,7 @@ export async function requestEmailAuthAction(formData: FormData) {
       authRedirect(returnPath, {
         error: field === "email" ? "email" : "invalid_phone",
         method: "email",
+        ...inviteParams,
       });
     }
 
@@ -291,12 +316,12 @@ export async function requestEmailAuthAction(formData: FormData) {
     const phone = normalizePhoneWithCountry(parsed.data.phone, dialCode, countryCode);
 
     if (phone.length < 10) {
-      authRedirect(returnPath, { error: "invalid_phone", method: "email" });
+      authRedirect(returnPath, { error: "invalid_phone", method: "email", ...inviteParams });
     }
 
     const limit = await checkRateLimit(rateLimitKey("otp_request", phone));
     if (!limit.allowed) {
-      authRedirect(returnPath, { error: "rate_limit", method: "email" });
+      authRedirect(returnPath, { error: "rate_limit", method: "email", ...inviteParams });
     }
 
     const [existingPhone, existingEmail] = await Promise.all([
@@ -305,10 +330,10 @@ export async function requestEmailAuthAction(formData: FormData) {
     ]);
 
     if (existingPhone) {
-      authRedirect(returnPath, { error: "exists", method: "email" });
+      authRedirect(returnPath, { error: "exists", method: "email", ...inviteParams });
     }
     if (existingEmail) {
-      authRedirect(returnPath, { error: "email_taken", method: "email" });
+      authRedirect(returnPath, { error: "email_taken", method: "email", ...inviteParams });
     }
 
     const passwordHash = await hashPassword(generateOtpOnlyPassword());
@@ -326,6 +351,7 @@ export async function requestEmailAuthAction(formData: FormData) {
         memberAccount: { create: {} },
       },
     });
+    await attachResellerInviteFromForm(user.id, formData);
 
     const country = getCountryByCode(countryCode);
     await logAuthEvent(
@@ -476,16 +502,17 @@ export async function signupAction(formData: FormData) {
   const signupMethod = String(formData.get("signupMethod") ?? "phone");
   const dialCode = String(formData.get("dialCode") ?? "+233");
   const countryCode = String(formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE).toUpperCase();
+  const inviteParams = inviteRedirectParams(formData);
   const guardFields = readSignupGuardFields(formData);
 
   const otpGuard = await assertOtpRequestAllowed(guardFields);
   if (!otpGuard.ok) {
-    authRedirect("/signup", { error: "rate_limit", method: signupMethod });
+    authRedirect("/signup", { error: "rate_limit", method: signupMethod, ...inviteParams });
   }
 
   const signupGuard = await assertSignupAllowed(guardFields);
   if (!signupGuard.ok) {
-    authRedirect("/signup", { error: "rate_limit", method: signupMethod });
+    authRedirect("/signup", { error: "rate_limit", method: signupMethod, ...inviteParams });
   }
 
   const parsed = signupSchema.safeParse({
@@ -501,7 +528,7 @@ export async function signupAction(formData: FormData) {
 
   if (!parsed.success) {
     const field = parsed.error.issues[0]?.path[0] ?? "invalid";
-    authRedirect("/signup", { error: String(field), method: signupMethod });
+    authRedirect("/signup", { error: String(field), method: signupMethod, ...inviteParams });
   }
 
   const { fullName, password, referralCode } = parsed.data;
@@ -521,18 +548,18 @@ export async function signupAction(formData: FormData) {
   const ipKey = rateLimitKey("signup", phone);
   const limit = await checkRateLimit(ipKey);
   if (!limit.allowed) {
-    authRedirect("/signup", { error: "rate_limit", method: signupMethod });
+    authRedirect("/signup", { error: "rate_limit", method: signupMethod, ...inviteParams });
   }
 
   const existingPhone = await prisma.user.findUnique({ where: { phone } });
   if (existingPhone) {
-    authRedirect("/signup", { error: "exists", method: signupMethod });
+    authRedirect("/signup", { error: "exists", method: signupMethod, ...inviteParams });
   }
 
   if (email) {
     const emailTaken = await prisma.user.findUnique({ where: { email } });
     if (emailTaken) {
-      authRedirect("/signup", { error: "email_taken", method: signupMethod });
+      authRedirect("/signup", { error: "email_taken", method: signupMethod, ...inviteParams });
     }
   }
 
@@ -552,6 +579,7 @@ export async function signupAction(formData: FormData) {
       memberAccount: { create: {} },
     },
   });
+  await attachResellerInviteFromForm(user.id, formData);
 
   const otp = await createAndSendOtp(phone, "SIGNUP_VERIFY", countryCode, user.id);
   if (!otp.ok) {
@@ -559,6 +587,7 @@ export async function signupAction(formData: FormData) {
       error: "otp_cooldown",
       cooldown: String(otp.cooldownSec),
       method: signupMethod,
+      ...inviteParams,
     });
   }
 
@@ -881,9 +910,19 @@ export async function resendOtpAction(formData: FormData) {
 }
 
 export async function logoutAction() {
-  const session = await import("@/lib/auth/session").then((m) => m.getSession());
+  const { getSession, getRealSession } = await import("@/lib/auth/session");
+  const session = await getSession();
+  const real = await getRealSession();
   if (session) {
-    await logAuthEvent("LOGOUT", { phone: session.phone }, session.userId);
+    await logAuthEvent(
+      "LOGOUT",
+      {
+        phone: session.phone,
+        impersonatorId: session.impersonatorId,
+        realUserId: real?.userId,
+      },
+      session.impersonatorId ?? session.userId,
+    );
   }
   await clearSession();
   redirect("/login");

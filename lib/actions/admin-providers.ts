@@ -1,6 +1,6 @@
 "use server";
 
-import { getSession, isAdminRole } from "@/lib/auth/session";
+import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
 import {
   saveInfobipSettings,
   saveTwilioSettings,

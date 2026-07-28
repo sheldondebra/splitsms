@@ -7,6 +7,10 @@ import {
   resolveDefaultPaymentMethod,
   type OnlinePaymentProvider,
 } from "@/lib/payments/gateway-settings";
+import {
+  isResellerOwnCheckoutAvailable,
+  resolveResellerCheckoutContext,
+} from "@/lib/payments/reseller-checkout";
 
 export type PaymentMethodOption = {
   value: PaymentMethod;
@@ -49,7 +53,19 @@ const ALL_METHODS: Omit<PaymentMethodOption, "available">[] = [
   },
 ];
 
-async function isMethodAvailable(method: PaymentMethod): Promise<boolean> {
+async function isMethodAvailableForUser(
+  method: PaymentMethod,
+  userId?: string,
+): Promise<boolean> {
+  if (userId) {
+    const own = await isResellerOwnCheckoutAvailable(userId, method);
+    if (own) return true;
+    const ctx = await resolveResellerCheckoutContext(userId);
+    if (ctx.mode === "OWN" && (method === "PAYSTACK" || method === "STRIPE")) {
+      return false;
+    }
+  }
+
   switch (method) {
     case "PAYSTACK":
       return isPaystackConfigured();
@@ -64,6 +80,46 @@ async function isMethodAvailable(method: PaymentMethod): Promise<boolean> {
     default:
       return false;
   }
+}
+
+async function isMethodAvailable(method: PaymentMethod): Promise<boolean> {
+  return isMethodAvailableForUser(method);
+}
+
+export async function getPaymentMethodOptionsForUser(
+  userId: string,
+): Promise<PaymentMethodOption[]> {
+  const row = await prisma.platformSetting.findUnique({
+    where: { key: "payment_methods" },
+  });
+  const enabled = (row?.value as PaymentMethod[] | null) ?? [
+    "PAYSTACK",
+    "FLUTTERWAVE",
+    "STRIPE",
+    "MTN_MOMO",
+    "MANUAL",
+  ];
+
+  const ctx = await resolveResellerCheckoutContext(userId);
+  let methods = ALL_METHODS.filter((m) => enabled.includes(m.value));
+
+  if (ctx.mode === "OWN") {
+    methods = methods.filter(
+      (m) =>
+        m.value === "MANUAL" ||
+        (m.value === "PAYSTACK" && ctx.paystack) ||
+        (m.value === "STRIPE" && ctx.stripe),
+    );
+  }
+
+  const availability = await Promise.all(
+    methods.map((m) => isMethodAvailableForUser(m.value, userId)),
+  );
+
+  return methods.map((m, i) => ({
+    ...m,
+    available: availability[i],
+  }));
 }
 
 export async function getPaymentMethodOptions(): Promise<PaymentMethodOption[]> {
@@ -87,8 +143,10 @@ export async function getPaymentMethodOptions(): Promise<PaymentMethodOption[]> 
   }));
 }
 
-export async function getDefaultPaymentMethodForUser(): Promise<PaymentMethod | null> {
-  const methods = await getPaymentMethodOptions();
+export async function getDefaultPaymentMethodForUser(userId?: string): Promise<PaymentMethod | null> {
+  const methods = userId
+    ? await getPaymentMethodOptionsForUser(userId)
+    : await getPaymentMethodOptions();
   const availableOnline = methods
     .filter((m) => m.available && m.category === "online")
     .map((m) => m.value as OnlinePaymentProvider);

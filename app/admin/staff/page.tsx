@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { hasStaffPermission } from "@/lib/auth/admin-permissions";
-import { getSession, isAdminRole, isSuperAdmin } from "@/lib/auth/session";
+import { getRealSession as getSession, isAdminRole, isSuperAdmin } from "@/lib/auth/session";
 import { getAdminStaffDashboard } from "@/lib/admin/staff-dashboard";
 import { AdminStaffView } from "@/components/admin/admin-staff-view";
 import { StaffAdminToasts } from "@/components/admin/staff-admin-toasts";

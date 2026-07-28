@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { getSession, isAdminRole } from "@/lib/auth/session";
+import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
 import { saveSmsRoutingPolicy, type SenderRegistrationMode } from "@/lib/sms/routing-policy";
 import { sendSmsWithFailover } from "@/lib/sms/orchestrator";
 import { mnotifyAdapter } from "@/lib/sms/providers/mnotify";

@@ -6,6 +6,7 @@ export default async function AdminResellersPage({
 }: {
   searchParams: Promise<{
     filter?: string;
+    view?: string;
     saved?: string;
     error?: string;
     approved?: string;
@@ -23,6 +24,7 @@ export default async function AdminResellersPage({
     <ResellersAdminView
       data={data}
       filter={params.filter}
+      view={params.view}
       flash={{ saved, error: params.error }}
     />
   );

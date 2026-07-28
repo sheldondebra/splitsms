@@ -1,17 +1,16 @@
 import { getSession } from "@/lib/auth/session";
 import { requireApprovedReseller } from "@/lib/reseller/context";
-import { setResellerPricingAction } from "@/lib/actions/reseller";
 import { prisma } from "@/lib/db";
+import {
+  ResellerPricingView,
+  type PricingCountryRow,
+} from "@/components/reseller/pricing/reseller-pricing-view";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export default async function ResellerPricingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; error?: string; country?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -21,60 +20,44 @@ export default async function ResellerPricingPage({
   if (!reseller) redirect("/reseller");
 
   const [platformPricing, resellerPricing] = await Promise.all([
-    prisma.smsPricing.findMany({ include: { country: true }, where: { isActive: true } }),
-    prisma.resellerCountryPricing.findMany({ where: { resellerId: reseller.id } }),
+    prisma.smsPricing.findMany({
+      include: { country: true },
+      where: { isActive: true },
+      orderBy: { country: { name: "asc" } },
+    }),
+    prisma.resellerCountryPricing.findMany({
+      where: { resellerId: reseller.id, isActive: true },
+    }),
   ]);
 
   const byCode = Object.fromEntries(resellerPricing.map((r) => [r.countryCode, r]));
 
-  return (
-    <div className="space-y-8 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-bold">Reseller pricing</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Set sell prices for your sub-users. Your margin = sell price − platform cost.
-        </p>
-      </div>
-      {params.saved && <p className="text-sm text-green-600">Pricing saved.</p>}
+  const rows: PricingCountryRow[] = platformPricing.map((p) => {
+    const custom = byCode[p.country.code];
+    const costPrice = p.costPrice.toNumber();
+    const memberPrice = p.memberPrice.toNumber();
+    const suggestedPrice = Number((costPrice * 1.4).toFixed(4));
+    return {
+      code: p.country.code,
+      name: p.country.name,
+      dialCode: p.country.dialCode,
+      currency: custom?.currency ?? p.currency,
+      costPrice,
+      memberPrice,
+      sellPrice: custom ? custom.sellPrice.toNumber() : null,
+      isCustom: Boolean(custom),
+      suggestedPrice,
+    };
+  });
 
-      <div className="space-y-4">
-        {platformPricing.map((p) => {
-          const custom = byCode[p.country.code];
-          const platformCost = p.costPrice.toNumber();
-          return (
-            <Card key={p.id}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">{p.country.name}</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Platform cost: {p.currency} {platformCost} / segment
-                </p>
-              </CardHeader>
-              <CardContent>
-                <form action={setResellerPricingAction} className="flex flex-wrap gap-3 items-end">
-                  <input type="hidden" name="countryCode" value={p.country.code} />
-                  <div>
-                    <Label>Your sell price</Label>
-                    <Input
-                      name="sellPrice"
-                      type="number"
-                      step="0.0001"
-                      defaultValue={custom?.sellPrice.toString() ?? String(platformCost * 1.4)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label>Currency</Label>
-                    <Input name="currency" defaultValue={custom?.currency ?? p.currency} />
-                  </div>
-                  <Button type="submit" size="sm">
-                    Save
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-    </div>
+  return (
+    <ResellerPricingView
+      rows={rows}
+      flash={{
+        saved: params.saved,
+        error: params.error,
+        country: params.country,
+      }}
+    />
   );
 }

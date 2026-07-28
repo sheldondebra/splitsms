@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { getSession, isAdminRole } from "@/lib/auth/session";
+import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
 import { hashPassword } from "@/lib/auth/password";
 import { createAndSendOtp } from "@/lib/auth/otp";
 import { logAuthEvent } from "@/lib/auth/audit";

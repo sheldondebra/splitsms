@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { warmDatabaseConnection } from "@/lib/db";
-import { getSession, isAdminRole, isSuperAdmin } from "@/lib/auth/session";
+import { getRealSession as getSession, isAdminRole, isSuperAdmin } from "@/lib/auth/session";
 import { processPendingMessagesBatch } from "@/lib/queue/process-pending-batch";
 import { SMS_CRON_BATCH_LIMIT } from "@/lib/queue/sms-dispatch-config";
 import { enqueueSmsJobsInline } from "@/lib/queue/enqueue-sms";

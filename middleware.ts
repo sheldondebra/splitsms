@@ -93,11 +93,9 @@ export async function middleware(request: NextRequest) {
     if (
       pathname.startsWith("/admin") ||
       pathname.startsWith("/reseller") ||
-      pathname.startsWith("/enterprise") ||
-      pathname.startsWith("/signup")
+      pathname.startsWith("/enterprise")
     ) {
-      const dest = pathname.startsWith("/signup") ? "/login?error=tenant_signup" : "/login";
-      return NextResponse.redirect(new URL(dest, request.url));
+      return NextResponse.redirect(new URL("/login", request.url));
     }
   }
 
@@ -156,6 +154,13 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuth && session) {
+    const impToken = request.cookies.get("splitsms_impersonate")?.value;
+    if (
+      (session.role === "ADMIN" || session.role === "SUPER_ADMIN") &&
+      impToken
+    ) {
+      return NextResponse.redirect(new URL("/reseller", request.url));
+    }
     const external = externalResellerPortal(session, tenant);
     if (external) {
       return NextResponse.redirect(external);

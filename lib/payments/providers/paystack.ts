@@ -1,10 +1,11 @@
 import { loadPaystackSettings } from "@/lib/payments/gateway-settings";
+import { sanitizeWalletReturnPath, walletCallbackUrl } from "@/lib/payments/return-path";
 import type { PaymentProviderAdapter, CheckoutSession } from "../types";
 
 export const paystackAdapter: PaymentProviderAdapter = {
   method: "PAYSTACK",
-  async initializeTopUp({ paymentId, amount, currency, email }) {
-    const { config } = await loadPaystackSettings();
+  async initializeTopUp({ paymentId, amount, currency, email, returnPath, gatewayOverride }) {
+    const config = gatewayOverride ?? (await loadPaystackSettings()).config;
     const secret = config.secretKey;
     const { getSiteUrl } = await import("@/lib/site-config");
     const appUrl = getSiteUrl();
@@ -15,6 +16,7 @@ export const paystackAdapter: PaymentProviderAdapter = {
       };
     }
 
+    const path = sanitizeWalletReturnPath(returnPath);
     const res = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: {
@@ -26,7 +28,10 @@ export const paystackAdapter: PaymentProviderAdapter = {
         email: email ?? "member@splitsms.local",
         currency,
         reference: paymentId,
-        callback_url: `${appUrl}/dashboard/wallet?provider=paystack&reference=${paymentId}`,
+        callback_url: walletCallbackUrl(appUrl, path, {
+          provider: "paystack",
+          reference: paymentId,
+        }),
       }),
     });
 

@@ -24,13 +24,19 @@ import {
   ArrowLeftRight,
   SlidersHorizontal,
   TicketPercent,
+  Banknote,
 } from "lucide-react";
 
 export type AdminNavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  badge?: "pending-payments" | "pending-sender-ids" | "open-support-tickets" | "operations-attention";
+  badge?:
+    | "pending-payments"
+    | "pending-sender-ids"
+    | "open-support-tickets"
+    | "operations-attention"
+    | "pending-reseller-payouts";
 };
 
 export type AdminNavSection = {
@@ -58,6 +64,12 @@ export const adminNavSections: AdminNavSection[] = [
       { href: "/admin/activity", label: "Activity logs", icon: History },
       { href: "/admin/outreach", label: "Bulk messages", icon: MessagesSquare },
       { href: "/admin/resellers", label: "Resellers", icon: Store },
+      {
+        href: "/admin/reseller-payouts",
+        label: "Reseller payouts",
+        icon: Banknote,
+        badge: "pending-reseller-payouts",
+      },
       { href: "/admin/enterprise", label: "Enterprise", icon: Building2 },
     ],
   },
@@ -107,6 +119,7 @@ export function getAdminPageTitle(pathname: string): string {
     return "Providers";
   if (pathname === "/admin/payments/transactions") return "Provider transactions";
   if (pathname === "/admin/payments/settings") return "Payment settings";
+  if (pathname === "/admin/reseller-payouts") return "Reseller payouts";
   if (/^\/admin\/members\/[^/]+$/.test(pathname)) return "Member detail";
   if (/^\/admin\/resellers\/[^/]+$/.test(pathname)) return "Reseller detail";
   for (const section of adminNavSections) {

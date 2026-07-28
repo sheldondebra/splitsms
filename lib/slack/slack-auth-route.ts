@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession, isAdminRole } from "@/lib/auth/session";
+import { getRealSession, isAdminRole } from "@/lib/auth/session";
 import { getSiteUrl } from "@/lib/site-config";
 
 export async function requireAdminForSlackLink(
@@ -9,7 +9,7 @@ export async function requireAdminForSlackLink(
   | { ok: true; userId: string }
   | { ok: false; response: NextResponse }
 > {
-  const session = await getSession();
+  const session = await getRealSession();
 
   if (!session || !isAdminRole(session.role)) {
     const loginUrl = new URL("/login", getSiteUrl());

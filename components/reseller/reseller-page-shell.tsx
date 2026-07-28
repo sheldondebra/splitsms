@@ -81,20 +81,25 @@ export function ResellerCard({
   description,
   children,
   className,
+  headerRight,
 }: {
   title?: string;
   description?: string;
   children: ReactNode;
   className?: string;
+  headerRight?: ReactNode;
 }) {
   return (
     <div className={cn("rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden", className)}>
-      {(title || description) && (
-        <div className="px-5 py-4 border-b border-border/50 bg-muted/15">
-          {title && <h2 className="font-semibold text-sm">{title}</h2>}
-          {description && (
-            <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-          )}
+      {(title || description || headerRight) && (
+        <div className="flex flex-col gap-3 px-5 py-4 border-b border-border/50 bg-muted/15 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            {title && <h2 className="font-semibold text-sm">{title}</h2>}
+            {description && (
+              <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+            )}
+          </div>
+          {headerRight ? <div className="shrink-0">{headerRight}</div> : null}
         </div>
       )}
       <div className="p-5">{children}</div>

@@ -1,6 +1,6 @@
 "use server";
 
-import { getSession, isAdminRole } from "@/lib/auth/session";
+import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { getOrCreateMemberAccount } from "@/lib/admin/member-account";
 import { withReturnParams } from "@/lib/admin/return-url";

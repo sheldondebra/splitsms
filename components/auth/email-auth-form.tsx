@@ -17,9 +17,14 @@ import { cn } from "@/lib/utils";
 type EmailAuthFormProps = {
   countries: SignupCountryOption[];
   intent?: "login" | "signup";
+  resellerInvite?: string;
 };
 
-export function EmailAuthForm({ countries, intent = "login" }: EmailAuthFormProps) {
+export function EmailAuthForm({
+  countries,
+  intent = "login",
+  resellerInvite,
+}: EmailAuthFormProps) {
   const isSignup = intent === "signup";
   const initial = isSignup ? initialCountryState(countries) : { countryCode: DEFAULT_COUNTRY_CODE, dialCode: "+233" };
   const [countryCode, setCountryCode] = useState(initial.countryCode);
@@ -36,6 +41,9 @@ export function EmailAuthForm({ countries, intent = "login" }: EmailAuthFormProp
       <AuthHoneypot />
       <input type="hidden" name="intent" value={intent} />
       <input type="hidden" name="dialCode" value={dialCode} />
+      {resellerInvite ? (
+        <input type="hidden" name="resellerInvite" value={resellerInvite} />
+      ) : null}
       {isSignup && <input type="hidden" name="countryCode" value={countryCode} />}
 
       <div className="space-y-2">

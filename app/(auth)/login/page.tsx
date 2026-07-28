@@ -87,18 +87,16 @@ export default async function LoginPage({
             </Link>
           )}
 
-          {!tenant && (
-            <p className="text-muted-foreground">
-              New here?{" "}
-              <Link href="/signup" className="text-primary font-medium hover:underline">
-                Create free account
-              </Link>
-            </p>
-          )}
+          <p className="text-muted-foreground">
+            New here?{" "}
+            <Link href="/signup" className="text-primary font-medium hover:underline">
+              {tenant ? "Create an account" : "Create free account"}
+            </Link>
+          </p>
 
           {tenant?.supportEmail && (
             <p className="text-xs text-muted-foreground">
-              Need an account? Contact{" "}
+              Need help? Contact{" "}
               <a
                 href={`mailto:${tenant.supportEmail}`}
                 className="text-primary font-medium hover:underline"

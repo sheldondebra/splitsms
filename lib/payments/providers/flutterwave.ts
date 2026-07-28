@@ -1,9 +1,10 @@
 import { loadFlutterwaveSettings } from "@/lib/payments/gateway-settings";
+import { sanitizeWalletReturnPath, walletCallbackUrl } from "@/lib/payments/return-path";
 import type { PaymentProviderAdapter } from "../types";
 
 export const flutterwaveAdapter: PaymentProviderAdapter = {
   method: "FLUTTERWAVE",
-  async initializeTopUp({ paymentId, amount, currency, email }) {
+  async initializeTopUp({ paymentId, amount, currency, email, returnPath }) {
     const { config } = await loadFlutterwaveSettings();
     const secret = config.secretKey;
     const { getSiteUrl } = await import("@/lib/site-config");
@@ -16,6 +17,7 @@ export const flutterwaveAdapter: PaymentProviderAdapter = {
       };
     }
 
+    const path = sanitizeWalletReturnPath(returnPath);
     const res = await fetch("https://api.flutterwave.com/v3/payments", {
       method: "POST",
       headers: {
@@ -26,7 +28,10 @@ export const flutterwaveAdapter: PaymentProviderAdapter = {
         tx_ref: paymentId,
         amount,
         currency,
-        redirect_url: `${appUrl}/dashboard/wallet?provider=flutterwave&reference=${paymentId}`,
+        redirect_url: walletCallbackUrl(appUrl, path, {
+          provider: "flutterwave",
+          reference: paymentId,
+        }),
         customer: { email: email ?? "member@splitsms.local" },
         customizations: {
           title: "SplitSMS Wallet",

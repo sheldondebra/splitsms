@@ -1,6 +1,6 @@
 "use server";
 
-import { getSession, isAdminRole } from "@/lib/auth/session";
+import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
 import { saveMnotifySettings, loadMnotifySettings } from "@/lib/mnotify-settings";
 import { normalizeMnotifyPhone, sendMnotifyQuickSms } from "@/lib/mnotify";
 import {

@@ -22,6 +22,7 @@ type MemberAppShellProps = {
   unreadCount: number;
   balance: BalanceSnapshot;
   tenant?: TenantBranding | null;
+  showResellerPortal?: boolean;
 };
 
 export function MemberAppShell({
@@ -32,6 +33,7 @@ export function MemberAppShell({
   unreadCount,
   balance,
   tenant,
+  showResellerPortal = false,
 }: MemberAppShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -53,6 +55,7 @@ export function MemberAppShell({
           notifications={notifications}
           unreadCount={unreadCount}
           balance={balance}
+          showResellerPortal={showResellerPortal}
         />
 
         <div className="hidden md:block">
@@ -62,6 +65,7 @@ export function MemberAppShell({
             notifications={notifications}
             unreadCount={unreadCount}
             balance={balance}
+            showResellerPortal={showResellerPortal}
           />
         </div>
 

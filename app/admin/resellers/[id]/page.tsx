@@ -17,12 +17,21 @@ import {
   updateResellerSettingsAction,
   adminPayoutCommissionsAction,
   deleteResellerAction,
+  adminResellerBonusCreditsAction,
+  adminResellerBonusWalletAction,
 } from "@/lib/actions/admin-resellers";
+import {
+  getResellerClientLoginHref,
+  getResellerOwnerAdminHref,
+} from "@/lib/admin/reseller-portal-url";
+import { startResellerImpersonationAction } from "@/lib/actions/admin-impersonation";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { TenantDnsGuide } from "@/components/tenant/tenant-dns-guide";
+import { ResellerPromosPanel } from "@/components/admin/resellers/reseller-promos-panel";
+import { ResellerClientsPanel } from "@/components/admin/resellers/reseller-clients-panel";
 import {
   ArrowLeft,
   Users,
@@ -33,6 +42,11 @@ import {
   Trash2,
   Ban,
   Tags,
+  ExternalLink,
+  UserRound,
+  Coins,
+  Gift,
+  Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +58,12 @@ function detailFlash(saved?: string) {
     rejected: "Application rejected.",
     suspended: "Reseller suspended. Portal access is blocked.",
     reactivated: "Reseller reactivated.",
+    bonus_wallet: "Wallet bonus applied to reseller owner account.",
+    bonus_credits: "SMS credit bonus applied to reseller owner account.",
+    promo_created: "Partner promo code created.",
+    promo_updated: "Promo status updated.",
+    client_moved: "Client account moved successfully.",
+    client_assigned: "Member assigned to this partner.",
   };
   return map[saved ?? ""] ?? "Action completed.";
 }
@@ -57,10 +77,30 @@ export default async function AdminResellerDetailPage({
 }) {
   const { id } = await params;
   const q = await searchParams;
-  const { reseller, unpaidCommissions, paidCommissions, smsLast30Days, pricingComparison, platformPricing } =
-    await getAdminResellerDetail(id);
+  const {
+    reseller,
+    unpaidCommissions,
+    paidCommissions,
+    smsLast30Days,
+    pricingComparison,
+    platformPricing,
+    promos,
+    otherResellers,
+    assignCandidates,
+  } = await getAdminResellerDetail(id);
   const r = reseller;
   const wallet = r.user.wallet;
+  const ownerCredits = r.user.smsCredit?.balance ?? 0;
+  const clientsWallet = r.subUsers.reduce(
+    (sum, su) => sum + (su.user.wallet?.balance.toNumber() ?? 0),
+    0,
+  );
+  const clientsCredits = r.subUsers.reduce(
+    (sum, su) => sum + (su.user.smsCredit?.balance ?? 0),
+    0,
+  );
+  const loginHref = getResellerClientLoginHref(r.domain);
+  const ownerHref = getResellerOwnerAdminHref(r.userId);
 
   return (
     <AdminPage wide>
@@ -81,9 +121,55 @@ export default async function AdminResellerDetailPage({
       {q.error === "payout" && (
         <AdminAlert variant="warning">No unpaid commissions to payout.</AdminAlert>
       )}
+      {q.error === "bonus" && (
+        <AdminAlert variant="warning">Enter a non-zero bonus amount.</AdminAlert>
+      )}
+      {q.error === "credits_negative" && (
+        <AdminAlert variant="warning">SMS credits cannot go below zero.</AdminAlert>
+      )}
+      {q.error === "wallet_negative" && (
+        <AdminAlert variant="warning">Wallet balance cannot go below zero.</AdminAlert>
+      )}
       {q.error === "delete_confirm" && (
         <AdminAlert variant="warning">
           Type <strong>DELETE</strong> exactly in the danger zone to confirm permanent removal.
+        </AdminAlert>
+      )}
+      {q.error === "promo" && (
+        <AdminAlert variant="warning">Check promo code, value, and expiry date.</AdminAlert>
+      )}
+      {q.error === "promo_exists" && (
+        <AdminAlert variant="warning">That promo code already exists.</AdminAlert>
+      )}
+      {q.error === "move" && (
+        <AdminAlert variant="warning">Provide a reason to move this client.</AdminAlert>
+      )}
+      {q.error === "move_not_found" && (
+        <AdminAlert variant="warning">Client not found under this partner.</AdminAlert>
+      )}
+      {q.error === "move_target" && (
+        <AdminAlert variant="warning">Select a valid target partner for the move.</AdminAlert>
+      )}
+      {q.error === "move_partner_owner" && (
+        <AdminAlert variant="warning">Cannot move a partner owner account as a client.</AdminAlert>
+      )}
+      {q.error === "move_self" && (
+        <AdminAlert variant="warning">Cannot move a client to the same partner owner account.</AdminAlert>
+      )}
+      {q.error === "assign" && (
+        <AdminAlert variant="warning">Select a member to assign.</AdminAlert>
+      )}
+      {q.error === "assign_ineligible" && (
+        <AdminAlert variant="warning">
+          Member must be a direct platform account with no existing reseller link.
+        </AdminAlert>
+      )}
+      {q.error === "assign_self" && (
+        <AdminAlert variant="warning">Cannot assign the partner owner as their own client.</AdminAlert>
+      )}
+      {q.error === "impersonate" && (
+        <AdminAlert variant="warning">
+          Only approved, active partners can be opened in the portal as that account.
         </AdminAlert>
       )}
 
@@ -154,18 +240,57 @@ export default async function AdminResellerDetailPage({
               </form>
             )}
             <Link
-              href="/reseller"
-              target="_blank"
-              rel="noreferrer"
+              href={ownerHref}
               className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
             >
-              Open portal
+              <UserRound className="h-3.5 w-3.5 mr-1" />
+              Owner account
             </Link>
+            {r.status === "APPROVED" && r.isActive && (
+              <form action={startResellerImpersonationAction}>
+                <input type="hidden" name="resellerId" value={r.id} />
+                <Button type="submit" size="sm">
+                  <Eye className="h-3.5 w-3.5 mr-1" />
+                  Open as partner
+                </Button>
+              </form>
+            )}
+            {loginHref && (
+              <Link
+                href={loginHref}
+                target="_blank"
+                rel="noreferrer"
+                className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+              >
+                <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                Client login URL
+              </Link>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <AdminStatCard
+          label="Owner wallet"
+          value={wallet ? `GHS ${Number(wallet.balance).toFixed(2)}` : "—"}
+          icon={Wallet}
+        />
+        <AdminStatCard
+          label="Client wallets"
+          value={`GHS ${clientsWallet.toFixed(2)}`}
+          icon={Users}
+        />
+        <AdminStatCard
+          label="Owner credits"
+          value={ownerCredits.toLocaleString()}
+          icon={Coins}
+        />
+        <AdminStatCard
+          label="Client credits"
+          value={clientsCredits.toLocaleString()}
+          icon={Coins}
+        />
         <AdminStatCard
           label="Unpaid commission"
           value={`GHS ${unpaidCommissions.toFixed(2)}`}
@@ -173,19 +298,9 @@ export default async function AdminResellerDetailPage({
           variant={unpaidCommissions > 0 ? "warning" : "default"}
         />
         <AdminStatCard
-          label="Paid out (all time)"
-          value={`GHS ${paidCommissions.toFixed(2)}`}
-          icon={CheckCircle2}
-        />
-        <AdminStatCard
-          label="Sub-users"
-          value={r._count.subUsers}
-          icon={Users}
-        />
-        <AdminStatCard
           label="SMS (30d)"
           value={smsLast30Days.toLocaleString()}
-          hint={`${r.commissionRate.toNumber()}% of margin`}
+          hint={`${r._count.subUsers} clients · ${r.commissionRate.toNumber()}%`}
           icon={Percent}
         />
       </div>
@@ -234,38 +349,103 @@ export default async function AdminResellerDetailPage({
           </form>
         </AdminCard>
 
-        <AdminCard title="Wallet & commissions">
-          <p className="text-sm text-muted-foreground mb-4">
-            Wallet balance:{" "}
-            <strong className="text-foreground tabular-nums">
-              {wallet ? `${wallet.currency} ${wallet.balance.toString()}` : "—"}
-            </strong>
-          </p>
-          {unpaidCommissions > 0 ? (
-            <form action={adminPayoutCommissionsAction}>
-              <input type="hidden" name="resellerId" value={r.id} />
-              <Button type="submit" className="w-full">
-                Pay out GHS {unpaidCommissions.toFixed(2)} to wallet
-              </Button>
-            </form>
-          ) : (
-            <p className="text-sm text-muted-foreground">No unpaid commission balance.</p>
-          )}
-          {r.branding && (
-            <div className="mt-6 pt-4 border-t border-border/50">
-              <p className="text-xs font-semibold mb-2">White-label</p>
-              <div className="flex items-center gap-2">
-                <span
-                  className="h-6 w-6 rounded-full border"
-                  style={{ backgroundColor: r.branding.primaryColor ?? "#f97316" }}
-                />
-                <span className="text-xs text-muted-foreground">
-                  {r.branding.supportEmail ?? "No support email"}
-                </span>
-              </div>
+        <div className="space-y-6">
+          <AdminCard
+            title="Bonus credit"
+            description="Grant wallet funds or SMS credits to this partner’s owner account"
+          >
+            <div className="grid gap-5 sm:grid-cols-2">
+              <form action={adminResellerBonusWalletAction} className="space-y-3 rounded-xl border border-border/50 bg-muted/10 p-4">
+                <input type="hidden" name="resellerId" value={r.id} />
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <Gift className="h-4 w-4 text-primary" />
+                  Wallet bonus
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="wallet-amount">Amount (GHS)</Label>
+                  <Input
+                    id="wallet-amount"
+                    name="amount"
+                    type="number"
+                    step="0.01"
+                    placeholder="e.g. 50 or -10"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="wallet-note">Reason</Label>
+                  <Input id="wallet-note" name="note" placeholder="Promo, goodwill, correction…" />
+                </div>
+                <Button type="submit" size="sm" className="w-full">
+                  Apply wallet bonus
+                </Button>
+              </form>
+
+              <form action={adminResellerBonusCreditsAction} className="space-y-3 rounded-xl border border-border/50 bg-muted/10 p-4">
+                <input type="hidden" name="resellerId" value={r.id} />
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <Coins className="h-4 w-4 text-primary" />
+                  SMS credit bonus
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="credits-amount">Credits</Label>
+                  <Input
+                    id="credits-amount"
+                    name="amount"
+                    type="number"
+                    step="1"
+                    placeholder="e.g. 500 or -100"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="credits-note">Reason</Label>
+                  <Input id="credits-note" name="note" placeholder="Launch bonus, promo pack…" />
+                </div>
+                <Button type="submit" size="sm" className="w-full">
+                  Apply SMS bonus
+                </Button>
+              </form>
             </div>
-          )}
-        </AdminCard>
+          </AdminCard>
+
+          <AdminCard title="Wallet & commissions">
+            <p className="text-sm text-muted-foreground mb-1">
+              Owner wallet:{" "}
+              <strong className="text-foreground tabular-nums">
+                {wallet ? `${wallet.currency} ${wallet.balance.toString()}` : "—"}
+              </strong>
+            </p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Paid out (all time):{" "}
+              <strong className="text-foreground tabular-nums">GHS {paidCommissions.toFixed(2)}</strong>
+            </p>
+            {unpaidCommissions > 0 ? (
+              <form action={adminPayoutCommissionsAction}>
+                <input type="hidden" name="resellerId" value={r.id} />
+                <Button type="submit" className="w-full">
+                  Pay out GHS {unpaidCommissions.toFixed(2)} to wallet
+                </Button>
+              </form>
+            ) : (
+              <p className="text-sm text-muted-foreground">No unpaid commission balance.</p>
+            )}
+            {r.branding && (
+              <div className="mt-6 pt-4 border-t border-border/50">
+                <p className="text-xs font-semibold mb-2">White-label</p>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-6 w-6 rounded-full border"
+                    style={{ backgroundColor: r.branding.primaryColor ?? "#f97316" }}
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    {r.branding.supportEmail ?? "No support email"}
+                  </span>
+                </div>
+              </div>
+            )}
+          </AdminCard>
+        </div>
       </div>
 
       <AdminCard
@@ -378,49 +558,14 @@ export default async function AdminResellerDetailPage({
         </p>
       </AdminCard>
 
-      <AdminCard title="Sub-users" description={`${r.subUsers.length} clients`}>
-        {r.subUsers.length === 0 ? (
-          <AdminEmpty>No sub-users yet.</AdminEmpty>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[520px]">
-              <thead>
-                <tr className="text-left text-xs text-muted-foreground border-b">
-                  <th className="pb-2 pr-4">Client</th>
-                  <th className="pb-2 pr-4 text-right">Credits</th>
-                  <th className="pb-2 pr-4 text-right">SMS</th>
-                  <th className="pb-2">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {r.subUsers.map((su) => (
-                  <tr key={su.id}>
-                    <td className="py-3 pr-4">
-                      <p className="font-medium">{su.user.fullName}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{su.user.phone}</p>
-                    </td>
-                    <td className="py-3 pr-4 text-right tabular-nums">
-                      {su.user.smsCredit?.balance ?? 0}
-                    </td>
-                    <td className="py-3 pr-4 text-right tabular-nums">
-                      {su.user._count.messages}
-                    </td>
-                    <td className="py-3">
-                      {su.isSuspended ? (
-                        <Badge variant="destructive">Suspended</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-emerald-700 border-emerald-500/40">
-                          Active
-                        </Badge>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </AdminCard>
+      <ResellerPromosPanel resellerId={r.id} promos={promos} />
+
+      <ResellerClientsPanel
+        resellerId={r.id}
+        subUsers={r.subUsers}
+        otherResellers={otherResellers}
+        assignCandidates={assignCandidates}
+      />
 
       <AdminCard title="Recent commission ledger">
         {r.commissions.length === 0 ? (

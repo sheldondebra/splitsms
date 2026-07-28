@@ -1,6 +1,6 @@
 import { AdminAppShell } from "@/components/layout/admin-app-shell";
 import { getAdminNavBadges } from "@/lib/analytics/admin-dashboard";
-import { getSession, isAdminRole } from "@/lib/auth/session";
+import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 
@@ -30,6 +30,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         "pending-sender-ids": badges["pending-sender-ids"],
         "open-support-tickets": badges["open-support-tickets"],
         "operations-attention": badges["operations-attention"],
+        "pending-reseller-payouts": badges["pending-reseller-payouts"],
       }}
     >
       {children}

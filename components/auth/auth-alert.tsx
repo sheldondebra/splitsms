@@ -30,12 +30,16 @@ const messages: Record<string, { text: string; variant: "error" | "success" | "i
     variant: "error",
   },
   tenant_signup: {
-    text: "Public signup is disabled on this domain. Ask your SMS provider to create your account.",
+    text: "Use the signup link from your SMS provider, or create an account on this domain.",
     variant: "info",
   },
   tenant_owner: {
     text: "Reseller owners should use the main SplitSMS site for the reseller portal.",
     variant: "info",
+  },
+  invalid_invite: {
+    text: "This signup link is invalid or expired. Ask your SMS provider for a new link.",
+    variant: "error",
   },
   suspended: {
     text: "This account is suspended. Contact support if you need access.",

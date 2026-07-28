@@ -1,6 +1,9 @@
 import { getSession } from "@/lib/auth/session";
 import { getResellerByUserId } from "@/lib/reseller/context";
-import { ResellerSidebar } from "@/components/reseller/reseller-sidebar";
+import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
+import { ResellerAppShell } from "@/components/reseller/reseller-app-shell";
+import { ResellerImpersonationBanner } from "@/components/reseller/reseller-impersonation-banner";
+import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 
 export default async function ResellerLayout({
@@ -16,12 +19,20 @@ export default async function ResellerLayout({
     redirect("/dashboard");
   }
 
+  const [user, balance] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { fullName: true, email: true, phone: true, role: true },
+    }),
+    getBalanceSnapshot(session.userId),
+  ]);
+
   const primary = reseller?.branding?.primaryColor ?? "#f97316";
   const secondary = reseller?.branding?.secondaryColor ?? "#0f0f0f";
+  const impersonating = Boolean(session.impersonatorId);
 
   return (
     <div
-      className="min-h-screen flex flex-col md:flex-row bg-background"
       style={
         {
           "--reseller-primary": primary,
@@ -29,13 +40,28 @@ export default async function ResellerLayout({
         } as React.CSSProperties
       }
     >
-      <ResellerSidebar
+      {impersonating ? (
+        <ResellerImpersonationBanner
+          businessName={
+            session.impersonatedBusinessName ?? reseller?.businessName ?? "Partner"
+          }
+        />
+      ) : null}
+      <ResellerAppShell
         brandName={reseller?.brandName ?? reseller?.businessName}
         logoUrl={reseller?.branding?.logoUrl}
         primaryColor={primary}
         hideNav={reseller?.status !== "APPROVED"}
-      />
-      <main className="flex-1 p-6 md:p-10 overflow-auto">{children}</main>
+        balance={balance}
+        profile={{
+          fullName: user?.fullName ?? "Reseller",
+          email: user?.email ?? null,
+          phone: user?.phone ?? session.phone,
+          role: user?.role ?? session.role,
+        }}
+      >
+        {children}
+      </ResellerAppShell>
     </div>
   );
 }

@@ -182,14 +182,33 @@ export function MemberUserDetails({ data }: { data: AdminMemberDetail }) {
           </div>
         )}
 
-        {(data.resellerMembership || data.wordpressSites.length > 0) && (
+        {(data.reseller || data.resellerMembership || data.wordpressSites.length > 0) && (
           <div className="mt-3 flex flex-col gap-2">
+            {data.reseller && (
+              <div className="flex items-center gap-2 rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-2 text-xs">
+                <Store className="h-3.5 w-3.5 text-violet-700 dark:text-violet-300 shrink-0" />
+                <span>
+                  Partner owner:{" "}
+                  <Link
+                    href={`/admin/resellers/${data.reseller.id}`}
+                    className="font-medium hover:text-primary hover:underline"
+                  >
+                    {data.reseller.businessName}
+                  </Link>
+                </span>
+              </div>
+            )}
             {data.resellerMembership && (
               <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs">
                 <Store className="h-3.5 w-3.5 text-amber-700 dark:text-amber-300 shrink-0" />
                 <span>
-                  Reseller:{" "}
-                  <span className="font-medium">{data.resellerMembership.reseller.businessName}</span>
+                  Reseller client of:{" "}
+                  <Link
+                    href={`/admin/resellers/${data.resellerMembership.reseller.id}`}
+                    className="font-medium hover:text-primary hover:underline"
+                  >
+                    {data.resellerMembership.reseller.businessName}
+                  </Link>
                 </span>
               </div>
             )}

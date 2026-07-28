@@ -39,6 +39,7 @@ export function WalletTopupClient({
   offlineBankDetails,
   defaultMethod,
   stripeFxPreview,
+  returnPath = "/dashboard/wallet",
 }: {
   currency: string;
   paymentMethods: PaymentMethodOption[];
@@ -52,6 +53,8 @@ export function WalletTopupClient({
   };
   defaultMethod?: string;
   stripeFxPreview?: StripeFxPreview;
+  /** Where to send the user after checkout (default member wallet). */
+  returnPath?: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -100,6 +103,7 @@ export function WalletTopupClient({
         body: JSON.stringify({
           amount: numAmount,
           method,
+          returnPath,
           offline: method === "MANUAL" ? offline : undefined,
         }),
       });
@@ -117,10 +121,10 @@ export function WalletTopupClient({
         return;
       }
       if (method === "MANUAL") {
-        window.location.href = `/dashboard/wallet?submitted=manual&payment=${data.paymentId}`;
+        window.location.href = `${returnPath}?submitted=manual&payment=${data.paymentId}`;
         return;
       }
-      window.location.href = `/dashboard/wallet?payment=${data.paymentId}`;
+      window.location.href = `${returnPath}?payment=${data.paymentId}`;
     } catch {
       setError("Network error. Check your connection and try again.");
     } finally {

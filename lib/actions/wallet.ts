@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { getSession, isAdminRole } from "@/lib/auth/session";
+import { getSession, getRealSession, isAdminRole } from "@/lib/auth/session";
 import { getPaymentAdapter } from "@/lib/payments";
 import { approveManualPayment } from "@/lib/payments/wallet";
 import { creditWalletFromPayment } from "@/lib/payments/wallet";
@@ -87,7 +87,7 @@ export async function buyCreditsAction(formData: FormData) {
 }
 
 export async function approvePaymentAction(formData: FormData) {
-  const session = await getSession();
+  const session = await getRealSession();
   if (!session || !isAdminRole(session.role)) redirect("/admin");
 
   const paymentId = String(formData.get("paymentId"));

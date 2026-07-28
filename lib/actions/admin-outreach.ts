@@ -3,7 +3,7 @@
 import { OUTREACH_MAX_RECIPIENTS } from "@/lib/admin/outreach-shared";
 import { sendOutreachToRecipients, type OutreachRecipient } from "@/lib/admin/outreach-send";
 import { withReturnParams } from "@/lib/admin/return-url";
-import { getSession, isAdminRole } from "@/lib/auth/session";
+import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { normalizePhones } from "@/lib/sms/units";
 import { revalidatePath } from "next/cache";

@@ -10,7 +10,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /** Increment when Prisma schema changes require a fresh client in dev */
-const PRISMA_CLIENT_BUILD_ID = "staff-permissions-2026-07-07";
+const PRISMA_CLIENT_BUILD_ID = "reseller-payment-payouts-proxy-2026-07-27";
 
 const NEON_WAKE_DELAYS_MS = [500, 1500, 3000, 5000];
 
@@ -131,6 +131,8 @@ const REQUIRED_MODELS = [
   "smsRoutingLog",
   "connectCustomer",
   "supportTicketReply",
+  "resellerPaymentSettings",
+  "resellerPayoutRequest",
 ] as const;
 
 function clientHasRequiredModels(client: PrismaClient): boolean {
@@ -144,7 +146,17 @@ function getPrisma(): PrismaClient {
   if (cached && clientHasRequiredModels(cached) && buildId === PRISMA_CLIENT_BUILD_ID) {
     return cached;
   }
+  // Drop the stale singleton before constructing a new one (dev HMR / schema bumps).
+  if (cached) {
+    void (cached as { $disconnect?: () => Promise<void> }).$disconnect?.().catch(() => undefined);
+  }
   const client = createPrisma();
+  if (!clientHasRequiredModels(client)) {
+    throw new Error(
+      "[db] Prisma client is missing required models (e.g. resellerPaymentSettings). " +
+        "Restart the Next.js dev server after running `npx prisma generate`.",
+    );
+  }
   globalForPrisma.prisma = client;
   globalForPrisma.prismaBuildId = PRISMA_CLIENT_BUILD_ID;
   return client;
@@ -164,4 +176,14 @@ export async function warmDatabaseConnection(retries = 4) {
   }
 }
 
-export const prisma = getPrisma();
+/**
+ * Always resolve through getPrisma(). A one-shot `export const prisma = getPrisma()`
+ * freezes a stale client across Next.js HMR after `prisma generate` adds models.
+ */
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop, receiver) {
+    const client = getPrisma();
+    const value = Reflect.get(client, prop, receiver);
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});

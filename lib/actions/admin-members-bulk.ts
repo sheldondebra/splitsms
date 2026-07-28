@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { getSession, isAdminRole } from "@/lib/auth/session";
+import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
 import { getOrCreateMemberAccount } from "@/lib/admin/member-account";
 import { sendOutreachToRecipients } from "@/lib/admin/outreach-send";
 import { withReturnParams } from "@/lib/admin/return-url";

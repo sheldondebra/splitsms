@@ -11,12 +11,15 @@ type AuthEntryTabsProps = {
   countries: SignupCountryOption[];
   intent?: "login" | "signup";
   defaultMethod?: "phone" | "email";
+  /** Reseller invite id — attaches the new member to that reseller on signup. */
+  resellerInvite?: string;
 };
 
 export function AuthEntryTabs({
   countries,
   intent = "login",
   defaultMethod = "phone",
+  resellerInvite,
 }: AuthEntryTabsProps) {
   const [method, setMethod] = useState<"phone" | "email">(defaultMethod);
 
@@ -55,12 +58,17 @@ export function AuthEntryTabs({
         <PhoneAuthForm
           countries={countries}
           intent={intent}
+          resellerInvite={resellerInvite}
           submitLabel={
             intent === "signup" ? "Send verification code" : "Send login code"
           }
         />
       ) : (
-        <EmailAuthForm countries={countries} intent={intent} />
+        <EmailAuthForm
+          countries={countries}
+          intent={intent}
+          resellerInvite={resellerInvite}
+        />
       )}
     </div>
   );

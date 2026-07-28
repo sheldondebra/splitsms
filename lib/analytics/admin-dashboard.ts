@@ -132,15 +132,19 @@ export async function getAdminDashboardOverview() {
 }
 
 export async function getAdminNavBadges() {
-  const [pendingPayments, pendingSenderIds, openSupportTickets] = await Promise.all([
-    prisma.payment.count({ where: { status: "PENDING" } }),
-    prisma.senderId.count({ where: { status: "PENDING" } }),
-    prisma.supportTicket.count({ where: { status: "OPEN" } }),
-  ]);
+  const [pendingPayments, pendingSenderIds, openSupportTickets, pendingResellerPayouts] =
+    await Promise.all([
+      prisma.payment.count({ where: { status: "PENDING" } }),
+      prisma.senderId.count({ where: { status: "PENDING" } }),
+      prisma.supportTicket.count({ where: { status: "OPEN" } }),
+      prisma.resellerPayoutRequest.count({ where: { status: "PENDING" } }),
+    ]);
   return {
     "pending-payments": pendingPayments,
     "pending-sender-ids": pendingSenderIds,
     "open-support-tickets": openSupportTickets,
-    "operations-attention": pendingPayments + pendingSenderIds + openSupportTickets,
+    "pending-reseller-payouts": pendingResellerPayouts,
+    "operations-attention":
+      pendingPayments + pendingSenderIds + openSupportTickets + pendingResellerPayouts,
   } as const;
 }

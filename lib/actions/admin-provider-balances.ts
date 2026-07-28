@@ -1,6 +1,6 @@
 "use server";
 
-import { getSession, isAdminRole } from "@/lib/auth/session";
+import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
 import { fetchAllSmsProviderBalances } from "@/lib/sms/provider-balances";
 import { maybeNotifyLowBalanceAlerts } from "@/lib/admin/balance-alerts";
 import { revalidatePath } from "next/cache";

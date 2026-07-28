@@ -17,12 +17,14 @@ type PhoneAuthFormProps = {
   countries: SignupCountryOption[];
   intent?: "login" | "signup";
   submitLabel?: string;
+  resellerInvite?: string;
 };
 
 export function PhoneAuthForm({
   countries,
   intent = "login",
   submitLabel,
+  resellerInvite,
 }: PhoneAuthFormProps) {
   const initial = initialCountryState(countries);
   const [countryCode, setCountryCode] = useState(initial.countryCode);
@@ -43,6 +45,9 @@ export function PhoneAuthForm({
       <AuthHoneypot />
       <input type="hidden" name="intent" value={intent} />
       <input type="hidden" name="dialCode" value={dialCode} />
+      {resellerInvite ? (
+        <input type="hidden" name="resellerInvite" value={resellerInvite} />
+      ) : null}
 
       <CountrySelect
         countries={countries}

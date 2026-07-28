@@ -5,6 +5,7 @@ import { NotificationBell, type NotificationItem } from "@/components/dashboard/
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DashboardBalance } from "@/components/dashboard/dashboard-balance";
 import { PortalSwitch } from "@/components/dashboard/portal-switch";
+import { WorkspacePortalSwitch } from "@/components/shared/workspace-portal-switch";
 import {
   UserProfileMenu,
   type MemberProfileSummary,
@@ -18,6 +19,7 @@ type DashboardTopbarProps = {
   notifications: NotificationItem[];
   unreadCount: number;
   balance: BalanceSnapshot;
+  showResellerPortal?: boolean;
 };
 
 export function DashboardTopbar({
@@ -26,6 +28,7 @@ export function DashboardTopbar({
   notifications,
   unreadCount,
   balance,
+  showResellerPortal = false,
 }: DashboardTopbarProps) {
   const pathname = usePathname();
   const pageTitle = getMemberPageTitle(pathname);
@@ -48,6 +51,7 @@ export function DashboardTopbar({
             <DashboardBalance snapshot={balance} variant="compact" />
           </div>
 
+          {showResellerPortal ? <WorkspacePortalSwitch className="shrink-0" /> : null}
           <PortalSwitch className="shrink-0" />
 
           <div className="flex items-center gap-0.5 shrink-0 rounded-lg border border-border/60 bg-muted/30 p-0.5">

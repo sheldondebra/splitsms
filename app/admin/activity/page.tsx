@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { hasStaffPermission } from "@/lib/auth/admin-permissions";
-import { getSession, isAdminRole, isSuperAdmin } from "@/lib/auth/session";
+import { getRealSession as getSession, isAdminRole, isSuperAdmin } from "@/lib/auth/session";
 import { getAdminActivityDashboard } from "@/lib/admin/activity-dashboard";
 import { AdminActivityView } from "@/components/admin/admin-activity-view";
 

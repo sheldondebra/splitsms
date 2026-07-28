@@ -14,7 +14,7 @@ import {
   isSuperAdminRole,
   type AdminPermission,
 } from "@/lib/auth/admin-permissions";
-import { getSession, isAdminRole } from "@/lib/auth/session";
+import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
 import type { UserRole } from "@/lib/generated/prisma/client";
 
 export type StaffMutationResult =

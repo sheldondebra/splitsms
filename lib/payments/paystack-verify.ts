@@ -1,9 +1,30 @@
 import { createHmac } from "crypto";
 import { loadPaystackSettings } from "@/lib/payments/gateway-settings";
+import { resolveGatewayForPayment } from "@/lib/payments/reseller-checkout";
+import { prisma } from "@/lib/db";
+import type { PaymentMethod } from "@/lib/generated/prisma/client";
+
+async function paystackSecretForReference(reference: string) {
+  const payment = await prisma.payment.findFirst({
+    where: { OR: [{ id: reference }, { providerReference: reference }] },
+    select: { userId: true, method: true, metadata: true },
+  });
+
+  if (payment?.method === "PAYSTACK") {
+    const override = await resolveGatewayForPayment(
+      payment.method as PaymentMethod,
+      payment.userId,
+      payment.metadata,
+    );
+    if (override?.secretKey) return override.secretKey;
+  }
+
+  const { config } = await loadPaystackSettings();
+  return config.secretKey;
+}
 
 export async function verifyPaystackPayment(reference: string) {
-  const { config } = await loadPaystackSettings();
-  const secret = config.secretKey;
+  const secret = await paystackSecretForReference(reference);
   if (!secret) return { ok: false as const, error: "Paystack not configured" };
 
   const res = await fetch(

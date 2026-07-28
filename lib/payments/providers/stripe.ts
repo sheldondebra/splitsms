@@ -1,17 +1,19 @@
 import { prisma } from "@/lib/db";
 import { loadStripeSettings } from "@/lib/payments/gateway-settings";
 import { prepareStripeCharge } from "@/lib/payments/fx-rates";
+import { sanitizeWalletReturnPath } from "@/lib/payments/return-path";
 import type { PaymentProviderAdapter } from "../types";
 
 const STRIPE_MIN_USD = 0.5;
 
 export const stripeAdapter: PaymentProviderAdapter = {
   method: "STRIPE",
-  async initializeTopUp({ paymentId, amount, currency, email, appUrl }) {
-    const { config } = await loadStripeSettings();
+  async initializeTopUp({ paymentId, amount, currency, email, appUrl, returnPath, gatewayOverride }) {
+    const config = gatewayOverride ?? (await loadStripeSettings()).config;
     const secret = config.secretKey;
     const { getSiteUrl } = await import("@/lib/site-config");
     const baseUrl = appUrl ?? getSiteUrl();
+    const path = sanitizeWalletReturnPath(returnPath);
 
     if (!config.enabled || !secret) {
       return {
@@ -61,14 +63,22 @@ export const stripeAdapter: PaymentProviderAdapter = {
     await prisma.payment.update({
       where: { id: paymentId },
       data: {
-        metadata: { stripeFx: stripeFxMeta },
+        metadata: {
+          ...((
+            await prisma.payment.findUnique({
+              where: { id: paymentId },
+              select: { metadata: true },
+            })
+          )?.metadata as Record<string, unknown> | null),
+          stripeFx: stripeFxMeta,
+        },
       },
     });
 
     const body = new URLSearchParams({
       mode: "payment",
-      success_url: `${baseUrl}/dashboard/wallet?provider=stripe&reference=${paymentId}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/dashboard/wallet?error=cancelled`,
+      success_url: `${baseUrl}${path}?provider=stripe&reference=${encodeURIComponent(paymentId)}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}${path}?error=cancelled`,
       "line_items[0][quantity]": "1",
       "line_items[0][price_data][currency]": stripeCurrency,
       "line_items[0][price_data][unit_amount]": String(unitAmount),
@@ -97,7 +107,16 @@ export const stripeAdapter: PaymentProviderAdapter = {
         where: { id: paymentId },
         data: {
           providerReference: data.id,
-          metadata: { stripeFx: stripeFxMeta, stripeSessionId: data.id },
+          metadata: {
+            ...((
+              await prisma.payment.findUnique({
+                where: { id: paymentId },
+                select: { metadata: true },
+              })
+            )?.metadata as Record<string, unknown> | null),
+            stripeFx: stripeFxMeta,
+            stripeSessionId: data.id,
+          },
         },
       });
     }

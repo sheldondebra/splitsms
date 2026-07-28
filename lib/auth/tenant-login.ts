@@ -37,7 +37,3 @@ export async function assertTenantLoginAllowed(userId: string, role: string) {
   }
 }
 
-export async function getSignupBlockedOnTenant() {
-  const tenant = await getRequestTenant();
-  return tenant != null;
-}

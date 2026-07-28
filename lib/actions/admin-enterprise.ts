@@ -2,7 +2,7 @@
 
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
-import { getSession, isAdminRole } from "@/lib/auth/session";
+import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
 import { generateSmppPassword } from "@/lib/enterprise/smpp-auth";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";

@@ -57,6 +57,7 @@ enum TransactionType {
   ADMIN_ADJUSTMENT
   PROMO_CREDIT
   RESELLER_SUB_FUND
+  RESELLER_PAYOUT
 }
 
 enum ResellerStatus {
@@ -64,6 +65,25 @@ enum ResellerStatus {
   APPROVED
   SUSPENDED
   REJECTED
+}
+
+enum ResellerCheckoutMode {
+  PLATFORM
+  OWN
+}
+
+enum ResellerPayoutMethod {
+  MOBILE_MONEY
+  BANK_TRANSFER
+}
+
+enum ResellerPayoutStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  PAID
+  REJECTED
+  CANCELLED
 }
 
 enum PromoCodeType {
@@ -235,6 +255,12 @@ model MemberAccount {
   @@index([status])
 }
 
+enum ResellerClientSignupSource {
+  MANUAL
+  INVITE_SHARE
+  INVITE_DOMAIN
+}
+
 model Reseller {
   id             String         @id @default(cuid())
   userId         String         @unique
@@ -242,6 +268,10 @@ model Reseller {
   businessName   String
   brandName      String?
   domain         String?        @unique
+  inviteCode     String?        @unique
+  inviteShareViews   Int        @default(0)
+  inviteDomainViews  Int        @default(0)
+  inviteLastViewedAt DateTime?
   commissionRate Decimal        @default(10) @db.Decimal(5, 2)
   status         ResellerStatus @default(PENDING)
   isActive       Boolean        @default(true)
@@ -252,6 +282,9 @@ model Reseller {
   commissions    ResellerCommission[]
   countryPricing ResellerCountryPricing[]
   branding       WhiteLabelBrand?
+  paymentSettings ResellerPaymentSettings?
+  payoutRequests ResellerPayoutRequest[]
+  promoCodes     PromoCode[]
 
   @@index([status])
 }
@@ -262,6 +295,7 @@ model ResellerUser {
   reseller      Reseller @relation(fields: [resellerId], references: [id], onDelete: Cascade)
   userId        String   @unique
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  signupSource  ResellerClientSignupSource @default(MANUAL)
   dailySmsLimit Int?
   isSuspended   Boolean  @default(false)
   createdAt     DateTime @default(now())
@@ -310,6 +344,51 @@ model WhiteLabelBrand {
   supportEmail   String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+model ResellerPaymentSettings {
+  id                   String               @id @default(cuid())
+  resellerId           String               @unique
+  reseller             Reseller             @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  checkoutMode         ResellerCheckoutMode @default(PLATFORM)
+  paystackEnabled      Boolean              @default(false)
+  paystackPublicKey    String?
+  paystackSecretKey    String?
+  stripeEnabled        Boolean              @default(false)
+  stripePublishableKey String?
+  stripeSecretKey      String?
+  payoutMethod         ResellerPayoutMethod @default(MOBILE_MONEY)
+  payoutPhone          String?
+  payoutAccountName    String?
+  payoutBankName       String?
+  payoutAccountNumber  String?
+  payoutNotes          String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+}
+
+model ResellerPayoutRequest {
+  id            String               @id @default(cuid())
+  resellerId    String
+  reseller      Reseller             @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  amount        Decimal              @db.Decimal(14, 2)
+  currency      String               @default("GHS")
+  status        ResellerPayoutStatus @default(PENDING)
+  method        ResellerPayoutMethod
+  phone         String?
+  accountName   String?
+  bankName      String?
+  accountNumber String?
+  resellerNote  String?
+  adminNote     String?
+  reviewedById  String?
+  reviewedAt    DateTime?
+  paidAt        DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([resellerId, createdAt])
+  @@index([status, createdAt])
 }
 
 model Notification {
@@ -477,17 +556,21 @@ model Invoice {
 }
 
 model PromoCode {
-  id        String        @id @default(cuid())
-  code      String        @unique
-  type      PromoCodeType
-  value     Decimal       @db.Decimal(14, 2)
-  maxUses   Int?
-  usedCount Int           @default(0)
-  expiresAt DateTime?
-  isActive  Boolean       @default(true)
-  userId    String?
-  createdAt DateTime      @default(now())
+  id          String        @id @default(cuid())
+  code        String        @unique
+  type        PromoCodeType
+  value       Decimal       @db.Decimal(14, 2)
+  maxUses     Int?
+  usedCount   Int           @default(0)
+  expiresAt   DateTime?
+  isActive    Boolean       @default(true)
+  userId      String?
+  resellerId  String?
+  reseller    Reseller?     @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
   redemptions PromoRedemption[]
+
+  @@index([resellerId])
 }
 
 model PromoRedemption {

@@ -81,6 +81,15 @@ export async function resolveTenantById(resellerId: string) {
   return toTenantBranding(reseller);
 }
 
+export async function resolveTenantByInviteCode(inviteCode: string) {
+  const reseller = await prisma.reseller.findFirst({
+    where: { inviteCode, status: "APPROVED", isActive: true },
+    include: { branding: true },
+  });
+  if (!reseller) return null;
+  return toTenantBranding(reseller);
+}
+
 /** Branding for a logged-in sub-user on the main platform host. */
 export async function resolveTenantForMemberUser(userId: string) {
   const link = await prisma.resellerUser.findUnique({
