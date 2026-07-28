@@ -24,7 +24,7 @@ export default async function CompleteProfilePage({
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { fullName: true },
+    select: { fullName: true, email: true },
   });
 
   if (!user || !userNeedsProfileCompletion(user.fullName)) {
@@ -36,12 +36,15 @@ export default async function CompleteProfilePage({
   return (
     <AuthLayout
       title="Almost done"
-      subtitle="Tell us your name to finish setting up"
-      sideDescription="Your phone is verified. One quick step and you can send your first SMS."
+      subtitle="Add your name and create a password to finish setup"
+      sideDescription="Your account is verified. Set a password now so you can sign in again with email later."
     >
       <AuthCard>
         <AuthAlert code={error} />
-        <CompleteProfileForm />
+        <CompleteProfileForm
+          defaultEmail={user.email}
+          emailLocked={Boolean(user.email)}
+        />
       </AuthCard>
     </AuthLayout>
   );

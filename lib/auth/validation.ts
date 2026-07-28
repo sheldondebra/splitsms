@@ -15,7 +15,11 @@ export const phoneSchema = z
   .max(20)
   .transform(normalizePhone);
 
-export const emailSchema = z.string().email("Invalid email address");
+export const emailSchema = z
+  .string()
+  .trim()
+  .email("Invalid email address")
+  .transform((v) => v.toLowerCase());
 
 const signupBaseSchema = z.object({
   fullName: z.string().min(2, "Name is too short").max(120),
@@ -89,13 +93,20 @@ export const emailAuthSignupSchema = z.object({
   dialCode: z.string().min(2).max(6),
 });
 
-export const completeProfileSchema = z.object({
-  fullName: z.string().min(2, "Name is too short").max(120),
-  email: z
-    .string()
-    .optional()
-    .transform((v) => (v?.trim() ? v.trim().toLowerCase() : undefined)),
-});
+export const completeProfileSchema = z
+  .object({
+    fullName: z.string().min(2, "Name is too short").max(120),
+    email: z
+      .string()
+      .optional()
+      .transform((v) => (v?.trim() ? v.trim().toLowerCase() : undefined)),
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 export const loginSchema = z.object({
   identifier: z.string().min(3).max(120).transform((v) => v.trim()),

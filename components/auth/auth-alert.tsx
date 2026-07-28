@@ -3,7 +3,15 @@ import { cn } from "@/lib/utils";
 
 const messages: Record<string, { text: string; variant: "error" | "success" | "info" }> = {
   invalid: {
-    text: "Invalid email or password. If you signed up with SMS only, use “Sign in with SMS code” or reset your password.",
+    text: "Invalid email or password. If you signed up with a phone/email code, use “Sign in with SMS code” or reset your password.",
+    variant: "error",
+  },
+  use_otp: {
+    text: "Use a one-time code to sign in. Accounts created with phone/email verification sign in with a code until you set a password.",
+    variant: "info",
+  },
+  email_send: {
+    text: "We could not send the verification email. Check email settings or try phone SMS instead.",
     variant: "error",
   },
   locked: { text: "Account temporarily locked. Try again in 30 minutes or reset your password.", variant: "error" },
@@ -73,7 +81,7 @@ export function AuthAlert({
 
   const preset = code ? messages[code] : null;
   const text = message ?? preset?.text ?? code ?? "";
-  const variant = preset?.variant ?? (code === "sent" || code === "resent" || code === "reset" ? "success" : "error");
+  const variant = preset?.variant ?? (code === "sent" || code === "resent" || code === "reset" || code === "use_otp" ? (code === "use_otp" ? "info" : "success") : "error");
 
   const Icon =
     variant === "success" ? CheckCircle2 : variant === "info" ? Info : AlertCircle;

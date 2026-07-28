@@ -479,13 +479,24 @@ export async function completeProfileAction(formData: FormData) {
   const parsed = completeProfileSchema.safeParse({
     fullName: formData.get("fullName"),
     email: formData.get("email") ?? "",
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
   });
 
   if (!parsed.success) {
+    const field = parsed.error.issues[0]?.path[0];
+    if (field === "password" || field === "confirmPassword") {
+      authRedirect("/complete-profile", {
+        error: field === "confirmPassword" ? "confirmPassword" : "password",
+      });
+    }
+    if (field === "email") {
+      authRedirect("/complete-profile", { error: "email" });
+    }
     authRedirect("/complete-profile", { error: "name" });
   }
 
-  const { fullName, email } = parsed.data;
+  const { fullName, email, password } = parsed.data;
 
   if (email) {
     const taken = await prisma.user.findFirst({
@@ -496,10 +507,13 @@ export async function completeProfileAction(formData: FormData) {
     }
   }
 
+  const passwordHash = await hashPassword(password);
+
   await prisma.user.update({
     where: { id: session.userId },
     data: {
       fullName,
+      passwordHash,
       ...(email ? { email } : {}),
     },
   });
@@ -604,7 +618,25 @@ export async function signupAction(formData: FormData) {
   });
   await attachResellerInviteFromForm(user.id, formData);
 
-  const otp = await createAndSendOtp(phone, "SIGNUP_VERIFY", countryCode, user.id);
+  const deliveryOpts =
+    email && signupMethod === "email" ? await emailOtpDelivery(email) : undefined;
+
+  let otp;
+  try {
+    otp = await createAndSendOtp(
+      phone,
+      "SIGNUP_VERIFY",
+      countryCode,
+      user.id,
+      deliveryOpts,
+    );
+  } catch {
+    authRedirect("/signup", {
+      error: email && signupMethod === "email" ? "email_send" : "otp",
+      method: signupMethod,
+      ...inviteParams,
+    });
+  }
   if (!otp.ok) {
     authRedirect("/signup", {
       error: "otp_cooldown",
@@ -621,6 +653,13 @@ export async function signupAction(formData: FormData) {
     countryCode,
     smsProvider: country?.defaultProvider,
   }, user.id);
+
+  if (email && otp.delivery === "email") {
+    authRedirect(
+      "/verify-otp",
+      verifyOtpParamsForEmailFlow(phone, "signup", countryCode, email, otp.delivery),
+    );
+  }
 
   authRedirect("/verify-otp", {
     phone,
@@ -777,15 +816,38 @@ export async function loginPasswordAction(formData: FormData) {
   }
 
   if (!user.isVerified) {
-    const otp = await createAndSendOtp(
-      user.phone,
-      "SIGNUP_VERIFY",
-      user.countryCode,
-      user.id,
-    );
+    const deliveryOpts = user.email ? await emailOtpDelivery(user.email) : undefined;
+    let otp;
+    try {
+      otp = await createAndSendOtp(
+        user.phone,
+        "SIGNUP_VERIFY",
+        user.countryCode,
+        user.id,
+        deliveryOpts,
+      );
+    } catch {
+      if (usePhoneForm) passwordLoginRedirectPhone({ error: "email_send" });
+      passwordLoginRedirect({
+        error: "email_send",
+        ...(emailRaw ? { email: emailRaw } : {}),
+      });
+    }
     if (!otp.ok) {
       if (usePhoneForm) passwordLoginRedirectPhone({ error: "otp_cooldown" });
       passwordLoginRedirect({ error: "otp_cooldown", ...(emailRaw ? { email: emailRaw } : {}) });
+    }
+    if (user.email && otp.delivery === "email") {
+      authRedirect(
+        "/verify-otp",
+        verifyOtpParamsForEmailFlow(
+          user.phone,
+          "signup",
+          user.countryCode,
+          user.email,
+          otp.delivery,
+        ),
+      );
     }
     authRedirect("/verify-otp", { phone: user.phone, purpose: "signup" });
   }
@@ -806,9 +868,40 @@ export async function loginOtpRequestAction(formData: FormData) {
   }
 
   const phone = user!.phone;
-  const otp = await createAndSendOtp(phone, "LOGIN", user!.countryCode, user!.id);
+  const deliveryOpts = user!.email
+    ? await emailOtpDelivery(user!.email)
+    : undefined;
+  let otp;
+  try {
+    otp = await createAndSendOtp(
+      phone,
+      "LOGIN",
+      user!.countryCode,
+      user!.id,
+      deliveryOpts,
+    );
+  } catch {
+    authRedirect("/login", { error: "email_send", mode: "sms" });
+  }
   if (!otp.ok) {
-    authRedirect("/login", { error: "otp_cooldown", cooldown: String(otp.cooldownSec) });
+    authRedirect("/login", {
+      error: "otp_cooldown",
+      cooldown: String(otp.cooldownSec),
+      mode: "sms",
+    });
+  }
+
+  if (user!.email && otp.delivery === "email") {
+    authRedirect(
+      "/verify-otp",
+      verifyOtpParamsForEmailFlow(
+        phone,
+        "login",
+        user!.countryCode,
+        user!.email,
+        otp.delivery,
+      ),
+    );
   }
 
   authRedirect("/verify-otp", { phone, purpose: "login" });

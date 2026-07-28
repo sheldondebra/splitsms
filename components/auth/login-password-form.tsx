@@ -47,11 +47,10 @@ export function LoginPasswordForm({
       </div>
       <AuthSubmitButton label="Sign in" pendingLabel="Signing in…" />
       <p className="text-center text-xs text-muted-foreground">
-        You can also sign in with your{" "}
-        <Link href="/login?phone=1" className="text-primary font-medium hover:underline">
-          phone number
-        </Link>{" "}
-        if it is on your account.
+        Signed up with a code?{" "}
+        <Link href="/login?mode=sms" className="text-primary font-medium hover:underline">
+          Sign in with SMS / email code
+        </Link>
       </p>
     </form>
   );
