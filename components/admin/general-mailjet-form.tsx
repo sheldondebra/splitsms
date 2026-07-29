@@ -81,6 +81,13 @@ export function GeneralEmailForm({
             This address appears on OTP codes, receipts, support emails, and marketing messages.
             {senderSavedInDashboard ? " Saved in dashboard." : " Using site default until saved."}
           </p>
+          <p className="text-xs text-amber-800 dark:text-amber-200 mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+            Gmail silently drops mail when the From domain’s SPF does not authorize your SMTP
+            server. For SMTP via tecunitgh.com, use a <code className="font-mono">@tecunitgh.com</code>{" "}
+            From address (or update SPF on splitsms.com). For{" "}
+            <code className="font-mono">info@splitsms.com</code>, use Mailjet with that sender
+            activated.
+          </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
