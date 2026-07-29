@@ -15,7 +15,18 @@ const messages: Record<string, { text: string; variant: "error" | "success" | "i
     variant: "error",
   },
   locked: { text: "Account temporarily locked. Try again in 30 minutes or reset your password.", variant: "error" },
-  rate_limit: { text: "Too many attempts. Please wait before trying again.", variant: "error" },
+  rate_limit: {
+    text: "Too many attempts from this network. Please wait about 30 minutes, or try again from another connection.",
+    variant: "error",
+  },
+  captcha: {
+    text: "Please complete the security check and try again.",
+    variant: "error",
+  },
+  blocked: {
+    text: "We couldn’t verify this request. Try again in a regular browser, or contact support if it keeps happening.",
+    variant: "error",
+  },
   exists: { text: "An account with this phone number already exists.", variant: "error" },
   email_taken: { text: "This email is already registered.", variant: "error" },
   email: { text: "Please enter a valid email address.", variant: "error" },

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAndSendOtp, verifyOtp } from "@/lib/auth/otp";
 import { checkRateLimit, recordFailedAttempt, rateLimitKey } from "@/lib/auth/rate-limit";
-import { assertOtpRequestAllowed } from "@/lib/auth/signup-guard";
+import { assertOtpBotAllowed, consumeOtpIpSlot } from "@/lib/auth/signup-guard";
 import { shouldBlockAuthBot } from "@/lib/auth/bot-guard";
 import { normalizePhone } from "@/lib/auth/validation";
 import { z } from "zod";
@@ -41,11 +41,17 @@ export async function handlePublicSendOtp(request: Request) {
   const countryCode = body.data.countryCode ?? "GH";
   const purpose = purposeMap[body.data.purpose ?? "signup"];
 
-  const otpGuard = await assertOtpRequestAllowed({
+  const otpBot = await assertOtpBotAllowed({
     honeypot: body.data.company_website,
     turnstileToken: body.data.turnstileToken,
   });
-  if (!otpGuard.ok) {
+  if (!otpBot.ok) {
+    const status = otpBot.error === "rate_limit" ? 429 : 403;
+    return NextResponse.json({ error: "Too many requests" }, { status });
+  }
+
+  const otpIp = await consumeOtpIpSlot();
+  if (!otpIp.ok) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 

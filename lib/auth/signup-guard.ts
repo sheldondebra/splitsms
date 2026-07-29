@@ -10,6 +10,9 @@ import {
 
 export { HONEYPOT_FIELD } from "@/lib/auth/signup-guard-shared";
 
+export type AuthGuardError = "rate_limit" | "captcha" | "blocked";
+export type AuthGuardResult = { ok: true } | { ok: false; error: AuthGuardError };
+
 function isRecaptchaEnabled(): boolean {
   return Boolean(recaptchaSiteKey() && process.env.RECAPTCHA_SECRET_KEY?.trim());
 }
@@ -93,70 +96,79 @@ function rejectObviousBot(input: GuardInput): boolean {
   return false;
 }
 
-async function runSignupBotChecks(input: GuardInput): Promise<{ ok: true } | { ok: false }> {
-  if (rejectObviousBot(input)) return { ok: false };
+/** Bot / captcha only — does not consume rate-limit slots. */
+export async function assertSignupBotAllowed(input: GuardInput): Promise<AuthGuardResult> {
+  if (rejectObviousBot(input)) return { ok: false, error: "blocked" };
 
   const { ip, userAgent } = await readRequestMeta();
-  if (shouldBlockAuthBot(userAgent)) return { ok: false };
+  if (shouldBlockAuthBot(userAgent)) return { ok: false, error: "blocked" };
 
   if (isRecaptchaEnabled()) {
     const token = String(input.recaptchaToken ?? "").trim();
-    if (!token) return { ok: false };
+    if (!token) return { ok: false, error: "captcha" };
     const valid = await verifyRecaptcha(token, ip);
-    if (!valid) return { ok: false };
+    if (!valid) return { ok: false, error: "captcha" };
   } else if (isTurnstileEnabled()) {
     const token = String(input.turnstileToken ?? "").trim();
-    if (!token) return { ok: false };
+    if (!token) return { ok: false, error: "captcha" };
     const valid = await verifyTurnstile(token, ip);
-    if (!valid) return { ok: false };
+    if (!valid) return { ok: false, error: "captcha" };
   }
 
   return { ok: true };
 }
 
-async function runOtpBotChecks(input: GuardInput): Promise<{ ok: true } | { ok: false }> {
-  if (rejectObviousBot(input)) return { ok: false };
+/** Lightweight bot checks for OTP sends (no captcha). */
+export async function assertOtpBotAllowed(input: GuardInput): Promise<AuthGuardResult> {
+  if (rejectObviousBot(input)) return { ok: false, error: "blocked" };
 
   const { userAgent } = await readRequestMeta();
-  if (shouldBlockAuthBot(userAgent)) return { ok: false };
+  if (shouldBlockAuthBot(userAgent)) return { ok: false, error: "blocked" };
 
   return { ok: true };
 }
 
-/** Limit new signups per IP to slow bot farms. */
-export async function assertSignupAllowed(
-  input: GuardInput,
-): Promise<{ ok: true } | { ok: false; error: "rate_limit" }> {
-  const bot = await runSignupBotChecks(input);
-  if (!bot.ok) return { ok: false, error: "rate_limit" };
-
+/**
+ * Limit new account creations per IP.
+ * Generous enough for typos/retries; still slows bot farms.
+ */
+export async function consumeSignupIpSlot(): Promise<AuthGuardResult> {
   const { ip } = await readRequestMeta();
   const limit = await consumeRateLimitSlot(rateLimitKey("signup_ip", ip), {
-    maxAttempts: 3,
+    maxAttempts: 10,
     windowMs: 60 * 60 * 1000,
-    lockoutMs: 2 * 60 * 60 * 1000,
+    lockoutMs: 30 * 60 * 1000,
   });
   if (!limit.allowed) return { ok: false, error: "rate_limit" };
-
   return { ok: true };
 }
 
 /** Limit OTP sends per IP (signup + login) to reduce SMS abuse. */
-export async function assertOtpRequestAllowed(
-  input: GuardInput,
-): Promise<{ ok: true } | { ok: false; error: "rate_limit" }> {
-  const bot = await runOtpBotChecks(input);
-  if (!bot.ok) return { ok: false, error: "rate_limit" };
-
+export async function consumeOtpIpSlot(): Promise<AuthGuardResult> {
   const { ip } = await readRequestMeta();
   const limit = await consumeRateLimitSlot(rateLimitKey("otp_ip", ip), {
-    maxAttempts: 8,
+    maxAttempts: 12,
     windowMs: 15 * 60 * 1000,
-    lockoutMs: 30 * 60 * 1000,
+    lockoutMs: 20 * 60 * 1000,
   });
   if (!limit.allowed) return { ok: false, error: "rate_limit" };
-
   return { ok: true };
+}
+
+/** @deprecated Prefer assertSignupBotAllowed + consumeSignupIpSlot after validation. */
+export async function assertSignupAllowed(input: GuardInput): Promise<AuthGuardResult> {
+  const bot = await assertSignupBotAllowed(input);
+  if (!bot.ok) return bot;
+
+  return consumeSignupIpSlot();
+}
+
+/** @deprecated Prefer assertOtpBotAllowed + consumeOtpIpSlot after validation. */
+export async function assertOtpRequestAllowed(input: GuardInput): Promise<AuthGuardResult> {
+  const bot = await assertOtpBotAllowed(input);
+  if (!bot.ok) return bot;
+
+  return consumeOtpIpSlot();
 }
 
 export function readSignupGuardFields(formData: FormData) {
