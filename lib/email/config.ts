@@ -1,6 +1,6 @@
 import { siteName, supportEmail } from "@/lib/site-config";
 
-export type EmailProvider = "mailjet" | "smtp";
+export type EmailProvider = "mailjet" | "smtp" | "resend";
 
 export type MailjetConfig = {
   apiKey: string;
@@ -16,6 +16,12 @@ export type SmtpConfig = {
   secure: boolean;
   user: string;
   password: string;
+  fromEmail: string;
+  fromName: string;
+};
+
+export type ResendConfig = {
+  apiKey: string;
   fromEmail: string;
   fromName: string;
 };
@@ -57,6 +63,12 @@ export function getSmtpEnvConfig(): Omit<SmtpConfig, "fromEmail" | "fromName"> |
   };
 }
 
+export function getResendEnvConfig(): Omit<ResendConfig, "fromEmail" | "fromName"> | null {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) return null;
+  return { apiKey };
+}
+
 export function isMailjetConfigured() {
   return getMailjetConfig() !== null;
 }
@@ -65,9 +77,13 @@ export function isSmtpEnvConfigured() {
   return getSmtpEnvConfig() !== null;
 }
 
-/** True when Mailjet or SMTP is configured via .env (sync). */
+export function isResendEnvConfigured() {
+  return getResendEnvConfig() !== null;
+}
+
+/** True when Mailjet, Resend, or SMTP is configured via .env (sync). */
 export function isEmailConfigured() {
-  return isMailjetConfigured() || isSmtpEnvConfigured();
+  return isMailjetConfigured() || isSmtpEnvConfigured() || isResendEnvConfigured();
 }
 
 /** Env or General office DB settings (use in server components / actions). */
@@ -120,4 +136,18 @@ export function getSmtpEnvDiagnostics() {
       process.env.SMTP_PORT?.trim() === "465",
     configured: hasHost && hasUser && hasPassword,
   };
+}
+
+export function getResendEnvDiagnostics() {
+  const hasApiKey = Boolean(process.env.RESEND_API_KEY?.trim());
+  return {
+    hasApiKey,
+    configured: hasApiKey,
+  };
+}
+
+export function emailProviderLabel(provider: EmailProvider | string | null | undefined) {
+  if (provider === "smtp") return "SMTP";
+  if (provider === "resend") return "Resend";
+  return "Mailjet";
 }

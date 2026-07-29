@@ -5,6 +5,7 @@ import { GeneralEmailForm } from "@/components/admin/general-mailjet-form";
 import { GeneralTestEmailForm } from "@/components/admin/general-test-email-form";
 import { MailjetTestResult } from "@/components/admin/mailjet-test-result";
 import { testEmailConnectionAction } from "@/lib/actions/admin-general";
+import { emailProviderLabel } from "@/lib/email/config";
 import type { EmailOfficeStored } from "@/lib/email/office-config";
 import type { GatewayLastTest } from "@/lib/payments/gateway-settings";
 import { Mail, Plug } from "lucide-react";
@@ -14,19 +15,18 @@ type GeneralEmailPanelProps = {
   stored: EmailOfficeStored;
   envMailjetConfigured: boolean;
   envSmtpConfigured: boolean;
+  envResendConfigured?: boolean;
   senderSavedInDashboard: boolean;
   connectionTest: GatewayLastTest | null;
   sendTest: GatewayLastTest | null;
 };
-
-const providerLabel = (provider: EmailOfficeStored["provider"]) =>
-  provider === "smtp" ? "SMTP" : "Mailjet";
 
 export function GeneralEmailPanel({
   configured,
   stored,
   envMailjetConfigured,
   envSmtpConfigured,
+  envResendConfigured = false,
   senderSavedInDashboard,
   connectionTest,
   sendTest,
@@ -34,10 +34,12 @@ export function GeneralEmailPanel({
   return (
     <AdminCard
       title="Email delivery"
-      description="Connect Mailjet or SMTP for OTP, receipts, support replies, and marketing emails."
+      description="Connect Resend, Mailjet, or SMTP for OTP, receipts, support replies, and marketing emails."
       actions={
         <Badge variant={configured ? "default" : "secondary"}>
-          {configured ? `Connected · ${providerLabel(stored.provider)}` : "Not configured"}
+          {configured
+            ? `Connected · ${emailProviderLabel(stored.provider)}`
+            : "Not configured"}
         </Badge>
       }
     >
@@ -47,7 +49,7 @@ export function GeneralEmailPanel({
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
               Provider
             </p>
-            <p className="mt-0.5 font-medium">{providerLabel(stored.provider)}</p>
+            <p className="mt-0.5 font-medium">{emailProviderLabel(stored.provider)}</p>
           </div>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -69,6 +71,13 @@ export function GeneralEmailPanel({
               <p className="mt-0.5">
                 {stored.sandbox ? "On — emails are not delivered" : "Off"}
               </p>
+            </div>
+          ) : stored.provider === "resend" ? (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                API key
+              </p>
+              <p className="mt-0.5">{stored.resendApiKey ? "Saved" : "Missing"}</p>
             </div>
           ) : (
             <div>
@@ -94,6 +103,7 @@ export function GeneralEmailPanel({
           stored={stored}
           envMailjetConfigured={envMailjetConfigured}
           envSmtpConfigured={envSmtpConfigured}
+          envResendConfigured={envResendConfigured}
           senderSavedInDashboard={senderSavedInDashboard}
         />
 

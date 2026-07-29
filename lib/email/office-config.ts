@@ -1,18 +1,19 @@
 import { prisma } from "@/lib/db";
 import { maskTailSecret } from "@/lib/mask-secret";
 import { siteName, supportEmail } from "@/lib/site-config";
-import type { MailjetConfig, SmtpConfig } from "@/lib/email/config";
+import type { MailjetConfig, ResendConfig, SmtpConfig } from "@/lib/email/config";
 
 export const EMAIL_OFFICE_KEY = "email_office_config";
 /** @deprecated Use EMAIL_OFFICE_KEY — kept for reading legacy rows. */
 export const MAILJET_OFFICE_KEY = "mailjet_office_config";
 
-export type EmailProvider = "mailjet" | "smtp";
+export type EmailProvider = "mailjet" | "smtp" | "resend";
 
 export type EmailOfficeStored = {
   provider: EmailProvider;
   apiKey: string;
   apiSecret: string;
+  resendApiKey: string;
   fromEmail: string;
   fromName: string;
   sandbox: boolean;
@@ -27,38 +28,54 @@ export type EmailOfficeStored = {
 /** @deprecated Use EmailOfficeStored */
 export type MailjetOfficeStored = EmailOfficeStored;
 
-const envDefaults = (): Omit<EmailOfficeStored, "updatedAt"> => ({
-  provider:
-    process.env.EMAIL_PROVIDER?.trim() === "smtp" ||
-    (process.env.SMTP_HOST?.trim() && !process.env.MAILJET_API_KEY?.trim())
-      ? "smtp"
-      : "mailjet",
-  apiKey: process.env.MAILJET_API_KEY?.trim() ?? "",
-  apiSecret:
-    process.env.MAILJET_API_SECRET?.trim() ||
-    process.env.MAILJET_SECRET_KEY?.trim() ||
-    "",
-  fromEmail:
-    process.env.MAILJET_FROM_EMAIL?.trim() ||
-    process.env.SMTP_FROM_EMAIL?.trim() ||
-    supportEmail ||
-    "noreply@splitsms.com",
-  fromName:
-    process.env.MAILJET_FROM_NAME?.trim() ||
-    process.env.SMTP_FROM_NAME?.trim() ||
-    siteName,
-  sandbox: process.env.MAILJET_SANDBOX === "true",
-  smtpHost: process.env.SMTP_HOST?.trim() ?? "",
-  smtpPort: Number(process.env.SMTP_PORT?.trim() || "587"),
-  smtpSecure:
-    process.env.SMTP_SECURE === "true" ||
-    process.env.SMTP_PORT?.trim() === "465",
-  smtpUser: process.env.SMTP_USER?.trim() ?? "",
-  smtpPassword:
-    process.env.SMTP_PASSWORD?.trim() ||
-    process.env.SMTP_PASS?.trim() ||
-    "",
-});
+function parseProvider(value: unknown, fallback: EmailProvider): EmailProvider {
+  if (value === "smtp" || value === "mailjet" || value === "resend") return value;
+  return fallback;
+}
+
+const envDefaults = (): Omit<EmailOfficeStored, "updatedAt"> => {
+  const envProvider = process.env.EMAIL_PROVIDER?.trim();
+  let provider: EmailProvider = "mailjet";
+  if (envProvider === "smtp" || envProvider === "mailjet" || envProvider === "resend") {
+    provider = envProvider;
+  } else if (process.env.RESEND_API_KEY?.trim() && !process.env.MAILJET_API_KEY?.trim()) {
+    provider = "resend";
+  } else if (process.env.SMTP_HOST?.trim() && !process.env.MAILJET_API_KEY?.trim()) {
+    provider = "smtp";
+  }
+
+  return {
+    provider,
+    apiKey: process.env.MAILJET_API_KEY?.trim() ?? "",
+    apiSecret:
+      process.env.MAILJET_API_SECRET?.trim() ||
+      process.env.MAILJET_SECRET_KEY?.trim() ||
+      "",
+    resendApiKey: process.env.RESEND_API_KEY?.trim() ?? "",
+    fromEmail:
+      process.env.RESEND_FROM_EMAIL?.trim() ||
+      process.env.MAILJET_FROM_EMAIL?.trim() ||
+      process.env.SMTP_FROM_EMAIL?.trim() ||
+      supportEmail ||
+      "noreply@splitsms.com",
+    fromName:
+      process.env.RESEND_FROM_NAME?.trim() ||
+      process.env.MAILJET_FROM_NAME?.trim() ||
+      process.env.SMTP_FROM_NAME?.trim() ||
+      siteName,
+    sandbox: process.env.MAILJET_SANDBOX === "true",
+    smtpHost: process.env.SMTP_HOST?.trim() ?? "",
+    smtpPort: Number(process.env.SMTP_PORT?.trim() || "587"),
+    smtpSecure:
+      process.env.SMTP_SECURE === "true" ||
+      process.env.SMTP_PORT?.trim() === "465",
+    smtpUser: process.env.SMTP_USER?.trim() ?? "",
+    smtpPassword:
+      process.env.SMTP_PASSWORD?.trim() ||
+      process.env.SMTP_PASS?.trim() ||
+      "",
+  };
+};
 
 function mergeSenderField(
   stored: Partial<EmailOfficeStored> | null | undefined,
@@ -76,15 +93,13 @@ function normalizeStored(
   const base = envDefaults();
   if (!stored) return { ...base };
 
-  const provider: EmailProvider =
-    stored.provider === "smtp" || stored.provider === "mailjet"
-      ? stored.provider
-      : base.provider;
+  const provider = parseProvider(stored.provider, base.provider);
 
   return {
     provider,
     apiKey: (stored.apiKey || base.apiKey).trim(),
     apiSecret: (stored.apiSecret || base.apiSecret).trim(),
+    resendApiKey: (stored.resendApiKey || base.resendApiKey).trim(),
     fromEmail: mergeSenderField(stored, "fromEmail", base.fromEmail),
     fromName: mergeSenderField(stored, "fromName", base.fromName),
     sandbox: stored.sandbox ?? base.sandbox,
@@ -135,14 +150,27 @@ export function isSmtpOfficeReady(stored: EmailOfficeStored) {
   return Boolean(stored.smtpHost && stored.smtpUser && stored.smtpPassword);
 }
 
+export function isResendOfficeReady(stored: EmailOfficeStored) {
+  return Boolean(stored.resendApiKey);
+}
+
 export async function loadActiveEmailProvider(): Promise<EmailProvider | null> {
   const stored = await loadEmailOfficeStored();
+
+  if (stored.provider === "resend") {
+    if (isResendOfficeReady(stored)) return "resend";
+    if (isMailjetOfficeReady(stored)) return "mailjet";
+    return isSmtpOfficeReady(stored) ? "smtp" : null;
+  }
+
   if (stored.provider === "smtp") {
     if (isSmtpOfficeReady(stored)) return "smtp";
-    // Misconfigured preferred provider: fall back to Mailjet if available.
+    if (isResendOfficeReady(stored)) return "resend";
     return isMailjetOfficeReady(stored) ? "mailjet" : null;
   }
+
   if (isMailjetOfficeReady(stored)) return "mailjet";
+  if (isResendOfficeReady(stored)) return "resend";
   return isSmtpOfficeReady(stored) ? "smtp" : null;
 }
 
@@ -172,6 +200,16 @@ export async function loadSmtpOfficeConfig(): Promise<SmtpConfig | null> {
   };
 }
 
+export async function loadResendOfficeConfig(): Promise<ResendConfig | null> {
+  const stored = await loadEmailOfficeStored();
+  if (!isResendOfficeReady(stored)) return null;
+  return {
+    apiKey: stored.resendApiKey,
+    fromEmail: stored.fromEmail,
+    fromName: stored.fromName,
+  };
+}
+
 export async function saveEmailOfficeConfig(
   input: Partial<EmailOfficeStored>,
   actorId?: string,
@@ -182,10 +220,7 @@ export async function saveEmailOfficeConfig(
   const smtpPortInput = input.smtpPort;
 
   const next: EmailOfficeStored = {
-    provider:
-      input.provider === "smtp" || input.provider === "mailjet"
-        ? input.provider
-        : current.provider,
+    provider: parseProvider(input.provider, current.provider),
     apiKey:
       input.apiKey !== undefined && input.apiKey.trim() !== ""
         ? input.apiKey.trim()
@@ -194,6 +229,10 @@ export async function saveEmailOfficeConfig(
       input.apiSecret !== undefined && input.apiSecret.trim() !== ""
         ? input.apiSecret.trim()
         : current.apiSecret,
+    resendApiKey:
+      input.resendApiKey !== undefined && input.resendApiKey.trim() !== ""
+        ? input.resendApiKey.trim()
+        : current.resendApiKey,
     fromEmail: fromEmailInput || current.fromEmail,
     fromName: fromNameInput || current.fromName,
     sandbox: input.sandbox ?? current.sandbox,
@@ -229,6 +268,7 @@ export async function saveEmailOfficeConfig(
         metadata: {
           provider: next.provider,
           hasApiKey: Boolean(next.apiKey),
+          hasResendApiKey: Boolean(next.resendApiKey),
           hasSmtp: isSmtpOfficeReady(next),
           fromEmail: next.fromEmail,
           sandbox: next.sandbox,
@@ -245,3 +285,4 @@ export const saveMailjetOfficeConfig = saveEmailOfficeConfig;
 
 export const maskMailjetSecret = maskTailSecret;
 export const maskSmtpPassword = maskTailSecret;
+export const maskResendApiKey = maskTailSecret;

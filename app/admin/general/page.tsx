@@ -6,8 +6,10 @@ import { GeneralOfficeNotifyPanel } from "@/components/admin/general-office-noti
 import {
   getMailjetEnvDiagnostics,
   getSmtpEnvDiagnostics,
+  getResendEnvDiagnostics,
   isMailjetConfigured,
   isSmtpEnvConfigured,
+  isResendEnvConfigured,
 } from "@/lib/email/config";
 import { isEmailConfiguredAsync } from "@/lib/email";
 import { loadEmailOfficeRaw, loadEmailOfficeStored } from "@/lib/email/office-config";
@@ -43,8 +45,10 @@ export default async function AdminGeneralOfficePage({
     ]);
   const envMailjetConfigured = isMailjetConfigured();
   const envSmtpConfigured = isSmtpEnvConfigured();
+  const envResendConfigured = isResendEnvConfigured();
   const envMailjetDiag = getMailjetEnvDiagnostics();
   const envSmtpDiag = getSmtpEnvDiagnostics();
+  const envResendDiag = getResendEnvDiagnostics();
   const senderSavedInDashboard = Boolean(raw?.fromEmail?.trim());
 
   return (
@@ -58,6 +62,7 @@ export default async function AdminGeneralOfficePage({
         configured={configured}
         envMailjetDiag={envMailjetDiag}
         envSmtpDiag={envSmtpDiag}
+        envResendDiag={envResendDiag}
         stored={stored}
       />
 
@@ -66,6 +71,7 @@ export default async function AdminGeneralOfficePage({
         stored={stored}
         envMailjetConfigured={envMailjetConfigured}
         envSmtpConfigured={envSmtpConfigured}
+        envResendConfigured={envResendConfigured}
         senderSavedInDashboard={senderSavedInDashboard}
         connectionTest={connectionTest}
         sendTest={sendTest}

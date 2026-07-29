@@ -1,4 +1,5 @@
 import { AdminAlert } from "@/components/admin/admin-page-shell";
+import { emailProviderLabel } from "@/lib/email/config";
 import type { EmailOfficeStored } from "@/lib/email/office-config";
 
 type GeneralOfficeAlertsProps = {
@@ -19,6 +20,9 @@ type GeneralOfficeAlertsProps = {
     hasUser: boolean;
     hasPassword: boolean;
   };
+  envResendDiag?: {
+    hasApiKey: boolean;
+  };
   stored: EmailOfficeStored;
 };
 
@@ -27,9 +31,10 @@ export function GeneralOfficeAlerts({
   configured,
   envMailjetDiag,
   envSmtpDiag,
+  envResendDiag,
   stored,
 }: GeneralOfficeAlertsProps) {
-  const providerLabel = stored.provider === "smtp" ? "SMTP" : "Mailjet";
+  const providerLabel = emailProviderLabel(stored.provider);
 
   return (
     <>
@@ -96,7 +101,7 @@ export function GeneralOfficeAlerts({
       )}
       {params.error === "not_configured" && (
         <AdminAlert variant="warning">
-          Email is not configured. Add Mailjet API keys or SMTP credentials below, or in{" "}
+          Email is not configured. Add Resend, Mailjet, or SMTP credentials below, or in{" "}
           <code className="text-xs">.env</code>.
         </AdminAlert>
       )}
@@ -108,7 +113,12 @@ export function GeneralOfficeAlerts({
             <li>
               Active provider: <strong>{providerLabel}</strong>
             </li>
-            {stored.provider === "mailjet" ? (
+            {stored.provider === "resend" ? (
+              <>
+                <li>{envResendDiag?.hasApiKey ? "✓" : "✗"} RESEND_API_KEY in .env</li>
+                <li>{stored.resendApiKey ? "✓" : "○"} Resend API key saved here</li>
+              </>
+            ) : stored.provider === "mailjet" ? (
               <>
                 <li>{envMailjetDiag.hasApiKey ? "✓" : "✗"} MAILJET_API_KEY in .env</li>
                 <li>{envMailjetDiag.hasSecret ? "✓" : "✗"} MAILJET_API_SECRET in .env</li>

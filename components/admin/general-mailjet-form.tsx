@@ -12,6 +12,7 @@ type GeneralEmailFormProps = {
   stored: EmailOfficeStored;
   envMailjetConfigured: boolean;
   envSmtpConfigured: boolean;
+  envResendConfigured?: boolean;
   senderSavedInDashboard: boolean;
 };
 
@@ -32,10 +33,9 @@ export function GeneralEmailForm({
   stored,
   envMailjetConfigured,
   envSmtpConfigured,
+  envResendConfigured = false,
   senderSavedInDashboard,
 }: GeneralEmailFormProps) {
-  const isSmtp = stored.provider === "smtp";
-
   return (
     <form
       key={stored.updatedAt ?? "default"}
@@ -46,7 +46,7 @@ export function GeneralEmailForm({
         <div>
           <p className="text-sm font-semibold">Delivery provider</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Choose Mailjet API or connect your own SMTP server (Gmail, SendGrid, Amazon SES, etc.).
+            Choose Resend, Mailjet, or your own SMTP server.
           </p>
         </div>
 
@@ -55,8 +55,18 @@ export function GeneralEmailForm({
             <input
               type="radio"
               name="provider"
+              value="resend"
+              defaultChecked={stored.provider === "resend"}
+              className="h-4 w-4 accent-primary"
+            />
+            Resend
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="radio"
+              name="provider"
               value="mailjet"
-              defaultChecked={!isSmtp}
+              defaultChecked={stored.provider === "mailjet"}
               className="h-4 w-4 accent-primary"
             />
             Mailjet API
@@ -66,7 +76,7 @@ export function GeneralEmailForm({
               type="radio"
               name="provider"
               value="smtp"
-              defaultChecked={isSmtp}
+              defaultChecked={stored.provider === "smtp"}
               className="h-4 w-4 accent-primary"
             />
             SMTP
@@ -82,11 +92,8 @@ export function GeneralEmailForm({
             {senderSavedInDashboard ? " Saved in dashboard." : " Using site default until saved."}
           </p>
           <p className="text-xs text-amber-800 dark:text-amber-200 mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2">
-            Gmail silently drops mail when the From domain’s SPF does not authorize your SMTP
-            server. For SMTP via tecunitgh.com, use a <code className="font-mono">@tecunitgh.com</code>{" "}
-            From address (or update SPF on splitsms.com). For{" "}
-            <code className="font-mono">info@splitsms.com</code>, use Mailjet with that sender
-            activated.
+            Verify the From domain in your provider (Resend / Mailjet). For SMTP, the From domain’s
+            SPF must authorize your SMTP host or Gmail may silently drop messages.
           </p>
         </div>
 
@@ -115,6 +122,30 @@ export function GeneralEmailForm({
               className={inputClassName}
             />
           </div>
+        </div>
+      </section>
+
+      <section className="space-y-4 rounded-xl border border-border/60 bg-muted/10 p-4">
+        <div>
+          <p className="text-sm font-semibold">Resend API</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Used when Resend is selected. Leave blank to keep the existing key.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="resendApiKey">API key</Label>
+          <input
+            id="resendApiKey"
+            name="resendApiKey"
+            type="password"
+            placeholder={
+              stored.resendApiKey
+                ? maskTailSecret(stored.resendApiKey)
+                : "re_xxxxxxxx"
+            }
+            autoComplete="off"
+            className={inputClassName}
+          />
         </div>
       </section>
 
@@ -241,6 +272,9 @@ export function GeneralEmailForm({
 
       <div className="flex flex-wrap items-center gap-3">
         <SaveButton />
+        {envResendConfigured && (
+          <span className="text-[11px] text-muted-foreground">Resend .env key detected</span>
+        )}
         {envMailjetConfigured && (
           <span className="text-[11px] text-muted-foreground">Mailjet .env keys detected</span>
         )}

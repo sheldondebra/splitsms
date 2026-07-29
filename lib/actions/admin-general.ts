@@ -42,7 +42,10 @@ export async function saveEmailOfficeConfigAction(formData: FormData) {
   const fromEmail = String(formData.get("fromEmail") ?? "").trim();
   const fromName = String(formData.get("fromName") ?? "").trim();
   const providerRaw = String(formData.get("provider") ?? "mailjet").trim();
-  const provider: EmailProvider = providerRaw === "smtp" ? "smtp" : "mailjet";
+  const provider: EmailProvider =
+    providerRaw === "smtp" || providerRaw === "resend" || providerRaw === "mailjet"
+      ? providerRaw
+      : "mailjet";
   const smtpHost = String(formData.get("smtpHost") ?? "").trim();
   const smtpUser = String(formData.get("smtpUser") ?? "").trim();
   const smtpPortRaw = Number(String(formData.get("smtpPort") ?? "").trim());
@@ -65,6 +68,7 @@ export async function saveEmailOfficeConfigAction(formData: FormData) {
       provider,
       apiKey: String(formData.get("apiKey") ?? "").trim() || undefined,
       apiSecret: String(formData.get("apiSecret") ?? "").trim() || undefined,
+      resendApiKey: String(formData.get("resendApiKey") ?? "").trim() || undefined,
       fromEmail,
       fromName,
       sandbox: formData.get("sandbox") === "on",

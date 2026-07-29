@@ -8,6 +8,7 @@ import {
 } from "@/lib/email/config";
 import { sendMailjetEmail, testMailjetConnection } from "@/lib/email/mailjet";
 import { sendSmtpEmail, testSmtpConnection } from "@/lib/email/smtp";
+import { sendResendEmail, testResendConnection } from "@/lib/email/resend";
 import { otpEmailContent } from "@/lib/email/templates";
 
 export {
@@ -19,11 +20,13 @@ export {
   getActiveEmailProvider,
   testMailjetConnection,
   testSmtpConnection,
+  testResendConnection,
 };
 
 export async function testEmailConnection() {
   const provider = await getActiveEmailProvider();
   if (provider === "smtp") return testSmtpConnection();
+  if (provider === "resend") return testResendConnection();
   if (provider === "mailjet") return testMailjetConnection();
   return { ok: false as const, error: "Email is not configured" };
 }
@@ -71,10 +74,9 @@ export async function sendEmail(params: {
   }
 
   // Prefer the selected provider only. Do not silently fall back across
-  // Mailjet ↔ SMTP — different SPF/DKIM identities cause Gmail to drop mail
+  // providers — different SPF/DKIM identities cause Gmail to drop mail
   // while admin "tests" still look successful.
-  if (provider === "smtp") {
-    return sendSmtpEmail(params);
-  }
+  if (provider === "smtp") return sendSmtpEmail(params);
+  if (provider === "resend") return sendResendEmail(params);
   return sendMailjetEmail(params);
 }
