@@ -1,7 +1,7 @@
 {
   "siteUrl": "https://www.splitsms.com",
   "siteName": "SplitSMS",
-  "supportEmail": "support@tecunitgh.com",
+  "supportEmail": "info@splitsms.com",
   "apiPathPrefix": "/api/v1",
   "sdks": {
     "javascript": {
