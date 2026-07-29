@@ -11,6 +11,7 @@ const sendSchema = z.object({
   countryCode: z.string().min(2).max(10).optional(),
   purpose: z.enum(["signup", "login", "reset"]).optional(),
   company_website: z.string().optional(),
+  ss_hp_field: z.string().optional(),
   turnstileToken: z.string().optional(),
 });
 
@@ -42,7 +43,7 @@ export async function handlePublicSendOtp(request: Request) {
   const purpose = purposeMap[body.data.purpose ?? "signup"];
 
   const otpBot = await assertOtpBotAllowed({
-    honeypot: body.data.company_website,
+    honeypot: body.data.ss_hp_field || body.data.company_website,
     turnstileToken: body.data.turnstileToken,
   });
   if (!otpBot.ok) {

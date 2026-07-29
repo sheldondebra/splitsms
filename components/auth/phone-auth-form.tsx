@@ -5,6 +5,7 @@ import { initialCountryState } from "@/lib/auth/initial-country-state";
 import { requestPhoneAuthAction } from "@/lib/actions/auth";
 import { AuthHoneypot } from "@/components/auth/auth-honeypot";
 import { AuthCaptcha } from "@/components/auth/auth-captcha";
+import { PasswordField } from "@/components/auth/password-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,11 +80,33 @@ export function PhoneAuthForm({
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          We&apos;ll text you a 6-digit code. No password needed.
+          {intent === "signup"
+            ? "Create a password, then we’ll text you a 6-digit verification code."
+            : "We’ll text you a 6-digit code to sign in."}
         </p>
       </div>
 
-      {intent === "signup" ? <AuthCaptcha /> : null}
+      {intent === "signup" ? (
+        <>
+          <PasswordField
+            id="phone-signup-password"
+            name="password"
+            label="Create password"
+            placeholder="Create a strong password"
+            showStrength
+            autoComplete="new-password"
+          />
+          <PasswordField
+            id="phone-signup-confirm-password"
+            name="confirmPassword"
+            label="Confirm password"
+            placeholder="Repeat your password"
+            showStrength={false}
+            autoComplete="new-password"
+          />
+          <AuthCaptcha />
+        </>
+      ) : null}
 
       <Button type="submit" className="w-full h-11 font-semibold gap-2 text-base">
         <Phone className="h-4 w-4" />

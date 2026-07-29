@@ -1,6 +1,13 @@
 /** Client-safe signup anti-spam constants (no server-only imports). */
 
-export const HONEYPOT_FIELD = "company_website";
+/**
+ * Obscure honeypot name — avoid "company" / "website" / "url" which password
+ * managers and browser autofill often fill, causing false bot blocks.
+ */
+export const HONEYPOT_FIELD = "ss_hp_field";
+
+/** Legacy autofill-prone name still accepted so older clients don't break. */
+export const HONEYPOT_FIELD_LEGACY = "company_website";
 
 export function turnstileSiteKey(): string | undefined {
   return process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() || undefined;

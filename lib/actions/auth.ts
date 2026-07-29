@@ -12,6 +12,7 @@ import {
   otpCodeSchema,
   resetPasswordSchema,
   phoneAuthSchema,
+  phoneAuthSignupSchema,
   emailAuthLoginSchema,
   emailAuthSignupSchema,
   completeProfileSchema,
@@ -19,7 +20,6 @@ import {
   normalizePhoneWithCountry,
 } from "@/lib/auth/validation";
 import {
-  generateOtpOnlyPassword,
   PLACEHOLDER_PROFILE_NAME,
   userNeedsProfileCompletion,
   maskPhoneForDisplay,
@@ -221,7 +221,7 @@ export async function requestPhoneAuthAction(formData: FormData) {
   const inviteParams = intent === "signup" ? inviteRedirectParams(formData) : {};
   const guardFields = readSignupGuardFields(formData);
 
-const otpBot = await assertOtpBotAllowed(guardFields);
+  const otpBot = await assertOtpBotAllowed(guardFields);
   if (!otpBot.ok) {
     authRedirect(returnPath, guardErrorParams(otpBot.error, inviteParams));
   }
@@ -233,21 +233,40 @@ const otpBot = await assertOtpBotAllowed(guardFields);
     }
   }
 
-  const parsed = phoneAuthSchema.safeParse({
-    phone: formData.get("phone"),
-    countryCode: formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE,
-    dialCode: formData.get("dialCode") ?? "+233",
-  });
+  const parsed =
+    intent === "signup"
+      ? phoneAuthSignupSchema.safeParse({
+          phone: formData.get("phone"),
+          countryCode: formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE,
+          dialCode: formData.get("dialCode") ?? "+233",
+          password: formData.get("password"),
+          confirmPassword: formData.get("confirmPassword"),
+        })
+      : phoneAuthSchema.safeParse({
+          phone: formData.get("phone"),
+          countryCode: formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE,
+          dialCode: formData.get("dialCode") ?? "+233",
+        });
 
   if (!parsed.success) {
+    const field = parsed.error.issues[0]?.path[0];
+    if (field === "password") {
+      authRedirect(returnPath, { error: "password", ...inviteParams });
+    }
+    if (field === "confirmPassword") {
+      authRedirect(returnPath, { error: "confirmPassword", ...inviteParams });
+    }
     authRedirect(returnPath, { error: "invalid_phone", ...inviteParams });
   }
 
   const { countryCode, dialCode } = parsed.data;
   const phone = normalizePhoneWithCountry(parsed.data.phone, dialCode, countryCode);
+  const signupPassword =
+    intent === "signup" && "password" in parsed.data
+      ? parsed.data.password
+      : null;
 
-  const phoneCheck = phone.length >= 10 ? { success: true as const } : { success: false as const };
-  if (!phoneCheck.success) {
+  if (phone.length < 10) {
     authRedirect(returnPath, { error: "invalid_phone", ...inviteParams });
   }
 
@@ -266,11 +285,11 @@ const otpBot = await assertOtpBotAllowed(guardFields);
   let purposeParam = "login";
 
   if (!user) {
-if (intent !== "signup") {
-      const signupBot = await assertSignupBotAllowed(guardFields);
-      if (!signupBot.ok) {
-        authRedirect(returnPath, guardErrorParams(signupBot.error, inviteParams));
-      }
+    if (intent !== "signup") {
+      authRedirect("/signup", { error: "user", ...inviteParams });
+    }
+    if (!signupPassword) {
+      authRedirect(returnPath, { error: "password", ...inviteParams });
     }
 
     const signupIp = await consumeSignupIpSlot();
@@ -278,7 +297,7 @@ if (intent !== "signup") {
       authRedirect(returnPath, guardErrorParams(signupIp.error, inviteParams));
     }
 
-    const passwordHash = await hashPassword(generateOtpOnlyPassword());
+    const passwordHash = await hashPassword(signupPassword as string);
     const accountNumber = await generateUniqueAccountNumber();
     user = await prisma.user.create({
       data: {
@@ -342,7 +361,7 @@ export async function requestEmailAuthAction(formData: FormData) {
     const inviteParams = inviteRedirectParams(formData);
     const guardFields = readSignupGuardFields(formData);
 
-const otpBot = await assertOtpBotAllowed(guardFields);
+    const otpBot = await assertOtpBotAllowed(guardFields);
     if (!otpBot.ok) {
       authRedirect(returnPath, guardErrorParams(otpBot.error, { method: "email", ...inviteParams }));
     }
@@ -357,18 +376,28 @@ const otpBot = await assertOtpBotAllowed(guardFields);
       phone: formData.get("phone"),
       countryCode: formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE,
       dialCode: formData.get("dialCode") ?? "+233",
+      password: formData.get("password"),
+      confirmPassword: formData.get("confirmPassword"),
     });
 
     if (!parsed.success) {
       const field = parsed.error.issues[0]?.path[0];
+      const error =
+        field === "email"
+          ? "email"
+          : field === "password"
+            ? "password"
+            : field === "confirmPassword"
+              ? "confirmPassword"
+              : "invalid_phone";
       authRedirect(returnPath, {
-        error: field === "email" ? "email" : "invalid_phone",
+        error,
         method: "email",
         ...inviteParams,
       });
     }
 
-    const { email, countryCode, dialCode } = parsed.data;
+    const { email, countryCode, dialCode, password } = parsed.data;
     const phone = normalizePhoneWithCountry(parsed.data.phone, dialCode, countryCode);
 
     if (phone.length < 10) {
@@ -402,7 +431,7 @@ const otpBot = await assertOtpBotAllowed(guardFields);
       authRedirect(returnPath, guardErrorParams(signupIp.error, { method: "email", ...inviteParams }));
     }
 
-    const passwordHash = await hashPassword(generateOtpOnlyPassword());
+    const passwordHash = await hashPassword(password);
     const accountNumber = await generateUniqueAccountNumber();
     const user = await prisma.user.create({
       data: {
@@ -432,7 +461,7 @@ const otpBot = await assertOtpBotAllowed(guardFields);
     try {
       otp = await createAndSendOtp(phone, "SIGNUP_VERIFY", countryCode, user.id, deliveryOpts);
     } catch {
-      authRedirect(returnPath, { error: "email_send", method: "email" });
+      authRedirect(returnPath, { error: "email_send", method: "email", ...inviteParams });
     }
 
     if (!otp.ok) {
@@ -440,6 +469,7 @@ const otpBot = await assertOtpBotAllowed(guardFields);
         error: "otp_cooldown",
         cooldown: String(otp.cooldownSec),
         method: "email",
+        ...inviteParams,
       });
     }
 
@@ -522,24 +552,17 @@ export async function completeProfileAction(formData: FormData) {
   const parsed = completeProfileSchema.safeParse({
     fullName: formData.get("fullName"),
     email: formData.get("email") ?? "",
-    password: formData.get("password"),
-    confirmPassword: formData.get("confirmPassword"),
   });
 
   if (!parsed.success) {
     const field = parsed.error.issues[0]?.path[0];
-    if (field === "password" || field === "confirmPassword") {
-      authRedirect("/complete-profile", {
-        error: field === "confirmPassword" ? "confirmPassword" : "password",
-      });
-    }
     if (field === "email") {
       authRedirect("/complete-profile", { error: "email" });
     }
     authRedirect("/complete-profile", { error: "name" });
   }
 
-  const { fullName, email, password } = parsed.data;
+  const { fullName, email } = parsed.data;
 
   const taken = await prisma.user.findFirst({
     where: { email, id: { not: session.userId } },
@@ -548,14 +571,11 @@ export async function completeProfileAction(formData: FormData) {
     authRedirect("/complete-profile", { error: "email_taken" });
   }
 
-  const passwordHash = await hashPassword(password);
-
   await prisma.user.update({
     where: { id: session.userId },
     data: {
       fullName,
       email,
-      passwordHash,
     },
   });
 

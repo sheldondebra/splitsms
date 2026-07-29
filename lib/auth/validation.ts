@@ -82,22 +82,8 @@ export const phoneAuthSchema = z.object({
   dialCode: z.string().min(2).max(6),
 });
 
-export const emailAuthLoginSchema = z.object({
-  email: emailSchema,
-});
-
-export const emailAuthSignupSchema = z.object({
-  email: emailSchema,
-  phone: z.string().min(8, "Enter your phone number").max(20),
-  countryCode: z.string().min(2).max(10).toUpperCase(),
-  dialCode: z.string().min(2).max(6),
-});
-
-export const completeProfileSchema = z
-  .object({
-    fullName: z.string().min(2, "Name is too short").max(120),
-    // Required so email+password login works after OTP signup
-    email: emailSchema,
+export const phoneAuthSignupSchema = phoneAuthSchema
+  .extend({
     password: passwordSchema,
     confirmPassword: z.string(),
   })
@@ -105,6 +91,30 @@ export const completeProfileSchema = z
     message: "Passwords do not match",
     path: ["confirmPassword"],
   });
+
+export const emailAuthLoginSchema = z.object({
+  email: emailSchema,
+});
+
+export const emailAuthSignupSchema = z
+  .object({
+    email: emailSchema,
+    phone: z.string().min(8, "Enter your phone number").max(20),
+    countryCode: z.string().min(2).max(10).toUpperCase(),
+    dialCode: z.string().min(2).max(6),
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export const completeProfileSchema = z.object({
+  fullName: z.string().min(2, "Name is too short").max(120),
+  // Required so email+password login works after phone OTP signup
+  email: emailSchema,
+});
 
 export const loginSchema = z.object({
   identifier: z.string().min(3).max(120).transform((v) => v.trim()),

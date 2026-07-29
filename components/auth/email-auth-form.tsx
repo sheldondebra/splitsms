@@ -5,6 +5,7 @@ import { initialCountryState } from "@/lib/auth/initial-country-state";
 import { requestEmailAuthAction } from "@/lib/actions/auth";
 import { AuthHoneypot } from "@/components/auth/auth-honeypot";
 import { AuthCaptcha } from "@/components/auth/auth-captcha";
+import { PasswordField } from "@/components/auth/password-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -99,6 +100,23 @@ export function EmailAuthForm({
               />
             </div>
           </div>
+
+          <PasswordField
+            id="email-signup-password"
+            name="password"
+            label="Create password"
+            placeholder="Create a strong password"
+            showStrength
+            autoComplete="new-password"
+          />
+          <PasswordField
+            id="email-signup-confirm-password"
+            name="confirmPassword"
+            label="Confirm password"
+            placeholder="Repeat your password"
+            showStrength={false}
+            autoComplete="new-password"
+          />
         </>
       )}
 

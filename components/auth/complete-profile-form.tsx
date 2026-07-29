@@ -4,7 +4,6 @@ import { completeProfileAction } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PasswordField } from "@/components/auth/password-field";
 import { Gift } from "lucide-react";
 
 export function CompleteProfileForm({
@@ -19,8 +18,8 @@ export function CompleteProfileForm({
       <div className="rounded-lg border border-primary/25 bg-primary/5 px-4 py-3 text-sm text-muted-foreground flex gap-2">
         <Gift className="h-5 w-5 text-primary shrink-0" />
         <p>
-          Phone verified! Add your name, email, and password so you can sign in again with email
-          and password.
+          Phone verified! Add your name
+          {emailLocked ? "" : " and email"} so we can personalize your account and send receipts.
         </p>
       </div>
 
@@ -51,26 +50,9 @@ export function CompleteProfileForm({
           className="h-11"
         />
         <p className="text-xs text-muted-foreground">
-          Used to sign in with email and password, and for receipts and account recovery.
+          Used for receipts, account recovery, and email sign-in.
         </p>
       </div>
-
-      <PasswordField
-        id="profile-password"
-        name="password"
-        label="Create password"
-        placeholder="Create a strong password"
-        showStrength
-        autoComplete="new-password"
-      />
-      <PasswordField
-        id="profile-confirm-password"
-        name="confirmPassword"
-        label="Confirm password"
-        placeholder="Repeat your password"
-        showStrength={false}
-        autoComplete="new-password"
-      />
 
       <Button type="submit" className="w-full h-11 font-semibold">
         Save and continue

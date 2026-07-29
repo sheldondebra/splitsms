@@ -10,7 +10,6 @@ const BOT_UA_PATTERNS = [
   /\bwget\//i,
   /python-requests/i,
   /go-http-client/i,
-  /java\//i,
   /libwww/i,
   /headless/i,
   /semrush/i,
@@ -21,10 +20,14 @@ const BOT_UA_PATTERNS = [
   /claudebot/i,
 ];
 
-/** Empty or very short user agents on auth POSTs are almost always scripts. */
+/**
+ * Detect known automation user-agents.
+ * Missing/short UAs are NOT blocked — privacy browsers and some proxies strip
+ * User-Agent, and treating that as a bot caused legitimate signup failures.
+ */
 export function isAutomatedUserAgent(userAgent: string | null | undefined): boolean {
   const ua = userAgent?.trim() ?? "";
-  if (ua.length < 12) return true;
+  if (!ua) return false;
   return BOT_UA_PATTERNS.some((pattern) => pattern.test(ua));
 }
 

@@ -3,6 +3,7 @@ import { consumeRateLimitSlot, rateLimitKey } from "@/lib/auth/rate-limit";
 import { shouldBlockAuthBot } from "@/lib/auth/bot-guard";
 import {
   HONEYPOT_FIELD,
+  HONEYPOT_FIELD_LEGACY,
   isHoneypotTripped,
   recaptchaSiteKey,
   turnstileSiteKey,
@@ -172,8 +173,10 @@ export async function assertOtpRequestAllowed(input: GuardInput): Promise<AuthGu
 }
 
 export function readSignupGuardFields(formData: FormData) {
+  const honeypot =
+    formData.get(HONEYPOT_FIELD) ?? formData.get(HONEYPOT_FIELD_LEGACY);
   return {
-    honeypot: formData.get(HONEYPOT_FIELD),
+    honeypot,
     turnstileToken: formData.get("cf-turnstile-response"),
     recaptchaToken: formData.get("g-recaptcha-response"),
   };

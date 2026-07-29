@@ -36,8 +36,8 @@ export default async function CompleteProfilePage({
   return (
     <AuthLayout
       title="Almost done"
-      subtitle="Add your name and create a password to finish setup"
-      sideDescription="Your account is verified. Set a password now so you can sign in again with email later."
+      subtitle="Add your name to finish setup"
+      sideDescription="Your account is verified. Tell us your name so we can personalize your dashboard."
     >
       <AuthCard>
         <AuthAlert code={error} />
