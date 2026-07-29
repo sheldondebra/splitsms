@@ -53,6 +53,38 @@ export async function sendMailjetEmail(
     };
   }
 
+  // Inactive/unregistered From addresses often return API success but never deliver.
+  try {
+    const senderRes = await fetch(
+      `https://api.mailjet.com/v3/REST/sender?Email=${encodeURIComponent(config.fromEmail)}`,
+      {
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${config.apiKey}:${config.apiSecret}`).toString("base64")}`,
+        },
+      },
+    );
+    if (senderRes.ok) {
+      const senderBody = (await senderRes.json().catch(() => ({}))) as {
+        Data?: { Status?: string }[];
+      };
+      const status = senderBody.Data?.[0]?.Status?.toLowerCase();
+      if (!senderBody.Data?.length) {
+        return {
+          ok: false,
+          error: `Mailjet sender ${config.fromEmail} is not registered`,
+        };
+      }
+      if (status && status !== "active") {
+        return {
+          ok: false,
+          error: `Mailjet sender ${config.fromEmail} is ${senderBody.Data[0]?.Status}`,
+        };
+      }
+    }
+  } catch {
+    // Continue to send — connection issues surface on the send call.
+  }
+
   const auth = Buffer.from(`${config.apiKey}:${config.apiSecret}`).toString("base64");
 
   const body = {
@@ -133,6 +165,43 @@ export async function testMailjetConnection(): Promise<{
       ok: false,
       error: data.ErrorMessage ?? `HTTP ${res.status}`,
     };
+  }
+
+  // Warn when the configured From address is not an Active Mailjet sender —
+  // API may still accept messages that never reach inboxes.
+  try {
+    const senderRes = await fetch(
+      `https://api.mailjet.com/v3/REST/sender?Email=${encodeURIComponent(config.fromEmail)}`,
+      {
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${config.apiKey}:${config.apiSecret}`).toString("base64")}`,
+        },
+      },
+    );
+    if (senderRes.ok) {
+      const senderBody = (await senderRes.json().catch(() => ({}))) as {
+        Data?: { Email?: string; Status?: string }[];
+      };
+      const sender = senderBody.Data?.[0];
+      if (!sender) {
+        return {
+          ok: false,
+          error: `Mailjet sender ${config.fromEmail} is not registered. Add and verify it in Mailjet.`,
+          fromEmail: config.fromEmail,
+          sandbox: config.sandbox,
+        };
+      }
+      if (sender.Status && sender.Status.toLowerCase() !== "active") {
+        return {
+          ok: false,
+          error: `Mailjet sender ${config.fromEmail} is ${sender.Status}. Reactivate/verify it in Mailjet, or switch to SMTP.`,
+          fromEmail: config.fromEmail,
+          sandbox: config.sandbox,
+        };
+      }
+    }
+  } catch {
+    // Connectivity already validated above; ignore sender lookup failures.
   }
 
   return { ok: true, fromEmail: config.fromEmail, sandbox: config.sandbox };

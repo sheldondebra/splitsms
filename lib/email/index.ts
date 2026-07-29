@@ -69,8 +69,32 @@ export async function sendEmail(params: {
   if (!provider) {
     return { ok: false as const, error: "Email is not configured" };
   }
-  if (provider === "smtp") {
-    return sendSmtpEmail(params);
+
+  const primary =
+    provider === "smtp" ? await sendSmtpEmail(params) : await sendMailjetEmail(params);
+  if (primary.ok) return primary;
+
+  // If the preferred provider fails, try the other configured transport.
+  const { loadEmailOfficeStored, isMailjetOfficeReady, isSmtpOfficeReady } = await import(
+    "@/lib/email/office-config"
+  );
+  const stored = await loadEmailOfficeStored();
+  if (provider === "mailjet" && isSmtpOfficeReady(stored)) {
+    const fallback = await sendSmtpEmail(params);
+    if (fallback.ok) return fallback;
+    return {
+      ok: false as const,
+      error: `${primary.error}; SMTP fallback: ${fallback.error}`,
+    };
   }
-  return sendMailjetEmail(params);
+  if (provider === "smtp" && isMailjetOfficeReady(stored)) {
+    const fallback = await sendMailjetEmail(params);
+    if (fallback.ok) return fallback;
+    return {
+      ok: false as const,
+      error: `${primary.error}; Mailjet fallback: ${fallback.error}`,
+    };
+  }
+
+  return primary;
 }

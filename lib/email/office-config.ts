@@ -93,7 +93,12 @@ function normalizeStored(
       typeof stored.smtpPort === "number" && stored.smtpPort > 0
         ? stored.smtpPort
         : base.smtpPort,
-    smtpSecure: stored.smtpSecure ?? base.smtpSecure,
+    smtpSecure:
+      typeof stored.smtpPort === "number" && stored.smtpPort === 465
+        ? true
+        : typeof stored.smtpPort === "number" && stored.smtpPort === 587
+          ? false
+          : (stored.smtpSecure ?? base.smtpSecure),
     smtpUser: (stored.smtpUser || base.smtpUser).trim(),
     smtpPassword: (stored.smtpPassword || base.smtpPassword).trim(),
     updatedAt: stored.updatedAt,
@@ -133,9 +138,12 @@ export function isSmtpOfficeReady(stored: EmailOfficeStored) {
 export async function loadActiveEmailProvider(): Promise<EmailProvider | null> {
   const stored = await loadEmailOfficeStored();
   if (stored.provider === "smtp") {
-    return isSmtpOfficeReady(stored) ? "smtp" : null;
+    if (isSmtpOfficeReady(stored)) return "smtp";
+    // Misconfigured preferred provider: fall back to Mailjet if available.
+    return isMailjetOfficeReady(stored) ? "mailjet" : null;
   }
-  return isMailjetOfficeReady(stored) ? "mailjet" : null;
+  if (isMailjetOfficeReady(stored)) return "mailjet";
+  return isSmtpOfficeReady(stored) ? "smtp" : null;
 }
 
 export async function loadMailjetOfficeConfig(): Promise<MailjetConfig | null> {

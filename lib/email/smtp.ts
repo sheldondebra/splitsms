@@ -19,14 +19,24 @@ export type SendSmtpResult =
   | { ok: false; error: string };
 
 function createTransport(config: SmtpConfig) {
+  // Port 587 expects plain connect + STARTTLS. Port 465 expects implicit TLS.
+  // A mis-saved "secure" flag (common when toggling providers) causes
+  // "wrong version number" and silent delivery failure.
+  const port = config.port || 587;
+  const secure = port === 465 ? true : port === 587 ? false : config.secure;
+
   return nodemailer.createTransport({
     host: config.host,
-    port: config.port,
-    secure: config.secure,
+    port,
+    secure,
+    requireTLS: !secure && port === 587,
     auth: {
       user: config.user,
       pass: config.password,
     },
+    connectionTimeout: 12_000,
+    greetingTimeout: 12_000,
+    socketTimeout: 20_000,
   });
 }
 
