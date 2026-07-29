@@ -70,31 +70,11 @@ export async function sendEmail(params: {
     return { ok: false as const, error: "Email is not configured" };
   }
 
-  const primary =
-    provider === "smtp" ? await sendSmtpEmail(params) : await sendMailjetEmail(params);
-  if (primary.ok) return primary;
-
-  // If the preferred provider fails, try the other configured transport.
-  const { loadEmailOfficeStored, isMailjetOfficeReady, isSmtpOfficeReady } = await import(
-    "@/lib/email/office-config"
-  );
-  const stored = await loadEmailOfficeStored();
-  if (provider === "mailjet" && isSmtpOfficeReady(stored)) {
-    const fallback = await sendSmtpEmail(params);
-    if (fallback.ok) return fallback;
-    return {
-      ok: false as const,
-      error: `${primary.error}; SMTP fallback: ${fallback.error}`,
-    };
+  // Prefer the selected provider only. Do not silently fall back across
+  // Mailjet ↔ SMTP — different SPF/DKIM identities cause Gmail to drop mail
+  // while admin "tests" still look successful.
+  if (provider === "smtp") {
+    return sendSmtpEmail(params);
   }
-  if (provider === "smtp" && isMailjetOfficeReady(stored)) {
-    const fallback = await sendMailjetEmail(params);
-    if (fallback.ok) return fallback;
-    return {
-      ok: false as const,
-      error: `${primary.error}; Mailjet fallback: ${fallback.error}`,
-    };
-  }
-
-  return primary;
+  return sendMailjetEmail(params);
 }

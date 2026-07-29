@@ -126,6 +126,7 @@ export async function testEmailConnectionAction() {
           fromName: stored.fromName,
           host: "host" in result ? result.host : undefined,
           sandbox: stored.provider === "mailjet" ? stored.sandbox : false,
+          senderStatus: "senderStatus" in result ? result.senderStatus : undefined,
         }
       : null,
   });
