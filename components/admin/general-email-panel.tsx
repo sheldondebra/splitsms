@@ -78,6 +78,11 @@ export function GeneralEmailPanel({
                 API key
               </p>
               <p className="mt-0.5">{stored.resendApiKey ? "Saved" : "Missing"}</p>
+              <p className="mt-2 max-w-xs text-[11px] leading-snug text-muted-foreground">
+                Resend may show <span className="font-mono">partially_failed</span> if
+                inbound Receiving MX is missing — that does not block outbound send when
+                DKIM is verified.
+              </p>
             </div>
           ) : (
             <div>

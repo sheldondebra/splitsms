@@ -111,7 +111,7 @@ export async function testEmailConnectionAction() {
     await saveGatewayLastTest("email_connection_test", {
       ok: false,
       error:
-        "Configure Mailjet API keys or SMTP credentials below, or add them to .env",
+        "Configure Resend, Mailjet, or SMTP credentials below, or add them to .env",
     });
     revalidateGeneral();
     redirect("/admin/general?test=connection&result=fail");
@@ -131,6 +131,8 @@ export async function testEmailConnectionAction() {
           host: "host" in result ? result.host : undefined,
           sandbox: stored.provider === "mailjet" ? stored.sandbox : false,
           senderStatus: "senderStatus" in result ? result.senderStatus : undefined,
+          domainStatus:
+            "domainStatus" in result ? result.domainStatus : undefined,
         }
       : null,
   });

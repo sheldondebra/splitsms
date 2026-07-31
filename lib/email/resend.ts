@@ -64,14 +64,53 @@ export async function sendResendEmail(
   return { ok: true, messageId: data.id };
 }
 
+type ResendDomainRecord = {
+  record?: string;
+  type?: string;
+  status?: string;
+  name?: string;
+};
+
+type ResendDomain = {
+  id?: string;
+  name?: string;
+  status?: string;
+  records?: ResendDomainRecord[];
+};
+
+function domainFromEmail(email: string) {
+  const at = email.lastIndexOf("@");
+  return at >= 0 ? email.slice(at + 1).toLowerCase() : "";
+}
+
+function isSendReadyDomain(domain: ResendDomain) {
+  const status = (domain.status || "").toLowerCase();
+  // partially_failed / partially_verified: send may work while receive fails/pends.
+  if (
+    status === "verified" ||
+    status === "partially_verified" ||
+    status === "partially_failed"
+  ) {
+    return true;
+  }
+
+  const records = Array.isArray(domain.records) ? domain.records : [];
+  return records.some(
+    (r) =>
+      (r.record || "").toUpperCase() === "DKIM" &&
+      (r.status || "").toLowerCase() === "verified",
+  );
+}
+
 export async function testResendConnection(): Promise<{
   ok: boolean;
   error?: string;
   fromEmail?: string;
+  domainStatus?: string;
 }> {
   const config = await resolveResendConfig();
   if (!config) {
-    return { ok: false, error: "RESEND_API_KEY is required" };
+    return { ok: false, error: "Resend API key is required" };
   }
 
   const res = await fetch("https://api.resend.com/domains", {
@@ -80,13 +119,57 @@ export async function testResendConnection(): Promise<{
     },
   });
 
+  const data = (await res.json().catch(() => ({}))) as {
+    message?: string;
+    data?: ResendDomain[];
+  };
+
   if (!res.ok) {
-    const data = (await res.json().catch(() => ({}))) as { message?: string };
     return {
       ok: false,
       error: data.message ?? `HTTP ${res.status}`,
     };
   }
 
-  return { ok: true, fromEmail: config.fromEmail };
+  const domains = Array.isArray(data.data) ? data.data : [];
+  const fromDomain = domainFromEmail(config.fromEmail);
+  const match = domains.find(
+    (d) => (d.name || "").toLowerCase() === fromDomain,
+  );
+
+  if (!match) {
+    return {
+      ok: false,
+      error: fromDomain
+        ? `No Resend domain found for ${fromDomain}. Add and verify it in the Resend dashboard.`
+        : "From email is invalid for Resend domain checks.",
+      fromEmail: config.fromEmail,
+    };
+  }
+
+  // Fetch detail for record-level send readiness (list payload may omit records).
+  let detail: ResendDomain = match;
+  if (match.id) {
+    const detailRes = await fetch(`https://api.resend.com/domains/${match.id}`, {
+      headers: { Authorization: `Bearer ${config.apiKey}` },
+    });
+    if (detailRes.ok) {
+      detail = (await detailRes.json().catch(() => match)) as ResendDomain;
+    }
+  }
+
+  if (!isSendReadyDomain(detail)) {
+    return {
+      ok: false,
+      error: `Resend domain ${fromDomain} is not verified for sending (status: ${detail.status || "unknown"}). Finish DNS verification in Resend.`,
+      fromEmail: config.fromEmail,
+      domainStatus: detail.status,
+    };
+  }
+
+  return {
+    ok: true,
+    fromEmail: config.fromEmail,
+    domainStatus: detail.status,
+  };
 }

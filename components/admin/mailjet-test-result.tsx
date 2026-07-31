@@ -89,6 +89,20 @@ export function MailjetTestResult({
               <dd className="font-mono break-all">{detailText(details, "messageId")}</dd>
             </div>
           )}
+          {detailText(details, "domainStatus") && (
+            <div className="flex gap-2">
+              <dt className="text-muted-foreground shrink-0">Domain</dt>
+              <dd className="font-mono break-all">
+                {detailText(details, "domainStatus")}
+              </dd>
+            </div>
+          )}
+          {detailText(details, "provider") && (
+            <div className="flex gap-2">
+              <dt className="text-muted-foreground shrink-0">Provider</dt>
+              <dd>{detailText(details, "provider")}</dd>
+            </div>
+          )}
         </dl>
       )}
     </div>

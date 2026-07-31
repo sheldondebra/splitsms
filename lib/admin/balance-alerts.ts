@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { resolveAdminAlertRecipients } from "@/lib/admin/alert-recipients";
 import { sendEmail } from "@/lib/email";
+import { adminBalanceAlertEmailContent } from "@/lib/email/templates";
 import { fetchAllSmsProviderBalances, type ProviderSmsBalance } from "@/lib/sms/provider-balances";
 import { sendPlatformAlertSms } from "@/lib/sms/platform-notify";
 import { getSiteUrl, siteName } from "@/lib/site-config";
@@ -152,21 +153,19 @@ export async function detectLowBalanceAlerts(
 async function notifyAdminsBalanceAlert(alert: LowBalanceAlert) {
   const adminUrl = `${getSiteUrl()}/admin/providers`;
   const smsText = `${siteName}: ${alert.title} — ${alert.display}. ${adminUrl}`;
-  const subject = `${siteName}: ${alert.title}`;
-  const text = [
-    alert.summary,
-    "",
-    `Current: ${alert.display}`,
-    `Action: ${alert.action}`,
-    "",
-    `Open admin: ${adminUrl}`,
-  ].join("\n");
+  const { subject, text, html } = adminBalanceAlertEmailContent({
+    title: alert.title,
+    summary: alert.summary,
+    display: alert.display,
+    action: alert.action,
+    adminUrl,
+  });
 
   const recipients = await resolveAdminAlertRecipients();
   await Promise.allSettled(
     recipients.map(async (r) => {
       if (r.email) {
-        await sendEmail({ to: r.email, toName: r.name, subject, text, html: text.replace(/\n/g, "<br>") });
+        await sendEmail({ to: r.email, toName: r.name, subject, text, html });
       }
       if (r.phone) {
         await sendPlatformAlertSms(r.phone, smsText);
