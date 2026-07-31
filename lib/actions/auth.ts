@@ -64,7 +64,7 @@ import {
   resolveResellerInvite,
 } from "@/lib/reseller/invite";
 import { getRequestTenant } from "@/lib/reseller/request-tenant";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import type { OtpPurpose, UserRole } from "@/lib/generated/prisma/client";
 
 function inviteRedirectParams(formData: FormData): Record<string, string> {
@@ -75,6 +75,15 @@ function inviteRedirectParams(formData: FormData): Record<string, string> {
 function authRedirect(path: string, params?: Record<string, string>): never {
   const q = params ? `?${new URLSearchParams(params).toString()}` : "";
   redirect(`${path}${q}`);
+}
+
+/**
+ * redirect() signals by throwing, so any catch around OTP delivery must let
+ * those signals through before treating the error as a send failure.
+ */
+function handleOtpSendError(context: string, error: unknown) {
+  unstable_rethrow(error);
+  console.error(`[otp] ${context} delivery failed:`, error);
 }
 
 function guardErrorParams(
@@ -460,7 +469,8 @@ export async function requestEmailAuthAction(formData: FormData) {
     let otp;
     try {
       otp = await createAndSendOtp(phone, "SIGNUP_VERIFY", countryCode, user.id, deliveryOpts);
-    } catch {
+    } catch (e) {
+      handleOtpSendError("email signup", e);
       authRedirect(returnPath, { error: "email_send", method: "email", ...inviteParams });
     }
 
@@ -521,7 +531,8 @@ export async function requestEmailAuthAction(formData: FormData) {
       user!.id,
       deliveryOpts,
     );
-  } catch {
+  } catch (e) {
+    handleOtpSendError("email login", e);
     authRedirect(returnPath, { error: "email_send", method: "email" });
   }
 
@@ -701,7 +712,8 @@ const otpBot = await assertOtpBotAllowed(guardFields);
       user.id,
       deliveryOpts,
     );
-  } catch {
+  } catch (e) {
+    handleOtpSendError("signup", e);
     authRedirect("/signup", {
       error: email && signupMethod === "email" ? "email_send" : "otp",
       method: signupMethod,
@@ -946,7 +958,8 @@ export async function loginPasswordAction(formData: FormData) {
         user.id,
         deliveryOpts,
       );
-    } catch {
+    } catch (e) {
+      handleOtpSendError("password login verification", e);
       if (usePhoneForm) passwordLoginRedirectPhone({ error: "email_send" });
       passwordLoginRedirect({
         error: "email_send",
@@ -1000,7 +1013,8 @@ export async function loginOtpRequestAction(formData: FormData) {
       user!.id,
       deliveryOpts,
     );
-  } catch {
+  } catch (e) {
+    handleOtpSendError("otp login", e);
     authRedirect("/login", { error: "email_send", mode: "sms" });
   }
   if (!otp.ok) {
@@ -1042,34 +1056,38 @@ export async function forgotPasswordAction(formData: FormData) {
     const useEmail = Boolean(user.email && (await isEmailConfiguredAsync()));
     const deliveryOpts = useEmail && user.email ? await emailOtpDelivery(user.email) : undefined;
 
+    let otp;
     try {
-      const otp = await createAndSendOtp(
+      otp = await createAndSendOtp(
         user.phone,
         "PASSWORD_RESET",
         user.countryCode,
         user.id,
         deliveryOpts,
       );
-      if (!otp.ok) {
-        authRedirect("/forgot-password", {
-          error: "cooldown",
-          cooldown: String(otp.cooldownSec),
-        });
-      }
-      await logAuthEvent("PASSWORD_RESET_REQUESTED", { phone: user.phone }, user.id);
-      authRedirect("/verify-otp", {
-        phone: user.phone,
-        purpose: "reset",
-        ...(useEmail && user.email
-          ? {
-              delivery: "email",
-              hint: encodeURIComponent(user.email),
-            }
-          : {}),
-      });
-    } catch {
+    } catch (e) {
+      handleOtpSendError("password reset", e);
       authRedirect("/forgot-password", { error: "email_send" });
     }
+
+    if (!otp.ok) {
+      authRedirect("/forgot-password", {
+        error: "cooldown",
+        cooldown: String(otp.cooldownSec),
+      });
+    }
+
+    await logAuthEvent("PASSWORD_RESET_REQUESTED", { phone: user.phone }, user.id);
+    authRedirect("/verify-otp", {
+      phone: user.phone,
+      purpose: "reset",
+      ...(useEmail && user.email
+        ? {
+            delivery: "email",
+            hint: encodeURIComponent(user.email),
+          }
+        : {}),
+    });
   }
 
   authRedirect("/forgot-password", { sent: "1" });
