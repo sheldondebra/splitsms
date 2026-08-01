@@ -185,7 +185,7 @@ export async function sendReceipt(
           return;
         }
 
-        const { subject, text, html } = receiptEmailContent({
+        const { subject, text, html } = await receiptEmailContent({
           kind: payload.kind,
           memberName: payload.memberName,
           receiptNo: payload.receiptNo,

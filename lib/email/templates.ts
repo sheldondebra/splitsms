@@ -1,15 +1,16 @@
 import {
   emailCodeBlock,
   emailDetailTable,
-  emailLayout,
   emailQuote,
   emailStatusPill,
+  escapeHtml,
   stripSignatureFooter,
   textToEmailParagraphs,
 } from "@/lib/email/layout";
+import { renderEmailLayout } from "@/lib/email/render";
 import { getSiteUrl, siteName } from "@/lib/site-config";
 
-export function otpEmailContent(params: {
+export async function otpEmailContent(params: {
   code: string;
   purpose: "login" | "signup" | "reset";
 }) {
@@ -36,7 +37,7 @@ This code expires in 10 minutes. If you didn't request this, you can ignore this
 
 — ${siteName}`;
 
-  const html = emailLayout({
+  const html = await renderEmailLayout({
     eyebrow: siteName,
     headline: titles[purpose],
     preheader: `${intros[purpose]} Code: ${code}`,
@@ -47,13 +48,13 @@ This code expires in 10 minutes. If you didn't request this, you can ignore this
   return { subject, text, html };
 }
 
-export function testEmailContent() {
+export async function testEmailContent() {
   const subject = `${siteName} — test email`;
   const text = `This is a test email from ${siteName}.
 
 If you received this, your email provider is configured correctly for OTP and transactional email.`;
 
-  const html = emailLayout({
+  const html = await renderEmailLayout({
     headline: "Test email",
     preheader: "Your email delivery is working.",
     bodyHtml: textToEmailParagraphs(
@@ -65,7 +66,7 @@ If you received this, your email provider is configured correctly for OTP and tr
   return { subject, text, html };
 }
 
-export function accountWelcomeEmailContent(params: {
+export async function accountWelcomeEmailContent(params: {
   memberName: string;
   dashboardUrl?: string;
 }) {
@@ -85,7 +86,7 @@ Open dashboard: ${dashboardUrl}
 
 — ${siteName}`;
 
-  const html = emailLayout({
+  const html = await renderEmailLayout({
     headline: `Welcome to ${siteName}`,
     preheader: "Your account is active.",
     greeting: `Hi ${firstName},`,
@@ -100,7 +101,50 @@ Open dashboard: ${dashboardUrl}
   return { subject, text, html };
 }
 
-export function lowCreditBalanceEmailContent(params: {
+export async function passwordResetSuccessEmailContent(params: {
+  memberName: string;
+  changedAt?: Date;
+  supportUrl?: string;
+}) {
+  const firstName = params.memberName.trim().split(/\s+/)[0] || "there";
+  const changedAt = params.changedAt ?? new Date();
+  const changedAtText = changedAt.toUTCString();
+  const supportUrl = params.supportUrl ?? `${getSiteUrl()}/support`;
+  const loginUrl = `${getSiteUrl()}/login`;
+  const subject = `${siteName}: Your password was changed`;
+  const text = `Hi ${firstName},
+
+Your ${siteName} password was successfully changed on ${changedAtText}.
+
+If you didn't make this change, contact support immediately:
+${supportUrl}
+
+Sign in: ${loginUrl}
+
+— ${siteName}`;
+
+  const html = await renderEmailLayout({
+    eyebrow: "Account security",
+    headline: "Your password was changed",
+    preheader: "Your password change was completed successfully.",
+    greeting: `Hi ${firstName},`,
+    bodyHtml: `${textToEmailParagraphs(
+      `Your ${siteName} password was successfully changed.`,
+    )}${emailDetailTable([
+      { label: "Changed", value: changedAtText },
+      { label: "Account", value: params.memberName },
+    ])}<p style="margin:0 0 14px;font-size:14px;line-height:1.65;color:#3f3f46;">If you didn't make this change, <a href="${escapeHtml(
+      supportUrl,
+    )}" style="color:#c2410c;font-weight:600;">contact support immediately</a>.</p>`,
+    ctaHref: loginUrl,
+    ctaLabel: "Sign in to your account",
+    footerNote: "For your security, this email does not contain your password.",
+  });
+
+  return { subject, text, html };
+}
+
+export async function lowCreditBalanceEmailContent(params: {
   memberName: string;
   balance: number;
   threshold?: number;
@@ -121,7 +165,7 @@ Low-balance threshold: ${threshold} credits.
 
 — ${siteName}`;
 
-  const html = emailLayout({
+  const html = await renderEmailLayout({
     headline: "Low SMS credit balance",
     preheader: `${params.balance} credits remaining`,
     greeting: `Hi ${firstName},`,
@@ -138,7 +182,7 @@ Low-balance threshold: ${threshold} credits.
   return { subject, text, html };
 }
 
-export function senderIdAdminAlertContent(params: {
+export async function senderIdAdminAlertContent(params: {
   value: string;
   countryCode: string;
   memberName: string;
@@ -168,7 +212,7 @@ Review and approve in Admin → Sender IDs before it is submitted to carriers.
     rows.push({ label: "Email", value: params.memberEmail, mono: true });
   }
 
-  const html = emailLayout({
+  const html = await renderEmailLayout({
     headline: "New sender ID request",
     preheader: `${params.value} · ${params.memberName}`,
     bodyHtml: `${textToEmailParagraphs(
@@ -181,7 +225,7 @@ Review and approve in Admin → Sender IDs before it is submitted to carriers.
   return { subject, text, html };
 }
 
-export function senderIdApprovedMemberContent(params: {
+export async function senderIdApprovedMemberContent(params: {
   value: string;
   memberName: string;
 }) {
@@ -192,7 +236,7 @@ Your sender ID "${params.value}" is now approved on ${siteName} and ready to use
 
 — ${siteName}`;
 
-  const html = emailLayout({
+  const html = await renderEmailLayout({
     headline: "Sender ID approved",
     preheader: `${params.value} is ready to use`,
     greeting: `Hi ${params.memberName},`,
@@ -206,7 +250,7 @@ Your sender ID "${params.value}" is now approved on ${siteName} and ready to use
   return { subject, text, html };
 }
 
-export function adminMemberOutreachEmailContent(params: {
+export async function adminMemberOutreachEmailContent(params: {
   memberName: string;
   subject: string;
   bodyText: string;
@@ -221,7 +265,7 @@ export function adminMemberOutreachEmailContent(params: {
 
   const text = `Hi ${firstName},\n\n${bodyText}${ctaText}`;
 
-  const html = emailLayout({
+  const html = await renderEmailLayout({
     headline: params.subject,
     preheader: bodyText.split("\n").find((line) => line.trim()) ?? params.subject,
     greeting: `Hi ${firstName},`,
@@ -234,7 +278,7 @@ export function adminMemberOutreachEmailContent(params: {
   return { subject, text, html };
 }
 
-export function senderIdSubmittedMemberContent(params: {
+export async function senderIdSubmittedMemberContent(params: {
   value: string;
   memberName: string;
   purpose: string;
@@ -252,7 +296,7 @@ Register or manage sender IDs: ${getSiteUrl()}/dashboard/sender-ids
 
 — ${siteName}`;
 
-  const html = emailLayout({
+  const html = await renderEmailLayout({
     headline: "Sender ID submitted",
     preheader: `${params.value} is pending carrier registration`,
     greeting: `Hi ${params.memberName},`,
@@ -271,7 +315,7 @@ Register or manage sender IDs: ${getSiteUrl()}/dashboard/sender-ids
   return { subject, text, html };
 }
 
-export function senderIdRejectedMemberContent(params: {
+export async function senderIdRejectedMemberContent(params: {
   value: string;
   memberName: string;
   reason: string;
@@ -289,7 +333,7 @@ ${registerUrl}
 
 — ${siteName}`;
 
-  const html = emailLayout({
+  const html = await renderEmailLayout({
     headline: "Sender ID not approved",
     preheader: `${params.value} was not approved`,
     greeting: `Hi ${params.memberName},`,
@@ -308,7 +352,7 @@ ${registerUrl}
 
 export type ReceiptEmailKind = "wallet_topup" | "credit_purchase";
 
-export function receiptEmailContent(params: {
+export async function receiptEmailContent(params: {
   kind: ReceiptEmailKind;
   memberName: string;
   receiptNo: string;
@@ -372,7 +416,7 @@ View your invoices: ${params.invoicesUrl}
 
 — ${siteName}`;
 
-  const html = emailLayout({
+  const html = await renderEmailLayout({
     headline: title,
     preheader: `${amountLine} · ${params.receiptNo}`,
     greeting: `Hi ${params.memberName},`,
@@ -394,7 +438,7 @@ function supportStatusLabel(status: string): string {
   return status;
 }
 
-export function supportTicketCreatedMemberContent(params: {
+export async function supportTicketCreatedMemberContent(params: {
   memberName: string;
   ticketRef: string;
   subject: string;
@@ -417,7 +461,7 @@ We'll reply by email or SMS. Track the conversation: ${params.supportUrl}
 
 — ${siteName}`;
 
-  const html = emailLayout({
+  const html = await renderEmailLayout({
     headline: "Support request received",
     preheader: `${params.ticketRef} · ${params.subject}`,
     greeting: `Hi ${params.memberName},`,
@@ -434,7 +478,7 @@ We'll reply by email or SMS. Track the conversation: ${params.supportUrl}
   return { subject, text, html };
 }
 
-export function supportTicketReplyMemberContent(params: {
+export async function supportTicketReplyMemberContent(params: {
   memberName: string;
   ticketRef: string;
   subject: string;
@@ -452,7 +496,7 @@ View the conversation: ${params.supportUrl}
 
 — ${siteName}`;
 
-  const html = emailLayout({
+  const html = await renderEmailLayout({
     headline: "New support reply",
     preheader: `Reply on ${params.ticketRef}`,
     greeting: `Hi ${params.memberName},`,
@@ -468,7 +512,7 @@ View the conversation: ${params.supportUrl}
   return { subject, text, html };
 }
 
-export function supportTicketStatusMemberContent(params: {
+export async function supportTicketStatusMemberContent(params: {
   memberName: string;
   ticketRef: string;
   subject: string;
@@ -485,7 +529,7 @@ View the conversation: ${params.supportUrl}
 
 — ${siteName}`;
 
-  const html = emailLayout({
+  const html = await renderEmailLayout({
     headline: "Support ticket updated",
     preheader: `${params.ticketRef} is ${statusLabel.toLowerCase()}`,
     greeting: `Hi ${params.memberName},`,
@@ -503,7 +547,7 @@ View the conversation: ${params.supportUrl}
   return { subject, text, html };
 }
 
-export function supportTicketAdminAlertContent(params: {
+export async function supportTicketAdminAlertContent(params: {
   ticketRef: string;
   subject: string;
   message: string;
@@ -540,7 +584,7 @@ Review: ${params.adminUrl}
     rows.push({ label: "Email", value: params.memberEmail, mono: true });
   }
 
-  const html = emailLayout({
+  const html = await renderEmailLayout({
     headline: "New support ticket",
     preheader: `${params.ticketRef} · ${params.subject}`,
     bodyHtml: `${textToEmailParagraphs(
@@ -553,7 +597,7 @@ Review: ${params.adminUrl}
   return { subject, text, html };
 }
 
-export function adminBalanceAlertEmailContent(params: {
+export async function adminBalanceAlertEmailContent(params: {
   title: string;
   summary: string;
   display: string;
@@ -570,7 +614,7 @@ export function adminBalanceAlertEmailContent(params: {
     `Open admin: ${params.adminUrl}`,
   ].join("\n");
 
-  const html = emailLayout({
+  const html = await renderEmailLayout({
     headline: params.title,
     preheader: params.display,
     bodyHtml: `${textToEmailParagraphs(params.summary)}${emailDetailTable([

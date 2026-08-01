@@ -38,7 +38,7 @@ export async function sendOtpEmail(
   code: string,
   purpose: OtpEmailPurpose,
 ) {
-  const { subject, text, html } = otpEmailContent({ code, purpose });
+  const { subject, text, html } = await otpEmailContent({ code, purpose });
   const configured = await isEmailConfiguredAsync();
 
   if (!configured) {

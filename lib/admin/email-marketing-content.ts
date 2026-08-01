@@ -1,6 +1,8 @@
 import {
   emailLayout,
   textToEmailParagraphs,
+  type EmailHeaderImagePosition,
+  type EmailLayoutParams,
 } from "@/lib/email/layout";
 import {
   buildMarketingVars,
@@ -19,9 +21,15 @@ export type MarketingEmailContentInput = {
   ctaLabel?: string | null;
   ctaHref?: string | null;
   footerNote?: string | null;
+  headerImageUrl?: string;
+  headerImagePosition?: EmailHeaderImagePosition;
 };
 
-export function marketingEmailContent(input: MarketingEmailContentInput) {
+export function buildMarketingParts(input: MarketingEmailContentInput): {
+  subject: string;
+  text: string;
+  layoutParams: EmailLayoutParams;
+} {
   const vars = buildMarketingVars(input.recipientName);
   const subject = interpolateMarketing(input.subject, vars);
   const headline = interpolateMarketing(input.headline, vars);
@@ -50,22 +58,32 @@ export function marketingEmailContent(input: MarketingEmailContentInput) {
     `— ${siteName}`,
   ];
 
-  const html = emailLayout({
-    showLogo: true,
-    eyebrow: siteName,
-    preheader,
-    headline,
-    greeting: `Hi ${vars.firstName},`,
-    bodyHtml: textToEmailParagraphs(bodyText),
-    ctaHref,
-    ctaLabel,
-    footerNote,
-    contactLine: defaultMarketingContactLine(),
-  });
-
   return {
     subject,
     text: textParts.filter(Boolean).join("\n"),
-    html,
+    layoutParams: {
+      showLogo: true,
+      eyebrow: siteName,
+      preheader,
+      headline,
+      greeting: `Hi ${vars.firstName},`,
+      bodyHtml: textToEmailParagraphs(bodyText),
+      ctaHref,
+      ctaLabel,
+      footerNote,
+      contactLine: defaultMarketingContactLine(),
+      headerImageUrl: input.headerImageUrl,
+      headerImagePosition: input.headerImagePosition,
+    },
+  };
+}
+
+/** Client-safe preview. Pass branding in from the server page. */
+export function marketingEmailContentPreview(input: MarketingEmailContentInput) {
+  const parts = buildMarketingParts(input);
+  return {
+    subject: parts.subject,
+    text: parts.text,
+    html: emailLayout(parts.layoutParams),
   };
 }

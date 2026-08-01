@@ -88,7 +88,7 @@ export async function notifyMemberSupportTicketCreated(ticketId: string) {
   );
 
   const tasks: Promise<unknown>[] = [];
-  const content = supportTicketCreatedMemberContent({
+  const content = await supportTicketCreatedMemberContent({
     memberName: ticket.user.fullName,
     ticketRef: ref,
     subject: ticket.subject,
@@ -128,7 +128,7 @@ export async function notifyAdminsNewSupportTicket(ticketId: string) {
 
   const adminUrl = `${getSiteUrl()}/admin/support`;
   const smsText = `${siteName}: New ticket ${ref} from ${ticket.user.fullName}. Review: ${adminUrl}`;
-  const { subject, text, html } = supportTicketAdminAlertContent({
+  const { subject, text, html } = await supportTicketAdminAlertContent({
     ticketRef: ref,
     subject: ticket.subject,
     message: ticket.message,
@@ -173,7 +173,7 @@ export async function notifyMemberSupportReply(ticketId: string, replyBody: stri
   );
 
   const tasks: Promise<unknown>[] = [];
-  const content = supportTicketReplyMemberContent({
+  const content = await supportTicketReplyMemberContent({
     memberName: ticket.user.fullName,
     ticketRef: ref,
     subject: ticket.subject,
@@ -223,7 +223,7 @@ export async function notifyMemberSupportStatusUpdated(ticketId: string, status:
   );
 
   const tasks: Promise<unknown>[] = [];
-  const content = supportTicketStatusMemberContent({
+  const content = await supportTicketStatusMemberContent({
     memberName: ticket.user.fullName,
     ticketRef: ref,
     subject: ticket.subject,

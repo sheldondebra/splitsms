@@ -112,7 +112,7 @@ export async function sendOutreachToRecipients(
       if (!email) {
         ok = false;
       } else {
-        const { subject, text, html } = adminMemberOutreachEmailContent({
+        const { subject, text, html } = await adminMemberOutreachEmailContent({
           memberName: recipient.fullName,
           subject: emailSubject,
           bodyText: emailText,

@@ -8,6 +8,7 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 const docPaths = ["/api-docs", "/api-docs/:path*", "/docs", "/docs/:path*", "/changelog"];
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   serverExternalPackages: ["pg", "@prisma/client", "@prisma/adapter-pg"],
   turbopack: {
     root: projectRoot,

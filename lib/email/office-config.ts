@@ -2,12 +2,15 @@ import { prisma } from "@/lib/db";
 import { maskTailSecret } from "@/lib/mask-secret";
 import { siteName, supportEmail } from "@/lib/site-config";
 import type { MailjetConfig, ResendConfig, SmtpConfig } from "@/lib/email/config";
+import type { EmailHeaderImagePosition } from "@/lib/email/layout";
 
 export const EMAIL_OFFICE_KEY = "email_office_config";
 /** @deprecated Use EMAIL_OFFICE_KEY — kept for reading legacy rows. */
 export const MAILJET_OFFICE_KEY = "mailjet_office_config";
 
 export type EmailProvider = "mailjet" | "smtp" | "resend";
+
+export type { EmailHeaderImagePosition } from "@/lib/email/layout";
 
 export type EmailOfficeStored = {
   provider: EmailProvider;
@@ -22,6 +25,10 @@ export type EmailOfficeStored = {
   smtpSecure: boolean;
   smtpUser: string;
   smtpPassword: string;
+  /** Full-width header image URL for transactional emails. Empty = none. */
+  headerImageUrl: string;
+  /** Place the header image above or below the headline. */
+  headerImagePosition: EmailHeaderImagePosition;
   updatedAt?: string;
 };
 
@@ -30,6 +37,14 @@ export type MailjetOfficeStored = EmailOfficeStored;
 
 function parseProvider(value: unknown, fallback: EmailProvider): EmailProvider {
   if (value === "smtp" || value === "mailjet" || value === "resend") return value;
+  return fallback;
+}
+
+function parseHeaderImagePosition(
+  value: unknown,
+  fallback: EmailHeaderImagePosition = "above",
+): EmailHeaderImagePosition {
+  if (value === "above" || value === "below") return value;
   return fallback;
 }
 
@@ -74,6 +89,8 @@ const envDefaults = (): Omit<EmailOfficeStored, "updatedAt"> => {
       process.env.SMTP_PASSWORD?.trim() ||
       process.env.SMTP_PASS?.trim() ||
       "",
+    headerImageUrl: "",
+    headerImagePosition: "above",
   };
 };
 
@@ -116,6 +133,14 @@ function normalizeStored(
           : (stored.smtpSecure ?? base.smtpSecure),
     smtpUser: (stored.smtpUser || base.smtpUser).trim(),
     smtpPassword: (stored.smtpPassword || base.smtpPassword).trim(),
+    headerImageUrl:
+      typeof stored.headerImageUrl === "string"
+        ? stored.headerImageUrl.trim()
+        : base.headerImageUrl,
+    headerImagePosition: parseHeaderImagePosition(
+      stored.headerImagePosition,
+      base.headerImagePosition,
+    ),
     updatedAt: stored.updatedAt,
   };
 }
@@ -249,6 +274,14 @@ export async function saveEmailOfficeConfig(
       input.smtpPassword !== undefined && input.smtpPassword.trim() !== ""
         ? input.smtpPassword.trim()
         : current.smtpPassword,
+    headerImageUrl:
+      input.headerImageUrl !== undefined
+        ? input.headerImageUrl.trim()
+        : current.headerImageUrl,
+    headerImagePosition: parseHeaderImagePosition(
+      input.headerImagePosition,
+      current.headerImagePosition,
+    ),
     updatedAt: new Date().toISOString(),
   };
 

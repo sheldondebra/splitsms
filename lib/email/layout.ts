@@ -1,5 +1,8 @@
 import { getSiteUrl, siteName, supportEmail } from "@/lib/site-config";
 
+/** Where a full-width header image sits relative to the headline. */
+export type EmailHeaderImagePosition = "above" | "below";
+
 /** Brand tokens for transactional email (inline CSS only). */
 const emailTheme = {
   pageBg: "#f4f4f5",
@@ -13,8 +16,11 @@ const emailTheme = {
   accent: "#c2410c",
   accentSoft: "#fff7ed",
   codeBg: "#fafafa",
-  buttonBg: "#18181b",
+  buttonBg: "#c2410c",
   buttonText: "#ffffff",
+  footerBg: "#c2410c",
+  footerText: "#ffffff",
+  footerMuted: "rgba(255,255,255,0.85)",
   font: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif",
   mono: "ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace",
 } as const;
@@ -39,7 +45,19 @@ export type EmailLayoutParams = {
   /** Show brand logo in header (marketing emails). Default false for compact transactional mail. */
   showLogo?: boolean;
   contactLine?: string;
+  /** Full-width header image. Overrides admin branding when set. */
+  headerImageUrl?: string;
+  /** Place header image above or below the headline. */
+  headerImagePosition?: EmailHeaderImagePosition;
 };
+
+function headerImageBlock(url: string) {
+  return `<tr>
+  <td style="padding:0;line-height:0;font-size:0;">
+    <img src="${escapeHtml(url)}" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto;border:0;" />
+  </td>
+</tr>`;
+}
 
 /** Shared clean layout for all SplitSMS transactional and outreach emails. */
 export function emailLayout(params: EmailLayoutParams) {
@@ -55,23 +73,34 @@ export function emailLayout(params: EmailLayoutParams) {
       ? emailButton(params.ctaHref, params.ctaLabel)
       : "";
   const footerNote = params.footerNote
-    ? `<p style="margin:0 0 12px;font-size:12px;line-height:1.55;color:${emailTheme.muted};">${escapeHtml(params.footerNote)}</p>`
+    ? `<p style="margin:0 0 12px;font-size:12px;line-height:1.55;color:${emailTheme.footerMuted};">${escapeHtml(params.footerNote)}</p>`
     : "";
   const contactLine = params.contactLine
-    ? `<p style="margin:8px 0 0;font-size:12px;line-height:1.55;color:${emailTheme.muted};">${escapeHtml(params.contactLine)}</p>`
+    ? `<p style="margin:8px 0 0;font-size:12px;line-height:1.55;color:${emailTheme.footerMuted};">${escapeHtml(params.contactLine)}</p>`
     : "";
   const headerBrand = params.showLogo
-    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 16px;">
+    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 14px;">
   <tr>
     <td>
       <a href="${escapeHtml(siteUrl)}" style="text-decoration:none;">
-        <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(siteName)}" width="140" height="auto" style="display:block;max-width:140px;height:auto;border:0;" />
+        <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(siteName)}" width="132" height="auto" style="display:block;max-width:132px;height:auto;border:0;" />
       </a>
     </td>
   </tr>
 </table>
-<p style="margin:0;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:${emailTheme.accent};">${escapeHtml(eyebrow)}</p>`
-    : `<p style="margin:0;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:${emailTheme.accent};">${escapeHtml(eyebrow)}</p>`;
+<p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:${emailTheme.accent};">${escapeHtml(eyebrow)}</p>`
+    : `<p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:${emailTheme.accent};">${escapeHtml(eyebrow)}</p>`;
+
+  const headerImageUrl = params.headerImageUrl?.trim() || "";
+  const headerImagePosition = params.headerImagePosition === "below" ? "below" : "above";
+  const imageAbove =
+    headerImageUrl && headerImagePosition === "above"
+      ? headerImageBlock(headerImageUrl)
+      : "";
+  const imageBelow =
+    headerImageUrl && headerImagePosition === "below"
+      ? headerImageBlock(headerImageUrl)
+      : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -88,36 +117,33 @@ export function emailLayout(params: EmailLayoutParams) {
     <tr>
       <td align="center" style="padding:32px 16px;">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background:${emailTheme.cardBg};border:1px solid ${emailTheme.cardBorder};border-radius:12px;overflow:hidden;">
+          ${imageAbove}
           <tr>
-            <td style="height:3px;background:${emailTheme.accent};font-size:0;line-height:0;">&nbsp;</td>
-          </tr>
-          <tr>
-            <td style="padding:28px 32px 8px;">
+            <td style="padding:28px 32px 12px;">
               ${headerBrand}
-              <h1 style="margin:10px 0 0;font-size:22px;line-height:1.3;font-weight:650;color:${emailTheme.ink};">${escapeHtml(params.headline)}</h1>
+              <h1 style="margin:12px 0 0;font-size:24px;line-height:1.25;font-weight:700;color:${emailTheme.ink};letter-spacing:-0.02em;">${escapeHtml(params.headline)}</h1>
             </td>
           </tr>
+          ${imageBelow}
           <tr>
-            <td style="padding:20px 32px 8px;">
+            <td style="padding:16px 32px 8px;">
               ${greeting}
               ${params.bodyHtml}
               ${cta}
             </td>
           </tr>
           <tr>
-            <td style="padding:24px 32px 28px;">
-              <div style="border-top:1px solid ${emailTheme.rule};padding-top:20px;">
-                ${footerNote}
-                ${contactLine}
-                <p style="margin:12px 0 0;font-size:12px;line-height:1.55;color:${emailTheme.faint};">
-                  <a href="${escapeHtml(siteUrl)}" style="color:${emailTheme.muted};text-decoration:none;font-weight:500;">${escapeHtml(siteName)}</a>
-                  ${
-                    supportEmail
-                      ? ` · <a href="mailto:${escapeHtml(supportEmail)}" style="color:${emailTheme.muted};text-decoration:none;">${escapeHtml(supportEmail)}</a>`
-                      : ""
-                  }
-                </p>
-              </div>
+            <td style="padding:24px 32px 28px;background:${emailTheme.footerBg};">
+              ${footerNote}
+              ${contactLine}
+              <p style="margin:${footerNote || contactLine ? "12px" : "0"} 0 0;font-size:12px;line-height:1.55;color:${emailTheme.footerText};">
+                <a href="${escapeHtml(siteUrl)}" style="color:${emailTheme.footerText};text-decoration:none;font-weight:600;">${escapeHtml(siteName)}</a>
+                ${
+                  supportEmail
+                    ? ` · <a href="mailto:${escapeHtml(supportEmail)}" style="color:${emailTheme.footerMuted};text-decoration:none;">${escapeHtml(supportEmail)}</a>`
+                    : ""
+                }
+              </p>
             </td>
           </tr>
         </table>
@@ -129,27 +155,6 @@ export function emailLayout(params: EmailLayoutParams) {
   </table>
 </body>
 </html>`;
-}
-
-/** @deprecated Prefer emailLayout — same clean shell. */
-export function marketingEmailLayout(params: {
-  preheader?: string;
-  headline?: string;
-  greeting?: string;
-  bodyHtml: string;
-  ctaHref?: string;
-  ctaLabel?: string;
-  footerNote?: string;
-}) {
-  return emailLayout({
-    preheader: params.preheader,
-    headline: params.headline ?? `Message from ${siteName}`,
-    greeting: params.greeting,
-    bodyHtml: params.bodyHtml,
-    ctaHref: params.ctaHref,
-    ctaLabel: params.ctaLabel,
-    footerNote: params.footerNote,
-  });
 }
 
 export function emailButton(href: string, label: string) {

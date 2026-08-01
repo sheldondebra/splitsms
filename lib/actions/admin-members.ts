@@ -417,7 +417,7 @@ export async function adminSendMemberOutreachAction(formData: FormData) {
     if (!email) {
       redirect(memberPath(userId, { tab: returnTab, error: "outreach_no_email" }));
     }
-    const { subject, text, html } = adminMemberOutreachEmailContent({
+    const { subject, text, html } = await adminMemberOutreachEmailContent({
       memberName: user.fullName,
       subject: emailSubject,
       bodyText: emailText,

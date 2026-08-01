@@ -153,7 +153,7 @@ export async function detectLowBalanceAlerts(
 async function notifyAdminsBalanceAlert(alert: LowBalanceAlert) {
   const adminUrl = `${getSiteUrl()}/admin/providers`;
   const smsText = `${siteName}: ${alert.title} — ${alert.display}. ${adminUrl}`;
-  const { subject, text, html } = adminBalanceAlertEmailContent({
+  const { subject, text, html } = await adminBalanceAlertEmailContent({
     title: alert.title,
     summary: alert.summary,
     display: alert.display,

@@ -3,6 +3,7 @@
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import { prisma } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
+import { isCurrentPassword } from "@/lib/auth/password-policy";
 import { createAndSendOtp, verifyOtp } from "@/lib/auth/otp";
 import { createSession, clearSession } from "@/lib/auth/session";
 import { recordDeviceSession } from "@/lib/auth/device-session";
@@ -28,7 +29,10 @@ import { generateUniqueAccountNumber } from "@/lib/auth/account-number";
 import { getSession } from "@/lib/auth/session";
 import { isEmailConfiguredAsync } from "@/lib/email/config";
 import { sendEmail } from "@/lib/email";
-import { accountWelcomeEmailContent } from "@/lib/email/templates";
+import {
+  accountWelcomeEmailContent,
+  passwordResetSuccessEmailContent,
+} from "@/lib/email/templates";
 import type { OtpDeliveryChannel } from "@/lib/auth/otp";
 import { getCountryByCode } from "@/lib/countries-data";
 import {
@@ -202,7 +206,7 @@ async function sendWelcomeEmailIfAvailable(user: {
   if (!email) return;
   if (!(await isEmailConfiguredAsync())) return;
 
-  const { subject, text, html } = accountWelcomeEmailContent({
+  const { subject, text, html } = await accountWelcomeEmailContent({
     memberName: user.fullName,
   });
   await sendEmail({
@@ -1106,6 +1110,23 @@ export async function resetPasswordAction(formData: FormData) {
     authRedirect("/reset-password", { error: "weak_password" });
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: reset.userId },
+    select: {
+      passwordHash: true,
+      email: true,
+      fullName: true,
+    },
+  });
+  if (!user) {
+    await clearPasswordResetSession();
+    authRedirect("/forgot-password", { error: "session" });
+  }
+
+  if (await isCurrentPassword(parsed.data.password, user.passwordHash)) {
+    authRedirect("/reset-password", { error: "password_reuse" });
+  }
+
   const passwordHash = await hashPassword(parsed.data.password);
   await prisma.user.update({
     where: { id: reset.userId },
@@ -1119,6 +1140,26 @@ export async function resetPasswordAction(formData: FormData) {
   await clearPasswordResetSession();
   await clearRateLimit(rateLimitKey("login", reset.phone));
   await logAuthEvent("PASSWORD_RESET_COMPLETED", { phone: reset.phone }, reset.userId);
+
+  if (user.email) {
+    const content = await passwordResetSuccessEmailContent({
+      memberName: user.fullName,
+    });
+    try {
+      const sent = await sendEmail({
+        to: user.email,
+        toName: user.fullName,
+        subject: content.subject,
+        text: content.text,
+        html: content.html,
+      });
+      if (!sent.ok) {
+        console.error("[password-reset] Security email delivery failed:", sent.error);
+      }
+    } catch (error) {
+      console.error("[password-reset] Security email delivery failed:", error);
+    }
+  }
 
   if (reset.returnTo?.startsWith("/dashboard")) {
     redirect(`${reset.returnTo}?password=updated`);

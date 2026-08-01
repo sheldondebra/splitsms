@@ -116,7 +116,7 @@ export async function ensureLowBalanceNotification(userId: string, balance: numb
     select: { fullName: true, email: true },
   });
   if (user?.email) {
-    const { subject, text, html } = lowCreditBalanceEmailContent({
+    const { subject, text, html } = await lowCreditBalanceEmailContent({
       memberName: user.fullName,
       balance,
       threshold: 10,

@@ -77,6 +77,11 @@ export async function saveEmailOfficeConfigAction(formData: FormData) {
       smtpSecure: formData.get("smtpSecure") === "on",
       smtpUser,
       smtpPassword: String(formData.get("smtpPassword") ?? "").trim() || undefined,
+      headerImageUrl: String(formData.get("headerImageUrl") ?? "").trim(),
+      headerImagePosition:
+        String(formData.get("headerImagePosition") ?? "above").trim() === "below"
+          ? "below"
+          : "above",
     },
     session.userId,
   );
@@ -156,7 +161,7 @@ export async function sendTestEmailAction(formData: FormData) {
     redirect("/admin/general?error=not_configured");
   }
 
-  const { subject, text, html } = testEmailContent();
+  const { subject, text, html } = await testEmailContent();
   const stored = await loadEmailOfficeStored();
   const result = await sendEmail({ to, subject, text, html });
 

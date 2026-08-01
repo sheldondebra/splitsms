@@ -127,6 +127,65 @@ export function GeneralEmailForm({
 
       <section className="space-y-4 rounded-xl border border-border/60 bg-muted/10 p-4">
         <div>
+          <p className="text-sm font-semibold">Email header image</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Optional full-width image for all transactional and marketing emails. Use a
+            public HTTPS URL (recommended width 1120px).
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="headerImageUrl">Image URL</Label>
+          <input
+            id="headerImageUrl"
+            name="headerImageUrl"
+            type="url"
+            defaultValue={stored.headerImageUrl}
+            placeholder="https://www.splitsms.com/email-header.png"
+            className={inputClassName}
+          />
+          <p className="text-xs text-muted-foreground">
+            Leave blank to remove the header image.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label>Image position</Label>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="radio"
+                name="headerImagePosition"
+                value="above"
+                defaultChecked={stored.headerImagePosition !== "below"}
+                className="h-4 w-4 accent-primary"
+              />
+              Above headline
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="radio"
+                name="headerImagePosition"
+                value="below"
+                defaultChecked={stored.headerImagePosition === "below"}
+                className="h-4 w-4 accent-primary"
+              />
+              Below headline
+            </label>
+          </div>
+        </div>
+        {stored.headerImageUrl ? (
+          <div className="overflow-hidden rounded-lg border border-border/60 bg-background">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={stored.headerImageUrl}
+              alt="Email header preview"
+              className="block w-full max-h-40 object-cover"
+            />
+          </div>
+        ) : null}
+      </section>
+
+      <section className="space-y-4 rounded-xl border border-border/60 bg-muted/10 p-4">
+        <div>
           <p className="text-sm font-semibold">Resend API</p>
           <p className="text-xs text-muted-foreground mt-1">
             Used when Resend is selected. Leave blank to keep the existing key.

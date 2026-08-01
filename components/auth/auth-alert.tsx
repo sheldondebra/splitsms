@@ -31,6 +31,10 @@ const messages: Record<string, { text: string; variant: "error" | "success" | "i
   email_taken: { text: "This email is already registered.", variant: "error" },
   email: { text: "Please enter a valid email address.", variant: "error" },
   weak_password: { text: "Password does not meet security requirements.", variant: "error" },
+  password_reuse: {
+    text: "Your new password must be different from your current password.",
+    variant: "error",
+  },
   confirmPassword: { text: "Passwords do not match.", variant: "error" },
   password: { text: "Password does not meet security requirements.", variant: "error" },
   otp: { text: "Invalid or expired verification code.", variant: "error" },

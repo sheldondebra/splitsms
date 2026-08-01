@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { marketingEmailContent } from "@/lib/admin/email-marketing-content";
+import { marketingEmailContent } from "@/lib/admin/email-marketing-render";
 import type { MarketingRecipient } from "@/lib/admin/email-marketing-audience";
 import type { EmailMarketingAudienceType } from "@/lib/admin/email-marketing-shared";
 import type { Prisma } from "@/lib/generated/prisma/client";
@@ -46,7 +46,7 @@ export async function sendMarketingCampaign(input: SendMarketingCampaignInput) {
   let failed = 0;
 
   for (const recipient of input.recipients) {
-    const content = marketingEmailContent({
+    const content = await marketingEmailContent({
       recipientName: recipient.fullName,
       subject: input.subject,
       preheader: input.preheader,

@@ -22,7 +22,7 @@ export async function notifyAdminsNewSenderId(senderRecordId: string) {
 
   const adminUrl = `${getSiteUrl()}/admin/sender-ids?tab=pending`;
   const smsText = `${siteName}: New sender ID "${sender.value}" from ${sender.user.fullName}. Review: ${adminUrl}`;
-  const { subject, text, html } = senderIdAdminAlertContent({
+  const { subject, text, html } = await senderIdAdminAlertContent({
     value: sender.value,
     countryCode: sender.countryCode,
     memberName: sender.user.fullName,
@@ -132,7 +132,7 @@ export async function notifyUserSenderIdApproved(senderRecordId: string) {
 
   const tasks: Promise<unknown>[] = [];
   if (sender.user.email) {
-    const { subject, text, html } = senderIdApprovedMemberContent({
+    const { subject, text, html } = await senderIdApprovedMemberContent({
       value: sender.value,
       memberName: sender.user.fullName,
     });
@@ -166,7 +166,7 @@ export async function notifyUserSenderIdSubmitted(senderRecordId: string, purpos
 
   const tasks: Promise<unknown>[] = [];
   if (sender.user.email) {
-    const { subject, text, html } = senderIdSubmittedMemberContent({
+    const { subject, text, html } = await senderIdSubmittedMemberContent({
       value: sender.value,
       memberName: sender.user.fullName,
       purpose,
@@ -203,7 +203,7 @@ export async function notifyUserSenderIdRejected(senderRecordId: string, reason:
 
   const tasks: Promise<unknown>[] = [];
   if (sender.user.email) {
-    const { subject, text, html } = senderIdRejectedMemberContent({
+    const { subject, text, html } = await senderIdRejectedMemberContent({
       value: sender.value,
       memberName: sender.user.fullName,
       reason: note,

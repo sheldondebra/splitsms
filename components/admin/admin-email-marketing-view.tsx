@@ -29,7 +29,7 @@ import {
   adminUpdateEmailMarketingTemplateAction,
 } from "@/lib/actions/admin-email-marketing";
 import type { EmailMarketingAudienceType } from "@/lib/admin/email-marketing-shared";
-import { marketingEmailContent } from "@/lib/admin/email-marketing-content";
+import { marketingEmailContentPreview } from "@/lib/admin/email-marketing-content";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: Megaphone },
@@ -81,9 +81,14 @@ function statusBadge(status: string) {
 function ComposePanel({
   data,
   initialTemplateId,
+  branding,
 }: {
   data: EmailMarketingDashboard;
   initialTemplateId?: string;
+  branding: {
+    headerImageUrl: string;
+    headerImagePosition: "above" | "below";
+  };
 }) {
   const initial =
     data.templates.find((t) => t.id === initialTemplateId) ??
@@ -119,7 +124,7 @@ function ComposePanel({
 
   const previewHtml = useMemo(() => {
     try {
-      return marketingEmailContent({
+      return marketingEmailContentPreview({
         recipientName: "Alex Mensah",
         subject,
         preheader,
@@ -128,11 +133,23 @@ function ComposePanel({
         ctaLabel,
         ctaHref,
         footerNote,
+        headerImageUrl: branding.headerImageUrl || undefined,
+        headerImagePosition: branding.headerImagePosition,
       }).html;
     } catch {
       return "";
     }
-  }, [subject, preheader, headline, bodyText, ctaLabel, ctaHref, footerNote]);
+  }, [
+    subject,
+    preheader,
+    headline,
+    bodyText,
+    ctaLabel,
+    ctaHref,
+    footerNote,
+    branding.headerImageUrl,
+    branding.headerImagePosition,
+  ]);
 
   const audienceHint =
     audienceType === "manual"
@@ -458,6 +475,7 @@ export function AdminEmailMarketingView({
   data,
   flash,
   templateId,
+  branding,
 }: {
   data: EmailMarketingDashboard;
   flash: {
@@ -467,6 +485,10 @@ export function AdminEmailMarketingView({
     failed?: string;
   };
   templateId?: string;
+  branding: {
+    headerImageUrl: string;
+    headerImagePosition: "above" | "below";
+  };
 }) {
   const notice = flashMessage(flash);
 
@@ -644,7 +666,11 @@ export function AdminEmailMarketingView({
 
       {data.tab === "compose" && (
         <AdminCard title="Compose campaign">
-          <ComposePanel data={data} initialTemplateId={templateId} />
+          <ComposePanel
+            data={data}
+            initialTemplateId={templateId}
+            branding={branding}
+          />
         </AdminCard>
       )}
 
