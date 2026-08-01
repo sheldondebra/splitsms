@@ -36,11 +36,15 @@ export type EmailLayoutParams = {
   ctaHref?: string;
   ctaLabel?: string;
   footerNote?: string;
+  /** Show brand logo in header (marketing emails). Default false for compact transactional mail. */
+  showLogo?: boolean;
+  contactLine?: string;
 };
 
 /** Shared clean layout for all SplitSMS transactional and outreach emails. */
 export function emailLayout(params: EmailLayoutParams) {
   const siteUrl = getSiteUrl();
+  const logoUrl = `${siteUrl}/smslogo.png`;
   const preheader = params.preheader ?? params.headline;
   const eyebrow = params.eyebrow ?? siteName;
   const greeting = params.greeting
@@ -53,6 +57,21 @@ export function emailLayout(params: EmailLayoutParams) {
   const footerNote = params.footerNote
     ? `<p style="margin:0 0 12px;font-size:12px;line-height:1.55;color:${emailTheme.muted};">${escapeHtml(params.footerNote)}</p>`
     : "";
+  const contactLine = params.contactLine
+    ? `<p style="margin:8px 0 0;font-size:12px;line-height:1.55;color:${emailTheme.muted};">${escapeHtml(params.contactLine)}</p>`
+    : "";
+  const headerBrand = params.showLogo
+    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 16px;">
+  <tr>
+    <td>
+      <a href="${escapeHtml(siteUrl)}" style="text-decoration:none;">
+        <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(siteName)}" width="140" height="auto" style="display:block;max-width:140px;height:auto;border:0;" />
+      </a>
+    </td>
+  </tr>
+</table>
+<p style="margin:0;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:${emailTheme.accent};">${escapeHtml(eyebrow)}</p>`
+    : `<p style="margin:0;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:${emailTheme.accent};">${escapeHtml(eyebrow)}</p>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -74,7 +93,7 @@ export function emailLayout(params: EmailLayoutParams) {
           </tr>
           <tr>
             <td style="padding:28px 32px 8px;">
-              <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:${emailTheme.accent};">${escapeHtml(eyebrow)}</p>
+              ${headerBrand}
               <h1 style="margin:10px 0 0;font-size:22px;line-height:1.3;font-weight:650;color:${emailTheme.ink};">${escapeHtml(params.headline)}</h1>
             </td>
           </tr>
@@ -89,7 +108,8 @@ export function emailLayout(params: EmailLayoutParams) {
             <td style="padding:24px 32px 28px;">
               <div style="border-top:1px solid ${emailTheme.rule};padding-top:20px;">
                 ${footerNote}
-                <p style="margin:0;font-size:12px;line-height:1.55;color:${emailTheme.faint};">
+                ${contactLine}
+                <p style="margin:12px 0 0;font-size:12px;line-height:1.55;color:${emailTheme.faint};">
                   <a href="${escapeHtml(siteUrl)}" style="color:${emailTheme.muted};text-decoration:none;font-weight:500;">${escapeHtml(siteName)}</a>
                   ${
                     supportEmail

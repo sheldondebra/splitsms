@@ -28,6 +28,7 @@ export const ADMIN_PATH_PERMISSIONS: Record<string, AdminPermission | readonly A
   "/admin/staff": ["staff.read", "staff.write"],
   "/admin/activity": "activity.read",
   "/admin/outreach": "members.write",
+  "/admin/email-marketing": "members.write",
   "/admin/resellers": "members.read",
   "/admin/reseller-payouts": "payments.read",
   "/admin/enterprise": "members.read",

@@ -231,6 +231,7 @@ model User {
   smartFormResponses        SmartFormResponse[]
   smartFormAnalyticsEvents  SmartFormAnalyticsEvent[]
   smartFormExports          SmartFormExport[]
+  emailMarketingCampaigns   EmailMarketingCampaign[] @relation("EmailMarketingCampaignCreator")
 }
 
 model MemberAccount {
@@ -1267,4 +1268,78 @@ model SmartFormExport {
   createdAt  DateTime            @default(now())
 
   @@index([formId, createdAt])
+}
+
+enum EmailMarketingCampaignStatus {
+  DRAFT
+  SENDING
+  SENT
+  PARTIAL
+  FAILED
+}
+
+model EmailMarketingTemplate {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  category    String   @default("feature")
+  subject     String
+  preheader   String?
+  headline    String
+  bodyText    String
+  ctaLabel    String?
+  ctaHref     String?
+  footerNote  String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  campaigns   EmailMarketingCampaign[]
+
+  @@index([category])
+}
+
+model EmailMarketingCampaign {
+  id             String                       @id @default(cuid())
+  name           String?
+  templateId     String?
+  template       EmailMarketingTemplate?      @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  subject        String
+  preheader      String?
+  headline       String
+  bodyText       String
+  ctaLabel       String?
+  ctaHref        String?
+  footerNote     String?
+  audienceType   String
+  audienceMeta   Json?
+  status         EmailMarketingCampaignStatus @default(DRAFT)
+  recipientCount Int                          @default(0)
+  sentCount      Int                          @default(0)
+  failedCount    Int                          @default(0)
+  createdById    String?
+  createdBy      User?                        @relation("EmailMarketingCampaignCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime                     @default(now())
+  completedAt    DateTime?
+  deliveries     EmailMarketingDelivery[]
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([createdById])
+}
+
+model EmailMarketingDelivery {
+  id         String                 @id @default(cuid())
+  campaignId String
+  campaign   EmailMarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  userId     String?
+  email      String
+  fullName   String?
+  status     String
+  error      String?
+  sentAt     DateTime?
+  createdAt  DateTime               @default(now())
+
+  @@index([campaignId, status])
+  @@index([email])
 }

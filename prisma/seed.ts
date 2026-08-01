@@ -128,10 +128,16 @@ async function main() {
 
   const templatesSeeded = await seedSampleTemplatesForUser(adminUser.id);
 
+  const { ensureEmailMarketingTemplates } = await import(
+    "../lib/admin/email-marketing-templates"
+  );
+  await ensureEmailMarketingTemplates();
+
   console.log(`Seed completed. ${COUNTRIES_DATA.length} countries with SMS routes.`);
   if (templatesSeeded > 0) {
     console.log(`Seeded ${templatesSeeded} sample SMS templates for admin.`);
   }
+  console.log("Seeded email marketing system templates.");
   console.log(`Admin: ${ADMIN.email} / phone ${ADMIN.phone} (SUPER_ADMIN)`);
 }
 

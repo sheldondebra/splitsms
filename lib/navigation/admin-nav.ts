@@ -25,6 +25,7 @@ import {
   SlidersHorizontal,
   TicketPercent,
   Banknote,
+  Mail,
 } from "lucide-react";
 
 import type { AdminPermission } from "@/lib/auth/admin-permissions";
@@ -67,6 +68,7 @@ export const adminNavSections: AdminNavSection[] = [
       { href: "/admin/staff", label: "Staff & roles", icon: UserCog, permission: ["staff.read", "staff.write"] },
       { href: "/admin/activity", label: "Activity logs", icon: History, permission: "activity.read" },
       { href: "/admin/outreach", label: "Bulk messages", icon: MessagesSquare, permission: "members.write" },
+      { href: "/admin/email-marketing", label: "Email Marketing", icon: Mail, permission: "members.write" },
       { href: "/admin/resellers", label: "Resellers", icon: Store, permission: "members.read" },
       {
         href: "/admin/reseller-payouts",
