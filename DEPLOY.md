@@ -31,6 +31,105 @@ npm run start
 
 `npm run build` runs `sync:site-config` automatically (WordPress plugin PHP, Postman collection, `public/wordpress-plugin/version.json`).
 
+## Cloud Run staging
+
+Staging service: `splitsms-staging` in project `splitsms`, region `us-central1`.
+
+Requires a `Dockerfile` (Next.js `output: "standalone"`) and env vars from your local `.env` (not committed).
+
+```bash
+npm run deploy:staging
+```
+
+The script (`scripts/deploy-staging.mjs`) loads `DATABASE_URL`, `SESSION_SECRET`, and `REDIS_URL` from `.env` / `.env.local`, builds from source, and deploys without printing secrets.
+
+Overrides (optional): `GCP_PROJECT`, `CLOUD_RUN_SERVICE`, `CLOUD_RUN_REGION`, `STAGING_URL`.
+
+Leave `SMS_WORKERS_ENABLED` unset so SMS sends inline in the web process (same default as Vercel).
+
+## Cloud SQL (production database)
+
+Instance: `splitsms-db` · Postgres 16 · `us-central1` · connection name `splitsms:us-central1:splitsms-db`
+
+- Cloud Run connects via the Cloud SQL Auth socket (`/cloudsql/...`).
+- Local `.env` uses the instance public IP with `sslmode=require`.
+- Neon dump kept temporarily at `/tmp/splitsms-neon.dump` on the machine that ran the migration; keep Neon online 24–48h before deleting.
+
+## Point `splitsms.com` / `www` at Cloud Run (Namecheap)
+
+### Step 1 — Verify domain ownership with Google
+
+In your own terminal (opens a browser):
+
+```bash
+gcloud domains verify splitsms.com
+```
+
+Complete the Google Site Verification flow (usually a **TXT** record on Namecheap).
+
+**Namecheap → Domain List → Manage → Advanced DNS:**
+
+| Type | Host | Value | TTL |
+|------|------|--------|-----|
+| TXT | `@` | *(value shown in the Google verify wizard)* | Automatic |
+
+Wait until Google says verified (often a few minutes).
+
+### Step 2 — Create Cloud Run domain mappings
+
+```bash
+gcloud beta run domain-mappings create \
+  --service=splitsms-staging \
+  --domain=splitsms.com \
+  --region=us-central1 \
+  --project=splitsms
+
+gcloud beta run domain-mappings create \
+  --service=splitsms-staging \
+  --domain=www.splitsms.com \
+  --region=us-central1 \
+  --project=splitsms
+
+gcloud beta run domain-mappings describe --domain=www.splitsms.com \
+  --region=us-central1 --project=splitsms
+```
+
+Use the `resourceRecords` from that output if they differ from the defaults below.
+
+### Step 3 — DNS records in Namecheap (typical Cloud Run values)
+
+Remove old A/CNAME records that pointed at Vercel/cPanel/hosting for `@` and `www` (keep email MX untouched).
+
+| Type | Host | Value | TTL |
+|------|------|--------|-----|
+| A | `@` | `216.239.32.21` | Automatic |
+| A | `@` | `216.239.34.21` | Automatic |
+| A | `@` | `216.239.36.21` | Automatic |
+| A | `@` | `216.239.38.21` | Automatic |
+| CNAME | `www` | `ghs.googlehosted.com.` | Automatic |
+
+Optional IPv6 (if Namecheap shows AAAA and mapping requires it):
+
+| Type | Host | Value |
+|------|------|--------|
+| AAAA | `@` | `2001:4860:4802:32::15` |
+| AAAA | `@` | `2001:4860:4802:34::15` |
+| AAAA | `@` | `2001:4860:4802:36::15` |
+| AAAA | `@` | `2001:4860:4802:38::15` |
+
+### Step 4 — Wait and test
+
+DNS can take 5 minutes to 48 hours (often under an hour). Then open:
+
+- https://www.splitsms.com  
+- https://splitsms.com  
+
+Managed certificates are issued by Google after DNS is correct.
+
+### Step 5 — After cutover is stable
+
+- Do **not** delete Neon until you confirm logins and critical flows on the new DB.
+- Then delete the Neon project when ready.
 ## SMS workers
 
 By default on Vercel, SMS sends **inline** in the web process (no separate worker required).

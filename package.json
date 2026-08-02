@@ -13,6 +13,7 @@
     "watch:wp-local": "node scripts/sync-wp-local.mjs --watch",
     "prebuild": "node scripts/sync-site-config.mjs && node scripts/sync-sdks.mjs",
     "sync:sdks": "node scripts/sync-sdks.mjs",
+    "deploy:staging": "node scripts/deploy-staging.mjs",
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
