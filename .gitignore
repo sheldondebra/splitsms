@@ -51,3 +51,8 @@ next-env.d.ts
 !/public/uploads/reseller-logos/.gitkeep
 
 .tmp-google-oauth-profile/
+
+# Search Console SEO CLI
+scripts/seo/.credentials/
+scripts/seo/out/*
+!scripts/seo/out/.gitkeep
