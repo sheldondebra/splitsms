@@ -6,14 +6,16 @@ import {
   createPkcePair,
   getGoogleClientCredentials,
   googleCallbackUri,
+  resolveGoogleOAuthOrigin,
   setPkceVerifierCookie,
   signOAuthState,
 } from "@/lib/auth/google";
 
 export async function GET(request: NextRequest) {
+  const origin = resolveGoogleOAuthOrigin(request);
   const credentials = getGoogleClientCredentials();
   if (!credentials) {
-    return NextResponse.redirect(new URL("/login?error=google_config", request.url));
+    return NextResponse.redirect(new URL("/login?error=google_config", origin));
   }
 
   const returnTo = request.nextUrl.searchParams.get("returnTo")?.trim() || undefined;
@@ -32,7 +34,7 @@ export async function GET(request: NextRequest) {
 
   await setPkceVerifierCookie(verifier);
 
-  const redirectUri = googleCallbackUri(request.nextUrl.origin);
+  const redirectUri = googleCallbackUri(origin);
   const url = buildGoogleAuthorizeUrl({
     state,
     codeChallenge: challenge,

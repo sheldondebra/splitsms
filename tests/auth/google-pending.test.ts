@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolveGoogleAccountAction } from "../../lib/auth/google";
+import {
+  resolveGoogleAccountAction,
+  resolveGoogleOAuthOrigin,
+} from "../../lib/auth/google";
 
 test("prefers google id match for login", () => {
   assert.equal(
@@ -40,4 +43,18 @@ test("conflicts when email is already linked to another google id", () => {
     }),
     "conflict",
   );
+});
+
+test("oauth origin prefers NEXT_PUBLIC_APP_URL over Cloud Run bind address", () => {
+  const prev = process.env.NEXT_PUBLIC_APP_URL;
+  process.env.NEXT_PUBLIC_APP_URL = "https://www.splitsms.com";
+  try {
+    const request = new Request("https://0.0.0.0:8080/api/auth/google", {
+      headers: { host: "0.0.0.0:8080" },
+    });
+    assert.equal(resolveGoogleOAuthOrigin(request), "https://www.splitsms.com");
+  } finally {
+    if (prev === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
+    else process.env.NEXT_PUBLIC_APP_URL = prev;
+  }
 });

@@ -46,6 +46,43 @@ export function googleCallbackUri(origin: string) {
   return `${origin.replace(/\/$/, "")}/api/auth/google/callback`;
 }
 
+/** Public origin for OAuth redirect_uri (Cloud Run binds to 0.0.0.0 — never use that). */
+export function resolveGoogleOAuthOrigin(request: Request): string {
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  if (
+    envUrl &&
+    !envUrl.includes("localhost") &&
+    !envUrl.includes("127.0.0.1") &&
+    !envUrl.includes("0.0.0.0")
+  ) {
+    return envUrl;
+  }
+
+  const host = (
+    request.headers.get("x-forwarded-host") ??
+    request.headers.get("host") ??
+    ""
+  )
+    .split(",")[0]
+    ?.trim();
+
+  const badHost =
+    !host ||
+    host.startsWith("0.0.0.0") ||
+    host.startsWith("127.0.0.1") ||
+    /^\d+\.\d+\.\d+\.\d+(:\d+)?$/.test(host);
+
+  if (!badHost) {
+    const proto =
+      request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ||
+      (host.includes("localhost") ? "http" : "https");
+    return `${proto}://${host}`.replace(/\/$/, "");
+  }
+
+  if (envUrl) return envUrl;
+  return "http://localhost:3000";
+}
+
 export function createPkcePair() {
   const verifier = randomBytes(32).toString("base64url");
   const challenge = createHash("sha256").update(verifier).digest("base64url");
