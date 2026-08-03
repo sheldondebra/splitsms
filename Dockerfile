@@ -26,6 +26,7 @@ ARG NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 RUN npx prisma generate && npm run build
 
