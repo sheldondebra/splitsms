@@ -191,6 +191,7 @@ model User {
   staffPermissions String[]        @default([])
   referralCode     String?
   email            String?         @unique
+  googleId         String?         @unique
   isVerified       Boolean         @default(false)
   failedLoginCount Int             @default(0)
   lockedUntil      DateTime?

@@ -49,3 +49,5 @@ next-env.d.ts
 # reseller logo uploads (keep folder)
 /public/uploads/reseller-logos/*
 !/public/uploads/reseller-logos/.gitkeep
+
+.tmp-google-oauth-profile/

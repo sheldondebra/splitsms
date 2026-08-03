@@ -14,6 +14,7 @@
     "prebuild": "node scripts/sync-site-config.mjs && node scripts/sync-sdks.mjs",
     "sync:sdks": "node scripts/sync-sdks.mjs",
     "deploy:staging": "node scripts/deploy-staging.mjs",
+    "setup:google-oauth": "node scripts/setup-google-oauth.mjs",
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",

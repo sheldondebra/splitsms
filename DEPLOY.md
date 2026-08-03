@@ -13,12 +13,28 @@ npm run sync:site-config
 | `DATABASE_URL` | Yes | PostgreSQL (e.g. Neon) |
 | `NEXT_PUBLIC_APP_URL` | Yes in production | e.g. `https://www.splitsms.com` |
 | `SESSION_SECRET` | Yes | Long random string |
+| `GOOGLE_CLIENT_ID` | For Google login | OAuth 2.0 Web client ID (GCP project `splitsms`) |
+| `GOOGLE_CLIENT_SECRET` | For Google login | OAuth 2.0 Web client secret |
 | `REDIS_URL` | Optional | BullMQ queue storage. Without workers, sends run inline on the web app. |
 | `SMS_WORKERS_ENABLED` | Optional | Set to `true` only when `npm run worker:sms` runs on a separate host (Railway, Render, VPS). |
 | `CRON_SECRET` | Recommended on Vercel | Protects `/api/cron/process-sms` (Vercel Cron sends `Authorization: Bearer …`). |
 | `MAILJET_*` | For email OTP | See `.env.example` |
 
 Optional: `NEXT_PUBLIC_API_BASE_URL` if the API is served from a different host (defaults to `{NEXT_PUBLIC_APP_URL}/api/v1`).
+
+### Google Sign-In (OAuth)
+
+Google’s consumer **Sign in with Google** Web client IDs cannot be created with `gcloud iam oauth-clients` (that API is for Workforce Identity). Create the client in Google Auth Platform:
+
+1. Open [Google Auth Platform → Clients](https://console.cloud.google.com/auth/clients?project=splitsms) (project `splitsms`).
+2. Configure the consent screen (External) with app name **SplitSMS** and support email `info@splitsms.com`.
+3. Create a **Web application** client with redirect URIs:
+   - `http://localhost:3000/api/auth/google/callback`
+   - `https://splitsms.com/api/auth/google/callback`
+   - `https://www.splitsms.com/api/auth/google/callback`
+   - (optional) your Cloud Run staging URL + `/api/auth/google/callback`
+4. Put `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env` / Cloud Run env.
+5. Publish the OAuth app (or add test users while in Testing).
 
 ## Build
 

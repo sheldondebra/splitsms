@@ -10,7 +10,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /** Increment when Prisma schema changes require a fresh client in dev */
-const PRISMA_CLIENT_BUILD_ID = "reseller-payment-payouts-proxy-2026-07-27";
+const PRISMA_CLIENT_BUILD_ID = "cloud-sql-ssl-libpqcompat-2026-08-02";
 
 const NEON_WAKE_DELAYS_MS = [500, 1500, 3000, 5000];
 
@@ -22,13 +22,34 @@ function isNeonUrl(connectionString: string) {
   return connectionString.includes("neon.tech");
 }
 
-/** Neon URLs from the console sometimes include channel_binding, which breaks some Node/pg builds. */
+function isIpv4Host(hostname: string) {
+  return /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname);
+}
+
+/**
+ * Neon URLs from the console sometimes include channel_binding, which breaks some Node/pg builds.
+ *
+ * node-postgres 8.21+ treats sslmode=require as verify-full. Cloud SQL public-IP certs are not
+ * in Node's trust store, so verification fails. Opt into libpq semantics for IP hosts so
+ * require means encrypt-without-CA-verify (matches DEPLOY.md local Cloud SQL setup).
+ */
 function normalizeDatabaseUrl(raw: string): string {
   try {
     const url = new URL(raw);
     url.searchParams.delete("channel_binding");
     if (!url.searchParams.has("sslmode")) {
       url.searchParams.set("sslmode", "require");
+    }
+    const sslmode = url.searchParams.get("sslmode");
+    const socketHost = url.searchParams.get("host");
+    const viaCloudSqlSocket = Boolean(socketHost?.startsWith("/cloudsql/"));
+    if (
+      !viaCloudSqlSocket &&
+      isIpv4Host(url.hostname) &&
+      !url.searchParams.has("uselibpqcompat") &&
+      (sslmode === "require" || sslmode === "prefer" || sslmode === "verify-ca")
+    ) {
+      url.searchParams.set("uselibpqcompat", "true");
     }
     return url.toString();
   } catch {
@@ -146,9 +167,13 @@ function getPrisma(): PrismaClient {
   if (cached && clientHasRequiredModels(cached) && buildId === PRISMA_CLIENT_BUILD_ID) {
     return cached;
   }
-  // Drop the stale singleton before constructing a new one (dev HMR / schema bumps).
+  // Drop the stale singleton + pool so connection options (e.g. SSL) are rebuilt.
   if (cached) {
     void (cached as { $disconnect?: () => Promise<void> }).$disconnect?.().catch(() => undefined);
+  }
+  if (buildId !== PRISMA_CLIENT_BUILD_ID && process.env.NODE_ENV !== "production") {
+    void globalForPrisma.pool?.end().catch(() => undefined);
+    globalForPrisma.pool = undefined as unknown as Pool;
   }
   const client = createPrisma();
   if (!clientHasRequiredModels(client)) {

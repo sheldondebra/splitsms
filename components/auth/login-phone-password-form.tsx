@@ -40,11 +40,6 @@ export function LoginPhonePasswordForm({ returnTo }: { returnTo?: string }) {
         </Link>
       </div>
       <AuthSubmitButton label="Sign in" pendingLabel="Signing in…" />
-      <p className="text-center text-xs text-muted-foreground">
-        <Link href="/login" className="text-primary font-medium hover:underline">
-          ← Sign in with email instead
-        </Link>
-      </p>
     </form>
   );
 }

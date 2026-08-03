@@ -173,7 +173,14 @@ export const dataProtectionMetadata: Metadata = buildPageMetadata({
 });
 
 export function authPageMetadata(
-  path: "/login" | "/signup" | "/forgot-password" | "/reset-password" | "/verify-otp" | "/complete-profile",
+  path:
+    | "/login"
+    | "/signup"
+    | "/forgot-password"
+    | "/reset-password"
+    | "/verify-otp"
+    | "/complete-profile"
+    | "/complete-phone",
   title: string,
   description: string,
 ): Metadata {

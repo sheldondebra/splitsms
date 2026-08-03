@@ -3,6 +3,10 @@ import type { Metadata } from "next";
 import { AuthLayout, AuthCard } from "@/components/auth/auth-layout";
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthEntryTabs } from "@/components/auth/auth-entry-tabs";
+import {
+  GoogleAuthButton,
+  GoogleAuthDivider,
+} from "@/components/auth/google-auth-button";
 import { getSignupCountryOptions } from "@/lib/signup-countries";
 import { getRequestTenant } from "@/lib/reseller/request-tenant";
 import { recordInviteLinkView } from "@/lib/reseller/invite-analytics";
@@ -69,6 +73,8 @@ export default async function SignupPage({
     >
       <AuthCard>
         <AuthAlert code={error} />
+        <GoogleAuthButton resellerInvite={inviteParam} />
+        <GoogleAuthDivider />
         <AuthEntryTabs
           countries={countries}
           intent="signup"

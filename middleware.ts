@@ -21,6 +21,7 @@ const authPaths = [
   "/signup",
   "/verify-otp",
   "/forgot-password",
+  "/complete-phone",
 ];
 
 async function readSession(request: NextRequest) {
@@ -154,6 +155,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const isCompletePhone = pathname.startsWith("/complete-phone");
+  if (isCompletePhone && session) {
+    return NextResponse.redirect(new URL(loginDestination(session), request.url));
+  }
+  if (isCompletePhone) {
+    if (tenant) {
+      const requestHeaders = attachTenantHeaders(request, tenant);
+      return NextResponse.next({ request: { headers: requestHeaders } });
+    }
+    return NextResponse.next();
+  }
+
   if (isAuth && session) {
     const impToken = request.cookies.get("splitsms_impersonate")?.value;
     if (
@@ -197,6 +210,7 @@ export const config = {
     "/forgot-password",
     "/reset-password",
     "/complete-profile",
+    "/complete-phone",
     "/onboarding",
   ],
 };

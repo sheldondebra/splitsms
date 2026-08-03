@@ -40,6 +40,8 @@ const OPTIONAL_KEYS = [
   "RESEND_API_KEY",
   "RESEND_FROM_EMAIL",
   "RESEND_FROM_NAME",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
 ];
 
 function fail(message) {

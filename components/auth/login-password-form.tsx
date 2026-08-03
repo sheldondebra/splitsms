@@ -46,12 +46,6 @@ export function LoginPasswordForm({
         </Link>
       </div>
       <AuthSubmitButton label="Sign in" pendingLabel="Signing in…" />
-      <p className="text-center text-xs text-muted-foreground">
-        Signed up with a code?{" "}
-        <Link href="/login?mode=sms" className="text-primary font-medium hover:underline">
-          Sign in with SMS / email code
-        </Link>
-      </p>
     </form>
   );
 }

@@ -6,6 +6,11 @@ import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthEntryTabs } from "@/components/auth/auth-entry-tabs";
 import { LoginPasswordForm } from "@/components/auth/login-password-form";
 import { LoginPhonePasswordForm } from "@/components/auth/login-phone-password-form";
+import { LoginMethodLinks } from "@/components/auth/login-method-links";
+import {
+  GoogleAuthButton,
+  GoogleAuthDivider,
+} from "@/components/auth/google-auth-button";
 import { getSignupCountryOptions } from "@/lib/signup-countries";
 import { authPageMetadata } from "@/lib/seo/marketing-metadata";
 
@@ -61,6 +66,16 @@ export default async function LoginPage({
           <AuthAlert code="slack_signin" className="mb-4" />
         ) : null}
 
+        <GoogleAuthButton returnTo={returnTo} />
+        <GoogleAuthDivider />
+
+        {!smsMode ? (
+          <LoginMethodLinks
+            mode={phonePasswordMode ? "phone" : "email"}
+            returnTo={returnTo}
+          />
+        ) : null}
+
         {smsMode ? (
           <AuthEntryTabs
             countries={countries}
@@ -75,18 +90,11 @@ export default async function LoginPage({
         )}
 
         <div className="mt-6 pt-5 border-t border-border/50 space-y-3 text-center text-sm">
-          {!smsMode ? (
-            <Link
-              href="/login?mode=sms"
-              className="text-muted-foreground hover:text-primary font-medium"
-            >
-              Sign in with SMS code instead
-            </Link>
-          ) : (
+          {smsMode ? (
             <Link href="/login" className="text-primary font-medium hover:underline">
               ← Sign in with email & password
             </Link>
-          )}
+          ) : null}
 
           <p className="text-muted-foreground">
             New here?{" "}

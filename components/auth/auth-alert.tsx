@@ -44,6 +44,10 @@ const messages: Record<string, { text: string; variant: "error" | "success" | "i
   otp_cooldown: { text: "Please wait 60 seconds before requesting another code.", variant: "info" },
   required: { text: "Please enter your phone or email.", variant: "error" },
   session: { text: "Reset session expired. Start again from forgot password.", variant: "error" },
+  google_session: {
+    text: "Google sign-up expired. Click Continue with Google to start again.",
+    variant: "error",
+  },
   invalid_phone: { text: "Enter a valid phone number with country code.", variant: "error" },
   sent: { text: "If an account exists for that number or email, we sent a verification code.", variant: "success" },
   resent: { text: "A new verification code has been sent.", variant: "success" },
@@ -80,6 +84,26 @@ const messages: Record<string, { text: string; variant: "error" | "success" | "i
   slack_signin: {
     text: "Sign in with your admin account to complete the action from Slack.",
     variant: "info",
+  },
+  google_denied: {
+    text: "Google sign-in was cancelled. You can try again or use email/password.",
+    variant: "info",
+  },
+  google_failed: {
+    text: "Google sign-in failed. Please try again, or use email/password.",
+    variant: "error",
+  },
+  google_email_missing: {
+    text: "Google did not share a verified email. Use another Google account or sign up with phone/email.",
+    variant: "error",
+  },
+  google_config: {
+    text: "Google sign-in is not configured yet. Use email/password for now.",
+    variant: "error",
+  },
+  phone_taken: {
+    text: "That phone number is already registered. Sign in instead, or use a different number.",
+    variant: "error",
   },
 };
 

@@ -22,9 +22,14 @@ import {
 } from "@/lib/auth/validation";
 import {
   PLACEHOLDER_PROFILE_NAME,
+  generateOtpOnlyPassword,
   userNeedsProfileCompletion,
   maskPhoneForDisplay,
 } from "@/lib/auth/phone-auth";
+import {
+  clearGooglePendingCookie,
+  getGooglePendingCookie,
+} from "@/lib/auth/google";
 import { generateUniqueAccountNumber } from "@/lib/auth/account-number";
 import { getSession } from "@/lib/auth/session";
 import { isEmailConfiguredAsync } from "@/lib/email/config";
@@ -362,6 +367,144 @@ export async function requestPhoneAuthAction(formData: FormData) {
     phone,
     purpose: purposeParam,
     country: countryCode,
+  });
+}
+
+/** Finish Google signup — collect phone, create user, send SMS OTP */
+export async function completeGooglePhoneAction(formData: FormData) {
+  const pending = await getGooglePendingCookie();
+  if (!pending) {
+    authRedirect("/login", { error: "google_session" });
+  }
+
+  const guardFields = readSignupGuardFields(formData);
+  const otpBot = await assertOtpBotAllowed(guardFields);
+  if (!otpBot.ok) {
+    authRedirect("/complete-phone", guardErrorParams(otpBot.error));
+  }
+  const signupBot = await assertSignupBotAllowed(guardFields);
+  if (!signupBot.ok) {
+    authRedirect("/complete-phone", guardErrorParams(signupBot.error));
+  }
+
+  const countryCode = String(formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE)
+    .trim()
+    .toUpperCase();
+  const dialCode = String(formData.get("dialCode") ?? "").trim();
+  const parsed = phoneAuthSchema.safeParse({
+    phone: formData.get("phone"),
+    countryCode,
+    dialCode,
+  });
+  if (!parsed.success) {
+    authRedirect("/complete-phone", { error: "invalid_phone" });
+  }
+
+  const phone = normalizePhoneWithCountry(
+    parsed.data.phone,
+    parsed.data.dialCode,
+    parsed.data.countryCode,
+  );
+  if (phone.length < 10) {
+    authRedirect("/complete-phone", { error: "invalid_phone" });
+  }
+
+  const existingPhone = await prisma.user.findUnique({ where: { phone } });
+  if (existingPhone) {
+    authRedirect("/complete-phone", { error: "phone_taken" });
+  }
+
+  const emailTaken = await prisma.user.findUnique({
+    where: { email: pending.email },
+  });
+  if (emailTaken) {
+    await clearGooglePendingCookie();
+    authRedirect("/login", { error: "email_taken" });
+  }
+
+  const googleTaken = await prisma.user.findUnique({
+    where: { googleId: pending.googleId },
+  });
+  if (googleTaken) {
+    await clearGooglePendingCookie();
+    authRedirect("/login", { error: "google_failed" });
+  }
+
+  const otpIp = await consumeOtpIpSlot();
+  if (!otpIp.ok) {
+    authRedirect("/complete-phone", guardErrorParams(otpIp.error));
+  }
+  const signupIp = await consumeSignupIpSlot();
+  if (!signupIp.ok) {
+    authRedirect("/complete-phone", guardErrorParams(signupIp.error));
+  }
+
+  const fullName =
+    pending.fullName.trim().length >= 2
+      ? pending.fullName.trim().slice(0, 120)
+      : PLACEHOLDER_PROFILE_NAME;
+
+  const verifiedCountry = parsed.data.countryCode;
+  const passwordHash = await hashPassword(generateOtpOnlyPassword());
+  const accountNumber = await generateUniqueAccountNumber();
+  const user = await prisma.user.create({
+    data: {
+      accountNumber,
+      fullName,
+      phone,
+      countryCode: verifiedCountry,
+      passwordHash,
+      email: pending.email,
+      googleId: pending.googleId,
+      wallet: {
+        create: { currency: verifiedCountry === "GH" ? "GHS" : "USD" },
+      },
+      smsCredit: { create: { balance: 0 } },
+      memberAccount: { create: {} },
+    },
+  });
+
+  const tenant = await getRequestTenant();
+  const inviteParam = pending.resellerInvite?.trim() || "";
+  const resellerId =
+    tenant?.resellerId ?? (await resolveResellerInvite(inviteParam))?.resellerId;
+  if (resellerId) {
+    await linkSignupUserToReseller(user.id, resellerId, tenant ? "domain" : "share");
+  }
+
+  await logAuthEvent(
+    "SIGNUP_STARTED",
+    {
+      phone,
+      signupMethod: "google",
+      countryCode: verifiedCountry,
+      email: pending.email,
+    },
+    user.id,
+  );
+
+  await clearGooglePendingCookie();
+
+  const otp = await createAndSendOtp(
+    phone,
+    "SIGNUP_VERIFY",
+    verifiedCountry,
+    user.id,
+  );
+  if (!otp.ok) {
+    authRedirect("/verify-otp", {
+      phone,
+      purpose: "signup",
+      country: verifiedCountry,
+      error: "otp_cooldown",
+      cooldown: String(otp.cooldownSec),
+    });
+  }
+
+  authRedirect("/verify-otp", {
+    phone,
+    purpose: "signup",
+    country: verifiedCountry,
   });
 }
 
