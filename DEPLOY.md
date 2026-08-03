@@ -15,6 +15,7 @@ npm run sync:site-config
 | `SESSION_SECRET` | Yes | Long random string |
 | `GOOGLE_CLIENT_ID` | For Google login | OAuth 2.0 Web client ID (GCP project `splitsms`) |
 | `GOOGLE_CLIENT_SECRET` | For Google login | OAuth 2.0 Web client secret |
+| `GOOGLE_SITE_VERIFICATION` | For Search Console | Meta-tag token from Google Search Console (public HTML) |
 | `REDIS_URL` | Optional | BullMQ queue storage. Without workers, sends run inline on the web app. |
 | `SMS_WORKERS_ENABLED` | Optional | Set to `true` only when `npm run worker:sms` runs on a separate host (Railway, Render, VPS). |
 | `CRON_SECRET` | Recommended on Vercel | Protects `/api/cron/process-sms` (Vercel Cron sends `Authorization: Bearer …`). |
@@ -35,6 +36,12 @@ Google’s consumer **Sign in with Google** Web client IDs cannot be created wit
    - (optional) your Cloud Run staging URL + `/api/auth/google/callback`
 4. Put `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env` / Cloud Run env.
 5. Publish the OAuth app (or add test users while in Testing).
+
+### Google Search Console (SEO)
+
+1. Verify `https://www.splitsms.com` with **HTML tag** (`GOOGLE_SITE_VERIFICATION`) and **HTML file** (`npm run seo:install-verification`).
+2. Submit `https://www.splitsms.com/sitemap.xml`.
+3. Pull opportunity reports: `npm run seo:gsc-report` (needs `gcloud` ADC — see `scripts/seo/README.md`).
 
 ## Build
 
