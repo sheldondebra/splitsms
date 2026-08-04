@@ -22,7 +22,7 @@ COPY . .
 # prisma.config.ts reads DATABASE_URL; generate does not need a live DB
 ARG DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build"
 ENV DATABASE_URL=$DATABASE_URL
-ARG NEXT_PUBLIC_APP_URL="http://localhost:3000"
+ARG NEXT_PUBLIC_APP_URL="https://www.splitsms.com"
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production

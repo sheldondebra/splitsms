@@ -7,10 +7,20 @@ const config: SiteConfig = raw;
 /** Production default from config/site.json (no env). */
 export const defaultSiteUrl = config.siteUrl.replace(/\/$/, "");
 
-/** Canonical production URL. Override with NEXT_PUBLIC_APP_URL in env. */
+/** Canonical public site URL. Never returns localhost in production builds. */
 export function getSiteUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
-  return fromEnv || defaultSiteUrl;
+  if (
+    fromEnv &&
+    !(
+      process.env.NODE_ENV === "production" &&
+      (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(fromEnv) ||
+        fromEnv.includes("localhost"))
+    )
+  ) {
+    return fromEnv;
+  }
+  return defaultSiteUrl;
 }
 
 /** Public REST API base, e.g. https://www.splitsms.com/api/v1 */
