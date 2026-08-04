@@ -74,6 +74,8 @@ export const dashboardNavSections: DashboardNavSection[] = [
       { href: "/dashboard/connect", label: "Connect", icon: Link2 },
       { href: "/dashboard/automation", label: "Automation", icon: Workflow },
       { href: "/dashboard/api-keys", label: "App connections", icon: Key },
+      { href: "/dashboard/integrations/google", label: "Google", icon: Link2 },
+      { href: "/dashboard/integrations/google/forms", label: "Google Forms SMS", icon: FileText },
       { href: "/dashboard/integrations/wordpress", label: "WordPress", icon: Puzzle },
       { href: "/developers", label: "Developers", icon: Code2 },
     ],

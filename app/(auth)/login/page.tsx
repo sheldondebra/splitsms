@@ -62,9 +62,7 @@ export default async function LoginPage({
     >
       <AuthCard>
         <AuthAlert code={reset === "success" ? "reset" : error} />
-        {hint === "slack" ? (
-          <AuthAlert code="slack_signin" className="mb-4" />
-        ) : null}
+        {hint === "slack" ? <AuthAlert code="slack_signin" /> : null}
 
         <GoogleAuthButton returnTo={returnTo} />
         <GoogleAuthDivider />
@@ -91,7 +89,14 @@ export default async function LoginPage({
 
         <div className="mt-6 pt-5 border-t border-border/50 space-y-3 text-center text-sm">
           {smsMode ? (
-            <Link href="/login" className="text-primary font-medium hover:underline">
+            <Link
+              href={
+                returnTo
+                  ? `/login?returnTo=${encodeURIComponent(returnTo)}`
+                  : "/login"
+              }
+              className="text-primary font-medium hover:underline"
+            >
               ← Sign in with email & password
             </Link>
           ) : null}

@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Clock, Tag } from "lucide-react";
 import type { BlogPost } from "@/lib/marketing/blog-posts";
-import { getSortedBlogPosts } from "@/lib/marketing/blog-posts";
+import { getRelatedBlogPosts } from "@/lib/marketing/blog-posts";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function BlogPostContent({ post }: { post: BlogPost }) {
-  const others = getSortedBlogPosts()
-    .filter((p) => p.slug !== post.slug)
-    .slice(0, 3);
+  const others = getRelatedBlogPosts(post, 3);
 
   return (
     <article className="bg-background">
@@ -30,6 +28,7 @@ export function BlogPostContent({ post }: { post: BlogPost }) {
               <Clock className="h-3 w-3" />
               {post.readTime}
             </span>
+            <time dateTime={post.published}>{post.published}</time>
           </div>
           <h1 className="mt-4 text-3xl md:text-4xl font-bold tracking-tight leading-tight">
             {post.title}
@@ -53,6 +52,27 @@ export function BlogPostContent({ post }: { post: BlogPost }) {
             </section>
           ))}
         </div>
+
+        <nav
+          className="mt-10 flex flex-wrap gap-x-4 gap-y-2 text-sm border-t border-border/60 pt-6"
+          aria-label="Related product pages"
+        >
+          <Link href="/google" className="font-medium text-primary hover:underline">
+            Google features
+          </Link>
+          <Link href="/features" className="font-medium text-primary hover:underline">
+            SMS features
+          </Link>
+          <Link href="/pricing" className="font-medium text-primary hover:underline">
+            Pricing
+          </Link>
+          <Link href="/integrations" className="font-medium text-primary hover:underline">
+            Integrations
+          </Link>
+          <Link href="/api-docs" className="font-medium text-primary hover:underline">
+            API docs
+          </Link>
+        </nav>
 
         <div className="mt-12 rounded-2xl border border-primary/20 bg-primary/5 p-6 md:p-8 text-center">
           <h2 className="text-lg font-semibold">Try SplitSMS free</h2>

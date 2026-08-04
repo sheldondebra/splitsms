@@ -20,6 +20,9 @@ import {
   UserPlus,
   Wallet,
   Webhook,
+  Cloud,
+  FileSpreadsheet,
+  Contact,
 } from "lucide-react";
 import { HomeBlogSection } from "@/components/marketing/home-blog-section";
 import {
@@ -118,6 +121,29 @@ const smartFormFeatures = [
   },
 ] as const;
 
+const googleFeatures = [
+  {
+    title: "Google Contacts",
+    desc: "Import contacts with phones — select one or select all — and export SplitSMS lists back to Google.",
+    icon: Contact,
+  },
+  {
+    title: "Sheets & Drive Excel",
+    desc: "Browse Drive, map phone columns, import as contacts, or jump straight into Send SMS.",
+    icon: FileSpreadsheet,
+  },
+  {
+    title: "Google Forms → SMS",
+    desc: "Click-and-work setup: pick a form, map the phone question, text respondents in about a minute.",
+    icon: FormInput,
+  },
+  {
+    title: "Smart Forms → Sheets",
+    desc: "Export form responses to a new Google Sheet so your team can filter and share in Drive.",
+    icon: Cloud,
+  },
+] as const;
+
 const faqs = [
   {
     q: "What is SplitSMS?",
@@ -134,6 +160,10 @@ const faqs = [
   {
     q: "Is there a WordPress or WooCommerce plugin?",
     a: `Yes — v${wordpressPlugin.version}. Order notifications, form SMS, and WooCommerce events without writing code.`,
+  },
+  {
+    q: "Can I connect Google Contacts, Sheets, and Forms?",
+    a: "Yes. Connect Google under Integrations to import contacts (select one or all), pull Sheets from Drive for SMS, automate Google Forms → SMS, and export Smart Forms to Sheets.",
   },
   {
     q: "Can I send to Nigeria and other countries?",
@@ -178,9 +208,9 @@ export function HomePageContent() {
             </div>
             <h1
               id="hero-heading"
-              className="text-4xl font-bold tracking-tight text-white md:text-5xl md:leading-[1.15]"
+              className="text-5xl font-bold tracking-tight text-white sm:text-6xl md:text-7xl md:leading-[1.1]"
             >
-              Send SMS without the enterprise price tag
+              Reach every customer by SMS — wallet-ready in minutes
             </h1>
             <p className="mt-5 text-lg text-white/85 leading-relaxed max-w-2xl">
               SplitSMS is a pay-as-you-go SMS platform for Ghana and 190+ countries. Run campaigns
@@ -315,15 +345,18 @@ export function HomePageContent() {
       </section>
 
       {/* What you can do */}
-      <section className="bg-muted/25 py-16 md:py-24" aria-labelledby="capabilities">
+      <section className="bg-primary py-16 md:py-24" aria-labelledby="capabilities">
         <div className="mx-auto max-w-6xl px-4">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div className="max-w-2xl">
-              <p className="text-sm font-medium text-primary">Use cases</p>
-              <h2 id="capabilities" className="mt-2 text-2xl font-bold tracking-tight md:text-3xl">
+              <p className="text-sm font-medium text-white/90">Use cases</p>
+              <h2
+                id="capabilities"
+                className="mt-2 text-2xl font-bold tracking-tight text-white md:text-3xl"
+              >
                 What teams use it for
               </h2>
-              <p className="mt-3 text-muted-foreground leading-relaxed">
+              <p className="mt-3 text-white/85 leading-relaxed">
                 One platform for campaigns, transactional SMS, and integrations — pick what fits your
                 workflow.
               </p>
@@ -333,7 +366,7 @@ export function HomePageContent() {
               className={cn(
                 buttonVariants({ variant: "outline", size: "sm" }),
                 marketingCtaClass,
-                "shrink-0 self-start pl-3.5 pr-1 md:self-auto",
+                "shrink-0 self-start border-white/50 bg-white/10 pl-3.5 pr-1 text-white hover:bg-white/20 hover:text-white md:self-auto",
               )}
             >
               All features
@@ -347,14 +380,14 @@ export function HomePageContent() {
               return (
                 <li
                   key={item.title}
-                  className="group rounded-xl border border-border/70 bg-card p-6 shadow-sm transition-colors hover:border-primary/35 hover:shadow-md"
+                  className="group rounded-xl border border-white/20 bg-white p-6 shadow-sm transition-colors hover:border-white hover:shadow-md"
                 >
                   <div className="flex items-start gap-4">
                     <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                       <Icon className="h-5 w-5" aria-hidden />
                     </span>
                     <div className="min-w-0 pt-0.5">
-                      <h3 className="font-semibold leading-snug">{item.title}</h3>
+                      <h3 className="font-semibold leading-snug text-foreground">{item.title}</h3>
                       <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                         {item.desc}
                       </p>
@@ -364,6 +397,74 @@ export function HomePageContent() {
               );
             })}
           </ul>
+        </div>
+      </section>
+
+      {/* Google Workspace */}
+      <section className="border-t py-16 md:py-24" aria-labelledby="google-features">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-sm font-medium text-primary">Google Workspace</p>
+              <h2
+                id="google-features"
+                className="mt-2 text-2xl font-bold tracking-tight md:text-3xl"
+              >
+                Connect Google to SplitSMS
+              </h2>
+              <p className="mt-3 text-muted-foreground leading-relaxed">
+                Import Contacts and Sheets from Drive, text people when a Google Form is submitted,
+                and export Smart Forms responses to Google Sheets — one Google connect, same wallet
+                and Sender ID.
+              </p>
+            </div>
+            <Link
+              href="/integrations/google"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                marketingCtaClass,
+                "shrink-0 self-start pl-3.5 pr-1 md:self-auto",
+              )}
+            >
+              Google integration
+              <MarketingCtaArrow size="sm" />
+            </Link>
+          </div>
+
+          <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {googleFeatures.map((item) => {
+              const Icon = item.icon;
+              return (
+                <li
+                  key={item.title}
+                  className="group rounded-xl border border-border/70 bg-card p-6 shadow-sm transition-colors hover:border-primary/35 hover:shadow-md"
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </span>
+                  <h3 className="mt-4 font-semibold leading-snug">{item.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="mt-10 flex flex-wrap gap-3">
+            <Link
+              href="/signup"
+              className={cn(buttonVariants({ size: "lg" }), marketingCtaClass, "font-semibold pl-5 pr-1.5")}
+            >
+              Get started free
+              <MarketingCtaArrow />
+            </Link>
+            <Link
+              href="/blog/connect-google-sheets-drive-export-sms"
+              className={cn(buttonVariants({ size: "lg", variant: "outline" }), marketingCtaClass, "pl-5 pr-1.5")}
+            >
+              Read the guides
+              <MarketingCtaArrow />
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -490,17 +591,20 @@ export function HomePageContent() {
       </section>
 
       {/* Integrations */}
-      <section className="border-t py-16 md:py-24" aria-labelledby="integrations">
+      <section className="bg-black py-16 md:py-24" aria-labelledby="integrations">
         <div className="mx-auto max-w-6xl px-4">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div className="max-w-2xl">
               <p className="text-sm font-medium text-primary">Plug in & go</p>
-              <h2 id="integrations" className="mt-2 text-2xl font-bold tracking-tight md:text-3xl">
+              <h2
+                id="integrations"
+                className="mt-2 text-2xl font-bold tracking-tight text-white md:text-3xl"
+              >
                 Integrations
               </h2>
-              <p className="mt-3 text-muted-foreground leading-relaxed">
-                WordPress plugin for stores and forms, or Connect APIs when you are embedding SMS
-                inside your own product.
+              <p className="mt-3 text-white/70 leading-relaxed">
+                Google Contacts, Sheets, and Forms; WordPress for stores; or Connect APIs when you
+                embed SMS inside your own product.
               </p>
             </div>
             <Link
@@ -508,7 +612,7 @@ export function HomePageContent() {
               className={cn(
                 buttonVariants({ variant: "outline", size: "sm" }),
                 marketingCtaClass,
-                "shrink-0 self-start pl-3.5 pr-1 md:self-auto",
+                "shrink-0 self-start border-white/40 bg-white/5 pl-3.5 pr-1 text-white hover:bg-white/15 hover:text-white md:self-auto",
               )}
             >
               Integration directory
@@ -518,27 +622,26 @@ export function HomePageContent() {
 
           <div className="mt-12 grid gap-6 lg:grid-cols-2 lg:gap-8">
             {/* WordPress */}
-            <article className="flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-              <div className="h-1 bg-primary" aria-hidden />
+            <article className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-sm backdrop-blur-sm">
               <div className="flex flex-1 flex-col p-6 sm:p-8">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 text-primary">
                       <Puzzle className="h-6 w-6" aria-hidden />
                     </span>
                     <div>
-                      <h3 className="text-lg font-bold">WordPress & WooCommerce</h3>
-                      <p className="mt-0.5 text-sm text-muted-foreground">
+                      <h3 className="text-lg font-bold text-white">WordPress & WooCommerce</h3>
+                      <p className="mt-0.5 text-sm text-white/60">
                         Official plugin · no custom code
                       </p>
                     </div>
                   </div>
-                  <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                  <span className="rounded-full border border-primary/40 bg-primary/15 px-3 py-1 text-xs font-semibold text-primary">
                     v{wordpressPlugin.version}
                   </span>
                 </div>
 
-                <p className="mt-5 text-sm text-muted-foreground leading-relaxed">
+                <p className="mt-5 text-sm text-white/70 leading-relaxed">
                   Install the plugin, paste your API key, and toggle SMS for orders, forms, and
                   Crocoblock events from wp-admin.
                 </p>
@@ -547,20 +650,20 @@ export function HomePageContent() {
                   {wordpressIntegrationFeatureGroups.slice(0, 4).map(({ title, items, icon: Icon }) => (
                     <li
                       key={title}
-                      className="rounded-lg border border-border/60 bg-muted/30 p-4 transition-colors hover:border-primary/25"
+                      className="rounded-lg border border-white/10 bg-white/5 p-4 transition-colors hover:border-primary/40"
                     >
                       <div className="flex items-center gap-2">
                         <Icon className="h-4 w-4 text-primary shrink-0" aria-hidden />
-                        <span className="text-sm font-semibold">{title}</span>
+                        <span className="text-sm font-semibold text-white">{title}</span>
                       </div>
-                      <p className="mt-2 text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                      <p className="mt-2 text-xs text-white/60 leading-relaxed line-clamp-2">
                         {items[0]}
                       </p>
                     </li>
                   ))}
                 </ul>
 
-                <div className="mt-8 flex flex-wrap gap-2 border-t border-border/60 pt-6">
+                <div className="mt-8 flex flex-wrap gap-2 border-t border-white/10 pt-6">
                   <Link
                     href="/integrations/wordpress"
                     className={cn(
@@ -577,7 +680,7 @@ export function HomePageContent() {
                     className={cn(
                       buttonVariants({ size: "sm", variant: "outline" }),
                       marketingCtaClass,
-                      "pl-3.5 pr-1",
+                      "border-white/40 bg-white/5 pl-3.5 pr-1 text-white hover:bg-white/15 hover:text-white",
                     )}
                   >
                     Download plugin
@@ -588,22 +691,21 @@ export function HomePageContent() {
             </article>
 
             {/* Connect */}
-            <article className="flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-              <div className="h-1 bg-foreground/80" aria-hidden />
+            <article className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-sm backdrop-blur-sm">
               <div className="flex flex-1 flex-col p-6 sm:p-8">
                 <div className="flex items-center gap-4">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-foreground/5 text-foreground">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 text-primary">
                     <Link2 className="h-6 w-6" aria-hidden />
                   </span>
                   <div>
-                    <h3 className="text-lg font-bold">SplitSMS Connect</h3>
-                    <p className="mt-0.5 text-sm text-muted-foreground">
+                    <h3 className="text-lg font-bold text-white">SplitSMS Connect</h3>
+                    <p className="mt-0.5 text-sm text-white/60">
                       For SaaS platforms & resellers
                     </p>
                   </div>
                 </div>
 
-                <p className="mt-5 text-sm text-muted-foreground leading-relaxed">
+                <p className="mt-5 text-sm text-white/70 leading-relaxed">
                   Provision embedded customers, allocate SMS credits, and register sender IDs over
                   REST — your users send through SplitSMS without leaving your app.
                 </p>
@@ -625,12 +727,12 @@ export function HomePageContent() {
                   ].map((item) => (
                     <li
                       key={item.title}
-                      className="flex gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3"
+                      className="flex gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3"
                     >
                       <CheckCircle2 className="h-5 w-5 shrink-0 text-primary mt-0.5" aria-hidden />
                       <div>
-                        <p className="text-sm font-semibold">{item.title}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
+                        <p className="text-sm font-semibold text-white">{item.title}</p>
+                        <p className="mt-0.5 text-xs text-white/60 leading-relaxed">
                           {item.desc}
                         </p>
                       </div>
@@ -638,7 +740,7 @@ export function HomePageContent() {
                   ))}
                 </ul>
 
-                <div className="mt-8 flex flex-wrap gap-2 border-t border-border/60 pt-6">
+                <div className="mt-8 flex flex-wrap gap-2 border-t border-white/10 pt-6">
                   <Link
                     href="/docs/connect"
                     className={cn(
@@ -655,7 +757,7 @@ export function HomePageContent() {
                     className={cn(
                       buttonVariants({ size: "sm", variant: "outline" }),
                       marketingCtaClass,
-                      "pl-3.5 pr-1",
+                      "border-white/40 bg-white/5 pl-3.5 pr-1 text-white hover:bg-white/15 hover:text-white",
                     )}
                   >
                     Developer portal
@@ -813,7 +915,7 @@ export function HomePageContent() {
         />
         <div className="relative mx-auto max-w-4xl px-6 text-center sm:px-10">
           <p className="text-sm font-medium text-primary">Get started today</p>
-          <h2 id="cta-heading" className="mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl md:leading-tight">
+          <h2 id="cta-heading" className="mt-3 text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl md:leading-tight">
             Try it with 5 free SMS
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-lg text-white/80 leading-relaxed">

@@ -20,14 +20,16 @@ export const pricingPageMetadata: Metadata = buildPageMetadata({
 
 export const featuresPageMetadata: Metadata = buildPageMetadata({
   absoluteTitle:
-    "Bulk SMS Features — Campaigns, OTP API, Webhooks & Ghana Pricing | SplitSMS",
+    "Bulk SMS Features — Campaigns, OTP API, Google & Ghana Pricing | SplitSMS",
   title: "Bulk SMS Features",
   description:
-    "Discover SplitSMS features: bulk SMS campaigns, contact management, OTP verification API, delivery webhooks, WooCommerce plugin, and affordable rates from GHS 0.029 in Ghana.",
+    "Discover SplitSMS features: bulk SMS campaigns, Google Contacts/Sheets/Forms, contact management, OTP API, delivery webhooks, WooCommerce plugin, and rates from GHS 0.029 in Ghana.",
   path: "/features",
   keywords: [
     "bulk SMS Ghana",
     "bulk SMS features",
+    "Google Forms SMS",
+    "Google Sheets SMS",
     "SMS marketing platform",
     "SMS API Africa",
     "OTP SMS API",
@@ -62,11 +64,14 @@ export const blogIndexMetadata: Metadata = {
 };
 
 export const integrationsHubMetadata: Metadata = buildPageMetadata({
-  title: "Integrations — WordPress, Paystack, Flutterwave & More",
+  title: "Integrations — Google, WordPress, Paystack & More",
   description:
-    "Connect SplitSMS to WordPress, Crocoblock, WooCommerce, Paystack, Flutterwave, Elementor Pro, and form plugins. Setup guides and SMS billing explained.",
+    "Connect SplitSMS to Google Contacts, Sheets, Forms, WordPress, Crocoblock, WooCommerce, Paystack, Flutterwave, and Elementor. Setup guides and SMS billing explained.",
   path: "/integrations",
   keywords: [
+    "Google Forms SMS",
+    "Google Sheets SMS",
+    "Google Contacts SMS",
     "WordPress SMS plugin",
     "WooCommerce SMS",
     "Paystack SMS",
@@ -122,8 +127,30 @@ export const sdkPageMetadata: Metadata = buildPageMetadata({
 export const smartFormsMetadata: Metadata = buildPageMetadata({
   title: "Smart Forms — Custom Forms with SMS Automation",
   description:
-    "Create custom forms, match your brand, share with short links and QR codes, collect leads, and send instant SMS replies automatically.",
+    "Create custom forms, match your brand, share with short links and QR codes, export responses to Google Sheets, and connect Google Forms for SMS confirmations.",
   path: "/smart-forms",
+  keywords: [
+    "Smart Forms",
+    "SMS form confirmation",
+    "Google Sheets export forms",
+    "Google Forms SMS",
+    "QR code forms Ghana",
+  ],
+});
+
+export const googleFeaturesMetadata: Metadata = buildPageMetadata({
+  title: "Google Features — Contacts, Sheets, Forms → SMS",
+  description:
+    "Connect Google to SplitSMS: import Contacts, pull Sheets from Drive, automate Google Forms → SMS, and export Smart Forms to Google Sheets.",
+  path: "/google",
+  keywords: [
+    "Google SMS integration",
+    "Google Contacts bulk SMS",
+    "Google Sheets SMS",
+    "Google Forms SMS",
+    "Smart Forms Google Sheets",
+    "SplitSMS Google",
+  ],
 });
 
 export const supportPageMetadata: Metadata = buildPageMetadata({

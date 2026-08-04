@@ -1,5 +1,6 @@
 import { AlertTriangle, Info } from "lucide-react";
 import { CopyButton } from "@/components/developers/copy-button";
+import { defaultSiteUrl } from "@/lib/site-config";
 
 type SdkNpmInstallNoticeProps = {
   installUrl: string;
@@ -7,6 +8,18 @@ type SdkNpmInstallNoticeProps = {
   apiInstallUrl?: string;
   className?: string;
 };
+
+function toPublicInstallUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+      return `${defaultSiteUrl}${parsed.pathname}${parsed.search}`;
+    }
+  } catch {
+    // fall through
+  }
+  return url;
+}
 
 /**
  * @splitsms/sdk is NOT on registry.npmjs.org — installs must use the SplitSMS-hosted .tgz URL.
@@ -16,10 +29,10 @@ export function SdkNpmInstallNotice({
   apiInstallUrl,
   className,
 }: SdkNpmInstallNoticeProps) {
-  const productionCmd = `npm install ${installUrl}`;
-  const apiCmd = apiInstallUrl ? `npm install ${apiInstallUrl}` : null;
-  const localDevCmd = "npm install http://localhost:3000/sdk/javascript/splitsms-sdk.tgz";
-  const localApiCmd = "npm install http://localhost:3000/api/sdk/javascript/tgz";
+  const publicInstallUrl = toPublicInstallUrl(installUrl);
+  const publicApiInstallUrl = apiInstallUrl ? toPublicInstallUrl(apiInstallUrl) : null;
+  const productionCmd = `npm install ${publicInstallUrl}`;
+  const apiCmd = publicApiInstallUrl ? `npm install ${publicApiInstallUrl}` : null;
 
   return (
     <div className={className ?? "space-y-4 max-w-3xl"}>
@@ -51,20 +64,20 @@ export function SdkNpmInstallNotice({
         <div className="flex gap-3">
           <Info className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" aria-hidden />
           <div className="min-w-0 space-y-1">
-            <p className="font-semibold text-foreground text-sm sm:text-base">Install now (local)</p>
+            <p className="font-semibold text-foreground text-sm sm:text-base">Install from SplitSMS</p>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Run from your app folder (must have a{" "}
-              <code className="text-xs bg-muted px-1 rounded">package.json</code>). With{" "}
-              <code className="text-xs bg-muted px-1 rounded">npm run dev</code> running in this
-              repo:
+              <code className="text-xs bg-muted px-1 rounded">package.json</code>). Packages are
+              hosted on{" "}
+              <code className="text-xs bg-muted px-1 rounded">{defaultSiteUrl}</code>:
             </p>
           </div>
         </div>
-        <InstallCommandBlock label="Dev server" command={localDevCmd} />
-        <InstallCommandBlock label="Dev API fallback" command={localApiCmd} />
+        <InstallCommandBlock label="Recommended" command={productionCmd} />
+        {apiCmd ? <InstallCommandBlock label="API fallback" command={apiCmd} /> : null}
         <p className="text-xs text-muted-foreground">
-          Or use a file path after{" "}
-          <code className="bg-muted px-1 rounded font-mono">npm run sync:sdks</code>:{" "}
+          Local file path (after{" "}
+          <code className="bg-muted px-1 rounded font-mono">npm run sync:sdks</code>):{" "}
           <code className="bg-muted px-1 rounded font-mono break-all">
             npm install ./path/to/splitsms/public/sdk/javascript/splitsms-sdk.tgz
           </code>
@@ -74,7 +87,7 @@ export function SdkNpmInstallNotice({
       <div className="rounded-lg bg-zinc-950 border border-white/10 overflow-hidden">
         <div className="flex items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
           <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
-            Production (after deploy)
+            Copy-ready
           </span>
           <CopyButton value={productionCmd} label="Copy" size="sm" />
         </div>
@@ -92,8 +105,8 @@ export function SdkNpmInstallNotice({
           </>
         ) : null}
         <p className="border-t border-white/10 px-3 py-2 text-xs text-amber-200/80">
-          If splitsms.com returns 404, the latest build is not live yet — use the local commands
-          above, then redeploy this app (<code className="font-mono">npm run build</code> runs{" "}
+          If the live site returns 404, the latest build is not deployed yet — use the local file
+          path above, then redeploy this app (<code className="font-mono">npm run build</code> runs{" "}
           <code className="font-mono">sync:sdks</code> automatically).
         </p>
       </div>

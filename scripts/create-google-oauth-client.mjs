@@ -18,6 +18,9 @@ const REDIRECTS = [
   "http://localhost:3000/api/auth/google/callback",
   "https://splitsms.com/api/auth/google/callback",
   "https://www.splitsms.com/api/auth/google/callback",
+  "http://localhost:3000/api/integrations/google/callback",
+  "https://splitsms.com/api/integrations/google/callback",
+  "https://www.splitsms.com/api/integrations/google/callback",
 ];
 const PROFILE_DIR = join(root, ".tmp-google-oauth-profile");
 const ENV_PATH = join(root, ".env");

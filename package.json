@@ -17,6 +17,7 @@
     "setup:google-oauth": "node scripts/setup-google-oauth.mjs",
     "seo:gsc-report": "tsx scripts/seo/gsc-report.ts",
     "seo:install-verification": "node scripts/seo/install-verification-file.mjs",
+    "seo:ping-sitemap": "node scripts/seo/ping-sitemap.mjs",
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
@@ -29,7 +30,8 @@
     "worker:campaigns": "tsx workers/campaign-scheduler.ts",
     "worker:reports": "tsx workers/report-sync.processor.ts",
     "worker:webhooks": "tsx workers/webhook-retry.ts",
-    "worker:smpp": "tsx workers/smpp-gateway.ts"
+    "worker:smpp": "tsx workers/smpp-gateway.ts",
+    "worker:google-forms": "tsx workers/google-forms-sms.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

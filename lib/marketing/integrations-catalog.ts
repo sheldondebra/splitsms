@@ -33,9 +33,64 @@ const LOGO = {
   cf7: "https://cdn.simpleicons.org/contactform7/0073AA",
   wpforms: "https://cdn.simpleicons.org/wpforms/E27730",
   elementor: "https://cdn.simpleicons.org/elementor/92003B",
+  google: "https://cdn.simpleicons.org/google/4285F4",
 };
 
 export const integrationsCatalog: IntegrationDef[] = [
+  {
+    slug: "google",
+    name: "Google",
+    tagline: "Contacts, Sheets / Drive Excel, Forms → SMS & Smart Forms export",
+    category: "platform",
+    logoSrc: LOGO.google,
+    brandColor: "#4285F4",
+    metaDescription:
+      "Connect Google to SplitSMS: import Contacts (select one or all), import Sheets/Excel from Drive for bulk SMS, Google Forms → SMS automation, and export Smart Forms to Google Sheets.",
+    heroDescription:
+      "Connect Google once in your SplitSMS dashboard. Import contacts, pull Sheets or Excel from Drive to send SMS, trigger texts when Google Forms are submitted, and export Smart Forms responses to Sheets.",
+    overview:
+      "Google Workspace is where many Ghana teams already keep lists and forms. SplitSMS Connect Google bridges that stack to bulk SMS, OTP-ready Sender IDs, and delivery reports—without Zapier for the common paths.",
+    howSplitSmsWorks: [
+      "Connect Google under Dashboard → Integrations → Google (separate from Sign in with Google).",
+      "Scopes are incremental: Contacts, Sheets/Drive, or Forms are requested only when you use those features.",
+      "Contacts import lets you preview Google Contacts with phones, then select one row or Select all.",
+      "Sheets/Drive import maps phone columns for contact save or Send SMS; Smart Forms can export a new Sheet.",
+      "Google Forms → SMS watches new responses (~45s) and queues SMS with your wallet and Sender ID.",
+    ],
+    setupSteps: [
+      {
+        title: "Create a SplitSMS account",
+        body: "Sign up, top up credits, and approve a Sender ID you will use for Google-triggered messages.",
+      },
+      {
+        title: "Connect Google",
+        body: "Open Dashboard → Integrations → Google and complete OAuth. Reconnect later to add Contacts, Sheets, or Forms scopes.",
+      },
+      {
+        title: "Import or automate",
+        body: "Contacts → Import for Google Contacts or Drive Sheets. Integrations → Google Forms SMS for form automations. Responses → Export to Google Sheets on any Smart Form.",
+      },
+      {
+        title: "Send and monitor",
+        body: "Use Send SMS or campaigns as usual. Delivery logs and wallet debits appear in SplitSMS like any other send.",
+      },
+    ],
+    capabilities: [
+      "Google Contacts import (select one / select all)",
+      "Export SplitSMS contacts to Google Contacts",
+      "Import Google Sheets & Excel from Drive",
+      "Send SMS from Sheet phone columns",
+      "Export Smart Forms responses to Google Sheets",
+      "Google Forms → SMS (click-and-work, near real-time)",
+      "Incremental OAuth scopes & disconnect anytime",
+    ],
+    relatedSlugs: ["wordpress", "woocommerce", "paystack"],
+    primaryCta: { label: "Open Google integration", href: "/signup" },
+    secondaryCta: {
+      label: "Read Google guides",
+      href: "/blog/connect-google-sheets-drive-export-sms",
+    },
+  },
   {
     slug: "wordpress",
     name: "WordPress",
@@ -83,7 +138,7 @@ export const integrationsCatalog: IntegrationDef[] = [
       "Local + cloud message logs",
       "One-click plugin updates",
     ],
-    relatedSlugs: ["woocommerce", "crocoblock", "paystack", "elementor-pro"],
+    relatedSlugs: ["woocommerce", "crocoblock", "paystack", "elementor-pro", "google"],
     primaryCta: { label: "Download plugin", href: wordpressPlugin.downloadUrl, external: true },
     secondaryCta: { label: "API documentation", href: "/api-docs" },
   },

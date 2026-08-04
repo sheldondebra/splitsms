@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Mail } from "lucide-react";
 import { loginPasswordAction } from "@/lib/actions/auth";
 import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 import { PasswordField } from "@/components/auth/password-field";
@@ -17,17 +18,23 @@ export function LoginPasswordForm({
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <div className="space-y-2">
         <Label htmlFor="login-email">Email</Label>
-        <Input
-          id="login-email"
-          name="email"
-          type="email"
-          inputMode="email"
-          placeholder="you@company.com"
-          defaultValue={defaultEmail}
-          required
-          autoComplete="email"
-          className="h-11 text-base"
-        />
+        <div className="relative">
+          <Mail
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <Input
+            id="login-email"
+            name="email"
+            type="email"
+            inputMode="email"
+            placeholder="you@company.com"
+            defaultValue={defaultEmail}
+            required
+            autoComplete="email"
+            className="h-11 pl-10 text-base"
+          />
+        </div>
       </div>
       <PasswordField
         id="login-password"

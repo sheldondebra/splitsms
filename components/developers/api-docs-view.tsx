@@ -4,16 +4,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiDocSections, API_BASE_HINT } from "@/lib/developers/api-reference";
 import { EndpointCard } from "@/components/developers/endpoint-card";
 import { CopyButton } from "@/components/developers/copy-button";
+import { cn } from "@/lib/utils";
 import {
-  Shield,
-  Wallet,
-  Send,
-  Users,
-  Megaphone,
-  KeyRound,
-  Puzzle,
-  Link2,
   BadgeCheck,
+  KeyRound,
+  Link2,
+  Megaphone,
+  Puzzle,
+  Send,
+  Shield,
+  Users,
+  Wallet,
 } from "lucide-react";
 
 const sectionIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -30,36 +31,51 @@ const sectionIcons: Record<string, React.ComponentType<{ className?: string }>> 
 
 export function ApiDocsView({ baseUrl }: { baseUrl?: string }) {
   const authHeader = `Authorization: Bearer YOUR_API_KEY`;
+  const sections = apiDocSections.filter((s) => s.id !== "auth");
 
   return (
     <div className="space-y-8">
       <CardAuthBlock authHeader={authHeader} baseUrl={baseUrl ?? API_BASE_HINT} />
 
-      <Tabs defaultValue="sms" className="w-full">
-        <TabsList className="sticky top-16 z-10 flex flex-wrap h-auto gap-1 bg-muted/80 backdrop-blur-md p-1.5 rounded-xl border border-border/50 shadow-sm">
-          {apiDocSections
-            .filter((s) => s.id !== "auth")
-            .map((s) => {
+      <Tabs defaultValue="sms" className="w-full gap-0">
+        <div className="sticky top-16 z-10 -mx-1 bg-background/90 px-1 py-2 backdrop-blur-md">
+          <TabsList
+            className={cn(
+              "!h-auto grid w-full grid-cols-2 gap-1.5 rounded-2xl border border-border/60",
+              "bg-muted/50 p-2 shadow-sm sm:grid-cols-4 lg:grid-cols-8",
+            )}
+          >
+            {sections.map((s) => {
               const Icon = sectionIcons[s.id] ?? Send;
               return (
                 <TabsTrigger
                   key={s.id}
                   value={s.id}
-                  className="h-9 gap-1.5 rounded-lg px-3 text-xs sm:text-sm"
+                  className={cn(
+                    "group/tab !h-auto min-h-11 w-full flex-none flex-col gap-1 rounded-xl px-2 py-2.5",
+                    "text-[11px] font-semibold leading-tight sm:text-xs",
+                    "text-muted-foreground hover:bg-background/70 hover:text-foreground",
+                    "data-active:bg-primary data-active:text-primary-foreground data-active:shadow-md data-active:shadow-primary/25",
+                    "dark:data-active:bg-primary dark:data-active:text-primary-foreground",
+                  )}
                 >
-                  <Icon className="h-3.5 w-3.5" />
-                  {s.title}
+                  <Icon className="size-4 opacity-80 group-data-active/tab:opacity-100" />
+                  <span>{s.title}</span>
                 </TabsTrigger>
               );
             })}
-        </TabsList>
+          </TabsList>
+        </div>
 
-        {apiDocSections
-          .filter((s) => s.id !== "auth")
-          .map((section) => (
+        {sections.map((section) => {
+          const Icon = sectionIcons[section.id] ?? Send;
+          return (
             <TabsContent key={section.id} value={section.id} className="mt-6 space-y-4">
               <div>
-                <h2 className="text-lg font-semibold">{section.title}</h2>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Icon className="h-5 w-5 text-primary" aria-hidden />
+                  {section.title}
+                </h2>
                 <p className="text-sm text-muted-foreground mt-1">{section.description}</p>
               </div>
               <div className="space-y-3">
@@ -72,7 +88,8 @@ export function ApiDocsView({ baseUrl }: { baseUrl?: string }) {
                 ))}
               </div>
             </TabsContent>
-          ))}
+          );
+        })}
       </Tabs>
 
       <ErrorsBlock />

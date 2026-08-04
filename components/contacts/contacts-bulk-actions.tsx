@@ -7,6 +7,7 @@ import {
   bulkTagContactsAction,
   bulkMoveToGroupAction,
 } from "@/lib/actions/contacts";
+import { exportContactsToGoogleAction } from "@/lib/actions/google-contacts";
 import { buildSendToContactsUrl } from "@/lib/contacts/send-link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,6 +91,14 @@ export function ContactsBulkActions({
             </Button>
           </form>
         ) : null}
+
+        <form action={exportContactsToGoogleAction}>
+          <input type="hidden" name="mode" value="selected" />
+          <input type="hidden" name="contactIds" value={JSON.stringify(selectedIds)} />
+          <Button type="submit" size="sm" variant="outline" className="h-10 w-full sm:w-auto">
+            Export selected to Google
+          </Button>
+        </form>
 
         <form action={bulkDeleteContactsAction}>
           <input type="hidden" name="ids" value={idsValue} />

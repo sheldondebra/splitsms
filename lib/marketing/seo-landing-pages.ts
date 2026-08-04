@@ -349,14 +349,16 @@ export const seoLandingPages: SeoLandingPage[] = [
   },
   {
     slug: "sms-integration",
-    title: "SMS Integration — REST API, WordPress & Webhooks | SplitSMS",
-    h1: "SMS Integration for Apps, WordPress & SaaS",
+    title: "SMS Integration — REST API, Google, WordPress & Webhooks | SplitSMS",
+    h1: "SMS Integration for Apps, Google Workspace, WordPress & SaaS",
     excerpt:
-      "SMS integration via REST API, WordPress plugin, WooCommerce, webhooks, SplitSMS Connect, and SDKs. One API key for bulk SMS, OTP, and transactional messages.",
+      "SMS integration via REST API, Google Workspace, WordPress plugin, WooCommerce, webhooks, SplitSMS Connect, and SDKs. One API key for bulk SMS, OTP, and transactional messages.",
     keywords: [
       "SMS integration",
       "integrate SMS API",
       "SMS API integration",
+      "Google Forms SMS",
+      "Google Sheets SMS",
       "WordPress SMS integration",
       "WooCommerce SMS integration",
       "SMS webhook integration",
@@ -366,7 +368,7 @@ export const seoLandingPages: SeoLandingPage[] = [
     sections: [
       {
         paragraphs: [
-          "SMS integration should not take a quarter. SplitSMS gives you a REST API for custom apps, an official WordPress plugin for WooCommerce and forms, SplitSMS Connect for SaaS embeds, and delivery webhooks for your backend — one wallet, one set of API keys.",
+          "SMS integration should not take a quarter. SplitSMS gives you Google Contacts/Sheets/Forms connect, a REST API for custom apps, an official WordPress plugin for WooCommerce and forms, SplitSMS Connect for SaaS embeds, and delivery webhooks — one wallet, one set of API keys.",
         ],
       },
       {
@@ -382,6 +384,12 @@ export const seoLandingPages: SeoLandingPage[] = [
         ],
       },
       {
+        heading: "Google Workspace integration",
+        paragraphs: [
+          "Connect Google for Contacts import, Sheets/Excel from Drive → SMS, Google Forms → SMS, and Smart Forms export to Sheets—without Zapier for the common loops. See /integrations/google.",
+        ],
+      },
+      {
         heading: "SaaS & reseller integration",
         paragraphs: [
           "SplitSMS Connect provisions sub-accounts with wallets and sender IDs over REST. Resellers get white-label domains, custom pricing, and commission on client usage.",
@@ -392,7 +400,7 @@ export const seoLandingPages: SeoLandingPage[] = [
       {
         question: "What is the fastest SMS integration path?",
         answer:
-          "WordPress stores: install the SplitSMS plugin. Custom apps: REST API with sandbox keys. SaaS platforms: SplitSMS Connect sub-accounts. Most teams go live the same day.",
+          "WordPress stores: install the SplitSMS plugin. Google Workspace teams: Connect Google. Custom apps: REST API with sandbox keys. SaaS platforms: SplitSMS Connect sub-accounts.",
       },
       {
         question: "Does SplitSMS support SMS webhooks?",
@@ -401,12 +409,13 @@ export const seoLandingPages: SeoLandingPage[] = [
       },
     ],
     relatedLinks: [
+      { href: "/integrations/google", label: "Google integration" },
       { href: "/integrations", label: "Integrations hub" },
       { href: "/docs/connect", label: "Connect API" },
       { href: "/api-docs", label: "REST API docs" },
     ],
     primaryCta: { href: "/api-docs", label: "Start with API docs" },
-    secondaryCta: { href: "/integrations", label: "Browse integrations" },
+    secondaryCta: { href: "/integrations/google", label: "Connect Google" },
   },
 ];
 

@@ -3,7 +3,6 @@ import {
   Send,
   Shield,
   Zap,
-  Globe,
   BarChart3,
   Code2,
   Users,
@@ -16,6 +15,8 @@ import {
   Puzzle,
   ArrowRight,
   CheckCircle2,
+  Cloud,
+  LayoutTemplate,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -40,9 +41,9 @@ const sellingPoints = [
     desc: "Top up with Paystack, buy SMS credits, and see every charge. No surprise invoices or annual contracts.",
   },
   {
-    icon: Globe,
-    title: "Smart global routing",
-    desc: "Infobip, Twilio, and regional gateways with automatic failover across 190+ countries.",
+    icon: LayoutTemplate,
+    title: "Smart Forms + SMS automation",
+    desc: "Build branded forms with short links and QR codes, save leads to contacts, and send instant SMS confirmations to respondents and admins.",
   },
   {
     icon: Code2,
@@ -61,8 +62,14 @@ const coreFeatures = [
   {
     icon: FileSpreadsheet,
     title: "Contact management",
-    desc: "Import spreadsheets, deduplicate numbers, tag audiences, and segment by country — ready for your next blast.",
-    tags: ["CSV import", "Groups", "Search"],
+    desc: "Import spreadsheets, Google Contacts, or Drive Sheets; deduplicate numbers; tag audiences; and segment by country.",
+    tags: ["CSV / Excel", "Google Contacts", "Groups"],
+  },
+  {
+    icon: Cloud,
+    title: "Google Workspace",
+    desc: "Connect Google for Contacts import (select one or all), Sheets/Excel → SMS, Google Forms → SMS, and Smart Forms export to Sheets.",
+    tags: ["Drive", "Forms", "Sheets"],
   },
   {
     icon: BadgeCheck,
@@ -141,12 +148,17 @@ const comparisons = [
   { label: "Transparent pricing", split: "Per country", other: "Variable / opaque" },
   { label: "Wallet + Paystack", split: "Yes", other: "Often invoice-only" },
   { label: "WordPress plugin", split: "Included", other: "Custom dev" },
+  { label: "Google Contacts / Sheets / Forms", split: "Native connect", other: "Zapier-only" },
 ];
 
 const faqs = [
   {
     q: "What is bulk SMS and how is SplitSMS different?",
     a: "Bulk SMS lets you send the same (or personalized) message to many phone numbers at once. SplitSMS combines a simple campaign UI, transparent per-country rates, developer APIs, and multi-carrier routing in one platform.",
+  },
+  {
+    q: "Can I connect Google Drive, Forms, and Contacts?",
+    a: "Yes. Connect Google under Dashboard → Integrations → Google. Import Contacts (select one or all), import Sheets/Excel from Drive for SMS, automate Google Forms → SMS, and export Smart Forms to Google Sheets. Details at /integrations/google.",
   },
   {
     q: "Can I send SMS internationally?",

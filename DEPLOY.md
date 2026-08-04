@@ -13,8 +13,9 @@ npm run sync:site-config
 | `DATABASE_URL` | Yes | PostgreSQL (e.g. Neon) |
 | `NEXT_PUBLIC_APP_URL` | Yes in production | e.g. `https://www.splitsms.com` |
 | `SESSION_SECRET` | Yes | Long random string |
-| `GOOGLE_CLIENT_ID` | For Google login | OAuth 2.0 Web client ID (GCP project `splitsms`) |
-| `GOOGLE_CLIENT_SECRET` | For Google login | OAuth 2.0 Web client secret |
+| `GOOGLE_CLIENT_ID` | For Google login + Integrations | OAuth 2.0 Web client ID (GCP project `splitsms`) |
+| `GOOGLE_CLIENT_SECRET` | For Google login + Integrations | OAuth 2.0 Web client secret |
+| `GOOGLE_TOKEN_ENCRYPTION_KEY` | Recommended in production | 32-byte key, base64 — encrypts Google refresh tokens for Integrations. If unset, derived from `SESSION_SECRET`. |
 | `GOOGLE_SITE_VERIFICATION` | For Search Console | Meta-tag token from Google Search Console (public HTML) |
 | `REDIS_URL` | Optional | BullMQ queue storage. Without workers, sends run inline on the web app. |
 | `SMS_WORKERS_ENABLED` | Optional | Set to `true` only when `npm run worker:sms` runs on a separate host (Railway, Render, VPS). |
@@ -33,9 +34,14 @@ Google’s consumer **Sign in with Google** Web client IDs cannot be created wit
    - `http://localhost:3000/api/auth/google/callback`
    - `https://splitsms.com/api/auth/google/callback`
    - `https://www.splitsms.com/api/auth/google/callback`
-   - (optional) your Cloud Run staging URL + `/api/auth/google/callback`
+   - `http://localhost:3000/api/integrations/google/callback` (Integrations connect)
+   - `https://splitsms.com/api/integrations/google/callback`
+   - `https://www.splitsms.com/api/integrations/google/callback`
+   - (optional) your Cloud Run staging URL + `/api/auth/google/callback` and `/api/integrations/google/callback`
 4. Put `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env` / Cloud Run env.
 5. Publish the OAuth app (or add test users while in Testing).
+6. For Contacts / Sheets / Forms, enable People API, Google Sheets API, Google Drive API, and Google Forms API on the GCP project, and add the matching scopes on the OAuth consent screen as those features ship.
+7. Run Google Forms SMS poller in production: `npm run worker:google-forms` (or cron `GET/POST /api/cron/google-forms-sms` with `Authorization: Bearer $CRON_SECRET`).
 
 ### Google Search Console (SEO)
 

@@ -49,14 +49,6 @@ export function googleCallbackUri(origin: string) {
 /** Public origin for OAuth redirect_uri (Cloud Run binds to 0.0.0.0 — never use that). */
 export function resolveGoogleOAuthOrigin(request: Request): string {
   const envUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
-  if (
-    envUrl &&
-    !envUrl.includes("localhost") &&
-    !envUrl.includes("127.0.0.1") &&
-    !envUrl.includes("0.0.0.0")
-  ) {
-    return envUrl;
-  }
 
   const host = (
     request.headers.get("x-forwarded-host") ??
@@ -66,17 +58,37 @@ export function resolveGoogleOAuthOrigin(request: Request): string {
     .split(",")[0]
     ?.trim();
 
+  const isLocalHost =
+    Boolean(host) &&
+    (host.startsWith("localhost") || host.startsWith("127.0.0.1"));
+
+  // Local Next.js must use the browser host — never force production APP_URL
+  // (that causes Google Error 400: redirect_uri_mismatch).
+  if (isLocalHost) {
+    const proto =
+      request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || "http";
+    return `${proto}://${host}`.replace(/\/$/, "");
+  }
+
   const badHost =
     !host ||
     host.startsWith("0.0.0.0") ||
-    host.startsWith("127.0.0.1") ||
     /^\d+\.\d+\.\d+\.\d+(:\d+)?$/.test(host);
 
+  // Prefer the live request host so www vs apex matches the tab the user is on.
   if (!badHost) {
     const proto =
-      request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ||
-      (host.includes("localhost") ? "http" : "https");
+      request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || "https";
     return `${proto}://${host}`.replace(/\/$/, "");
+  }
+
+  if (
+    envUrl &&
+    !envUrl.includes("localhost") &&
+    !envUrl.includes("127.0.0.1") &&
+    !envUrl.includes("0.0.0.0")
+  ) {
+    return envUrl;
   }
 
   if (envUrl) return envUrl;

@@ -52,6 +52,7 @@ export const platformDocsChapters: DocChapter[] = [
             rows: [
               ["Dashboard", "Campaigns, contacts, sender IDs, wallet, reports, and support"],
               ["REST API v1", "Send SMS, OTP, contacts, campaigns, webhooks, WordPress sync"],
+              ["Google", "Contacts, Sheets/Drive Excel, Forms → SMS, Smart Forms → Sheets"],
               ["WordPress plugin", `WooCommerce, CF7, WPForms, Elementor Pro, Crocoblock / JetEngine (v${site.wordpressPlugin.version})`],
               ["Routing", "Infobip, Twilio, and mNotify with automatic failover"],
               ["Billing", "Prepaid wallet — Paystack, Flutterwave, MoMo, Stripe where enabled"],
@@ -60,7 +61,7 @@ export const platformDocsChapters: DocChapter[] = [
           {
             type: "note",
             title: "Who this documentation is for",
-            text: "Account owners and marketers should start with Getting started and Dashboard guide. Developers should read REST API and SDKs. WordPress site owners should read the WordPress plugin chapter.",
+            text: "Account owners and marketers should start with Getting started and Dashboard guide. Developers should read REST API and SDKs. WordPress site owners should read the WordPress plugin chapter. Google Workspace users should read Google integration.",
           },
         ],
       },
@@ -459,6 +460,81 @@ const expected = crypto
   .update(rawBody)
   .digest("hex");
 if (expected !== signature) throw new Error("Invalid signature");`,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "google",
+    title: "Google integration",
+    description:
+      "Connect Google for Contacts, Sheets/Drive, Forms → SMS, and Smart Forms export to Sheets.",
+    subsections: [
+      {
+        id: "google-overview",
+        title: "How Connect Google works",
+        blocks: [
+          {
+            type: "p",
+            text: "Connect Google is separate from Sign in with Google. It stores an encrypted refresh token so SplitSMS can call Contacts, Sheets, Drive, and Forms APIs after you approve OAuth scopes.",
+          },
+          {
+            type: "ol",
+            items: [
+              "Open Dashboard → Integrations → Google and click Connect Google.",
+              "Grant base identity scopes, then add Contacts, Sheets, or Forms when a feature asks.",
+              "Use Contacts → Import for Google Contacts or Drive Sheets; Responses → Export for Sheets; Integrations → Google Forms SMS for automations.",
+              "Disconnect anytime — feature configs stay, but API calls require reconnect.",
+            ],
+          },
+          {
+            type: "note",
+            title: "Marketing overview",
+            text: "Product page: [Integrations → Google](/integrations/google). Guides: [Sheets & Drive](/blog/connect-google-sheets-drive-export-sms), [Forms → SMS](/blog/google-forms-sms-automation-splitsms), [Contacts](/blog/import-google-contacts-bulk-sms).",
+          },
+        ],
+      },
+      {
+        id: "google-contacts",
+        title: "Google Contacts",
+        blocks: [
+          {
+            type: "ul",
+            items: [
+              "Load contacts that have phone numbers",
+              "Select a single contact or Select all before import",
+              "Export selected or all SplitSMS contacts back to Google Contacts",
+            ],
+          },
+        ],
+      },
+      {
+        id: "google-sheets",
+        title: "Google Sheets & Drive",
+        blocks: [
+          {
+            type: "ul",
+            items: [
+              "Browse Sheets and Excel files on Drive",
+              "Map phone (and name) columns, import as contacts or open Send SMS",
+              "Export Smart Forms responses to a new Google Sheet from the Responses page",
+            ],
+          },
+        ],
+      },
+      {
+        id: "google-forms-sms",
+        title: "Google Forms → SMS",
+        blocks: [
+          {
+            type: "p",
+            text: "Open Dashboard → Integrations → Google Forms SMS, pick a form, map the phone question, choose a Sender ID and message template. A worker polls roughly every 45 seconds and queues SMS for new responses (historical responses skipped by default).",
+          },
+          {
+            type: "warning",
+            title: "Credits",
+            text: "Automations pause when wallet/credits are insufficient. Top up and resume the automation.",
           },
         ],
       },
@@ -981,6 +1057,7 @@ export const docsQuickLinks = [
   { href: "/api-docs", label: "API reference", desc: "Interactive endpoints & cURL" },
   { href: "/docs/sdk", label: "SDKs", desc: "JavaScript, PHP, Flutter" },
   { href: "/docs/mobile", label: "Mobile", desc: "Flutter app integration" },
+  { href: "/integrations/google", label: "Google", desc: "Contacts, Sheets, Forms → SMS" },
   { href: "/integrations/wordpress", label: "WordPress", desc: "Plugin setup & WooCommerce" },
   { href: "/changelog", label: "Changelog", desc: "Platform & plugin releases" },
   { href: "/support", label: "Support", desc: "Contact Tecunit" },

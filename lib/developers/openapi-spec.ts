@@ -380,6 +380,13 @@ export function buildLlmsTxt(siteUrl: string, apiBaseUrl: string): string {
 - WooCommerce SMS: ${base}/solutions/woocommerce-sms
 - Paystack SMS: ${base}/solutions/paystack-sms
 - SMS integration: ${base}/solutions/sms-integration
+- Google features: ${base}/google
+- Google integration: ${base}/integrations/google
+- Smart Forms: ${base}/smart-forms
+- Blog: ${base}/blog
+- How to choose SplitSMS: ${base}/blog/how-to-choose-splitsms
+- SplitSMS for websites: ${base}/blog/splitsms-for-your-website
+- Event SMS playbook: ${base}/blog/event-sms-playbook-ghana
 - SDK install: ${base}/sdk
 - Postman: ${base}/developers/postman
 

@@ -233,6 +233,8 @@ model User {
   smartFormAnalyticsEvents  SmartFormAnalyticsEvent[]
   smartFormExports          SmartFormExport[]
   emailMarketingCampaigns   EmailMarketingCampaign[] @relation("EmailMarketingCampaignCreator")
+  googleConnection          GoogleConnection?
+  googleFormSmsAutomations  GoogleFormSmsAutomation[]
 }
 
 model MemberAccount {
@@ -1343,4 +1345,58 @@ model EmailMarketingDelivery {
 
   @@index([campaignId, status])
   @@index([email])
+}
+
+/// OAuth connection for Google product APIs (Contacts/Sheets/Forms) — separate from Google Sign-In.
+model GoogleConnection {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  googleSubject         String
+  email                 String
+  encryptedRefreshToken String
+  scopes                String[]  @default([])
+  tokenExpiry           DateTime?
+  lastError             String?
+  connectedAt           DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([googleSubject])
+}
+
+model GoogleFormSmsAutomation {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  formId          String
+  formTitle       String?
+  phoneFieldId    String
+  questionTitles  Json?
+  senderId        String
+  messageTemplate String
+  isActive        Boolean   @default(true)
+  cursor          String?
+  lastPolledAt    DateTime?
+  lastError       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  sends           GoogleFormSmsSend[]
+
+  @@unique([userId, formId])
+  @@index([isActive, lastPolledAt])
+  @@index([userId])
+}
+
+model GoogleFormSmsSend {
+  id           String   @id @default(cuid())
+  automationId String
+  automation   GoogleFormSmsAutomation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  responseId   String
+  phone        String?
+  status       String
+  error        String?
+  createdAt    DateTime @default(now())
+
+  @@unique([automationId, responseId])
+  @@index([automationId, createdAt])
 }

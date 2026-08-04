@@ -54,6 +54,9 @@ console.log("2) Authorized redirect URIs:");
 console.log("   http://localhost:3000/api/auth/google/callback");
 console.log("   https://splitsms.com/api/auth/google/callback");
 console.log("   https://www.splitsms.com/api/auth/google/callback");
+console.log("   http://localhost:3000/api/integrations/google/callback");
+console.log("   https://splitsms.com/api/integrations/google/callback");
+console.log("   https://www.splitsms.com/api/integrations/google/callback");
 console.log("");
 console.log("3) Add to .env:");
 console.log("   GOOGLE_CLIENT_ID=....apps.googleusercontent.com");
@@ -63,7 +66,18 @@ console.log(
   `Local env: GOOGLE_CLIENT_ID=${hasId ? "set" : "MISSING"}, GOOGLE_CLIENT_SECRET=${hasSecret ? "set" : "MISSING"}`,
 );
 
+const INTEGRATIONS_URL =
+  "https://console.cloud.google.com/apis/dashboard?project=splitsms";
+
 if (process.platform === "darwin") {
   spawnSync("open", [CONSOLE_URL], { stdio: "ignore" });
-  console.log("Opened Google Auth Platform in your browser.");
+  spawnSync(
+    "open",
+    [
+      "https://console.cloud.google.com/auth/clients?project=splitsms",
+    ],
+    { stdio: "ignore" },
+  );
+  console.log("Opened Google Auth Platform clients in your browser.");
+  console.log(`APIs dashboard: ${INTEGRATIONS_URL}`);
 }

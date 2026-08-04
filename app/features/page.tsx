@@ -34,6 +34,7 @@ const featuresJsonLd = [
     featureList: [
       "Bulk SMS campaigns",
       "Contact CSV import and groups",
+      "Google Contacts, Sheets, and Forms SMS",
       "SMS OTP send and verify API",
       "Delivery webhooks",
       "REST API and Postman collection",

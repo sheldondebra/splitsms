@@ -13,6 +13,7 @@ import {
   ArrowRight,
   Wallet,
   Code2,
+  Link2,
 } from "lucide-react";
 
 export function ConnectHub({ data }: { data: Awaited<ReturnType<typeof getConnectDashboardData>> }) {
@@ -81,6 +82,7 @@ export function ConnectHub({ data }: { data: Awaited<ReturnType<typeof getConnec
                 { href: "/dashboard/api-keys", label: "API keys", icon: Key },
                 { href: "/api-docs", label: "API reference", icon: Code2 },
                 { href: "/dashboard/sender-ids", label: "Sender IDs", icon: BadgeCheck },
+                { href: "/dashboard/integrations/google", label: "Google", icon: Link2 },
                 { href: "/dashboard/integrations/wordpress", label: "WordPress", icon: Puzzle },
                 { href: "/docs/connect", label: "Connect docs", icon: ArrowRight },
               ].map((item) => (

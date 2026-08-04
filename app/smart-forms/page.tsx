@@ -310,6 +310,51 @@ export default function SmartFormsMarketingPage() {
         </div>
       </section>
 
+      <section className="w-full border-y border-border/60 bg-muted/30 py-14">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Google Workspace</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+            Pair Smart Forms with Google Sheets &amp; Forms
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm text-muted-foreground leading-relaxed">
+            Export Smart Forms responses to Google Sheets in one click, or keep using Google Forms and
+            connect SplitSMS to text respondents automatically. Same wallet, same Sender ID.
+          </p>
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            <article className="rounded-xl border bg-card p-5">
+              <h3 className="font-semibold">Export to Google Sheets</h3>
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                From any form’s Responses page, create a Sheet with headers and submissions for your ops team.
+              </p>
+            </article>
+            <article className="rounded-xl border bg-card p-5">
+              <h3 className="font-semibold">Google Forms → SMS</h3>
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                Click-and-work automation: pick a Form, map the phone question, send SMS within about a minute.
+              </p>
+            </article>
+            <article className="rounded-xl border bg-card p-5">
+              <h3 className="font-semibold">Contacts &amp; Drive</h3>
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                Import Google Contacts or Sheets/Excel from Drive when you are ready for bulk campaigns.
+              </p>
+            </article>
+          </div>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/integrations/google" className={cn(buttonVariants(), "h-11 gap-2")}>
+              Google integration
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/blog/google-forms-sms-automation-splitsms"
+              className={cn(buttonVariants({ variant: "outline" }), "h-11")}
+            >
+              Forms → SMS guide
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section className="w-full bg-black py-14 text-white">
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">

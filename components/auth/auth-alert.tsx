@@ -1,20 +1,34 @@
+import Link from "next/link";
 import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const messages: Record<string, { text: string; variant: "error" | "success" | "info" }> = {
+const messages: Record<
+  string,
+  {
+    text: string;
+    variant: "error" | "success" | "info";
+    title?: string;
+    actions?: Array<{ href: string; label: string }>;
+  }
+> = {
   invalid: {
     text: "Invalid email or password. If you signed up with a phone/email code, use “Sign in with SMS code” or reset your password.",
     variant: "error",
   },
   use_otp: {
-    text: "That password didn’t work. Request a one-time code below to sign in, or use Forgot password to set a new one.",
+    title: "Password didn’t work",
+    text: "You can sign in with a one-time code instead. Enter your phone or email below, or reset your password.",
     variant: "info",
+    actions: [{ href: "/forgot-password", label: "Forgot password?" }],
   },
   email_send: {
     text: "We could not send the verification email. Check email settings or try phone SMS instead.",
     variant: "error",
   },
-  locked: { text: "Account temporarily locked. Try again in 30 minutes or reset your password.", variant: "error" },
+  locked: {
+    text: "Account temporarily locked. Try again in 30 minutes or reset your password.",
+    variant: "error",
+  },
   rate_limit: {
     text: "Too many attempts from this network. Please wait about 30 minutes, or try again from another connection.",
     variant: "error",
@@ -41,17 +55,32 @@ const messages: Record<string, { text: string; variant: "error" | "success" | "i
   invalid_code: { text: "Enter a valid 6-digit code.", variant: "error" },
   user: { text: "Account not found. Please sign up.", variant: "error" },
   cooldown: { text: "Please wait before requesting another code.", variant: "info" },
-  otp_cooldown: { text: "Please wait 60 seconds before requesting another code.", variant: "info" },
+  otp_cooldown: {
+    text: "Please wait 60 seconds before requesting another code.",
+    variant: "info",
+  },
   required: { text: "Please enter your phone or email.", variant: "error" },
-  session: { text: "Reset session expired. Start again from forgot password.", variant: "error" },
+  session: {
+    text: "Reset session expired. Start again from forgot password.",
+    variant: "error",
+  },
   google_session: {
     text: "Google sign-up expired. Click Continue with Google to start again.",
     variant: "error",
   },
-  invalid_phone: { text: "Enter a valid phone number with country code.", variant: "error" },
-  sent: { text: "If an account exists for that number or email, we sent a verification code.", variant: "success" },
+  invalid_phone: {
+    text: "Enter a valid phone number with country code.",
+    variant: "error",
+  },
+  sent: {
+    text: "If an account exists for that number or email, we sent a verification code.",
+    variant: "success",
+  },
   resent: { text: "A new verification code has been sent.", variant: "success" },
-  reset: { text: "Password updated successfully. You can sign in now.", variant: "success" },
+  reset: {
+    text: "Password updated successfully. You can sign in now.",
+    variant: "success",
+  },
   tenant: {
     text: "This account cannot sign in on this domain. Use the portal your provider gave you.",
     variant: "error",
@@ -120,7 +149,13 @@ export function AuthAlert({
 
   const preset = code ? messages[code] : null;
   const text = message ?? preset?.text ?? code ?? "";
-  const variant = preset?.variant ?? (code === "sent" || code === "resent" || code === "reset" || code === "use_otp" ? (code === "use_otp" ? "info" : "success") : "error");
+  const variant =
+    preset?.variant ??
+    (code === "sent" || code === "resent" || code === "reset"
+      ? "success"
+      : code === "use_otp"
+        ? "info"
+        : "error");
 
   const Icon =
     variant === "success" ? CheckCircle2 : variant === "info" ? Info : AlertCircle;
@@ -129,18 +164,38 @@ export function AuthAlert({
     <div
       role="alert"
       className={cn(
-        "flex gap-3 rounded-lg border px-4 py-3 text-sm",
+        "mb-5 flex gap-3 rounded-xl border px-4 py-3.5 text-sm leading-relaxed",
         variant === "success" &&
           "border-green-500/30 bg-green-500/10 text-green-800 dark:text-green-300",
         variant === "error" &&
           "border-destructive/30 bg-destructive/10 text-destructive",
         variant === "info" &&
-          "border-primary/30 bg-primary/10 text-foreground",
+          "border-amber-500/35 bg-amber-500/10 text-amber-950 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-50",
         className,
       )}
     >
-      <Icon className="h-5 w-5 shrink-0 mt-0.5" />
-      <p>{decodeURIComponent(text)}</p>
+      <Icon className="h-4 w-4 shrink-0 mt-0.5 opacity-90" aria-hidden="true" />
+      <div className="min-w-0 space-y-2">
+        {preset?.title ? (
+          <p className="font-semibold tracking-tight">{preset.title}</p>
+        ) : null}
+        <p className={cn(preset?.title ? "text-[13px] opacity-90" : undefined)}>
+          {decodeURIComponent(text)}
+        </p>
+        {preset?.actions?.length ? (
+          <div className="flex flex-wrap gap-x-3 gap-y-1 pt-0.5">
+            {preset.actions.map((action) => (
+              <Link
+                key={action.href}
+                href={action.href}
+                className="text-[13px] font-semibold underline-offset-2 hover:underline"
+              >
+                {action.label}
+              </Link>
+            ))}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

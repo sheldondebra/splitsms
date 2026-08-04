@@ -23,6 +23,7 @@ const productLinks = [
   { href: "/features", label: "SMS features" },
   { href: "/solutions", label: "SMS solutions" },
   { href: "/smart-forms", label: "Smart Forms" },
+  { href: "/google", label: "Google features" },
   { href: "/reseller-platform", label: "Reseller Platform" },
   { href: "/pricing", label: "SMS pricing" },
   { href: "/blog", label: "Blog" },
@@ -50,6 +51,7 @@ const developerLinks = [
 ];
 
 const wordpressIntegrationLinks = [
+  { href: "/integrations/google", label: "Google" },
   { href: "/integrations/wordpress", label: "WordPress" },
   { href: "/integrations/crocoblock", label: "Crocoblock" },
   { href: "/integrations/woocommerce", label: "WooCommerce" },
@@ -230,7 +232,7 @@ export function SiteFooter() {
             <FooterLinkGroup title="Solutions" icon={Zap} links={solutionLinks} />
             <FooterLinkGroup title="Developers" icon={Code2} links={developerLinks} />
             <FooterLinkGroup
-              title="WordPress integrations"
+              title="Integrations"
               icon={Puzzle}
               links={wordpressIntegrationLinks}
             />

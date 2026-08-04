@@ -14,6 +14,764 @@ export type BlogPost = {
 
 export const blogPosts: BlogPost[] = [
   {
+    slug: "how-to-choose-splitsms",
+    title: "How to Choose SplitSMS: A Buyer’s Guide for Ghana Businesses",
+    excerpt:
+      "Compare pricing clarity, Sender IDs, wallet credits, Google & WordPress connect, and API depth so you know when SplitSMS is the right SMS platform.",
+    category: "Guides",
+    readTime: "9 min read",
+    published: "2026-08-04",
+    updated: "2026-08-04",
+    keywords: [
+      "how to choose SplitSMS",
+      "best SMS platform Ghana",
+      "SplitSMS vs SMS gateway",
+      "buy bulk SMS Ghana",
+      "SMS provider comparison Ghana",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Choosing an SMS platform in Ghana is not only about the lowest GHS-per-segment quote. You need approved Sender IDs, predictable wallet top-ups, delivery that reaches MTN, Vodafone, and AirtelTigo, and tools your team will actually open every day—dashboard campaigns, WordPress hooks, Google Sheets, and a REST API when you scale.",
+          "SplitSMS is built for that mix: pay-as-you-go credits, Connect Google and WordPress without Zapier for common paths, Smart Forms with SMS automation, and developer-ready OTP and send APIs. This guide helps you decide whether SplitSMS fits your stage.",
+        ],
+      },
+      {
+        heading: "Checklist before you buy any SMS provider",
+        paragraphs: [
+          "Ask for transparent country rates (especially Ghana), how Sender ID approval works, whether credits expire, and how failed messages are reported. Confirm sandbox or free credits so you can test before a blast.",
+          "Map your workflows: spreadsheet lists, website checkouts, Google Forms registrations, OTP logins, or reseller clients. The right provider covers those paths without five extra subscriptions.",
+        ],
+      },
+      {
+        heading: "When SplitSMS is a strong fit",
+        paragraphs: [
+          "Choose SplitSMS if you want Ghana-friendly pricing with a modern dashboard, API keys for your product, WordPress/WooCommerce order SMS, Google Contacts/Sheets/Forms connect, and Smart Forms for branded lead capture.",
+          "It also fits agencies and resellers who need client accounts, wallets, and reporting under a partner model—without building carrier integrations yourself.",
+        ],
+      },
+      {
+        heading: "When to look elsewhere first",
+        paragraphs: [
+          "If you only need a one-off 50-person SMS and will never return, a lightweight tool may be enough. If your stack requires deep SMPP peering you manage yourself, compare enterprise gateways carefully.",
+          "For most SMEs, churches, schools, and SaaS teams, a wallet-based platform with integrations beats a “cheap per SMS” pitch that locks you into opaque support.",
+        ],
+      },
+      {
+        heading: "How to evaluate SplitSMS in one afternoon",
+        paragraphs: [
+          "Sign up, claim free trial credits, register a Sender ID, send a test to your own phone, import a ten-row Sheet or Google Contact list, and optionally hit the send endpoint with a sk_test_ key.",
+          "If those steps feel clear, you have your answer. Start at splitsms.com/signup, then read pricing and /google for Workspace workflows.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "splitsms-for-your-website",
+    title: "SplitSMS for Your Website: Forms, OTP, WooCommerce & Smart Forms",
+    excerpt:
+      "Connect SplitSMS to any website—WordPress plugin, REST API, Smart Forms embeds, or Google Forms—so visitors get SMS confirmations they actually read.",
+    category: "Integrations",
+    readTime: "8 min read",
+    published: "2026-08-04",
+    updated: "2026-08-04",
+    keywords: [
+      "SMS for website",
+      "website SMS notifications",
+      "WordPress SMS Ghana",
+      "Smart Forms SMS",
+      "website OTP SMS",
+      "SplitSMS for websites",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Your website already captures intent: contact forms, checkouts, bookings, newsletters. Email confirmations get buried; SMS lands on the lock screen. SplitSMS connects those website moments to reliable texts using your Sender ID and wallet.",
+          "You do not need one vendor per channel. Use WordPress for store events, Smart Forms for branded lead pages, Google Forms when your team already lives in Drive, or the REST API when your stack is custom.",
+        ],
+      },
+      {
+        heading: "WordPress and WooCommerce sites",
+        paragraphs: [
+          "Install the official SplitSMS plugin, paste an API key, and toggle order placed, processing, and completed SMS. Forms plugins like Contact Form 7, WPForms, and Elementor Pro can trigger follow-ups too.",
+          "Credits stay in your SplitSMS wallet—you oversee delivery logs without hopping between gateways.",
+        ],
+      },
+      {
+        heading: "Custom sites and SaaS products",
+        paragraphs: [
+          "Call the SplitSMS send and OTP endpoints from Next.js, Laravel, or Flutter backends. Sandbox keys let you ship verification flows before charging wallets for production SMS.",
+          "Webhooks return delivery status so your UI can show “delivered” instead of guessing.",
+        ],
+      },
+      {
+        heading: "Smart Forms and Google Forms",
+        paragraphs: [
+          "Publish a Smart Form with short link or QR, embed it on your site, and enable respondent or admin SMS. Export responses to Google Sheets when ops prefers Drive.",
+          "Already on Google Forms? Connect Google Forms → SMS so each submission texts the respondent within about a minute—no Apps Script paste.",
+        ],
+      },
+      {
+        heading: "Launch checklist",
+        paragraphs: [
+          "Approve a Sender ID, top up credits, pick the connection path that matches your CMS, and send a test from production. Guide links: /integrations/wordpress, /smart-forms, /google, and /api-docs.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "event-sms-playbook-ghana",
+    title: "Event SMS Playbook for Ghana: RSVPs, Reminders & Day-Of Alerts",
+    excerpt:
+      "Run conferences, concerts, church conventions, and campus events with SMS for registrations, reminders, gate codes, and last-minute venue updates.",
+    category: "Use cases",
+    readTime: "9 min read",
+    published: "2026-08-04",
+    updated: "2026-08-04",
+    keywords: [
+      "event SMS Ghana",
+      "conference SMS reminders",
+      "RSVP SMS",
+      "SMS for events",
+      "church event SMS",
+      "ticket SMS notification",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Events fail in the details: wrong date in email, silent WhatsApp groups, lost tickets. SMS keeps attendees informed even when data is off. SplitSMS helps organizers collect RSVPs and blast schedule changes without building a custom ticketing SMS stack.",
+          "Whether you use Google Forms, Smart Forms, or a spreadsheet from sponsors, you can text confirmations and day-of logistics from one wallet.",
+        ],
+      },
+      {
+        heading: "Before the event",
+        paragraphs: [
+          "Capture phone numbers on registration forms and send an instant confirmation with date, venue, and any dress code. Schedule a T-minus-24h reminder and a morning-of “doors open” text.",
+          "Import sponsor guest lists from Google Sheets or Contacts—select one VIP row or select all—then tag groups for speakers versus general admission.",
+        ],
+      },
+      {
+        heading: "During the event",
+        paragraphs: [
+          "Room changes, delayed keynotes, and security notices should go out in minutes. Keep a saved Sender ID and template drafts so ops can send without rewriting every alert.",
+          "Use short links to interactive programs or Smart Forms feedback QRs posted at exits.",
+        ],
+      },
+      {
+        heading: "After the event",
+        paragraphs: [
+          "Thank-you texts with survey links lift response rates over email alone. Export Smart Forms feedback to Sheets for your postmortem.",
+          "Comply with consent: only registered guests, offer STOP guidance for marketing follow-ups, and keep transactional day-of notices separate from promo blasts.",
+        ],
+      },
+      {
+        heading: "Starter stack",
+        paragraphs: [
+          "Google Forms or Smart Forms for RSVP → SplitSMS for confirmations → Sheets for the guest list → campaign blast for reminders. Sign up at splitsms.com and connect Google under Integrations when you are ready.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "connect-splitsms-ecommerce-checkout",
+    title: "Connect SplitSMS to Your Ecommerce Checkout: Order & Payment SMS",
+    excerpt:
+      "Wire SplitSMS into WooCommerce, Paystack flows, and custom carts so customers get order, payment, and shipping texts that reduce support tickets.",
+    category: "Integrations",
+    readTime: "8 min read",
+    published: "2026-08-04",
+    updated: "2026-08-04",
+    keywords: [
+      "ecommerce SMS Ghana",
+      "checkout SMS notifications",
+      "WooCommerce order SMS",
+      "Paystack SMS notification",
+      "order confirmation SMS",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Abandoned carts and “was my payment successful?” chats eat margins. Transactional SMS at checkout, payment success, and shipping milestones cuts confusion and builds trust for Ghana shoppers who live on mobile networks.",
+          "SplitSMS plugs into WooCommerce via the official plugin and into custom checkouts via API—same wallet, same Sender ID brand on every text.",
+        ],
+      },
+      {
+        heading: "WooCommerce path",
+        paragraphs: [
+          "Install SplitSMS for WordPress, connect your API key, and enable templates for new order, processing, and completed. Include order ID and tracking URL so customers self-serve.",
+          "Test with a sk_test_ key first, then switch to live keys when templates look right.",
+        ],
+      },
+      {
+        heading: "Payment gateways and custom carts",
+        paragraphs: [
+          "After Paystack or card success webhooks fire, call SplitSMS send with the customer’s MSISDN. Keep the copy short: amount, reference, and support contact.",
+          "For Flutter/Next storefronts, wrap send SMS in your backend—never expose API keys in the browser.",
+        ],
+      },
+      {
+        heading: "Compliance and preference",
+        paragraphs: [
+          "Transactional checkout SMS is expected; promotional “buy again” blasts need consent. Separate templates and segment lists accordingly.",
+          "Use delivery reports to spot numbers that bounce before Black Friday week.",
+        ],
+      },
+      {
+        heading: "Next steps",
+        paragraphs: [
+          "Read the WooCommerce and Paystack SMS solutions pages, or jump to /integrations/wordpress and /api-docs to connect today.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "church-conference-sms-registration",
+    title: "Church & Conference SMS: From Registration to Follow-Up",
+    excerpt:
+      "How churches, ministries, and faith conferences in Ghana use SplitSMS for registration confirmations, seating, offerings reminders, and post-event outreach.",
+    category: "Use cases",
+    readTime: "8 min read",
+    published: "2026-08-04",
+    updated: "2026-08-04",
+    keywords: [
+      "church SMS Ghana",
+      "conference registration SMS",
+      "ministry SMS alerts",
+      "church event reminders",
+      "SMS for churches",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Churches and conferences often organize with Google Forms, volunteer spreadsheets, and Word of mouth. SMS keeps thousands of attendees aligned when Wi-Fi on campus fails and WhatsApp admins sleep.",
+          "SplitSMS supports Google Forms → SMS, Sheets import, Smart Forms with QR codes at the gate, and bulk campaigns for midweek reminders—without a developer on staff.",
+        ],
+      },
+      {
+        heading: "Registration week",
+        paragraphs: [
+          "Collect name, phone, and session preference. Automate a confirmation text with arrival time and dress code. Export form responses to Sheets for ushers.",
+          "Import volunteers from Google Contacts—select all or filter by group leaders—so leadership can text the right subset.",
+        ],
+      },
+      {
+        heading: "Service and conference days",
+        paragraphs: [
+          "Send parking instructions, livestream links for overflow, and emergency weather notices. Keep Sender IDs recognizable (church or conference brand).",
+          "Avoid spammy tone; sacred communities notice authenticity. One clear message beats three hype texts.",
+        ],
+      },
+      {
+        heading: "Follow-up and discipleship",
+        paragraphs: [
+          "After the event, invite first-timers to a welcome form via SMS short link. Honor opt-outs for promotional series while still allowing critical safety alerts on dedicated lists.",
+        ],
+      },
+      {
+        heading: "Get started",
+        paragraphs: [
+          "Connect Google under Integrations, or publish a Smart Form at /smart-forms. Start with 5 free credits on signup to validate delivery to your leadership phones.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "sms-for-booking-sites-appointments",
+    title: "SMS for Booking Sites & Appointment Portals",
+    excerpt:
+      "Reduce no-shows with confirmation and reminder SMS from booking websites, clinic portals, and salon schedulers connected to SplitSMS.",
+    category: "Use cases",
+    readTime: "7 min read",
+    published: "2026-08-04",
+    updated: "2026-08-04",
+    keywords: [
+      "appointment SMS reminder",
+      "booking website SMS",
+      "clinic SMS Ghana",
+      "salon appointment SMS",
+      "reduce no-shows SMS",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "No-shows waste chair time and clinical slots. A confirmation SMS at booking plus a reminder the day before reliably lifts show rates across Ghana salons, clinics, tutoring centers, and coworking rooms.",
+          "If your booking site is WordPress, a custom React app, or a Google Form waitlist, SplitSMS can sit behind it.",
+        ],
+      },
+      {
+        heading: "WordPress booking plugins",
+        paragraphs: [
+          "Trigger SplitSMS from form or WooCommerce booking events via the plugin’s SMS toggles or webhooks into the send API. Include date, time, location, and reschedule instructions.",
+        ],
+      },
+      {
+        heading: "Custom booking backends",
+        paragraphs: [
+          "On appointment_created and appointment_reminder_job events, call SplitSMS with template variables. Store message IDs for delivery troubleshooting in support chat.",
+          "OTP SMS can secure patient portals without SMS from a foreign brand the customer does not trust.",
+        ],
+      },
+      {
+        heading: "Google Form waitlists",
+        paragraphs: [
+          "Pop-up clinics and pop-up markets often start on Google Forms. Enable Google Forms → SMS so every signup gets a token or arrival window automatically.",
+        ],
+      },
+      {
+        heading: "Measure what matters",
+        paragraphs: [
+          "Track reminder send volume versus no-show rate month over month. Top up wallet ahead of peak seasons (exam week, holiday salon rush). Explore /api-docs and appointment blog tips for copy ideas.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "developers-choose-splitsms-over-twilio-alone",
+    title: "Why Developers Connect SplitSMS Instead of Twilio Alone",
+    excerpt:
+      "Build OTP and alerts for Africa-first products with Ghana pricing, local Sender IDs, and the same REST patterns you expect—plus WordPress and Google connect for ops.",
+    category: "Developers",
+    readTime: "8 min read",
+    published: "2026-08-04",
+    updated: "2026-08-04",
+    keywords: [
+      "Twilio alternative Ghana",
+      "SMS API Africa developers",
+      "OTP SMS API Ghana",
+      "SplitSMS vs Twilio",
+      "Africa SMS API",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Twilio is excellent globally, but African products often need local Sender ID norms, GHS-friendly credits, and ops tools for non-engineers who still live in Sheets and WordPress.",
+          "SplitSMS gives developers REST SMS, OTP send/verify, webhooks, and SDKs hosted on splitsms.com—while product and growth teams can connect Google and WooCommerce without opening a support ticket every time.",
+        ],
+      },
+      {
+        heading: "API ergonomics",
+        paragraphs: [
+          "Use Bearer API keys, sk_test_ sandboxes, OpenAPI/Postman collections, and SDK tarballs from /sdk. Example-first docs at /api-docs mirror the dashboard permissions model.",
+        ],
+      },
+      {
+        heading: "Africa delivery context",
+        paragraphs: [
+          "Routing across regional and global providers with failover matters when a single MNO blip would otherwise drop OTPs. Watch delivery in the dashboard while you iterate templates.",
+        ],
+      },
+      {
+        heading: "Hybrid teams win",
+        paragraphs: [
+          "Engineers ship the product; marketers import Sheets and run campaigns; support reuses Smart Forms. One wallet keeps cost visibility honest.",
+        ],
+      },
+      {
+        heading: "Try it",
+        paragraphs: [
+          "Create keys under developer settings, send a sandbox SMS, then graduate to live Sender IDs. Compare Infobip/Twilio alternative solutions pages if you are migrating.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "nonprofit-community-event-sms-budget",
+    title: "Nonprofit & Community Event SMS on a Budget",
+    excerpt:
+      "Run NGO outreach, school PTAs, and community clean-ups with affordable wallet SMS—Google Forms RSVPs, volunteer blasts, and transparent per-segment costs.",
+    category: "Use cases",
+    readTime: "7 min read",
+    published: "2026-08-04",
+    updated: "2026-08-04",
+    keywords: [
+      "nonprofit SMS Ghana",
+      "NGO SMS outreach",
+      "community event SMS",
+      "cheap SMS for NGOs",
+      "PTA SMS alerts",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Nonprofits pinch every cedi. SMS still outperforms printing flyers when storms cancel a clean-up or exam schedules shift. SplitSMS pay-as-you-go wallets mean you top up for this month’s campaign instead of signing an annual enterprise contract.",
+          "Pair free Google Forms with Forms → SMS automations so volunteer coordinators are not copy-pasting numbers at midnight.",
+        ],
+      },
+      {
+        heading: "Keep lists clean",
+        paragraphs: [
+          "Import Google Contacts or Sheets, remove duplicates, and segment donors versus volunteers. Consent and opt-out matter—especially for fundraising follow-ups.",
+        ],
+      },
+      {
+        heading: "High-impact templates",
+        paragraphs: [
+          "Event reminders, donation thank-yous with reference codes, and emergency safety notices. Keep language clear; avoid all-caps panic unless truly urgent.",
+        ],
+      },
+      {
+        heading: "Budget tips",
+        paragraphs: [
+          "Use free signup credits to validate delivery, schedule quieter midweek tests, and export Smart Forms responses to Sheets for board reporting without paid BI tools.",
+        ],
+      },
+      {
+        heading: "Start small",
+        paragraphs: [
+          "One PTA reminder and one volunteer blast prove value. Then connect Google and invite your program manager under the same org account practices you already use.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "splitsms-vs-building-your-own-sms-stack",
+    title: "SplitSMS vs Building Your Own SMS Stack",
+    excerpt:
+      "Should you stitch carriers, OTP, and dashboards yourself—or connect SplitSMS and ship product features? A practical build-vs-buy guide for startups.",
+    category: "Guides",
+    readTime: "9 min read",
+    published: "2026-08-04",
+    updated: "2026-08-04",
+    keywords: [
+      "build vs buy SMS",
+      "SMS gateway build or buy",
+      "SMS infrastructure Ghana",
+      "SplitSMS platform",
+      "SMS stack for startups",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Building SMS in-house means aggregator contracts, Sender ID bureaucracy, delivery receipts, retry logic, fraud controls, and a UI your support team will hate if you skip it. Many startups underestimate the ops tax.",
+          "SplitSMS packages routing, wallets, dashboards, APIs, WordPress, and Google connect so you spend engineering time on your product differentiator—not on MNO quirks.",
+        ],
+      },
+      {
+        heading: "When building makes sense",
+        paragraphs: [
+          "You are a telecom innovator with direct interconnects, or regulations force on-prem message stores you alone can host. Even then, hybrid models often use a platform for overflow.",
+        ],
+      },
+      {
+        heading: "When connecting SplitSMS wins",
+        paragraphs: [
+          "You need OTP next sprint, marketers need Sheets import this week, and finance wants GHS wallet visibility. Plug in API keys and Integrations instead of a six-month SMS project.",
+        ],
+      },
+      {
+        heading: "Hidden costs of DIY",
+        paragraphs: [
+          "On-call for failed routes, Sender ID renewals, number formatting edge cases, and rebuilding campaign tools. those costs dwarf per-SMS fees quickly.",
+        ],
+      },
+      {
+        heading: "Decision shortcut",
+        paragraphs: [
+          "If SMS is a feature—not your product—connect SplitSMS. Read /features, /api-docs, and /google, then ship.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "agencies-connect-client-websites-splitsms",
+    title: "How Agencies Connect Client Websites to SplitSMS",
+    excerpt:
+      "A playbook for digital agencies: WordPress installs, API keys per client, reseller options, Google Workspace handoff, and SMS that survives after you leave.",
+    category: "Guides",
+    readTime: "8 min read",
+    published: "2026-08-04",
+    updated: "2026-08-04",
+    keywords: [
+      "agency SMS integration",
+      "WordPress agency SMS",
+      "client website SMS",
+      "SMS reseller for agencies",
+      "connect client site SplitSMS",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Agencies ship dozens of WordPress and custom sites. Clients then ask for order SMS, booking reminders, and OTP. Instead of inventing a new gateway each time, standardize on SplitSMS Connect patterns.",
+          "Use one playbook: create or reseller-provision the client, install the plugin or API key, document Sender ID ownership, and hand over a one-pager.",
+        ],
+      },
+      {
+        heading: "WordPress retainers",
+        paragraphs: [
+          "Bundle plugin install + template copywriting into your launch checklist. Keep API keys in the client’s SplitSMS account—never your personal wallet—for clean offboarding.",
+        ],
+      },
+      {
+        heading: "Custom builds",
+        paragraphs: [
+          "Wire send and OTP in the backend, store secrets in the client’s vault, and leave /api-docs bookmarks in the repo README. Offer Google Sheets import training for their marketing intern.",
+        ],
+      },
+      {
+        heading: "Reseller and margin",
+        paragraphs: [
+          "If you manage many clients, explore the SplitSMS Reseller Platform for wallets, pricing, and branded portals. SMS becomes recurring revenue, not a one-time setup fee.",
+        ],
+      },
+      {
+        heading: "Handoff checklist",
+        paragraphs: [
+          "Sender ID approved, live key rotated from test, templates approved by brand, Google/WordPress connected if needed, and support contact documented. Point clients to /support and /google for self-serve later.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "connect-google-sheets-drive-export-sms",
+    title: "Connect Google Drive & Sheets to SplitSMS: Import Excel and Export Campaign Data",
+    excerpt:
+      "Link Google Drive to SplitSMS to import Sheets or Excel files for bulk SMS, then export Smart Forms responses straight to a new Google Sheet.",
+    category: "Integrations",
+    readTime: "8 min read",
+    published: "2026-08-03",
+    updated: "2026-08-03",
+    keywords: [
+      "Google Sheets SMS",
+      "Google Drive Excel SMS",
+      "import Excel bulk SMS",
+      "export Smart Forms Google Sheets",
+      "SplitSMS Google integration",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Most Ghana businesses keep contact lists in Google Sheets or Excel files sitting in Drive. Copy-pasting hundreds of phone numbers into a messaging tool wastes time and creates typos. SplitSMS Connect Google lets you browse Drive, pick a Sheet or spreadsheet file, map the phone column, and either import contacts or jump straight into Send SMS.",
+          "The same Google connection powers Smart Forms export: one click creates a spreadsheet with your responses so operations and marketing teams can filter, chart, and share without downloading CSVs first.",
+        ],
+      },
+      {
+        heading: "How Google Drive import works",
+        paragraphs: [
+          "From Dashboard → Integrations → Google, connect your Google account (separate from Sign in with Google). When you open Contacts → Import, choose Browse Google Drive. SplitSMS lists recent Sheets and Excel files you can access, previews phone numbers, and lets you import as contacts or open the Send SMS composer with those recipients.",
+          "Column mapping prefers headers like Phone, Mobile, or Tel. Name columns are detected when present. Invalid or duplicate numbers follow the same rules as CSV import so your campaigns stay clean.",
+        ],
+      },
+      {
+        heading: "Export Smart Forms to Google Sheets",
+        paragraphs: [
+          "Open any form’s Responses page and click Export to Google Sheets. SplitSMS creates a spreadsheet titled with your form name and today’s date, writes headers plus up to thousands of rows, and stores the Sheet link on the export record.",
+          "This is ideal for schools collecting fee interest forms, churches registering events, or agencies handing lead sheets to clients who live in Google Workspace.",
+        ],
+      },
+      {
+        heading: "Security and permissions",
+        paragraphs: [
+          "Connect Google uses incremental OAuth scopes. You grant Sheets and Drive access only when you use those features—not at login. Disconnect anytime under Integrations → Google; feature settings remain but require a reconnect before syncing again.",
+          "Refresh tokens are encrypted at rest. SplitSMS never asks you to paste a script into Drive or share files publicly.",
+        ],
+      },
+      {
+        heading: "Get started",
+        paragraphs: [
+          "Create a SplitSMS account, approve a Sender ID, then open Integrations → Google. After you connect, try importing a small Sheet with test numbers before your first live blast.",
+          "Want form-triggered SMS from Google Forms next? Read our Google Forms → SMS guide or open Dashboard → Integrations → Google Forms SMS.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "google-forms-sms-automation-splitsms",
+    title: "Google Forms to SMS: Auto-Text Respondents When Someone Submits",
+    excerpt:
+      "Connect Google Forms to SplitSMS with click-and-work setup—no Apps Script paste. Pick a form, map the phone question, and send SMS within about a minute of each submission.",
+    category: "Integrations",
+    readTime: "9 min read",
+    published: "2026-08-03",
+    updated: "2026-08-03",
+    keywords: [
+      "Google Forms SMS",
+      "Google Forms SMS notification",
+      "auto SMS Google Form",
+      "Google Forms WhatsApp alternative SMS",
+      "SplitSMS Google Forms",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Google Forms is everywhere in Ghana—event RSVPs, school registrations, clinic intakes, HR applications. The missing piece is usually an instant SMS confirmation. Email alerts get lost; phone calls do not scale. SplitSMS connects your Form so every new response can trigger a text to the respondent (or your ops team) using your approved Sender ID.",
+          "Unlike Zapier-only setups, you configure everything inside SplitSMS: Connect Google once, pick the form from a list, choose the phone question, write a template with merge tags, and save. A background poller checks for new responses about every 45 seconds—near real-time without installing Apps Script yourself.",
+        ],
+      },
+      {
+        heading: "Click-and-work setup",
+        paragraphs: [
+          "Go to Dashboard → Integrations → Google Forms SMS. Grant Forms access when prompted, select a form, map the phone field (we guess questions titled Phone or Mobile), pick a Sender ID, and save your message template.",
+          "Templates can reference question titles like {{Full name}}. Historical responses are skipped by default so turning automation on does not spam everyone who filled the form last month.",
+        ],
+      },
+      {
+        heading: "When to use Google Forms vs Smart Forms",
+        paragraphs: [
+          "Keep using Google Forms when your team already collaborates in Drive, shares edit access widely, or needs Google’s quiz mode. Use SplitSMS Smart Forms when you want branded URLs, QR codes, contact-group sync, and SMS automation without leaving SplitSMS.",
+          "Many organizations run both: external registrations on Google Forms + Google Forms SMS for confirmations, and branded campaign landing forms on Smart Forms.",
+        ],
+      },
+      {
+        heading: "Credits, delivery, and reliability",
+        paragraphs: [
+          "Each triggered SMS debits your SplitSMS wallet the same way dashboard sends do. If credits run out, the automation pauses and surfaces an error so you can top up and resume.",
+          "Delivery rides SplitSMS routing across Ghana and 190+ countries. Pair with an approved Sender ID so recipients recognize your brand in the notification tray.",
+        ],
+      },
+      {
+        heading: "Start sending",
+        paragraphs: [
+          "Sign up, connect Google, and create your first Google Forms SMS automation in minutes. For spreadsheet lists instead of live forms, import from Google Sheets under Contacts → Import.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "import-google-contacts-bulk-sms",
+    title: "Import Google Contacts into SplitSMS (Select One or Select All)",
+    excerpt:
+      "Connect Google Contacts to SplitSMS, preview every number with a phone, then import a single contact or select all—plus export SplitSMS contacts back to Google.",
+    category: "Integrations",
+    readTime: "7 min read",
+    published: "2026-08-03",
+    updated: "2026-08-03",
+    keywords: [
+      "import Google Contacts SMS",
+      "Google Contacts bulk SMS",
+      "export contacts to Google",
+      "SplitSMS Google Contacts",
+      "select all Google contacts import",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Your phone book already lives in Google Contacts. SplitSMS lets you import those numbers without CSV gymnastics. Open Contacts → Import, load Google Contacts, tick the rows you need—or Select all—and confirm. Only contacts with valid international phones are offered.",
+          "Selection mirrors the CSV importer you already know: review, pick individuals or everyone valid, then import. New contacts can fire your signup automations just like manual adds.",
+        ],
+      },
+      {
+        heading: "Select one or select all",
+        paragraphs: [
+          "Marketing teams often want every Ghana mobile in the book. Ops teams may import only a single VIP. Both flows share the same preview table with checkboxes, Select all, and Clear. Invalid rows without phones never enter your list.",
+          "After import, group contacts, tag them, and send bulk SMS or schedule campaigns from the same audience.",
+        ],
+      },
+      {
+        heading: "Export SplitSMS contacts back to Google",
+        paragraphs: [
+          "Need your messaging list in another team’s Google account? Select contacts in the table (or export all from the Import tab) and push them to Google Contacts with name, phone, and email when present.",
+          "v1 is one-shot import/export—not continuous two-way sync—so you stay in control of when Google is updated.",
+        ],
+      },
+      {
+        heading: "Privacy tips",
+        paragraphs: [
+          "Only grant Contacts scopes when you use the feature. Disconnect Google under Integrations anytime. Prefer Lists dedicated for marketing and keep staff personal numbers out of campaign groups.",
+          "Always include opt-out language on promotional SMS and honour STOP requests under Ghana messaging rules.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "google-workspace-sms-playbook-ghana",
+    title: "Google Workspace SMS Playbook for Ghana Teams Using SplitSMS",
+    excerpt:
+      "A practical playbook for churches, schools, clinics, and SMEs: Connect Google once, then use Contacts, Sheets, Forms, and Smart Forms export for reliable SMS ops.",
+    category: "Guides",
+    readTime: "10 min read",
+    published: "2026-08-03",
+    updated: "2026-08-03",
+    keywords: [
+      "Google Workspace SMS Ghana",
+      "church SMS Google Forms",
+      "school SMS Google Sheets",
+      "clinic appointment SMS Google",
+      "SplitSMS Google Workspace",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Ghana organizations live in Google Workspace—Drive for spreadsheets, Forms for registrations, Contacts for volunteers and parents. SplitSMS sits beside that stack so messaging is not a separate spreadsheet-export ritual every Friday.",
+          "This playbook shows one connected Google account powering four jobs: import contacts, blast from Sheets, SMS on Form submit, and export Smart Forms data back to Drive.",
+        ],
+      },
+      {
+        heading: "Churches and NGOs",
+        paragraphs: [
+          "Collect event RSVPs with Google Forms → SMS for confirmation. Keep member phones in Google Contacts and import the whole list before Sunday promotions or emergency announcements.",
+          "Export Smart Forms offering registration into Sheets for volunteer coordinators who already share Google Drive folders.",
+        ],
+      },
+      {
+        heading: "Schools and training centres",
+        paragraphs: [
+          "Maintain class lists in Sheets, import before fee reminders, and use Google Forms for exam registration with automatic parent SMS. Approved Sender IDs keep messages trusted.",
+          "Segment by class group inside SplitSMS after import so Form 3 parents are never mixed with Form 1 campaigns.",
+        ],
+      },
+      {
+        heading: "Clinics and salons",
+        paragraphs: [
+          "Appointment intake on Forms can text the booking phone with time and address. Revisit Sheets each week for no-show follow-ups after a quick Drive import.",
+          "Pair with SplitSMS wallet top-ups via Paystack so front-desk staff never wait on invoices to send OTPs or reminders.",
+        ],
+      },
+      {
+        heading: "Rollout checklist",
+        paragraphs: [
+          "1) Sign up and approve Sender ID. 2) Integrations → Google Connect. 3) Import a test Contact. 4) Send a test SMS. 5) Optionally enable one Google Form automation. 6) Train one staff member on Disconnect/Reconnect if tokens expire.",
+          "Need WordPress too? The SplitSMS plugin works with WooCommerce while Google powers your Workspace flows—same wallet.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "splitsms-google-vs-zapier-sms",
+    title: "SplitSMS Google Integration vs Zapier for SMS: What Fits Ghana Businesses?",
+    excerpt:
+      "Compare connecting Google Forms, Sheets, and Contacts natively in SplitSMS versus routing everything through Zapier—cost, latency, scopes, and when each path wins.",
+    category: "Integrations",
+    readTime: "8 min read",
+    published: "2026-08-03",
+    updated: "2026-08-03",
+    keywords: [
+      "Zapier Google Forms SMS",
+      "SplitSMS vs Zapier",
+      "native Google SMS integration",
+      "Google Sheets Zapier SMS Ghana",
+      "SMS automation without Zapier",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Zapier is excellent glue for dozens of apps. For SMS tied to Google Forms and Sheets, an extra middleware layer adds cost, another login, and more failure points. SplitSMS Connect Google runs Contacts import, Sheets import/export, and Forms → SMS inside the messaging product you already bill for.",
+          "Choose Zapier when you need exotic multi-step workflows across CRMs SplitSMS does not ship yet. Choose native Google when your loop is Google list → SMS → delivery report.",
+        ],
+      },
+      {
+        heading: "Speed and reliability",
+        paragraphs: [
+          "Native Forms SMS polls about every 45 seconds and enqueues through the same BullMQ path as dashboard sends. Zapier depends on task cadence and task quotas; free plans throttle hard during campaign season.",
+          "Wallet credits, Sender IDs, and delivery logs stay in one SplitSMS dashboard instead of chasing three UIs when a parent complains they never got a text.",
+        ],
+      },
+      {
+        heading: "Permissions model",
+        paragraphs: [
+          "SplitSMS uses incremental Google scopes—connect lightly, then grant Contacts, Sheets, or Forms when you click those features. That keeps consent screens honest for ops staff who only need Sheets import.",
+          "Zapier usually needs its own Google and SMS connections. Staff must understand both products’ security review screens.",
+        ],
+      },
+      {
+        heading: "Recommendation",
+        paragraphs: [
+          "For Ghana SMEs, churches, and schools whose “CRM” is already Google Workspace, start with SplitSMS Google Connect. Add Zapier later only if you outgrow what Contacts, Sheets, and Forms cover.",
+          "Read the Sheets, Forms, and Contacts guides on the SplitSMS blog, or open /integrations/google for the full capability list.",
+        ],
+      },
+    ],
+  },
+  {
     slug: "how-to-start-an-sms-reseller-business",
     title: "How to Start an SMS Reseller Business in 2026: A Practical Step-by-Step Guide",
     excerpt:
@@ -2264,6 +3022,36 @@ export function getSortedBlogPosts() {
 
 export function getFeaturedBlogPosts(limit = 3) {
   return getSortedBlogPosts().slice(0, limit);
+}
+
+/** Prefer same category + shared keywords for internal linking (SEO). */
+export function getRelatedBlogPosts(post: BlogPost, limit = 3): BlogPost[] {
+  const keywords = new Set((post.keywords ?? []).map((k) => k.toLowerCase()));
+  const scored = getSortedBlogPosts()
+    .filter((p) => p.slug !== post.slug)
+    .map((p) => {
+      let score = 0;
+      if (p.category === post.category) score += 3;
+      for (const k of p.keywords ?? []) {
+        if (keywords.has(k.toLowerCase())) score += 2;
+      }
+      // Soft boost for recent connect / Google / website guides
+      if (
+        /google|website|choose|event|connect|wordpress|agency/i.test(p.slug) &&
+        /google|website|choose|event|connect|wordpress|agency/i.test(post.slug)
+      ) {
+        score += 1;
+      }
+      return { p, score };
+    })
+    .sort((a, b) => b.score - a.score || new Date(b.p.published).getTime() - new Date(a.p.published).getTime());
+
+  const related = scored.filter((x) => x.score > 0).slice(0, limit).map((x) => x.p);
+  if (related.length >= limit) return related;
+  const fill = getSortedBlogPosts()
+    .filter((p) => p.slug !== post.slug && !related.some((r) => r.slug === p.slug))
+    .slice(0, limit - related.length);
+  return [...related, ...fill];
 }
 
 export function getBlogCategories() {

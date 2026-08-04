@@ -12,7 +12,8 @@ import { IntegrationLogo } from "@/components/marketing/integration-logo";
 const categoryMeta = {
   platform: {
     title: "Platforms & plugins",
-    description: "WordPress, WooCommerce, and form plugins connected to SplitSMS.",
+    description:
+      "Google Workspace, WordPress, WooCommerce, and form plugins connected to SplitSMS.",
     icon: Puzzle,
   },
   gateway: {
@@ -78,16 +79,22 @@ export function IntegrationsHubContent() {
             Connect SplitSMS to your stack
           </h1>
           <p className="mt-4 text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            WordPress plugins, Crocoblock bookings, and payment-gateway SMS for Paystack,
-            Flutterwave, and Stripe stores — one platform for Ghana and 190+ countries.
+            Google Contacts, Sheets, and Forms; WordPress and Crocoblock; Paystack,
+            Flutterwave, and Stripe store SMS — one platform for Ghana and 190+ countries.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
-              href="/integrations/wordpress"
+              href="/integrations/google"
               className={cn(buttonVariants({ size: "lg" }), "font-semibold gap-2")}
             >
-              WordPress plugin
+              Google integration
               <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/integrations/wordpress"
+              className={cn(buttonVariants({ size: "lg", variant: "outline" }), "font-semibold gap-2")}
+            >
+              WordPress plugin
             </Link>
             <Link
               href="/signup"

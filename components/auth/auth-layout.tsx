@@ -51,17 +51,20 @@ export function AuthLayout({
         <div className="space-y-4 max-w-md">
           {sideBadge && (
             <p
-              className="inline-flex rounded-full border px-3 py-1 text-xs font-semibold"
+              className={cn(
+                "inline-flex rounded-full border px-3 py-1 text-xs font-semibold",
+                !accent && "border-primary bg-primary text-primary-foreground",
+              )}
               style={
                 accent
-                  ? { borderColor: `${accent}66`, backgroundColor: `${accent}22`, color: accent }
+                  ? { borderColor: accent, backgroundColor: accent, color: "#fff" }
                   : undefined
               }
             >
               {sideBadge}
             </p>
           )}
-          <div className="text-3xl font-bold tracking-tight leading-tight">
+          <div className="text-5xl font-bold tracking-tight leading-[1.1] xl:text-6xl">
             {sideTitle ??
               (tenant ? (
                 <>

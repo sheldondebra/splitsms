@@ -32,6 +32,9 @@ export const defaultKeywords = [
   "WooCommerce SMS",
   "Paystack SMS",
   "WordPress SMS plugin",
+  "Google Contacts SMS",
+  "Google Sheets SMS",
+  "Google Forms SMS",
   "SMS webhooks",
   "SMS delivery reports",
   "mNotify",
@@ -40,6 +43,9 @@ export const defaultKeywords = [
   "Twilio SMS alternative",
   "vibe coders SMS API",
   "SplitSMS",
+  "how to choose SplitSMS",
+  "SMS for websites Ghana",
+  "event SMS Ghana",
 ];
 
 /** Brand logo — PNG wordmark with icon for structured data */

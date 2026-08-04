@@ -30,6 +30,7 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency?: Sitemap
   { path: "/features", priority: 0.95, changeFrequency: "weekly" },
   { path: "/pricing", priority: 0.95, changeFrequency: "weekly" },
   { path: "/smart-forms", priority: 0.85, changeFrequency: "monthly" },
+  { path: "/google", priority: 0.92, changeFrequency: "weekly" },
   { path: "/integrations", priority: 0.85, changeFrequency: "weekly" },
   { path: "/api-docs", priority: 0.9, changeFrequency: "weekly" },
   { path: "/docs", priority: 0.85, changeFrequency: "weekly" },
@@ -50,16 +51,22 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency?: Sitemap
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const now = new Date();
+  const freshPaths = new Set(["", "/features", "/pricing", "/google", "/blog", "/integrations", "/smart-forms"]);
+
   const staticEntries = STATIC_ROUTES.map(({ path, priority, changeFrequency }) =>
-    entry(path, priority, changeFrequency),
+    entry(path, priority, changeFrequency, freshPaths.has(path) ? now : undefined),
   );
 
-  const blogEntries = getAllBlogSlugs().map((slug) =>
-    entry(`/blog/${slug}`, 0.7, "monthly", blogLastModified.get(slug)),
-  );
+  const blogEntries = getAllBlogSlugs().map((slug) => {
+    const published = blogLastModified.get(slug);
+    const isRecent =
+      published && Date.now() - published.getTime() < 1000 * 60 * 60 * 24 * 45;
+    return entry(`/blog/${slug}`, isRecent ? 0.85 : 0.7, "weekly", published ?? now);
+  });
 
   const integrationEntries = getAllIntegrationSlugs().map((slug) =>
-    entry(`/integrations/${slug}`, 0.75, "monthly"),
+    entry(`/integrations/${slug}`, slug === "google" ? 0.88 : 0.75, "monthly", slug === "google" ? now : undefined),
   );
 
   const solutionEntries = getAllSeoLandingSlugs().map((slug) =>

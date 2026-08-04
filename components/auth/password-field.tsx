@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { passwordStrength } from "@/lib/auth/validation";
@@ -15,6 +15,7 @@ type PasswordFieldProps = {
   required?: boolean;
   showStrength?: boolean;
   autoComplete?: string;
+  className?: string;
 };
 
 export function PasswordField({
@@ -25,6 +26,7 @@ export function PasswordField({
   required = true,
   showStrength = false,
   autoComplete = "new-password",
+  className,
 }: PasswordFieldProps) {
   const [value, setValue] = useState("");
   const [visible, setVisible] = useState(false);
@@ -34,6 +36,10 @@ export function PasswordField({
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
       <div className="relative">
+        <Lock
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          aria-hidden="true"
+        />
         <Input
           id={id}
           name={name}
@@ -44,7 +50,7 @@ export function PasswordField({
           autoComplete={autoComplete}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          className="pr-10"
+          className={cn("h-11 pl-10 pr-10 text-base", className)}
         />
         <button
           type="button"

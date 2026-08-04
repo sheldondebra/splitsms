@@ -16,6 +16,36 @@ export type ChangelogRelease = {
 
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "2.0.0",
+    date: "2026-08-03",
+    product: "platform",
+    label: "Google integrations",
+    summary:
+      "Connect Google for Contacts, Sheets/Drive Excel, Forms → SMS, and Smart Forms export to Sheets.",
+    changes: [
+      {
+        type: "added",
+        text: "Dashboard → Integrations → Google with incremental OAuth scopes.",
+      },
+      {
+        type: "added",
+        text: "Import Google Contacts (select one or select all) and export SplitSMS contacts to Google.",
+      },
+      {
+        type: "added",
+        text: "Import Google Sheets / Excel from Drive for contacts or Send SMS.",
+      },
+      {
+        type: "added",
+        text: "Export Smart Forms responses to a new Google Sheet.",
+      },
+      {
+        type: "added",
+        text: "Google Forms → SMS automations with near-real-time polling.",
+      },
+    ],
+  },
+  {
     version: "1.7.0",
     date: "2026-06-01",
     product: "wordpress",

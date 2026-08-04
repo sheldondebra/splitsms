@@ -9,13 +9,18 @@ import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ClipboardList, ArrowLeft, Download } from "lucide-react";
+import { exportSmartFormToGoogleSheetsAction } from "@/lib/actions/google-sheets";
+import { getGoogleConnectionPublic } from "@/lib/google/connection";
+import { googleConnectHref } from "@/lib/google/connect-url";
+import { GOOGLE_SHEETS_SCOPES } from "@/lib/google/scopes";
+import { Button } from "@/components/ui/button";
 
 export default async function SmartFormResponsesPage({
   params,
   searchParams,
 }: {
   params: Promise<{ formId: string }>;
-  searchParams: Promise<{ deleted?: string; error?: string }>;
+  searchParams: Promise<{ deleted?: string; error?: string; sheetsUrl?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -24,6 +29,12 @@ export default async function SmartFormResponsesPage({
   const query = await searchParams;
   const form = await getSmartFormForUser(session.userId, formId);
   if (!form) notFound();
+
+  const googleConnection = await getGoogleConnectionPublic(session.userId);
+  const sheetsConnectHref = googleConnectHref({
+    scopes: [...GOOGLE_SHEETS_SCOPES],
+    returnTo: `/dashboard/forms/${formId}/responses`,
+  });
 
   const responses = await prisma.smartFormResponse.findMany({
     where: { formId },
@@ -62,8 +73,23 @@ export default async function SmartFormResponsesPage({
               className={cn(buttonVariants({ variant: "outline" }), "h-10 gap-2")}
             >
               <Download className="h-4 w-4" />
-              Export all
+              Export CSV
             </a>
+            {googleConnection ? (
+              <form action={exportSmartFormToGoogleSheetsAction}>
+                <input type="hidden" name="formId" value={formId} />
+                <Button type="submit" variant="outline" className="h-10 gap-2">
+                  Export to Google Sheets
+                </Button>
+              </form>
+            ) : (
+              <a
+                href={sheetsConnectHref}
+                className={cn(buttonVariants({ variant: "outline" }), "h-10 gap-2")}
+              >
+                Connect Google to export Sheets
+              </a>
+            )}
             <Link
               href={`/dashboard/forms/${form.id}/builder`}
               className={cn(buttonVariants({ variant: "outline" }), "h-10 gap-2")}
@@ -76,7 +102,25 @@ export default async function SmartFormResponsesPage({
       />
 
       {query.deleted ? <FriendlyAlert success="1" successMessage="Response deleted." /> : null}
+      {query.sheetsUrl ? (
+        <FriendlyAlert
+          success="1"
+          successMessage="Exported to Google Sheets."
+        />
+      ) : null}
       {query.error ? <FriendlyAlert error="Could not complete that action." /> : null}
+      {query.sheetsUrl ? (
+        <p className="text-sm">
+          <a
+            href={query.sheetsUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary underline"
+          >
+            Open Google Sheet
+          </a>
+        </p>
+      ) : null}
 
       <ResponsesDashboard formId={formId} formName={form.name} responses={rows} />
     </AppPage>
