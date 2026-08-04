@@ -8,7 +8,7 @@ import {
   resolveGoogleOAuthOrigin,
 } from "@/lib/auth/google";
 import { GOOGLE_BASE_SCOPES } from "@/lib/google/scopes";
-import { mergeScopes, parseScopeString } from "@/lib/google/connection-utils";
+import { mergeScopes, resolveGrantedScopes } from "@/lib/google/connection-utils";
 
 export const GOOGLE_CONNECT_PKCE_COOKIE = "splitsms_google_connect_pkce";
 
@@ -217,9 +217,12 @@ export function newConnectNonce() {
   return randomBytes(16).toString("base64url");
 }
 
-export function scopeListFromTokenResponse(scope: string | undefined, fallback: string[]) {
-  const parsed = parseScopeString(scope);
-  return parsed.length > 0 ? parsed : fallback;
+export function scopeListFromTokenResponse(
+  scope: string | undefined,
+  fallback: string[],
+  previouslyGranted: string[] = [],
+) {
+  return resolveGrantedScopes(scope, fallback, previouslyGranted);
 }
 
 /** Stable fingerprint for tests / debugging — not a secret. */

@@ -31,7 +31,19 @@ export async function GET() {
   try {
     const files = await listSpreadsheetFiles(token.accessToken);
     return NextResponse.json({ files });
-  } catch {
-    return NextResponse.json({ error: "drive_list_failed" }, { status: 502 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "";
+    const forbidden = /drive_list_403/.test(message);
+    return NextResponse.json(
+      {
+        error: forbidden ? "reconnect" : "drive_list_failed",
+        connectUrl: googleConnectHref({
+          scopes: [...GOOGLE_SHEETS_SCOPES],
+          returnTo: "/dashboard/contacts?tab=import",
+          force: true,
+        }),
+      },
+      { status: forbidden ? 403 : 502 },
+    );
   }
 }

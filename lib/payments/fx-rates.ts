@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/db";
 
 const FX_CACHE_KEY = "fx_rate_ghs";
-const CACHE_TTL_MS = 60 * 60 * 1000;
-const RATE_API_URL = "https://open.er-api.com/v6/latest/GHS";
+const GOOGLE_CACHE_PREFIX = "fx_rate_google_";
+const CACHE_TTL_MS = 15 * 60 * 1000;
+const FALLBACK_API_URL = "https://open.er-api.com/v6/latest/GHS";
 
 export type FxConversion = {
   sourceCurrency: string;
@@ -20,18 +21,34 @@ type GhsRateCache = {
   source: string;
 };
 
-let memoryCache: { rates: Record<string, number>; fetchedAt: number; source: string } | null = null;
+type PairRateCache = {
+  rate: number;
+  fetchedAt: string;
+  source: string;
+};
+
+let memoryBulkCache: { rates: Record<string, number>; fetchedAt: number; source: string } | null =
+  null;
+const memoryPairCache = new Map<string, { rate: number; fetchedAt: number; source: string }>();
 
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
 }
 
+function pairCacheKey(from: string, to: string) {
+  return `${from}_${to}`;
+}
+
 async function loadCachedRates(): Promise<GhsRateCache | null> {
-  const row = await prisma.platformSetting.findUnique({ where: { key: FX_CACHE_KEY } });
-  if (!row?.value || typeof row.value !== "object") return null;
-  const cached = row.value as GhsRateCache;
-  if (!cached.rates || typeof cached.rates !== "object") return null;
-  return cached;
+  try {
+    const row = await prisma.platformSetting.findUnique({ where: { key: FX_CACHE_KEY } });
+    if (!row?.value || typeof row.value !== "object") return null;
+    const cached = row.value as GhsRateCache;
+    if (!cached.rates || typeof cached.rates !== "object") return null;
+    return cached;
+  } catch {
+    return null;
+  }
 }
 
 async function saveCachedRates(rates: Record<string, number>, source: string) {
@@ -40,15 +57,129 @@ async function saveCachedRates(rates: Record<string, number>, source: string) {
     fetchedAt: new Date().toISOString(),
     source,
   };
-  await prisma.platformSetting.upsert({
-    where: { key: FX_CACHE_KEY },
-    update: { value },
-    create: { key: FX_CACHE_KEY, value },
-  });
+  try {
+    await prisma.platformSetting.upsert({
+      where: { key: FX_CACHE_KEY },
+      update: { value },
+      create: { key: FX_CACHE_KEY, value },
+    });
+  } catch {
+    // Cache is best-effort — rate fetch should still succeed.
+  }
 }
 
-async function fetchGhsRates(): Promise<GhsRateCache> {
-  const res = await fetch(RATE_API_URL, { cache: "no-store" });
+async function loadCachedPairRate(from: string, to: string): Promise<PairRateCache | null> {
+  try {
+    const row = await prisma.platformSetting.findUnique({
+      where: { key: `${GOOGLE_CACHE_PREFIX}${pairCacheKey(from, to)}` },
+    });
+    if (!row?.value || typeof row.value !== "object") return null;
+    const cached = row.value as PairRateCache;
+    if (typeof cached.rate !== "number" || cached.rate <= 0) return null;
+    return cached;
+  } catch {
+    return null;
+  }
+}
+
+async function saveCachedPairRate(from: string, to: string, rate: number, source: string) {
+  const value: PairRateCache = {
+    rate,
+    fetchedAt: new Date().toISOString(),
+    source,
+  };
+  try {
+    await prisma.platformSetting.upsert({
+      where: { key: `${GOOGLE_CACHE_PREFIX}${pairCacheKey(from, to)}` },
+      update: { value },
+      create: { key: `${GOOGLE_CACHE_PREFIX}${pairCacheKey(from, to)}`, value },
+    });
+  } catch {
+    // Cache is best-effort — rate fetch should still succeed.
+  }
+}
+
+function parseGoogleFinanceRate(html: string): number | null {
+  const match = html.match(
+    /class="gO24Ff">([^<]+)<\/div>[\s\S]{0,800}?jsname="Pdsbrc"[^>]*>\s*<span>([0-9][0-9,]*(?:\.[0-9]+)?)<\/span>/,
+  );
+  if (!match) return null;
+  const rate = Number(match[2].replace(/,/g, ""));
+  if (!Number.isFinite(rate) || rate <= 0) return null;
+  return rate;
+}
+
+async function fetchGoogleFinanceRate(from: string, to: string): Promise<PairRateCache> {
+  const url = `https://www.google.com/finance/quote/${from}-${to}`;
+  const res = await fetch(url, {
+    cache: "no-store",
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (compatible; SplitSMSBot/1.0; +https://splitsms.com)",
+      "Accept-Language": "en-US,en;q=0.9",
+      Accept: "text/html,application/xhtml+xml",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Google Finance HTTP ${res.status}`);
+  }
+
+  const html = await res.text();
+  const rate = parseGoogleFinanceRate(html);
+  if (!rate) {
+    throw new Error(`Could not parse Google Finance rate for ${from}/${to}`);
+  }
+
+  const payload: PairRateCache = {
+    rate,
+    fetchedAt: new Date().toISOString(),
+    source: "google-finance",
+  };
+
+  memoryPairCache.set(pairCacheKey(from, to), {
+    rate,
+    fetchedAt: Date.now(),
+    source: payload.source,
+  });
+  await saveCachedPairRate(from, to, rate, payload.source);
+  return payload;
+}
+
+async function getGooglePairRate(from: string, to: string): Promise<PairRateCache> {
+  const key = pairCacheKey(from, to);
+  const mem = memoryPairCache.get(key);
+  if (mem && Date.now() - mem.fetchedAt < CACHE_TTL_MS) {
+    return {
+      rate: mem.rate,
+      fetchedAt: new Date(mem.fetchedAt).toISOString(),
+      source: mem.source,
+    };
+  }
+
+  const cached = await loadCachedPairRate(from, to);
+  if (cached?.fetchedAt) {
+    const age = Date.now() - new Date(cached.fetchedAt).getTime();
+    if (age < CACHE_TTL_MS) {
+      memoryPairCache.set(key, {
+        rate: cached.rate,
+        fetchedAt: new Date(cached.fetchedAt).getTime(),
+        source: cached.source,
+      });
+      return cached;
+    }
+  }
+
+  try {
+    return await fetchGoogleFinanceRate(from, to);
+  } catch (error) {
+    if (cached?.rate) return cached;
+    throw error;
+  }
+}
+
+async function fetchFallbackGhsRates(): Promise<GhsRateCache> {
+  const res = await fetch(FALLBACK_API_URL, { cache: "no-store" });
   const data = (await res.json()) as {
     result?: string;
     base_code?: string;
@@ -70,7 +201,7 @@ async function fetchGhsRates(): Promise<GhsRateCache> {
     source: "exchangerate-api.com",
   };
 
-  memoryCache = {
+  memoryBulkCache = {
     rates,
     fetchedAt: Date.now(),
     source: payload.source,
@@ -79,12 +210,12 @@ async function fetchGhsRates(): Promise<GhsRateCache> {
   return payload;
 }
 
-async function getGhsRates(): Promise<GhsRateCache> {
-  if (memoryCache && Date.now() - memoryCache.fetchedAt < CACHE_TTL_MS) {
+async function getFallbackGhsRates(): Promise<GhsRateCache> {
+  if (memoryBulkCache && Date.now() - memoryBulkCache.fetchedAt < CACHE_TTL_MS) {
     return {
-      rates: memoryCache.rates,
-      fetchedAt: new Date(memoryCache.fetchedAt).toISOString(),
-      source: memoryCache.source,
+      rates: memoryBulkCache.rates,
+      fetchedAt: new Date(memoryBulkCache.fetchedAt).toISOString(),
+      source: memoryBulkCache.source,
     };
   }
 
@@ -92,7 +223,7 @@ async function getGhsRates(): Promise<GhsRateCache> {
   if (cached?.fetchedAt) {
     const age = Date.now() - new Date(cached.fetchedAt).getTime();
     if (age < CACHE_TTL_MS) {
-      memoryCache = {
+      memoryBulkCache = {
         rates: cached.rates,
         fetchedAt: new Date(cached.fetchedAt).getTime(),
         source: cached.source,
@@ -102,7 +233,7 @@ async function getGhsRates(): Promise<GhsRateCache> {
   }
 
   try {
-    return await fetchGhsRates();
+    return await fetchFallbackGhsRates();
   } catch (error) {
     if (cached?.rates) return cached;
     throw error;
@@ -119,13 +250,16 @@ export async function getGhsToCurrencyRate(targetCurrency: string) {
     };
   }
 
-  const { rates, fetchedAt, source } = await getGhsRates();
-  const rate = rates[target];
-  if (!rate || rate <= 0) {
-    throw new Error(`Exchange rate for GHS → ${target} is unavailable`);
+  try {
+    return await getGooglePairRate("GHS", target);
+  } catch {
+    const { rates, fetchedAt, source } = await getFallbackGhsRates();
+    const rate = rates[target];
+    if (!rate || rate <= 0) {
+      throw new Error(`Exchange rate for GHS → ${target} is unavailable`);
+    }
+    return { rate, fetchedAt, source };
   }
-
-  return { rate, fetchedAt, source };
 }
 
 export async function convertGhsAmount(amount: number, targetCurrency: string): Promise<FxConversion> {

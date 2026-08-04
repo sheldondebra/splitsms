@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import type { FormAnalyticsData } from "@/lib/smart-forms/analytics";
 import type { AnalyticsPeriod } from "@/lib/smart-forms/analytics-range";
 import { AppCard, AppCardBody } from "@/components/dashboard/page-shell";
@@ -31,6 +31,7 @@ import {
   Download,
   Percent,
   Calendar,
+  Clock,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -44,6 +45,42 @@ const PERIODS: { value: AnalyticsPeriod; label: string }[] = [
   { value: "all", label: "All time" },
 ];
 
+function formatFullDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function LastSubmissionValue({ iso }: { iso: string | null }) {
+  if (!iso) {
+    return <span className="text-2xl font-bold tabular-nums">—</span>;
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <p className="flex items-start gap-2 text-sm font-semibold leading-snug">
+        <Calendar className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+        <span>{formatFullDate(iso)}</span>
+      </p>
+      <p className="flex items-center gap-2 text-sm font-semibold tabular-nums text-muted-foreground">
+        <Clock className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+        <span>{formatTime(iso)}</span>
+      </p>
+    </div>
+  );
+}
+
 function MetricCard({
   label,
   value,
@@ -51,7 +88,7 @@ function MetricCard({
   hint,
 }: {
   label: string;
-  value: string | number;
+  value: ReactNode;
   icon: LucideIcon;
   hint?: string;
 }) {
@@ -62,7 +99,7 @@ function MetricCard({
           <p className="text-sm text-muted-foreground">{label}</p>
           <Icon className="h-4 w-4 text-primary shrink-0" />
         </div>
-        <p className="mt-2 text-2xl font-bold tabular-nums">{value}</p>
+        <div className="mt-2 text-2xl font-bold tabular-nums">{value}</div>
         {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
       </AppCardBody>
     </AppCard>
@@ -87,10 +124,6 @@ function EmptyChart() {
 export function FormAnalyticsDashboard({ data }: { data: FormAnalyticsData }) {
   const router = useRouter();
   const pathname = usePathname();
-
-  const lastSubmission = data.metrics.lastSubmissionAt
-    ? new Date(data.metrics.lastSubmissionAt).toLocaleString()
-    : "—";
 
   const hasTimeSeries = useMemo(
     () => data.timeSeries.some((d) => d.views > 0 || d.submissions > 0),
@@ -171,7 +204,12 @@ export function FormAnalyticsDashboard({ data }: { data: FormAnalyticsData }) {
         <MetricCard label="SMS sent" value={data.metrics.smsSent} icon={MessageSquare} />
         <MetricCard label="SMS failed" value={data.metrics.smsFailed} icon={MessageSquare} />
         <MetricCard label="Exports" value={data.metrics.exports} icon={Download} />
-        <MetricCard label="Last submission" value={lastSubmission} icon={Calendar} hint="Most recent" />
+        <MetricCard
+          label="Last submission"
+          value={<LastSubmissionValue iso={data.metrics.lastSubmissionAt} />}
+          icon={Calendar}
+          hint="Most recent"
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

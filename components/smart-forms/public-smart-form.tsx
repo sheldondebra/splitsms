@@ -10,7 +10,7 @@ import { validateRecipientPhone } from "@/lib/sms/phone-validation";
 import type { BuilderField, PublicSmartForm } from "@/lib/smart-forms/types";
 import type { CaptchaChallenge } from "@/lib/smart-forms/captcha";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Loader2, ShieldCheck, Sparkles } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 
 type PublicSmartFormViewProps = {
   form: PublicSmartForm;
@@ -184,11 +184,6 @@ export function PublicSmartFormView({
       <div className={shellClass} style={themeStyle}>
         {!embedMode ? <PublicFormBackgroundAccents /> : null}
         <div className={cn(cardClass, "p-8 text-center sm:p-12")}>
-          <div
-            className="absolute inset-x-0 top-0 h-1.5"
-            style={{ backgroundColor: primary }}
-            aria-hidden
-          />
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-emerald-50 ring-8 ring-emerald-50/60">
             <CheckCircle2 className="h-10 w-10 text-emerald-600" strokeWidth={2} />
           </div>
@@ -250,9 +245,8 @@ export function PublicSmartFormView({
               aria-hidden
             />
             <div className="relative">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/90 ring-1 ring-white/20">
-                <Sparkles className="h-3.5 w-3.5" aria-hidden />
-                Smart form
+              <div className="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/90 ring-1 ring-white/20">
+                {form.businessName}
               </div>
               <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
                 {form.name}
@@ -269,9 +263,8 @@ export function PublicSmartFormView({
         <div className="space-y-6 p-6 sm:p-8">
           {hasBanner ? (
             <header className="space-y-2 border-b border-zinc-100 pb-6">
-              <div className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                <Sparkles className="h-3.5 w-3.5" aria-hidden />
-                Smart form
+              <div className="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                {form.businessName}
               </div>
               <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl">
                 {form.name}

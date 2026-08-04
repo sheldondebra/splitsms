@@ -114,7 +114,7 @@ export function ResellerWalletView({
 
       {flash?.paymentOk ? (
         <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
-          Payment successful — your wallet balance has been updated.
+          Money added successfully — buy a package or SMS credits next.
         </p>
       ) : null}
       {flash?.submitted === "manual" ? (
@@ -219,7 +219,7 @@ export function ResellerWalletView({
       <div className="grid gap-4 xl:grid-cols-2" id="top-up">
         <ResellerCard
           title="Top up wallet"
-          description="Add funds with Paystack, Stripe, MoMo, or bank transfer — then buy SMS stock."
+          description="Add funds with Paystack or Stripe — then buy SMS stock."
         >
           <WalletTopupClient
             currency={data.currency}
@@ -514,7 +514,7 @@ export function ResellerWalletView({
                 <div>
                   <p className="text-sm font-semibold">Member wallet top-up</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    Paystack, cards, mobile money, or offline bank transfer.
+                    Paystack or Stripe card checkout.
                   </p>
                 </div>
               </Link>

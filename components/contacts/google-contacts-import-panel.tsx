@@ -106,7 +106,9 @@ export function GoogleContactsImportPanel({ connected }: { connected: boolean })
 
     const fd = new FormData();
     fd.set("contacts", JSON.stringify(rows));
-    startImport(() => importContactsSelectedAction(fd));
+    startImport(async () => {
+      await importContactsSelectedAction(fd);
+    });
   }
 
   const defaultConnect = googleConnectHref({

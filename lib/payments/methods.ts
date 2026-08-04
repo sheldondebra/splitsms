@@ -20,6 +20,13 @@ export type PaymentMethodOption = {
   category: "online" | "offline";
 };
 
+/** Hidden from wallet checkout (still supported in admin / existing payments). */
+const HIDDEN_METHODS = new Set<PaymentMethod>([
+  "FLUTTERWAVE",
+  "MTN_MOMO",
+  "MANUAL",
+]);
+
 const ALL_METHODS: Omit<PaymentMethodOption, "available">[] = [
   {
     value: "PAYSTACK",
@@ -101,12 +108,13 @@ export async function getPaymentMethodOptionsForUser(
   ];
 
   const ctx = await resolveResellerCheckoutContext(userId);
-  let methods = ALL_METHODS.filter((m) => enabled.includes(m.value));
+  let methods = ALL_METHODS.filter(
+    (m) => enabled.includes(m.value) && !HIDDEN_METHODS.has(m.value),
+  );
 
   if (ctx.mode === "OWN") {
     methods = methods.filter(
       (m) =>
-        m.value === "MANUAL" ||
         (m.value === "PAYSTACK" && ctx.paystack) ||
         (m.value === "STRIPE" && ctx.stripe),
     );
@@ -134,7 +142,9 @@ export async function getPaymentMethodOptions(): Promise<PaymentMethodOption[]> 
     "MANUAL",
   ];
 
-  const methods = ALL_METHODS.filter((m) => enabled.includes(m.value));
+  const methods = ALL_METHODS.filter(
+    (m) => enabled.includes(m.value) && !HIDDEN_METHODS.has(m.value),
+  );
   const availability = await Promise.all(methods.map((m) => isMethodAvailable(m.value)));
 
   return methods.map((m, i) => ({

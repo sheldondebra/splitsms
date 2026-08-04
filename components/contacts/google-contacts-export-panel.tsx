@@ -24,7 +24,9 @@ export function GoogleContactsExportPanel({
   function exportAll() {
     const fd = new FormData();
     fd.set("mode", "all");
-    startTransition(() => exportContactsToGoogleAction(fd));
+    startTransition(async () => {
+      await exportContactsToGoogleAction(fd);
+    });
   }
 
   return (

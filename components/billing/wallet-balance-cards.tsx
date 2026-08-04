@@ -34,7 +34,7 @@ export function WalletBalanceCards({
           {formatWalletMoney(walletBalance, currency)}
         </p>
         <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-          Add money via card, mobile money, or bank transfer
+          Add money via Paystack or card
         </p>
       </div>
 

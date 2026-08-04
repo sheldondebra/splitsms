@@ -28,9 +28,10 @@ export const paystackAdapter: PaymentProviderAdapter = {
         email: email ?? "member@splitsms.local",
         currency,
         reference: paymentId,
+        // Paystack appends reference=&trxref= itself — do not pre-set reference
+        // or Next.js receives string[] and Prisma throws on the return page.
         callback_url: walletCallbackUrl(appUrl, path, {
           provider: "paystack",
-          reference: paymentId,
         }),
       }),
     });

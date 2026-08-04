@@ -84,7 +84,9 @@ export function GoogleSheetsImportPanel({ connected }: { connected: boolean }) {
     if (!preview?.contacts?.length) return;
     const fd = new FormData();
     fd.set("contacts", JSON.stringify(preview.contacts));
-    startTransition(() => importContactsSelectedAction(fd));
+    startTransition(async () => {
+      await importContactsSelectedAction(fd);
+    });
   }
 
   return (
@@ -93,10 +95,11 @@ export function GoogleSheetsImportPanel({ connected }: { connected: boolean }) {
         <div>
           <h3 className="font-semibold flex items-center gap-2">
             <FileSpreadsheet className="h-4 w-4 text-primary" />
-            Import from Google Sheets / Excel
+            Import from Google Sheets
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Pick a Sheet or Excel file from Drive, then import contacts or open Send SMS.
+            Pick a Google Sheet from Drive, then import contacts or open Send SMS.
+            (Upload Excel as CSV, or open it in Google Sheets first.)
           </p>
         </div>
         {!connected ? (
@@ -124,7 +127,7 @@ export function GoogleSheetsImportPanel({ connected }: { connected: boolean }) {
       {files && (
         <div className="space-y-2 max-h-48 overflow-auto">
           {files.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No Sheets or Excel files found.</p>
+            <p className="text-sm text-muted-foreground">No Google Sheets found in Drive.</p>
           ) : (
             files.map((f) => (
               <button

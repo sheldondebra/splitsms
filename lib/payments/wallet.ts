@@ -67,7 +67,9 @@ export async function creditWalletFromPayment(paymentId: string) {
   const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
   if (!payment) return null;
 
-  await createInvoiceFromPayment(paymentId);
+  await createInvoiceFromPayment(paymentId).catch((err) => {
+    console.error("[wallet] invoice create failed after credit", paymentId, err);
+  });
   const instrument = await capturePaymentDetails(paymentId).catch(() => null);
   const instrumentLabel = formatInstrumentLabel(instrument ?? readPaymentInstrument(payment.metadata));
 
@@ -79,7 +81,9 @@ export async function creditWalletFromPayment(paymentId: string) {
       ? `Your wallet was credited with ${payment.currency} ${payment.amount.toString()} (${instrumentLabel}).`
       : `Your wallet was credited with ${payment.currency} ${payment.amount.toString()}.`,
     { paymentId },
-  );
+  ).catch((err) => {
+    console.error("[wallet] notification failed after credit", paymentId, err);
+  });
 
   await sendReceiptAfterWalletTopUp(paymentId).catch(() => undefined);
 

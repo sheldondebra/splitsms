@@ -205,25 +205,26 @@ export async function createGroupAction(formData: FormData) {
   const userId = await requireUserId();
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
-  if (!name) redirect("/dashboard/contacts?error=group");
+  if (!name) redirect("/dashboard/contacts?tab=groups&error=group");
 
   await prisma.contactGroup.create({
     data: { userId, name, description: description || undefined },
   });
-  redirect("/dashboard/contacts");
+  revalidatePath("/dashboard/contacts");
+  redirect("/dashboard/contacts?tab=groups");
 }
 
 export async function renameGroupAction(formData: FormData) {
   const userId = await requireUserId();
   const id = String(formData.get("id"));
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) redirect("/dashboard/contacts?error=group");
+  if (!name) redirect("/dashboard/contacts?tab=groups&error=group");
   await prisma.contactGroup.updateMany({
     where: { id, userId },
     data: { name },
   });
   revalidatePath("/dashboard/contacts");
-  redirect("/dashboard/contacts");
+  redirect("/dashboard/contacts?tab=groups");
 }
 
 export async function deleteGroupAction(formData: FormData) {
@@ -231,7 +232,7 @@ export async function deleteGroupAction(formData: FormData) {
   const id = String(formData.get("id"));
   await prisma.contactGroup.deleteMany({ where: { id, userId } });
   revalidatePath("/dashboard/contacts");
-  redirect("/dashboard/contacts");
+  redirect("/dashboard/contacts?tab=groups");
 }
 
 export async function addContactToGroupAction(formData: FormData) {

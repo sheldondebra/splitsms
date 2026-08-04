@@ -211,12 +211,8 @@ export function WalletTopupClient({
         <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm leading-relaxed">
           <p className="font-medium text-foreground">Pay in Ghana Cedis, charged in USD</p>
           <p className="text-muted-foreground mt-1">
-            Your wallet is credited in {currency}. Stripe checkout is in{" "}
-            {stripeFxPreview.chargeCurrency} using the live rate{" "}
-            <span className="font-mono tabular-nums">
-              1 {currency} = {stripeFxPreview.rate.toFixed(4)} {stripeFxPreview.chargeCurrency}
-            </span>
-            .
+            Your wallet is credited in {currency}. Stripe checkout is charged in{" "}
+            {stripeFxPreview.chargeCurrency} using the current Google exchange rate.
           </p>
           {stripeChargePreview != null && (
             <p className="mt-2 font-medium tabular-nums">

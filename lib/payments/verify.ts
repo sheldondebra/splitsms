@@ -3,17 +3,18 @@ import { verifyPaystackPayment } from "@/lib/payments/paystack-verify";
 import { verifyFlutterwavePayment } from "@/lib/payments/flutterwave-verify";
 import { verifyStripeCheckoutSession } from "@/lib/payments/stripe-verify";
 import { creditWalletFromPayment } from "@/lib/payments/wallet";
+import { firstSearchParam } from "@/lib/payments/return-path";
 import type { PaymentMethod } from "@/lib/generated/prisma/client";
 
 export async function verifyAndCreditPaymentForUser(params: {
   userId: string;
-  method?: string | null;
-  reference?: string | null;
-  stripeSessionId?: string | null;
+  method?: string | string[] | null;
+  reference?: string | string[] | null;
+  stripeSessionId?: string | string[] | null;
 }) {
-  const method = (params.method ?? "").toUpperCase();
-  const reference = params.reference ?? "";
-  const sessionId = params.stripeSessionId ?? "";
+  const method = (firstSearchParam(params.method) ?? "").toUpperCase();
+  const reference = firstSearchParam(params.reference) ?? "";
+  const sessionId = firstSearchParam(params.stripeSessionId) ?? "";
   if (!reference) return { ok: false as const, error: "Missing payment reference" };
 
   let payment = await prisma.payment.findFirst({

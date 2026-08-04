@@ -5,14 +5,14 @@ import {
   identityFromAccessToken,
   upsertGoogleConnectionFromOAuth,
 } from "@/lib/google/connection";
-import { mergeScopes } from "@/lib/google/connection-utils";
+import { resolveGrantedScopes } from "@/lib/google/connection-utils";
+import { prisma } from "@/lib/db";
 import {
   consumeConnectPkceCookie,
   exchangeGoogleConnectCode,
   getGoogleClientCredentials,
   googleConnectCallbackUri,
   resolveGoogleOAuthOrigin,
-  scopeListFromTokenResponse,
   verifyConnectState,
 } from "@/lib/google/oauth-connect";
 
@@ -84,9 +84,15 @@ export async function GET(request: NextRequest) {
     return redirectError(origin, "google_failed");
   }
 
-  const grantedScopes = mergeScopes(
+  const existing = await prisma.googleConnection.findUnique({
+    where: { userId: session.userId },
+    select: { scopes: true },
+  });
+
+  const grantedScopes = resolveGrantedScopes(
+    tokenResult.scope,
     state.requestedScopes,
-    scopeListFromTokenResponse(tokenResult.scope, state.requestedScopes),
+    existing?.scopes ?? [],
   );
 
   try {

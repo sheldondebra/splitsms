@@ -35,58 +35,75 @@ export async function getRequestMeta() {
   };
 }
 
+const smartFormOwnerInclude = {
+  fields: { orderBy: { sortOrder: "asc" as const } },
+  user: {
+    select: {
+      fullName: true,
+      reseller: { select: { businessName: true, brandName: true } },
+    },
+  },
+} as const;
+
+function resolveSmartFormBusinessName(user: {
+  fullName: string;
+  reseller: { businessName: string; brandName: string | null } | null;
+}) {
+  return (
+    user.reseller?.brandName?.trim() ||
+    user.reseller?.businessName?.trim() ||
+    user.fullName.trim()
+  );
+}
+
+function toPublicSmartForm(
+  form: Parameters<typeof serializeSmartForm>[0] & {
+    user: {
+      fullName: string;
+      reseller: { businessName: string; brandName: string | null } | null;
+    };
+  },
+): PublicSmartForm {
+  const serialized = serializeSmartForm(form);
+  return {
+    id: serialized.id,
+    name: serialized.name,
+    description: serialized.description,
+    shortCode: serialized.shortCode,
+    status: serialized.status,
+    bannerUrl: serialized.bannerUrl,
+    businessName: resolveSmartFormBusinessName(form.user),
+    themeSettings: serialized.themeSettings,
+    layoutSettings: serialized.layoutSettings,
+    successSettings: serialized.successSettings,
+    captchaEnabled: serialized.captchaEnabled,
+    fields: serialized.fields,
+  };
+}
+
 export async function getPublishedSmartFormByShortCode(shortCodeOrSlug: string) {
   const form = await prisma.smartForm.findFirst({
     where: {
       status: "PUBLISHED",
       OR: [{ shortCode: shortCodeOrSlug }, { slug: shortCodeOrSlug }],
     },
-    include: { fields: { orderBy: { sortOrder: "asc" } } },
+    include: smartFormOwnerInclude,
   });
   if (!form) return null;
 
   if (form.endsAt && form.endsAt < new Date()) return null;
   if (form.startsAt && form.startsAt > new Date()) return null;
 
-  const serialized = serializeSmartForm(form);
-  const publicForm: PublicSmartForm = {
-    id: serialized.id,
-    name: serialized.name,
-    description: serialized.description,
-    shortCode: serialized.shortCode,
-    status: serialized.status,
-    bannerUrl: serialized.bannerUrl,
-    themeSettings: serialized.themeSettings,
-    layoutSettings: serialized.layoutSettings,
-    successSettings: serialized.successSettings,
-    captchaEnabled: serialized.captchaEnabled,
-    fields: serialized.fields,
-  };
-
-  return { form, publicForm };
+  return { form, publicForm: toPublicSmartForm(form) };
 }
 
 export async function getSmartFormForPreview(userId: string, formId: string) {
   const form = await prisma.smartForm.findFirst({
     where: { id: formId, userId },
-    include: { fields: { orderBy: { sortOrder: "asc" } } },
+    include: smartFormOwnerInclude,
   });
   if (!form) return null;
-  const serialized = serializeSmartForm(form);
-  const publicForm: PublicSmartForm = {
-    id: serialized.id,
-    name: serialized.name,
-    description: serialized.description,
-    shortCode: serialized.shortCode,
-    status: serialized.status,
-    bannerUrl: serialized.bannerUrl,
-    themeSettings: serialized.themeSettings,
-    layoutSettings: serialized.layoutSettings,
-    successSettings: serialized.successSettings,
-    captchaEnabled: serialized.captchaEnabled,
-    fields: serialized.fields,
-  };
-  return publicForm;
+  return toPublicSmartForm(form);
 }
 
 export async function recordSmartFormEvent(

@@ -66,6 +66,8 @@ export type PublicSmartForm = {
   shortCode: string;
   status: SmartFormStatus;
   bannerUrl: string | null;
+  /** Form owner's business / account display name */
+  businessName: string;
   themeSettings: SmartFormThemeSettings;
   layoutSettings: SmartFormLayoutSettings;
   successSettings: SmartFormSuccessSettings;

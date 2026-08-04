@@ -9,6 +9,12 @@ export type DriveSpreadsheetFile = {
   modifiedTime?: string;
 };
 
+const GOOGLE_SHEETS_MIME = "application/vnd.google-apps.spreadsheet";
+
+export function isNativeGoogleSpreadsheet(mimeType: string): boolean {
+  return mimeType === GOOGLE_SHEETS_MIME;
+}
+
 type DriveListResponse = {
   files?: Array<{
     id?: string;
@@ -24,8 +30,9 @@ export async function listSpreadsheetFiles(
   opts?: { pageSize?: number },
 ): Promise<DriveSpreadsheetFile[]> {
   const pageSize = opts?.pageSize ?? 50;
+  // Sheets values API only works for native Google Sheets — do not list Excel.
   const q = encodeURIComponent(
-    "(mimeType='application/vnd.google-apps.spreadsheet' or mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' or mimeType='application/vnd.ms-excel') and trashed=false",
+    `mimeType='${GOOGLE_SHEETS_MIME}' and trashed=false`,
   );
   const res = await fetch(
     `https://www.googleapis.com/drive/v3/files?pageSize=${pageSize}&fields=files(id,name,mimeType,modifiedTime)&q=${q}&orderBy=modifiedTime desc`,
@@ -37,7 +44,7 @@ export async function listSpreadsheetFiles(
   if (!res.ok) throw new Error(`drive_list_${res.status}`);
   const data = (await res.json()) as DriveListResponse;
   return (data.files ?? [])
-    .filter((f) => f.id && f.name && f.mimeType)
+    .filter((f) => f.id && f.name && f.mimeType && isNativeGoogleSpreadsheet(f.mimeType))
     .map((f) => ({
       id: f.id!,
       name: f.name!,

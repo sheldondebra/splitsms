@@ -10,44 +10,49 @@ import { verifyAndCreditPaymentForUser } from "@/lib/payments/verify";
 import { reconcilePendingStripePaymentsForUser } from "@/lib/payments/stripe-webhook";
 import { loadStripeSettings } from "@/lib/payments/gateway-settings";
 import { getStripeFxPreview } from "@/lib/payments/fx-rates";
+import { firstSearchParam } from "@/lib/payments/return-path";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { WalletPaymentToasts } from "@/components/billing/wallet-payment-toasts";
 
 export default async function ResellerWalletPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    funded?: string;
-    saved?: string;
-    error?: string;
-    credits?: string;
-    qty?: string;
-    profit?: string;
-    payment?: string;
-    submitted?: string;
-    provider?: string;
-    reference?: string;
-    session_id?: string;
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await getSession();
   if (!session) return null;
   const params = await searchParams;
+  const provider = firstSearchParam(params.provider);
+  const reference = firstSearchParam(params.reference);
+  const sessionId = firstSearchParam(params.session_id);
+  const funded = firstSearchParam(params.funded);
+  const saved = firstSearchParam(params.saved);
+  const error = firstSearchParam(params.error);
+  const credits = firstSearchParam(params.credits);
+  const qty = firstSearchParam(params.qty);
+  const profit = firstSearchParam(params.profit);
+  const submitted = firstSearchParam(params.submitted);
 
   const reseller = await requireApprovedReseller(session.userId);
   if (!reseller) redirect("/reseller");
 
   let callbackResult: { ok: boolean; error?: string } | null = null;
-  if (params.provider && params.reference) {
-    const verified = await verifyAndCreditPaymentForUser({
-      userId: session.userId,
-      method: params.provider,
-      reference: params.reference,
-      stripeSessionId: params.session_id,
-    });
-    callbackResult = verified.ok
-      ? { ok: true }
-      : { ok: false, error: verified.error ?? "payment" };
+  if (provider && reference) {
+    try {
+      const verified = await verifyAndCreditPaymentForUser({
+        userId: session.userId,
+        method: provider,
+        reference,
+        stripeSessionId: sessionId,
+      });
+      callbackResult = verified.ok
+        ? { ok: true }
+        : { ok: false, error: verified.error ?? "payment" };
+    } catch (err) {
+      console.error("[reseller-wallet] payment callback failed", err);
+      callbackResult = { ok: false, error: "payment" };
+    }
   } else {
     await reconcilePendingStripePaymentsForUser(session.userId).catch(() => undefined);
   }
@@ -72,7 +77,9 @@ export default async function ResellerWalletPage({
   );
 
   return (
-    <ResellerWalletView
+    <>
+      <WalletPaymentToasts moneyAdded={Boolean(callbackResult?.ok)} />
+      <ResellerWalletView
       data={data}
       packagePricing={packagePricing}
       defaultCountryCode={user?.countryCode ?? "GH"}
@@ -81,15 +88,16 @@ export default async function ResellerWalletPage({
       defaultPaymentMethod={defaultMethod ?? undefined}
       stripeFxPreview={stripeFxPreview ?? undefined}
       flash={{
-        funded: params.funded,
-        saved: params.saved,
-        error: callbackResult && !callbackResult.ok ? callbackResult.error : params.error,
-        credits: params.credits,
-        qty: params.qty,
-        profit: params.profit,
-        paymentOk: callbackResult?.ok || params.funded === "1" ? "1" : undefined,
-        submitted: params.submitted,
+        funded,
+        saved,
+        error: callbackResult && !callbackResult.ok ? callbackResult.error : error,
+        credits,
+        qty,
+        profit,
+        paymentOk: callbackResult?.ok ? "1" : undefined,
+        submitted,
       }}
     />
+    </>
   );
 }

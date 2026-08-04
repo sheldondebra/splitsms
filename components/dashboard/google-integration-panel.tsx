@@ -7,7 +7,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { GoogleConnectionPublic } from "@/lib/google/connection";
+import { googleConnectHref } from "@/lib/google/connect-url";
+import {
+  GOOGLE_CONTACTS_EXPORT_SCOPES,
+  GOOGLE_CONTACTS_IMPORT_SCOPES,
+  GOOGLE_FORMS_SCOPES,
+  GOOGLE_SHEETS_SCOPES,
+} from "@/lib/google/scopes";
 import { CheckCircle2, Link2, Loader2, Unplug } from "lucide-react";
+
+const RECONNECT_SCOPES = [
+  ...GOOGLE_CONTACTS_IMPORT_SCOPES,
+  ...GOOGLE_CONTACTS_EXPORT_SCOPES,
+  ...GOOGLE_SHEETS_SCOPES,
+  ...GOOGLE_FORMS_SCOPES,
+];
 
 const ERROR_COPY: Record<string, string> = {
   google_config: "Google OAuth is not configured on this server.",
@@ -89,8 +103,8 @@ export function GoogleIntegrationPanel({
                 Google account
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Connect once, then grant Contacts, Sheets, or Forms access when
-                you use each feature.
+                Connect once, then import contacts, browse Sheets, or set up
+                Forms → SMS.
               </p>
             </div>
             {connection ? (
@@ -124,7 +138,11 @@ export function GoogleIntegrationPanel({
               </div>
               <div className="flex flex-wrap gap-2 pt-1">
                 <a
-                  href="/api/integrations/google/connect?returnTo=/dashboard/integrations/google&force=1"
+                  href={googleConnectHref({
+                    scopes: RECONNECT_SCOPES,
+                    returnTo: "/dashboard/integrations/google",
+                    force: true,
+                  })}
                   className={cn(buttonVariants({ size: "sm" }))}
                 >
                   Reconnect
@@ -149,12 +167,14 @@ export function GoogleIntegrationPanel({
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                This is separate from “Continue with Google” on login. Connecting
-                here lets SplitSMS read your Contacts, Sheets, and Forms when you
-                choose.
+                Connect once to grant Contacts, Sheets, and Forms access for
+                import, export, and Google Forms SMS.
               </p>
               <a
-                href="/api/integrations/google/connect?returnTo=/dashboard/integrations/google"
+                href={googleConnectHref({
+                  scopes: RECONNECT_SCOPES,
+                  returnTo: "/dashboard/integrations/google",
+                })}
                 className={cn(buttonVariants({ size: "sm" }), "inline-flex gap-2")}
               >
                 <Link2 className="h-4 w-4" />
@@ -179,8 +199,8 @@ export function GoogleIntegrationPanel({
             </li>
           </ul>
           <p className="text-xs text-muted-foreground">
-            Features request only the Google permissions they need when you use
-            them.
+            Separate from “Continue with Google” on login. Reconnect if import or
+            export stops working after Google access changes.
           </p>
         </AppCardBody>
       </AppCard>

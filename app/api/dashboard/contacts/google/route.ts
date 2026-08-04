@@ -35,7 +35,19 @@ export async function GET() {
   try {
     const contacts = await listGoogleContactsWithPhones(token.accessToken);
     return NextResponse.json({ contacts });
-  } catch {
-    return NextResponse.json({ error: "people_list_failed" }, { status: 502 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "";
+    const forbidden = /people_list_403/.test(message);
+    return NextResponse.json(
+      {
+        error: forbidden ? "reconnect" : "people_list_failed",
+        connectUrl: googleConnectHref({
+          scopes: [...GOOGLE_CONTACTS_IMPORT_SCOPES],
+          returnTo: "/dashboard/contacts?tab=import",
+          force: true,
+        }),
+      },
+      { status: forbidden ? 403 : 502 },
+    );
   }
 }

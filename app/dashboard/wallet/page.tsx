@@ -15,38 +15,42 @@ import { getWalletPricingOptions } from "@/lib/billing/wallet-pricing";
 import { resolveSmsPriceForUser } from "@/lib/reseller/pricing";
 import { loadStripeSettings } from "@/lib/payments/gateway-settings";
 import { getStripeFxPreview } from "@/lib/payments/fx-rates";
+import { firstSearchParam } from "@/lib/payments/return-path";
+import { WalletPaymentToasts } from "@/components/billing/wallet-payment-toasts";
 
 export default async function WalletPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    funded?: string;
-    promo?: string;
-    credits?: string;
-    error?: string;
-    msg?: string;
-    payment?: string;
-    submitted?: string;
-    provider?: string;
-    reference?: string;
-    session_id?: string;
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await getSession();
   if (!session) return null;
   const params = await searchParams;
+  const provider = firstSearchParam(params.provider);
+  const reference = firstSearchParam(params.reference);
+  const sessionId = firstSearchParam(params.session_id);
+  const funded = firstSearchParam(params.funded);
+  const credits = firstSearchParam(params.credits);
+  const promo = firstSearchParam(params.promo);
+  const submitted = firstSearchParam(params.submitted);
+  const error = firstSearchParam(params.error);
 
   let callbackResult: { ok: boolean; error?: string } | null = null;
-  if (params.provider && params.reference) {
-    const verified = await verifyAndCreditPaymentForUser({
-      userId: session.userId,
-      method: params.provider,
-      reference: params.reference,
-      stripeSessionId: params.session_id,
-    });
-    callbackResult = verified.ok
-      ? { ok: true }
-      : { ok: false, error: verified.error ?? "payment" };
+  if (provider && reference) {
+    try {
+      const verified = await verifyAndCreditPaymentForUser({
+        userId: session.userId,
+        method: provider,
+        reference,
+        stripeSessionId: sessionId,
+      });
+      callbackResult = verified.ok
+        ? { ok: true }
+        : { ok: false, error: verified.error ?? "payment" };
+    } catch (err) {
+      console.error("[wallet] payment callback failed", err);
+      callbackResult = { ok: false, error: "payment" };
+    }
   } else {
     await reconcilePendingStripePaymentsForUser(session.userId).catch(() => undefined);
   }
@@ -79,8 +83,11 @@ export default async function WalletPage({
   const { config: stripeConfig } = await loadStripeSettings();
   const stripeFxPreview = await getStripeFxPreview(currency, stripeConfig.defaultCurrency || "USD");
 
+  const moneyAdded = Boolean(callbackResult?.ok || funded);
+
   return (
     <AppPage wide>
+      <WalletPaymentToasts moneyAdded={moneyAdded} />
       <PageHeader
         title="Wallet & SMS credits"
         description="Top up your wallet, buy credit packages, and track spending."
@@ -88,27 +95,27 @@ export default async function WalletPage({
         mobileDescription="Add money, buy SMS packages, view activity."
       />
 
-      {callbackResult?.ok || params.funded ? (
+      {moneyAdded ? (
         <FriendlyAlert
           success="1"
-          successMessage="Payment successful — your wallet balance has been updated."
+          successMessage="Money added successfully — buy a package or SMS credits next."
         />
-      ) : params.credits === "purchased" ? (
+      ) : credits === "purchased" ? (
         <FriendlyAlert
           success="1"
           successMessage="SMS credits purchased successfully. You can start sending right away."
         />
       ) : callbackResult && !callbackResult.ok ? (
         <FriendlyAlert error={callbackResult.error ?? "payment"} />
-      ) : params.promo === "ok" ? (
+      ) : promo === "ok" ? (
         <FriendlyAlert success="1" successMessage="Promo code applied successfully." />
-      ) : params.submitted === "manual" ? (
+      ) : submitted === "manual" ? (
         <FriendlyAlert
           success="1"
           successMessage="Transfer submitted. We will credit your wallet after verification."
         />
       ) : (
-        <FriendlyAlert error={params.error} />
+        <FriendlyAlert error={error} />
       )}
 
       <WalletBalanceCards

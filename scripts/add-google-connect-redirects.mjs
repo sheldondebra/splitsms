@@ -40,6 +40,17 @@ function parseEnvFile(path) {
   return out;
 }
 
+async function readInputValues(page) {
+  const values = [];
+  const inputs = page.locator("input[type='text'], input[type='url'], input:not([type])");
+  const n = await inputs.count();
+  for (let i = 0; i < n; i++) {
+    const val = (await inputs.nth(i).inputValue().catch(() => "")).trim();
+    if (val) values.push(val);
+  }
+  return values;
+}
+
 async function main() {
   const env = {
     ...parseEnvFile(join(root, ".env")),
@@ -58,59 +69,95 @@ async function main() {
   const editUrl = `https://console.cloud.google.com/apis/credentials/oauthclient/${encodeURIComponent(clientId)}?project=${PROJECT}`;
   console.log("Opening OAuth client editor…");
   console.log(editUrl);
-  console.log("Add these redirect URIs if missing:");
-  for (const uri of EXTRA_REDIRECTS) console.log(" ", uri);
 
   const context = await chromium.launchPersistentContext(PROFILE_DIR, {
     channel: "chrome",
     headless: false,
-    viewport: { width: 1400, height: 1000 },
+    viewport: { width: 1400, height: 1100 },
     args: ["--disable-blink-features=AutomationControlled"],
   });
   const page = context.pages()[0] || (await context.newPage());
 
   try {
     await page.goto(editUrl, { waitUntil: "domcontentloaded", timeout: 120_000 });
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(6000);
 
-    const bodyText = await page.locator("body").innerText().catch(() => "");
+    await page
+      .getByText("Authorized redirect URIs", { exact: false })
+      .first()
+      .scrollIntoViewIfNeeded()
+      .catch(() => undefined);
+    await page.waitForTimeout(400);
+
     for (const uri of EXTRA_REDIRECTS) {
-      if (bodyText.includes(uri)) {
+      const current = await readInputValues(page);
+      if (current.includes(uri)) {
         console.log("Already present:", uri);
         continue;
       }
-      const addBtn = page.getByRole("button", { name: /add uri/i }).first();
-      if (await addBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await addBtn.click();
-        await page.waitForTimeout(500);
-      }
-      const inputs = page.locator(
-        'input[aria-label*="URI" i], input[aria-label*="redirect" i], input[placeholder*="https://" i]',
-      );
+
+      const addButtons = page.getByRole("button", { name: /add uri/i });
+      const addCount = await addButtons.count();
+      // Last "Add URI" belongs to Authorized redirect URIs (below JS origins).
+      await addButtons.nth(addCount - 1).click();
+      await page.waitForTimeout(600);
+
+      const inputs = page.locator("input[type='text'], input[type='url'], input:not([type])");
       const n = await inputs.count();
-      if (n === 0) {
-        console.log("Could not find URI inputs — add manually in the open browser window.");
+      let filled = false;
+      for (let i = n - 1; i >= 0; i--) {
+        const input = inputs.nth(i);
+        const val = (await input.inputValue().catch(() => "")).trim();
+        const box = await input.boundingBox().catch(() => null);
+        if (!box || box.y < 400) continue;
+        if (val) continue;
+        await input.fill(uri);
+        await input.press("Tab");
+        filled = true;
+        console.log("Filled:", uri);
         break;
       }
-      await inputs.nth(n - 1).fill(uri);
-      console.log("Filled:", uri);
+      if (!filled) console.log("Could not fill:", uri);
       await page.waitForTimeout(300);
     }
 
-    const saveBtn = page.getByRole("button", { name: /save/i }).first();
-    if (await saveBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await saveBtn.click();
-      await page.waitForTimeout(2500);
-      console.log("Clicked Save.");
-    } else {
-      console.log("Save button not found — review the open browser and click Save.");
+    // Remove empty redirect rows that block Save.
+    for (let pass = 0; pass < 8; pass++) {
+      const inputs = page.locator("input[type='text'], input[type='url'], input:not([type])");
+      const n = await inputs.count();
+      let removed = false;
+      for (let i = n - 1; i >= 0; i--) {
+        const input = inputs.nth(i);
+        const val = (await input.inputValue().catch(() => "")).trim();
+        const box = await input.boundingBox().catch(() => null);
+        if (!box || box.y < 400 || val !== "") continue;
+        await page.mouse.click(box.x + box.width + 28, box.y + box.height / 2);
+        removed = true;
+        await page.waitForTimeout(350);
+        break;
+      }
+      if (!removed) break;
     }
 
-    console.log("Leave the browser open if you need to confirm scopes on the consent screen.");
-    console.log(
-      "Consent scopes: https://console.cloud.google.com/auth/scopes?project=splitsms",
-    );
-    await page.waitForTimeout(8000);
+    await page.locator("body").click({ position: { x: 10, y: 10 } }).catch(() => undefined);
+    await page.waitForTimeout(800);
+
+    const saveBtn = page.getByRole("button", { name: /^save$/i }).first();
+    if (await saveBtn.isEnabled().catch(() => false)) {
+      await saveBtn.click({ force: true });
+      await page.waitForTimeout(4000);
+      console.log("Clicked Save.");
+    } else {
+      console.log("Save button disabled — review the open browser and click Save.");
+      await page.waitForTimeout(20_000);
+    }
+
+    await page.goto(editUrl, { waitUntil: "domcontentloaded", timeout: 120_000 });
+    await page.waitForTimeout(5000);
+    const after = await readInputValues(page);
+    for (const uri of EXTRA_REDIRECTS) {
+      console.log(after.includes(uri) ? `OK: ${uri}` : `MISSING: ${uri}`);
+    }
   } finally {
     await context.close().catch(() => undefined);
   }

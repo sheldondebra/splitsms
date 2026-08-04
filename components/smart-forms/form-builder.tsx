@@ -284,6 +284,7 @@ export function SmartFormBuilder({
   }
 
   function handlePublish() {
+    const wasPublished = status === "PUBLISHED";
     startTransition(async () => {
       const saved = await saveSmartFormBuilderAction(initial.id, buildPayload());
       if (!saved.ok) {
@@ -297,7 +298,7 @@ export function SmartFormBuilder({
         return;
       }
       setStatus("PUBLISHED");
-      toast.success("Form published");
+      toast.success(wasPublished ? "Live form updated" : "Form published");
     });
   }
 
@@ -434,9 +435,32 @@ export function SmartFormBuilder({
             </a>
           ) : null}
           {status === "PUBLISHED" ? (
-            <Button type="button" variant="outline" size="sm" className="h-9" disabled={isPending} onClick={handleClose}>
-              Close form
-            </Button>
+            <>
+              <Button
+                type="button"
+                size="sm"
+                className="h-9 gap-1.5"
+                disabled={isPending}
+                onClick={handlePublish}
+              >
+                {isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Upload className="h-3.5 w-3.5" />
+                )}
+                Update live
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9"
+                disabled={isPending}
+                onClick={handleClose}
+              >
+                Close form
+              </Button>
+            </>
           ) : status === "CLOSED" ? (
             <Button type="button" size="sm" className="h-9 gap-1.5" disabled={isPending} onClick={handleReopen}>
               <Upload className="h-3.5 w-3.5" />
@@ -559,8 +583,6 @@ export function SmartFormBuilder({
             className="mx-auto w-full max-w-[620px] overflow-hidden rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.04]"
             style={{ ["--form-primary" as string]: primary }}
           >
-            <div className="h-1 w-full" style={{ backgroundColor: primary }} aria-hidden />
-
             {bannerUrl.trim() ? (
               <FormHeaderBanner
                 src={bannerUrl.trim()}

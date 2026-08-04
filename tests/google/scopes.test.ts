@@ -5,6 +5,7 @@ import {
   mergeScopes,
   missingScopes,
   parseScopeString,
+  resolveGrantedScopes,
 } from "../../lib/google/connection-utils";
 import { GOOGLE_BASE_SCOPES, GOOGLE_SCOPES } from "../../lib/google/scopes";
 
@@ -14,6 +15,21 @@ test("hasScopes requires every scope", () => {
     true,
   );
   assert.equal(hasScopes([...GOOGLE_BASE_SCOPES], [GOOGLE_SCOPES.contacts]), false);
+});
+
+test("contacts write scope satisfies contacts.readonly for import", () => {
+  assert.equal(
+    hasScopes([GOOGLE_SCOPES.contacts], [GOOGLE_SCOPES.contactsReadonly]),
+    true,
+  );
+  assert.equal(
+    hasScopes([GOOGLE_SCOPES.contactsReadonly], [GOOGLE_SCOPES.contacts]),
+    false,
+  );
+  assert.deepEqual(
+    missingScopes([GOOGLE_SCOPES.contacts], [GOOGLE_SCOPES.contactsReadonly]),
+    [],
+  );
 });
 
 test("missingScopes lists only absent ones", () => {
@@ -39,4 +55,30 @@ test("parseScopeString splits whitespace", () => {
     "email",
     "profile",
   ]);
+});
+
+test("resolveGrantedScopes trusts token scopes and does not invent requested ones", () => {
+  const token =
+    "openid email profile https://www.googleapis.com/auth/contacts.readonly";
+  assert.deepEqual(
+    resolveGrantedScopes(
+      token,
+      [
+        GOOGLE_SCOPES.contactsReadonly,
+        GOOGLE_SCOPES.spreadsheets,
+        GOOGLE_SCOPES.driveReadonly,
+      ],
+      [GOOGLE_SCOPES.contactsReadonly],
+    ),
+    parseScopeString(token),
+  );
+});
+
+test("resolveGrantedScopes falls back to previous+requested when token omits scope", () => {
+  assert.deepEqual(
+    resolveGrantedScopes(undefined, [GOOGLE_SCOPES.spreadsheets], [
+      GOOGLE_SCOPES.contactsReadonly,
+    ]),
+    mergeScopes([GOOGLE_SCOPES.contactsReadonly], [GOOGLE_SCOPES.spreadsheets]),
+  );
 });

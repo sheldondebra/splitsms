@@ -59,11 +59,7 @@ export async function upsertGoogleConnectionFromOAuth(opts: {
     where: { userId: opts.userId },
   });
 
-  const scopes = mergeScopes(
-    existing?.scopes ?? [],
-    opts.grantedScopes,
-    [...GOOGLE_BASE_SCOPES],
-  );
+  const scopes = mergeScopes(opts.grantedScopes, [...GOOGLE_BASE_SCOPES]);
 
   let encryptedRefreshToken = existing?.encryptedRefreshToken;
   if (opts.refreshToken) {
@@ -93,6 +89,7 @@ export async function upsertGoogleConnectionFromOAuth(opts: {
       googleSubject: opts.googleSubject,
       email: opts.email,
       encryptedRefreshToken,
+      // Trust the latest OAuth grant (include_granted_scopes returns the full set).
       scopes,
       tokenExpiry,
       lastError: null,
@@ -147,10 +144,16 @@ export async function getAccessTokenForUser(
   }
 
   const nextScopes = scopeListFromTokenResponse(refreshed.scope, row.scopes);
+  // When Google returns scopes on refresh, replace stored scopes (don't keep stale grants).
+  const scopes =
+    refreshed.scope && refreshed.scope.trim()
+      ? mergeScopes(nextScopes, [...GOOGLE_BASE_SCOPES])
+      : row.scopes;
+
   await prisma.googleConnection.update({
     where: { userId },
     data: {
-      scopes: mergeScopes(row.scopes, nextScopes),
+      scopes,
       tokenExpiry:
         refreshed.expiresIn != null
           ? new Date(Date.now() + refreshed.expiresIn * 1000)
