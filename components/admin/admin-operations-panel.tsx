@@ -6,11 +6,11 @@ import {
 } from "@/components/admin/admin-page-shell";
 import type { getAdminOperationsDashboard } from "@/lib/admin/operations-dashboard";
 import type { OperationsActionItem } from "@/lib/admin/operations-dashboard";
-import type { OperationsHealth } from "@/lib/admin/operations-health";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Activity,
+  AlertTriangle,
   ArrowRight,
   CheckCircle2,
   CreditCard,

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import type { MessageLogFilters } from "@/lib/analytics/dashboard";
+import type { Prisma } from "@/lib/generated/prisma/client";
 
 function daysAgo(n: number) {
   const d = new Date();
@@ -29,11 +30,11 @@ function startOfToday() {
   return d;
 }
 
-function sentMessagesTodayWhere() {
+function sentMessagesTodayWhere(): Prisma.MessageWhereInput {
   const todayStart = startOfToday();
   return {
     isSandbox: false,
-    status: { in: ["SENT", "DELIVERED"] as const },
+    status: { in: ["SENT", "DELIVERED"] },
     OR: [
       { sentAt: { gte: todayStart } },
       { sentAt: null, createdAt: { gte: todayStart } },
@@ -55,7 +56,7 @@ export async function getAdminMessageLogs(filters: AdminMessageLogFilters = {}) 
       ]
     : null;
 
-  const where = {
+  const where: Prisma.MessageWhereInput = {
     ...(filters.userId ? { userId: filters.userId } : {}),
     ...(filters.memberSearch
       ? {
