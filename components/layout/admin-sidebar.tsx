@@ -10,6 +10,10 @@ import {
 } from "@/lib/navigation/admin-nav";
 import type { AdminActor } from "@/lib/auth/admin-route-access";
 import { filterAdminNavSections } from "@/lib/auth/admin-route-access";
+import {
+  LiveUpdateNavStatusIcon,
+  useLiveUpdateNavState,
+} from "@/components/admin/live-update-nav-status";
 import { cn } from "@/lib/utils";
 
 type AdminSidebarProps = {
@@ -21,6 +25,7 @@ type AdminSidebarProps = {
 
 export function AdminSidebar({ badges, staffAccess, onNavigate, className }: AdminSidebarProps) {
   const pathname = usePathname();
+  const liveState = useLiveUpdateNavState();
   const sections = staffAccess
     ? filterAdminNavSections(adminNavSections, staffAccess)
     : adminNavSections;
@@ -51,6 +56,7 @@ export function AdminSidebar({ badges, staffAccess, onNavigate, className }: Adm
                   const active = isAdminNavActive(pathname, item.href);
                   const badgeCount = item.badge ? badges?.[item.badge] : undefined;
                   const Icon = item.icon;
+                  const isLiveUpdate = item.href === "/admin/live-update";
 
                   return (
                     <li key={item.href}>
@@ -64,7 +70,11 @@ export function AdminSidebar({ badges, staffAccess, onNavigate, className }: Adm
                             : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground",
                         )}
                       >
-                        <Icon className="h-4 w-4 shrink-0 opacity-90" />
+                        {isLiveUpdate ? (
+                          <LiveUpdateNavStatusIcon state={liveState} active={active} />
+                        ) : (
+                          <Icon className="h-4 w-4 shrink-0 opacity-90" />
+                        )}
                         <span className="min-w-0 flex-1 truncate">{item.label}</span>
                         {badgeCount != null && badgeCount > 0 && (
                           <span

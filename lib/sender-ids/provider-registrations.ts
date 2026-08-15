@@ -179,7 +179,10 @@ export function mapProviderStatusText(
     s.includes("approve") ||
     s.includes("active") ||
     s.includes("complete") ||
-    s.includes("provisioned")
+    s.includes("provisioned") ||
+    s === "ok" ||
+    s === "success" ||
+    s === "enabled"
   ) {
     return "APPROVED";
   }

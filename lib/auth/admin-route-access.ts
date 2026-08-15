@@ -23,6 +23,7 @@ export function canAccessAdminPermission(
 export const ADMIN_PATH_PERMISSIONS: Record<string, AdminPermission | readonly AdminPermission[]> = {
   "/admin": [],
   "/admin/operations": "operations.read",
+  "/admin/live-update": "operations.read",
   "/admin/general": "settings.read",
   "/admin/members": "members.read",
   "/admin/staff": ["staff.read", "staff.write"],

@@ -26,6 +26,7 @@ import {
   TicketPercent,
   Banknote,
   Mail,
+  Radio,
 } from "lucide-react";
 
 import type { AdminPermission } from "@/lib/auth/admin-permissions";
@@ -56,6 +57,7 @@ export const adminNavSections: AdminNavSection[] = [
     label: "Main",
     items: [
       { href: "/admin", label: "Overview", icon: LayoutDashboard },
+      { href: "/admin/live-update", label: "Live update", icon: Radio, permission: "operations.read" },
       { href: "/admin/operations", label: "Operations", icon: Activity, badge: "operations-attention", permission: "operations.read" },
       { href: "/admin/general", label: "Settings", icon: Settings, permission: "settings.read" },
     ],

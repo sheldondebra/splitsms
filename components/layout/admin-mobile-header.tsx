@@ -6,8 +6,8 @@ import { getAdminPageTitle } from "@/lib/navigation/admin-nav";
 import { usePathname } from "next/navigation";
 import { HeaderAccountMenu } from "@/components/layout/header-account-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AdminTopbarSearch } from "@/components/admin/admin-topbar-search";
 import type { HeaderAccountProfile } from "@/lib/user/header-account-types";
-import { cn } from "@/lib/utils";
 import type { AdminNavItem } from "@/lib/navigation/admin-nav";
 
 type AdminMobileHeaderProps = {
@@ -55,6 +55,9 @@ export function AdminMobileHeader({ onMenuOpen, subtitle, profile, badges }: Adm
         )}
         <ThemeToggle className="h-8 w-8 shrink-0 rounded-lg" />
         <HeaderAccountMenu profile={profile} variant="compact" showChevron={false} />
+      </div>
+      <div className="px-4 pb-2.5">
+        <AdminTopbarSearch />
       </div>
       {(pendingPayments > 0 || pendingSender > 0 || openSupport > 0) && (
         <div className="flex gap-2 overflow-x-auto px-4 pb-2.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

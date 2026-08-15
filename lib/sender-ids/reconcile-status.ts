@@ -32,7 +32,18 @@ export function derivePlatformStatusFromProviders(
   const rejected = active.filter((r) => r.status === "REJECTED" || r.status === "FAILED");
   const pending = active.filter((r) => r.status === "PENDING");
 
-  if (approved.length === 0 && rejected.length > 0 && pending.length === 0) {
+  // Any carrier approval wins — including recovering from a prior SplitSMS denial.
+  if (approved.length > 0) {
+    if (currentStatus === "APPROVED") {
+      return { status: "APPROVED" };
+    }
+    return {
+      status: "APPROVED",
+      reason: "Approved by SMS provider — ready to use when sending SMS.",
+    };
+  }
+
+  if (rejected.length > 0 && pending.length === 0) {
     return {
       status: "REJECTED",
       reason: "Denied or removed by SMS provider(s). Re-submit to register again.",
@@ -40,22 +51,7 @@ export function derivePlatformStatusFromProviders(
     };
   }
 
-  if (currentStatus === "PENDING" && approved.length > 0) {
-    return {
-      status: "APPROVED",
-      reason: "Approved on SplitSMS — ready to use when sending SMS.",
-    };
-  }
-
-  if (currentStatus === "APPROVED" && approved.length === 0 && rejected.length > 0) {
-    return {
-      status: "REJECTED",
-      reason: "Was approved on SplitSMS but provider(s) denied or deleted this sender ID.",
-      clearDefault: true,
-    };
-  }
-
-  if (currentStatus === "APPROVED" && approved.length === 0 && pending.length > 0) {
+  if (currentStatus === "APPROVED" && pending.length > 0) {
     return {
       status: "PENDING",
       reason: "Provider approval pending — platform approval paused until provider confirms.",
