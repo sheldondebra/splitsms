@@ -112,8 +112,8 @@ export async function getAdminOperationsDashboard() {
       kind: "support",
       priority: t.status === "OPEN" ? "high" : "medium",
       title: t.subject,
-      subtitle: `${t.user.fullName} · ${t.status}`,
-      href: "/admin/support",
+      subtitle: `${t.user.fullName} · ${t.status.replaceAll("_", " ")}`,
+      href: `/admin/support?status=${encodeURIComponent(t.status)}`,
       actionLabel: "Handle ticket",
       createdAt: t.createdAt,
     });

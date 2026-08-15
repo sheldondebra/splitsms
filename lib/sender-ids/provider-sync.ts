@@ -288,6 +288,49 @@ export async function syncUserSenderIdsFromMnotify(userId: string) {
   }
 }
 
+/** Sync carrier registration status for submitted sender IDs (pending + approved). */
+export async function syncAllSenderIdsFromProviders(limit = 200) {
+  const senders = await prisma.senderId.findMany({
+    where: {
+      status: { in: ["APPROVED", "PENDING"] },
+      providerSubmittedAt: { not: null },
+    },
+    select: { id: true },
+    orderBy: { updatedAt: "asc" },
+    take: Math.min(500, Math.max(1, limit)),
+  });
+
+  let synced = 0;
+  let errors = 0;
+
+  for (const row of senders) {
+    try {
+      await syncSenderIdFromProviders(row.id);
+      synced += 1;
+    } catch {
+      errors += 1;
+    }
+  }
+
+  const ids = senders.map((s) => s.id);
+  const [approved, pending, rejected] = ids.length
+    ? await Promise.all([
+        prisma.senderId.count({ where: { id: { in: ids }, status: "APPROVED" } }),
+        prisma.senderId.count({ where: { id: { in: ids }, status: "PENDING" } }),
+        prisma.senderId.count({ where: { id: { in: ids }, status: "REJECTED" } }),
+      ])
+    : [0, 0, 0];
+
+  return {
+    checked: senders.length,
+    synced,
+    errors,
+    approved,
+    pending,
+    rejected,
+  };
+}
+
 /** @deprecated Use syncSenderIdFromProviders */
 export async function applyProviderStatusToSender(
   senderRecordId: string,

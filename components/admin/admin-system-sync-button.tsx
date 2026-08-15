@@ -18,6 +18,7 @@ const SYNC_STEPS = [
   "Syncing delivery reports",
   "Checking provider balances",
   "Refreshing campaign statuses",
+  "Checking sender ID registrations",
   "Checking system alerts",
 ];
 
@@ -86,7 +87,7 @@ export function AdminSystemSyncButton() {
         variant="outline"
         className="hidden lg:inline-flex h-9 gap-1.5"
         disabled={pending}
-        title="Run full system sync"
+        title="Run full system sync (SMS, delivery, balances, sender ID carriers)"
         onClick={() => setStepIndex(0)}
       >
         {pending ? (

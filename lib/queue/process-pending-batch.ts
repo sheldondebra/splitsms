@@ -86,6 +86,7 @@ export async function processPendingMessagesBatch(limit = 25, options?: ProcessP
         await processMessageJob(msg.id, routingCountry, {
           notifySlackOnFailure: false,
           skipStaleReset: true,
+          skipCampaignSync: true,
         });
         processed++;
         const summary = await summarizeMessage(msg.id, failedSamples);

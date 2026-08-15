@@ -41,6 +41,7 @@ export const ADMIN_PATH_PERMISSIONS: Record<string, AdminPermission | readonly A
   "/admin/messages": "operations.read",
   "/admin/routes": "routes.write",
   "/admin/providers": "providers.write",
+  "/admin/balances": "providers.write",
   "/admin/forms": "members.read",
   "/admin/campaigns": "operations.read",
   "/admin/support": "support.read",

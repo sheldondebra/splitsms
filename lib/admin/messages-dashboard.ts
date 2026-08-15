@@ -19,12 +19,41 @@ function lastNDaysLabels(n: number) {
 export type AdminMessageLogFilters = MessageLogFilters & {
   userId?: string;
   memberSearch?: string;
+  /** When `today`, matches admin dashboard “SMS sent today” (SENT/DELIVERED since local midnight). */
+  period?: string;
 };
+
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function sentMessagesTodayWhere() {
+  const todayStart = startOfToday();
+  return {
+    isSandbox: false,
+    status: { in: ["SENT", "DELIVERED"] as const },
+    OR: [
+      { sentAt: { gte: todayStart } },
+      { sentAt: null, createdAt: { gte: todayStart } },
+    ],
+  };
+}
 
 export async function getAdminMessageLogs(filters: AdminMessageLogFilters = {}) {
   const page = filters.page ?? 1;
   const pageSize = Math.min(filters.pageSize ?? 50, 100);
   const skip = (page - 1) * pageSize;
+  const periodToday = filters.period === "today";
+
+  const searchOr = filters.search
+    ? [
+        { recipient: { contains: filters.search } },
+        { body: { contains: filters.search, mode: "insensitive" as const } },
+        { senderId: { contains: filters.search, mode: "insensitive" as const } },
+      ]
+    : null;
 
   const where = {
     ...(filters.userId ? { userId: filters.userId } : {}),
@@ -40,21 +69,19 @@ export async function getAdminMessageLogs(filters: AdminMessageLogFilters = {}) 
         }
       : {}),
     ...(filters.campaignId ? { campaignId: filters.campaignId } : {}),
-    ...(filters.status && filters.status !== "all"
-      ? { status: filters.status as "PENDING" | "SENT" | "DELIVERED" | "FAILED" }
-      : {}),
     ...(filters.countryCode && filters.countryCode !== "all"
       ? { countryCode: filters.countryCode }
       : {}),
-    ...(filters.search
-      ? {
-          OR: [
-            { recipient: { contains: filters.search } },
-            { body: { contains: filters.search, mode: "insensitive" as const } },
-            { senderId: { contains: filters.search, mode: "insensitive" as const } },
-          ],
-        }
-      : {}),
+    ...(periodToday
+      ? searchOr
+        ? { AND: [sentMessagesTodayWhere(), { OR: searchOr }] }
+        : sentMessagesTodayWhere()
+      : {
+          ...(filters.status && filters.status !== "all"
+            ? { status: filters.status as "PENDING" | "SENT" | "DELIVERED" | "FAILED" }
+            : {}),
+          ...(searchOr ? { OR: searchOr } : {}),
+        }),
   };
 
   const [items, total] = await Promise.all([

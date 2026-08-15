@@ -29,7 +29,11 @@ async function claimMessage(messageId: string) {
 export async function processMessageJob(
   messageId: string,
   countryCode: string,
-  options?: { notifySlackOnFailure?: boolean; skipStaleReset?: boolean },
+  options?: {
+    notifySlackOnFailure?: boolean;
+    skipStaleReset?: boolean;
+    skipCampaignSync?: boolean;
+  },
 ) {
   if (!options?.skipStaleReset) {
     await resetStaleProcessingMessages();
@@ -56,14 +60,16 @@ export async function processMessageJob(
     return;
   }
 
-  const enterprise = await prisma.enterpriseAccount.findUnique({
-    where: { userId: message.userId },
-    include: { dedicatedRoute: true, credit: true },
-  });
-  const memberAccount = await prisma.memberAccount.findUnique({
-    where: { userId: message.userId },
-    select: { assignedProvider: true },
-  });
+  const [enterprise, memberAccount] = await Promise.all([
+    prisma.enterpriseAccount.findUnique({
+      where: { userId: message.userId },
+      include: { dedicatedRoute: true, credit: true },
+    }),
+    prisma.memberAccount.findUnique({
+      where: { userId: message.userId },
+      select: { assignedProvider: true },
+    }),
+  ]);
 
   const lockedProvider =
     enterprise?.dedicatedRoute?.countryCode === countryCode
@@ -105,7 +111,9 @@ export async function processMessageJob(
       const { syncMnotifyDeliveryAfterSend } = await import("@/lib/sms/sync-mnotify-dlr");
       void syncMnotifyDeliveryAfterSend(result.providerRef).catch(() => undefined);
     }
-    await syncCampaignStatus(message.campaignId);
+    if (!options?.skipCampaignSync) {
+      await syncCampaignStatus(message.campaignId);
+    }
     return;
   }
 
@@ -129,7 +137,9 @@ export async function processMessageJob(
     },
   });
   await dispatchUserWebhooks(message.userId, failed);
-  await syncCampaignStatus(message.campaignId);
+  if (!options?.skipCampaignSync) {
+    await syncCampaignStatus(message.campaignId);
+  }
 
   if (options?.notifySlackOnFailure !== false) {
     void import("@/lib/slack/notify")

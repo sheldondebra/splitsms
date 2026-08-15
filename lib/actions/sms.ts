@@ -12,7 +12,7 @@ import {
 import { ResellerAccessError } from "@/lib/reseller/access";
 import { countSmsUnits, normalizePhones, isGsm7 } from "@/lib/sms/units";
 import { deductSmsCredits } from "@/lib/sms/billing";
-import { enqueueSmsJobsInline } from "@/lib/queue/enqueue-sms";
+import { enqueueSmsJobsInline, shouldAwaitSmsDispatch } from "@/lib/queue/enqueue-sms";
 import { resolveMessagePriority } from "@/lib/enterprise/priority";
 import { resolveApprovedSenderForUser } from "@/lib/sender-ids/validate-send";
 import { redirect } from "next/navigation";
@@ -276,10 +276,15 @@ export async function sendSmsAction(formData: FormData): Promise<SendSmsResult> 
     priority,
   }));
 
-  after(async () => {
+  if (shouldAwaitSmsDispatch(dispatchJobs)) {
     await warmDatabaseConnection().catch(() => undefined);
     await enqueueSmsJobsInline(dispatchJobs);
-  });
+  } else {
+    after(async () => {
+      await warmDatabaseConnection().catch(() => undefined);
+      await enqueueSmsJobsInline(dispatchJobs);
+    });
+  }
 
   return {
     ok: true,

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { getAdminDashboardOverview } from "@/lib/analytics/admin-dashboard";
 import { getAdminOperationsDashboard } from "@/lib/admin/operations-dashboard";
-import { describeSmsDeliveryMode } from "@/lib/admin/operations-health";
+import { getAdminReportsOverview } from "@/lib/admin/messages-dashboard";
 import { AdminOperationsPanel } from "@/components/admin/admin-operations-panel";
+import { AdminPlatformOverview } from "@/components/admin/admin-platform-overview";
 import {
   AdminPage,
   AdminPageHeader,
@@ -10,7 +11,6 @@ import {
   AdminAlert,
   AdminCard,
 } from "@/components/admin/admin-page-shell";
-import { AdminVolumeChart } from "@/components/dashboard/admin-volume-chart";
 import { ProviderBalancesPanel } from "@/components/admin/provider-balances-panel";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -69,12 +69,12 @@ export default async function AdminDashboardPage({
   }>;
 }) {
   const params = await searchParams;
-  const [stats, operations] = await Promise.all([
+  const [stats, operations, sms] = await Promise.all([
     getAdminDashboardOverview(),
     getAdminOperationsDashboard(),
+    getAdminReportsOverview(),
   ]);
 
-  const delivery = describeSmsDeliveryMode(operations.health);
   const systemSyncRan = params.systemSync === "1";
 
   return (
@@ -129,32 +129,15 @@ export default async function AdminDashboardPage({
 
       <ProviderBalancesPanel balances={stats.providerBalances} compact />
 
+      <AdminPlatformOverview stats={stats} operations={operations} sms={sms} />
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <AdminStatCard
-          label="Members"
-          value={stats.members.toLocaleString()}
-          hint="Registered accounts"
-          variant="primary"
-        />
-        <AdminStatCard
-          label="SMS sent today"
-          value={stats.messagesSentToday.toLocaleString()}
-          hint={`${stats.messagesSentAllTime.toLocaleString()} sent all-time`}
-        />
         <AdminStatCard
           label="Revenue"
           value={`GHS ${stats.totalRevenue.toFixed(2)}`}
           hint="Top-ups & credit purchases"
+          variant="primary"
         />
-        <AdminStatCard
-          label="Failed SMS"
-          value={stats.failedMessages.toLocaleString()}
-          hint={`${stats.failureRate}% failure rate`}
-          variant={stats.failureRate > 5 ? "danger" : "default"}
-        />
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <AdminStatCard
           label="Open support"
           value={stats.openSupportTickets}
@@ -173,20 +156,10 @@ export default async function AdminDashboardPage({
           variant={stats.pendingSenderIds > 0 ? "warning" : "default"}
           href="/admin/sender-ids"
         />
-        <AdminStatCard
-          label="Active campaigns"
-          value={stats.activeCampaigns}
-          hint="Sending or scheduled"
-          href="/admin/campaigns"
-        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <AdminCard title="Platform SMS volume" description="Last 14 days">
-            <AdminVolumeChart data={stats.dailyVolume} />
-          </AdminCard>
-
           <AdminCard title="Quick actions" description="Common admin tasks">
             <div className="grid gap-2 sm:grid-cols-2">
               {quickActions.map(({ href, label, icon: Icon, accent }) => {
@@ -209,7 +182,10 @@ export default async function AdminDashboardPage({
                     </div>
                     <span className="flex-1 font-medium text-sm">{label}</span>
                     {count > 0 && (
-                      <Badge variant="secondary" className="bg-amber-500/15 text-amber-800 dark:text-amber-200">
+                      <Badge
+                        variant="secondary"
+                        className="bg-amber-500/15 text-amber-800 dark:text-amber-200"
+                      >
                         {count}
                       </Badge>
                     )}
@@ -222,44 +198,6 @@ export default async function AdminDashboardPage({
         </div>
 
         <div className="space-y-6">
-          <AdminCard
-            title="SMS gateway"
-            description={stats.mnotify.configured ? "mNotify connected" : "Add API key under Providers"}
-          >
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "h-2.5 w-2.5 rounded-full",
-                  stats.mnotify.configured ? "bg-emerald-500" : "bg-amber-500 animate-pulse",
-                )}
-              />
-              <span className="text-sm font-medium">
-                {stats.mnotify.configured ? "Operational" : "Needs configuration"}
-              </span>
-            </div>
-
-            <div
-              className={cn(
-                "mt-3 rounded-lg border px-3 py-2.5 text-xs leading-relaxed",
-                delivery.tone === "ok" && "border-emerald-500/20 bg-emerald-500/5 text-muted-foreground",
-                delivery.tone === "warning" && "border-amber-500/25 bg-amber-500/8 text-amber-950 dark:text-amber-100",
-                delivery.tone === "muted" && "border-border/50 bg-muted/25 text-muted-foreground",
-              )}
-            >
-              <p className="font-medium text-foreground">{delivery.modeLabel}</p>
-              <p className="mt-0.5">{delivery.statusLabel}</p>
-              <p className="mt-1 opacity-90">{delivery.detail}</p>
-            </div>
-
-            <Link
-              href="/admin/providers"
-              className="inline-flex items-center gap-1 text-xs font-medium text-primary mt-3 hover:underline"
-            >
-              Manage providers
-              <ArrowRight className="h-3 w-3" />
-            </Link>
-          </AdminCard>
-
           <AdminCard title="Recent members">
             {stats.recentMembers.length === 0 ? (
               <p className="text-sm text-muted-foreground">No members yet.</p>
@@ -303,7 +241,10 @@ export default async function AdminDashboardPage({
             ) : (
               <ul className="space-y-3">
                 {stats.recentPayments.map((p) => (
-                  <li key={p.id} className="text-sm border-b border-border/40 pb-3 last:border-0 last:pb-0">
+                  <li
+                    key={p.id}
+                    className="text-sm border-b border-border/40 pb-3 last:border-0 last:pb-0"
+                  >
                     <p className="font-medium">{p.user.fullName}</p>
                     <p className="text-xs text-muted-foreground">
                       {p.currency} {p.amount.toString()} · {p.method}

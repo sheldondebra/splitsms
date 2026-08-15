@@ -8,10 +8,10 @@ import { warmDatabaseConnection } from "@/lib/db";
 import { syncPendingMnotifyDeliveries } from "@/lib/sms/sync-mnotify-dlr";
 
 /** When workers are enabled, only pick up messages the worker failed to claim in time. */
-const STALE_PENDING_MS = 30 * 1000;
-const SMS_DRAIN_INTERVAL_MS = 5 * 1000;
+const STALE_PENDING_MS = 8 * 1000;
+const SMS_DRAIN_INTERVAL_MS = 1 * 1000;
 const SMS_DRAIN_MAX_RUNTIME_MS = 52 * 1000;
-const SMS_DRAIN_MAX_ROUNDS = 9;
+const SMS_DRAIN_MAX_ROUNDS = 12;
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";

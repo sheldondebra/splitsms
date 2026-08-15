@@ -26,6 +26,7 @@ export default async function AdminMessagesPage({
     country?: string;
     q?: string;
     page?: string;
+    period?: string;
     processed?: string;
     sent?: string;
     failed?: string;
@@ -48,6 +49,7 @@ export default async function AdminMessagesPage({
         status: params.status,
         countryCode: params.country,
         search: params.q,
+        period: params.period,
         page,
         pageSize: 30,
       }),
@@ -106,6 +108,7 @@ export default async function AdminMessagesPage({
   if (params.country && params.country !== "all") exportParams.set("country", params.country);
   if (params.campaign) exportParams.set("campaign", params.campaign);
   if (params.member) exportParams.set("member", params.member);
+  if (params.period === "today") exportParams.set("period", "today");
   if (userId) exportParams.set("userId", userId);
   const exportUrl = `/api/admin/messages/export?${exportParams.toString()}`;
 
@@ -204,6 +207,7 @@ export default async function AdminMessagesPage({
           q: params.q,
           userId,
           member: params.member,
+          period: params.period,
         }}
         overview={overview}
         campaigns={campaigns.map((c) => ({

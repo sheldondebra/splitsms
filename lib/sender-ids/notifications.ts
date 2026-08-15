@@ -3,6 +3,7 @@ import { sendEmail } from "@/lib/email";
 import {
   senderIdAdminAlertContent,
   senderIdApprovedMemberContent,
+  senderIdLiveMemberContent,
   senderIdRejectedMemberContent,
   senderIdSubmittedMemberContent,
 } from "@/lib/email/templates";
@@ -142,6 +143,52 @@ export async function notifyUserSenderIdApproved(senderRecordId: string) {
     tasks.push(sendPlatformAlertSms(sender.user.phone, smsText));
   }
   await Promise.allSettled(tasks);
+}
+
+/** Force-notify member that their sender ID is live (SMS + email). Always sends. */
+export async function notifyUserSenderIdLive(senderRecordId: string) {
+  const sender = await prisma.senderId.findUnique({
+    where: { id: senderRecordId },
+    include: {
+      user: { select: { id: true, fullName: true, phone: true, email: true } },
+    },
+  });
+  if (!sender) return { ok: false as const, error: "notfound" };
+  if (sender.status !== "APPROVED") {
+    return { ok: false as const, error: "not_approved" };
+  }
+
+  const title = `Sender ID is live: ${sender.value}`;
+  const message = `Your sender ID "${sender.value}" is live now — you can send SMS with it.`;
+  const smsText = `${siteName}: Your sender ID "${sender.value}" is live now. Start sending SMS at ${getSiteUrl()}/dashboard/send`;
+
+  await createNotification(sender.user.id, "SYSTEM", title, message, {
+    kind: "sender_id_live",
+    senderId: senderRecordId,
+    value: sender.value,
+    href: "/dashboard/send",
+    ctaLabel: "Send SMS",
+  });
+
+  const tasks: Promise<unknown>[] = [];
+  if (sender.user.email) {
+    const { subject, text, html } = await senderIdLiveMemberContent({
+      value: sender.value,
+      memberName: sender.user.fullName,
+    });
+    tasks.push(sendEmail({ to: sender.user.email, subject, text, html }));
+  }
+  if (sender.user.phone) {
+    tasks.push(sendPlatformAlertSms(sender.user.phone, smsText));
+  }
+  await Promise.allSettled(tasks);
+
+  return {
+    ok: true as const,
+    emailed: Boolean(sender.user.email),
+    sms: Boolean(sender.user.phone),
+    value: sender.value,
+  };
 }
 
 export async function notifyUserSenderIdSubmitted(senderRecordId: string, purpose: string) {

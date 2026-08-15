@@ -3,7 +3,7 @@ import { after } from "next/server";
 import { countSmsUnits, normalizePhones } from "@/lib/sms/units";
 import { deductSmsCredits } from "@/lib/sms/billing";
 import { resolveSmsPriceForUser } from "@/lib/reseller/pricing";
-import { enqueueSmsJobsInline } from "@/lib/queue/enqueue-sms";
+import { enqueueSmsJobsInline, shouldAwaitSmsDispatch } from "@/lib/queue/enqueue-sms";
 import { resolveMessagePriority } from "@/lib/enterprise/priority";
 import { processSandboxMessage } from "@/lib/api/sandbox";
 import type { ApiContext } from "@/lib/api/context";
@@ -102,16 +102,20 @@ export async function apiSendMessages(ctx: ApiContext, input: SendSmsInput) {
       await processSandboxMessage(message.id);
     }
   } else {
-    after(async () => {
+    const dispatchJobs = messages.map((message) => ({
+      messageId: message.id,
+      countryCode: input.countryCode,
+      priority,
+    }));
+    if (shouldAwaitSmsDispatch(dispatchJobs)) {
       await warmDatabaseConnection().catch(() => undefined);
-      await enqueueSmsJobsInline(
-        messages.map((message) => ({
-          messageId: message.id,
-          countryCode: input.countryCode,
-          priority,
-        })),
-      );
-    });
+      await enqueueSmsJobsInline(dispatchJobs);
+    } else {
+      after(async () => {
+        await warmDatabaseConnection().catch(() => undefined);
+        await enqueueSmsJobsInline(dispatchJobs);
+      });
+    }
   }
 
   return apiSuccess({

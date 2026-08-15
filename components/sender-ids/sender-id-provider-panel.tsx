@@ -7,7 +7,7 @@ import type {
 } from "@/lib/generated/prisma/client";
 import {
   CheckCircle2,
-  Clock,
+  Loader2,
   MinusCircle,
   XCircle,
   AlertCircle,
@@ -35,6 +35,7 @@ const STATUS_META: Record<
     badge: "default" | "secondary" | "destructive" | "outline";
     icon: typeof CheckCircle2;
     className: string;
+    spin?: boolean;
   }
 > = {
   APPROVED: {
@@ -46,8 +47,9 @@ const STATUS_META: Record<
   PENDING: {
     label: "Pending",
     badge: "secondary",
-    icon: Clock,
-    className: "text-amber-600 dark:text-amber-400",
+    icon: Loader2,
+    className: "text-primary",
+    spin: true,
   },
   REJECTED: {
     label: "Denied",
@@ -72,7 +74,7 @@ const STATUS_META: Record<
 function resolveStatus(
   reg: SenderIdProviderReg | undefined,
 ): SenderIdProviderStatus {
-  return reg?.status ?? "PENDING";
+  return reg?.status ?? "SKIPPED";
 }
 
 export function SenderIdProviderPanel({
@@ -93,15 +95,26 @@ export function SenderIdProviderPanel({
       <div className={cn("flex flex-wrap gap-1.5", className)}>
         {PROVIDERS.map(({ id, label }) => {
           const reg = byProvider.get(id);
+          if (!reg) return null;
           const status = resolveStatus(reg);
           const meta = STATUS_META[status];
+          const Icon = meta.icon;
           return (
             <Badge
               key={id}
               variant={meta.badge}
-              className="text-[10px] font-medium gap-1"
-              title={reg?.error ?? reg?.providerStatus ?? `${label}: ${meta.label}`}
+              className={cn(
+                "text-[10px] font-medium gap-1",
+                status === "APPROVED" &&
+                  "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
+                status === "PENDING" && "border-primary/30 bg-primary/5 text-primary",
+              )}
+              title={reg.error ?? reg.providerStatus ?? `${label}: ${meta.label}`}
             >
+              <Icon
+                className={cn("h-3 w-3", meta.className, meta.spin && "animate-spin")}
+                aria-hidden
+              />
               {label}: {meta.label.toLowerCase()}
             </Badge>
           );
@@ -136,7 +149,10 @@ export function SenderIdProviderPanel({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold text-foreground">{label}</p>
-                  <Badge variant={meta.badge} className="text-[10px] h-5 px-2">
+                  <Badge variant={meta.badge} className="text-[10px] h-5 px-2 gap-1">
+                    {status === "PENDING" && reg ? (
+                      <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                    ) : null}
                     {meta.label}
                   </Badge>
                 </div>
@@ -147,7 +163,14 @@ export function SenderIdProviderPanel({
                   </p>
                 )}
               </div>
-              <Icon className={cn("h-5 w-5 shrink-0", meta.className)} aria-hidden />
+              <Icon
+                className={cn(
+                  "h-5 w-5 shrink-0",
+                  meta.className,
+                  meta.spin && reg && "animate-spin",
+                )}
+                aria-hidden
+              />
             </li>
           );
         })}

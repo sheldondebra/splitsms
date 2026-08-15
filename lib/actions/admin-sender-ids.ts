@@ -560,15 +560,8 @@ export async function adminSyncAllSenderProvidersAction(formData: FormData) {
   await requireAdminSession();
   const returnTo = String(formData.get("returnTo") ?? "/admin/sender-ids?tab=overview");
 
-  const senders = await prisma.senderId.findMany({
-    where: { status: { in: ["APPROVED", "PENDING"] } },
-    select: { id: true },
-    take: 200,
-  });
-
-  for (const s of senders) {
-    await syncSenderIdFromProviders(s.id);
-  }
+  const { syncAllSenderIdsFromProviders } = await import("@/lib/sender-ids/provider-sync");
+  await syncAllSenderIdsFromProviders(200);
 
   revalidateSenderPaths();
   adminRedirect(returnTo, { saved: "sync_all" });
@@ -799,4 +792,160 @@ export async function resubmitSenderProvidersJsonAction(input: {
   });
   revalidateSenderPaths(sender?.userId);
   return { ok: true, message: `${sender?.value ?? "Sender ID"} re-submitted to carriers.` };
+}
+
+/**
+ * Cancel a sender ID request.
+ * - keep: reset so it looks not submitted to registrars (member record stays PENDING)
+ * - delete: remove the sender ID entirely
+ */
+export async function cancelSenderIdJsonAction(input: {
+  id: string;
+  mode: "keep" | "delete";
+}): Promise<SenderIdMutationResult & { mode?: "keep" | "delete" }> {
+  const actor = await resolveActor();
+  const sender = await prisma.senderId.findUnique({
+    where: { id: input.id },
+    include: { user: { select: { fullName: true, phone: true } } },
+  });
+  if (!sender) return { ok: false, error: "notfound", message: "Sender ID not found." };
+
+  if (input.mode === "delete") {
+    if (sender.providerSubmittedAt) {
+      const { deleteMnotifySenderId } = await import("@/lib/mnotify/sender-id-api");
+      await deleteMnotifySenderId(sender.value).catch(() => undefined);
+    }
+
+    await prisma.senderId.delete({ where: { id: sender.id } });
+
+    await prisma.auditLog.create({
+      data: {
+        actorId: actor.id,
+        action: "SENDER_ID_CANCELLED_DELETED",
+        entityType: "SenderId",
+        entityId: sender.id,
+        metadata: {
+          value: sender.value,
+          userId: sender.userId,
+          hadSubmission: Boolean(sender.providerSubmittedAt),
+        },
+      },
+    });
+
+    void notifySlackSenderIdAdminAction({
+      action: "denied",
+      senderRecordId: sender.id,
+      value: sender.value,
+      memberName: sender.user.fullName,
+      memberPhone: sender.user.phone,
+      countryCode: sender.countryCode,
+      actorName: actor.name,
+      actorId: actor.id,
+      note: "Cancelled and deleted by admin",
+    }).catch(() => undefined);
+
+    revalidateSenderPaths(sender.userId);
+    return {
+      ok: true,
+      mode: "delete",
+      message: `${sender.value} deleted.`,
+    };
+  }
+
+  // keep — reset to not submitted
+  if (sender.providerSubmittedAt) {
+    const { deleteMnotifySenderId } = await import("@/lib/mnotify/sender-id-api");
+    await deleteMnotifySenderId(sender.value).catch(() => undefined);
+  }
+
+  await prisma.$transaction([
+    prisma.senderIdProviderRegistration.deleteMany({ where: { senderId: sender.id } }),
+    prisma.senderId.update({
+      where: { id: sender.id },
+      data: {
+        status: "PENDING",
+        isDefault: false,
+        providerSubmittedAt: null,
+        providerStatus: null,
+        adminNote: "Cancelled — not submitted to registrar.",
+      },
+    }),
+  ]);
+
+  await prisma.auditLog.create({
+    data: {
+      actorId: actor.id,
+      action: "SENDER_ID_CANCELLED_KEPT",
+      entityType: "SenderId",
+      entityId: sender.id,
+      metadata: {
+        value: sender.value,
+        userId: sender.userId,
+      },
+    },
+  });
+
+  void notifySlackSenderIdAdminAction({
+    action: "denied",
+    senderRecordId: sender.id,
+    value: sender.value,
+    memberName: sender.user.fullName,
+    memberPhone: sender.user.phone,
+    countryCode: sender.countryCode,
+    actorName: actor.name,
+    actorId: actor.id,
+    note: "Cancelled — kept as not submitted",
+  }).catch(() => undefined);
+
+  revalidateSenderPaths(sender.userId);
+  return {
+    ok: true,
+    mode: "keep",
+    message: `${sender.value} cancelled — not submitted to registrar.`,
+  };
+}
+
+export async function notifySenderIdLiveJsonAction(input: {
+  id: string;
+}): Promise<SenderIdMutationResult> {
+  const actor = await resolveActor();
+  const { notifyUserSenderIdLive } = await import("@/lib/sender-ids/notifications");
+  const result = await notifyUserSenderIdLive(input.id);
+
+  if (!result.ok) {
+    if (result.error === "notfound") {
+      return { ok: false, error: "notfound", message: "Sender ID not found." };
+    }
+    return {
+      ok: false,
+      error: "not_approved",
+      message: "Sender ID must be approved before notifying the member it is live.",
+    };
+  }
+
+  await prisma.auditLog.create({
+    data: {
+      actorId: actor.id,
+      action: "SENDER_ID_LIVE_NOTIFIED",
+      entityType: "SenderId",
+      entityId: input.id,
+      metadata: {
+        value: result.value,
+        emailed: result.emailed,
+        sms: result.sms,
+      },
+    },
+  });
+
+  const channels = [
+    result.emailed ? "email" : null,
+    result.sms ? "SMS" : null,
+  ].filter(Boolean);
+
+  return {
+    ok: true,
+    message: channels.length
+      ? `${result.value} is live — notified member via ${channels.join(" + ")}.`
+      : `${result.value} marked live, but member has no email or phone on file.`,
+  };
 }

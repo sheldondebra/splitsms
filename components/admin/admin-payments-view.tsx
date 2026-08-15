@@ -29,9 +29,11 @@ import {
   CheckCircle2,
   Clock,
   CreditCard,
+  Phone,
   RefreshCw,
   Settings,
   ShieldCheck,
+  User,
   XCircle,
   Zap,
 } from "lucide-react";
@@ -230,27 +232,40 @@ function PendingPaymentRow({ row }: { row: PendingRow }) {
   const showApprove = p.method === "MANUAL";
   const showCredit = p.method === "STRIPE" && Boolean(insight.canAutoCredit);
   const hasPrimaryAction = showApprove || showCredit;
+  const paymentSuccessful =
+    insight.tone === "success" || Boolean(insight.providerPaid) || Boolean(insight.canAutoCredit);
 
   return (
-    <li className="px-2 py-3 first:pt-1 last:pb-1 rounded-xl border border-transparent hover:border-border/50 hover:bg-muted/15 transition-colors">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <li
+      className={cn(
+        "px-2 py-3 first:pt-1 last:pb-1 rounded-xl border transition-colors",
+        paymentSuccessful
+          ? "border-emerald-500/25 bg-emerald-500/[0.08] hover:border-emerald-500/40 hover:bg-emerald-500/[0.12]"
+          : "border-transparent hover:border-border/50 hover:bg-muted/15",
+      )}
+    >      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1 space-y-2.5">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <p className="text-lg font-bold tabular-nums tracking-tight">
                 {p.currency} {p.amount.toFixed(2)}
               </p>
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
                 <Link
                   href={`/admin/members/${p.user.id}?tab=billing`}
-                  className="font-medium text-foreground hover:text-primary hover:underline"
+                  className="inline-flex items-center gap-1.5 font-medium text-foreground hover:text-primary hover:underline"
                 >
+                  <User className="h-3.5 w-3.5 shrink-0 opacity-70" />
                   {p.user.fullName}
                 </Link>
-                <span>·</span>
-                <span>{p.user.phone}</span>
-                <span>·</span>
-                <span>{formatDistanceToNow(new Date(p.createdAt), { addSuffix: true })}</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                  {p.user.phone}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                  {formatDistanceToNow(new Date(p.createdAt), { addSuffix: true })}
+                </span>
               </div>
             </div>
             <div className="flex flex-wrap gap-1.5 shrink-0">
@@ -348,7 +363,7 @@ function CompletedPaymentRow({ row }: { row: CompletedRow }) {
   const { payment: p, instrument } = row;
 
   return (
-    <li className="px-2 py-3 first:pt-1 last:pb-1 rounded-xl border border-transparent hover:border-border/50 hover:bg-muted/15 transition-colors">
+    <li className="px-2 py-3 first:pt-1 last:pb-1 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] hover:border-emerald-500/35 hover:bg-emerald-500/[0.1] transition-colors">
       <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -363,17 +378,22 @@ function CompletedPaymentRow({ row }: { row: CompletedRow }) {
             </Badge>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <Link
               href={`/admin/members/${p.user.id}?tab=billing`}
-              className="font-medium text-foreground hover:text-primary hover:underline"
+              className="inline-flex items-center gap-1.5 font-medium text-foreground hover:text-primary hover:underline"
             >
+              <User className="h-3.5 w-3.5 shrink-0 opacity-70" />
               {p.user.fullName}
             </Link>
-            <span>·</span>
-            <span>{p.user.phone}</span>
-            <span>·</span>
-            <span>{formatDistanceToNow(new Date(p.updatedAt), { addSuffix: true })}</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Phone className="h-3.5 w-3.5 shrink-0 opacity-70" />
+              {p.user.phone}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 shrink-0 opacity-70" />
+              {formatDistanceToNow(new Date(p.updatedAt), { addSuffix: true })}
+            </span>
           </div>
 
           <PaymentDetailsBlock

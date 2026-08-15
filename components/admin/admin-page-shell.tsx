@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
+import { ArrowRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function AdminPage({
@@ -86,22 +86,31 @@ export function AdminStatCard({
     warning: "border-amber-500/30 bg-amber-500/8",
   };
 
+  const iconClass = cn(
+    "h-4 w-4 shrink-0 opacity-70",
+    variant === "primary" && "text-primary",
+    variant === "danger" && "text-destructive",
+    variant === "warning" && "text-amber-600 dark:text-amber-400",
+  );
+
   const inner = (
     <>
       <div className="flex items-start justify-between gap-2">
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
           {label}
         </p>
-        {Icon && (
-          <Icon
-            className={cn(
-              "h-4 w-4 shrink-0 opacity-70",
-              variant === "primary" && "text-primary",
-              variant === "danger" && "text-destructive",
-              variant === "warning" && "text-amber-600 dark:text-amber-400",
-            )}
-          />
-        )}
+        <div className="flex items-center gap-1.5">
+          {Icon ? <Icon className={iconClass} /> : null}
+          {href ? (
+            <ArrowRight
+              className={cn(
+                iconClass,
+                "transition-transform group-hover/stat:translate-x-0.5",
+              )}
+              aria-hidden
+            />
+          ) : null}
+        </div>
       </div>
       <p
         className={cn(
@@ -120,7 +129,7 @@ export function AdminStatCard({
   const cardClass = cn(
     "rounded-2xl border p-5 shadow-sm transition-shadow hover:shadow-md block",
     variants[variant],
-    href && "hover:border-primary/30 cursor-pointer",
+    href && "group/stat hover:border-primary/30 cursor-pointer",
     className,
   );
 

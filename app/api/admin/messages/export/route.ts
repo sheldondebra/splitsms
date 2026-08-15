@@ -16,6 +16,7 @@ export async function GET(request: Request) {
     status: url.searchParams.get("status") ?? undefined,
     countryCode: url.searchParams.get("country") ?? undefined,
     search: url.searchParams.get("q") ?? undefined,
+    period: url.searchParams.get("period") ?? undefined,
     pageSize: 5000,
   });
 

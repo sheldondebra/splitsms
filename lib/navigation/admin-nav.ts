@@ -99,6 +99,7 @@ export const adminNavSections: AdminNavSection[] = [
       { href: "/admin/messages", label: "SMS logs", icon: Send, permission: "operations.read" },
       { href: "/admin/routes", label: "Routes", icon: Route, permission: "routes.write" },
       { href: "/admin/providers", label: "Providers", icon: Layers3, permission: "providers.write" },
+      { href: "/admin/balances", label: "Balance history", icon: History, permission: "providers.write" },
     ],
   },
   {
@@ -122,6 +123,7 @@ export const adminNavSections: AdminNavSection[] = [
 ];
 
 export function getAdminPageTitle(pathname: string): string {
+  if (pathname === "/admin/balances") return "Balance history";
   if (pathname === "/admin/mnotify" || pathname.startsWith("/admin/mnotify/"))
     return "Providers";
   if (pathname === "/admin/payments/transactions") return "Provider transactions";

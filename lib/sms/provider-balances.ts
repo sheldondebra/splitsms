@@ -270,6 +270,15 @@ async function fetchInfobipBalance(): Promise<ProviderSmsBalance> {
 }
 
 /** Live balances from each upstream SMS provider (admin only). */
+export async function fetchSmsProviderBalance(
+  type: SmsProviderType,
+): Promise<ProviderSmsBalance> {
+  if (type === "MNOTIFY") return fetchMnotifyBalance();
+  if (type === "TWILIO") return fetchTwilioBalance();
+  return fetchInfobipBalance();
+}
+
+/** Live balances from each upstream SMS provider (admin only). */
 export async function fetchAllSmsProviderBalances(): Promise<ProviderSmsBalance[]> {
   const [mnotify, twilio, infobip] = await Promise.all([
     fetchMnotifyBalance(),

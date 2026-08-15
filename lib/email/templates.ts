@@ -250,6 +250,33 @@ Your sender ID "${params.value}" is now approved on ${siteName} and ready to use
   return { subject, text, html };
 }
 
+export async function senderIdLiveMemberContent(params: {
+  value: string;
+  memberName: string;
+}) {
+  const subject = `Your sender ID is live: ${params.value}`;
+  const text = `Hi ${params.memberName},
+
+Great news — your sender ID "${params.value}" is live on ${siteName} now.
+
+You can start sending SMS with this sender ID right away.
+
+— ${siteName}`;
+
+  const html = await renderEmailLayout({
+    headline: "Your sender ID is live",
+    preheader: `${params.value} is live — start sending SMS`,
+    greeting: `Hi ${params.memberName},`,
+    bodyHtml: `${textToEmailParagraphs(
+      `Great news — your sender ID is live on ${siteName} now. You can start sending SMS with this sender ID right away.`,
+    )}${emailDetailTable([{ label: "Sender ID", value: params.value, mono: true }])}`,
+    ctaHref: `${getSiteUrl()}/dashboard/send`,
+    ctaLabel: "Send SMS",
+  });
+
+  return { subject, text, html };
+}
+
 export async function adminMemberOutreachEmailContent(params: {
   memberName: string;
   subject: string;

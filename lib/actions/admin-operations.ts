@@ -14,6 +14,7 @@ import { syncAllSendingCampaigns } from "@/lib/campaigns/sync-status";
 import { fetchAllSmsProviderBalances } from "@/lib/sms/provider-balances";
 import { maybeNotifyLowBalanceAlerts } from "@/lib/admin/balance-alerts";
 import { maybeNotifySlackStuckSms } from "@/lib/admin/sms-stuck-alert";
+import { syncAllSenderIdsFromProviders } from "@/lib/sender-ids/provider-sync";
 
 async function requireAdmin() {
   const session = await getSession();
@@ -64,6 +65,9 @@ export type AdminSystemSyncState = {
     scheduledProcessed: number;
     resumedPaused: number;
     providerBalancesChecked: number;
+    senderIdsChecked?: number;
+    senderIdsApproved?: number;
+    senderIdsPending?: number;
   };
 };
 
@@ -244,6 +248,8 @@ async function runAdminSystemSync(session: { userId: string }) {
   let balances: Awaited<ReturnType<typeof fetchAllSmsProviderBalances>> = [];
   try {
     balances = await fetchAllSmsProviderBalances();
+    const { recordProviderBalances } = await import("@/lib/sms/provider-balance-history");
+    await recordProviderBalances(balances, "system-sync").catch(() => undefined);
     const failed = balances.filter((balance) => balance.status === "error").length;
     tasks.push({
       id: "balances",
@@ -276,6 +282,36 @@ async function runAdminSystemSync(session: { userId: string }) {
     tasks.push({
       id: "campaign-status",
       label: "Campaign status refresh",
+      ok: false,
+      detail: errorMessage(error),
+    });
+  }
+
+  let senderIdSync = {
+    checked: 0,
+    synced: 0,
+    errors: 0,
+    approved: 0,
+    pending: 0,
+    rejected: 0,
+  };
+  try {
+    senderIdSync = await syncAllSenderIdsFromProviders(200);
+    tasks.push({
+      id: "sender-ids",
+      label: "Sender ID carrier status",
+      ok: senderIdSync.errors === 0,
+      detail:
+        senderIdSync.checked === 0
+          ? "No submitted sender IDs to check"
+          : `${senderIdSync.synced} synced · ${senderIdSync.approved} approved · ${senderIdSync.pending} pending${
+              senderIdSync.rejected ? ` · ${senderIdSync.rejected} denied` : ""
+            }${senderIdSync.errors ? ` · ${senderIdSync.errors} failed` : ""}`,
+    });
+  } catch (error) {
+    tasks.push({
+      id: "sender-ids",
+      label: "Sender ID carrier status",
       ok: false,
       detail: errorMessage(error),
     });
@@ -339,6 +375,9 @@ async function runAdminSystemSync(session: { userId: string }) {
     deliveryCampaignsChecked: dlr.campaigns,
     sendingCampaignsChecked: sendingCampaigns,
     providerBalancesChecked: balances.length,
+    senderIdsChecked: senderIdSync.checked,
+    senderIdsApproved: senderIdSync.approved,
+    senderIdsPending: senderIdSync.pending,
     balanceAlerts,
     stuckAlert,
     failedSamples,
@@ -362,6 +401,7 @@ async function runAdminSystemSync(session: { userId: string }) {
   revalidatePath("/admin/providers");
   revalidatePath("/admin/routes");
   revalidatePath("/admin/mnotify");
+  revalidatePath("/admin/sender-ids");
 
   return result;
 }
@@ -413,6 +453,9 @@ export async function adminSystemSyncStateAction(
         scheduledProcessed: result.scheduledProcessed,
         resumedPaused: result.resumedPaused,
         providerBalancesChecked: result.providerBalancesChecked,
+        senderIdsChecked: result.senderIdsChecked,
+        senderIdsApproved: result.senderIdsApproved,
+        senderIdsPending: result.senderIdsPending,
       },
     };
   } catch (error) {

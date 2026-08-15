@@ -13,8 +13,6 @@ import {
   Activity,
   ArrowRight,
   CheckCircle2,
-  AlertTriangle,
-  XCircle,
   CreditCard,
   Radio,
   Mail,
@@ -48,7 +46,7 @@ export function OperationsActionList({
   const items = compact ? actions.slice(0, 6) : actions;
 
   return (
-    <ul className={cn("divide-y divide-border/50", compact ? "-mx-1" : "-mx-2")}>
+    <ul className={cn("space-y-2", !compact && "space-y-2.5")}>
       {items.map((item) => {
         const Icon = kindIcon(item.kind);
         return (
@@ -56,42 +54,50 @@ export function OperationsActionList({
             <Link
               href={item.href}
               className={cn(
-                "group flex items-center gap-3 py-2.5 transition-colors hover:bg-muted/25",
-                compact ? "first:pt-0 last:pb-0 px-1" : "px-2 rounded-lg",
+                "group flex items-start gap-3 rounded-xl border border-border/55 bg-background/60 transition-colors",
+                "hover:border-primary/30 hover:bg-muted/35",
+                compact ? "px-3 py-3" : "px-3.5 py-3.5",
               )}
             >
               <div
                 className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
+                  "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
                   item.priority === "high"
                     ? "bg-amber-500/12 text-amber-700 dark:text-amber-300"
                     : "bg-muted text-muted-foreground",
                 )}
               >
-                <Icon className="h-3.5 w-3.5" />
+                <Icon className="h-4 w-4" />
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 min-w-0">
-                  <p className="text-sm font-medium truncate">{item.title}</p>
-                  {item.priority === "high" && (
+
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <p className="text-sm font-semibold leading-snug text-foreground break-words">
+                    {item.title}
+                  </p>
+                  {item.priority === "high" ? (
                     <Badge
                       variant="outline"
-                      className="hidden sm:inline-flex shrink-0 text-[9px] px-1.5 py-0 border-amber-500/40"
+                      className="shrink-0 border-amber-500/40 bg-amber-500/10 px-1.5 py-0 text-[10px] font-semibold text-amber-800 dark:text-amber-200"
                     >
                       Urgent
                     </Badge>
-                  )}
+                  ) : null}
                 </div>
-                <p className="text-xs text-muted-foreground truncate">{item.subtitle}</p>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                  <span className="min-w-0 truncate">{item.subtitle}</span>
+                  <span className="hidden h-1 w-1 shrink-0 rounded-full bg-border sm:inline-block" />
+                  <span className="shrink-0 tabular-nums">
+                    {formatDistanceToNow(item.createdAt, { addSuffix: true })}
+                  </span>
+                </div>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <span className="hidden sm:block text-[10px] text-muted-foreground tabular-nums">
-                  {formatDistanceToNow(item.createdAt, { addSuffix: true })}
+
+              <div className="mt-0.5 flex shrink-0 items-center gap-1 self-center text-muted-foreground transition-colors group-hover:text-primary">
+                <span className="hidden text-[11px] font-medium sm:inline">
+                  {compact ? "Review" : item.actionLabel}
                 </span>
-                <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                  {compact ? "Open" : item.actionLabel}
-                </span>
-                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                <ArrowRight className="h-4 w-4 opacity-60 transition-transform group-hover:translate-x-0.5 group-hover:opacity-100" />
               </div>
             </Link>
           </li>
@@ -108,40 +114,11 @@ export function AdminOperationsPanel({
   data: OpsData;
   compact?: boolean;
 }) {
-  const { health, actions, counts } = data;
+  const { actions, counts } = data;
 
   if (compact) {
-    const config = {
-      healthy: {
-        label: "All systems operational",
-        icon: CheckCircle2,
-        className: "border-emerald-500/25 bg-emerald-500/8 text-emerald-800 dark:text-emerald-200",
-      },
-      degraded: {
-        label: "Degraded — review queue",
-        icon: AlertTriangle,
-        className: "border-amber-500/25 bg-amber-500/8 text-amber-800 dark:text-amber-200",
-      },
-      critical: {
-        label: "Critical — immediate attention",
-        icon: XCircle,
-        className: "border-destructive/25 bg-destructive/8 text-destructive",
-      },
-    }[health.overall];
-    const StatusIcon = config.icon;
-
     return (
       <div className="space-y-3">
-        <div
-          className={cn(
-            "flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium",
-            config.className,
-          )}
-        >
-          <StatusIcon className="h-4 w-4 shrink-0" />
-          {config.label}
-        </div>
-
         <AdminCard
           title="Action queue"
           description={
