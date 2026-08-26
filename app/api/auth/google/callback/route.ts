@@ -16,6 +16,8 @@ import {
 } from "@/lib/auth/google-login";
 import { logAuthEvent } from "@/lib/auth/audit";
 import { createAndSendOtp } from "@/lib/auth/otp";
+import { handleGoogleConnectCallback } from "@/lib/google/complete-connect";
+import { verifyConnectState } from "@/lib/google/oauth-connect";
 
 function loginError(origin: string, code: string) {
   return NextResponse.redirect(new URL(`/login?error=${code}`, origin));
@@ -23,6 +25,11 @@ function loginError(origin: string, code: string) {
 
 export async function GET(request: NextRequest) {
   const origin = resolveGoogleOAuthOrigin(request);
+  const stateToken = request.nextUrl.searchParams.get("state");
+  if (stateToken && (await verifyConnectState(stateToken))) {
+    return handleGoogleConnectCallback(request);
+  }
+
   const credentials = getGoogleClientCredentials();
   if (!credentials) {
     return loginError(origin, "google_config");
@@ -37,7 +44,6 @@ export async function GET(request: NextRequest) {
   }
 
   const code = request.nextUrl.searchParams.get("code");
-  const stateToken = request.nextUrl.searchParams.get("state");
   if (!code || !stateToken) {
     return loginError(origin, "google_failed");
   }

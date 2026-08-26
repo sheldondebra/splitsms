@@ -32,6 +32,9 @@ export default async function AdminMessagesPage({
     failed?: string;
     remaining?: string;
     retried?: string;
+    credits_blocked?: string;
+    credits_messages?: string;
+    notified?: string;
     error?: string;
   }>;
 }) {
@@ -150,48 +153,87 @@ export default async function AdminMessagesPage({
 
       {params.retried && (
         <AdminAlert variant="info">
-          Re-queued {params.retried} failed message{Number(params.retried) === 1 ? "" : "s"} for delivery.
+          Re-queued {params.retried} failed message{Number(params.retried) === 1 ? "" : "s"} for delivery
+          {Number(params.retried) > 0 ? " — members notified by email." : "."}
           {overview.pending > 0 ? " Use “Process pending now” to send immediately." : ""}
         </AdminAlert>
       )}
 
       {params.error === "credits" && (
         <AdminAlert variant="destructive">
-          Retry blocked — one or more members do not have enough SMS credits for a re-send. Top up member
-          credits or retry a smaller batch.
+          Retry blocked for {params.credits_blocked ?? "one or more"} member
+          {Number(params.credits_blocked ?? 1) === 1 ? "" : "s"} (
+          {params.credits_messages ?? "some"} message
+          {Number(params.credits_messages ?? 1) === 1 ? "" : "s"}) — not enough SMS credits.
+          Those members were notified in-app, by email, and with a short SMS to top up.
+        </AdminAlert>
+      )}
+
+      {params.credits_blocked && params.error !== "credits" && (
+        <AdminAlert variant="warning">
+          Skipped {params.credits_blocked} member{Number(params.credits_blocked) === 1 ? "" : "s"} (
+          {params.credits_messages} message{Number(params.credits_messages) === 1 ? "" : "s"}) with
+          insufficient credits. They were notified in-app, by email, and SMS to top up
+          {params.notified ? ` (${params.notified} emailed)` : ""}.
         </AdminAlert>
       )}
 
       {(overview.pending > 0 || overview.failed > 0) && (
-        <AdminAlert variant={mnotifyLow ? "destructive" : "warning"}>
-          {overview.pending > 0 && (
-            <span>
-              {overview.pending.toLocaleString()} message{overview.pending === 1 ? " is" : "s are"} queued as{" "}
-              <strong>PENDING</strong>
-              {overview.failed > 0 ? "; " : ". "}
-            </span>
-          )}
-          {overview.failed > 0 && (
-            <span>
-              {overview.failed.toLocaleString()} message{overview.failed === 1 ? "" : "s"} failed delivery.{" "}
-            </span>
-          )}
-          {mnotifyLow ? (
-            <>
-              mNotify balance is low ({mnotifyBalance?.display ?? "unknown"}). Top up your mNotify account,
-              then use <strong>Retry failed</strong> and <strong>Process pending now</strong>.
-            </>
-          ) : mnotifyBalance?.status === "error" || mnotifyBalance?.status === "unconfigured" ? (
-            <>
-              Check provider configuration under Admin → Providers. Use <strong>Process pending now</strong> to
-              force the queue.
-            </>
-          ) : (
-            <>
-              Use <strong>Process pending now</strong> to bypass the worker, or <strong>Retry failed</strong>{" "}
-              after fixing provider issues (mNotify: {mnotifyBalance?.display ?? "—"}).
-            </>
-          )}
+        <AdminAlert variant={mnotifyLow ? "destructive" : overview.pending > 0 ? "warning" : "info"}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 space-y-1 leading-relaxed">
+              <p>
+                {overview.pending > 0 && (
+                  <>
+                    <strong>{overview.pending.toLocaleString()}</strong> message
+                    {overview.pending === 1 ? "" : "s"} still <strong>PENDING</strong>
+                    {overview.failed > 0 ? " · " : ""}
+                  </>
+                )}
+                {overview.failed > 0 && (
+                  <>
+                    <strong>{overview.failed.toLocaleString()}</strong> message
+                    {overview.failed === 1 ? "" : "s"} failed delivery
+                  </>
+                )}
+                .
+              </p>
+              <p className="text-muted-foreground">
+                {mnotifyLow ? (
+                  <>
+                    mNotify balance is low ({mnotifyBalance?.display ?? "unknown"}). Top up, then retry
+                    failed and process the queue.
+                  </>
+                ) : mnotifyBalance?.status === "error" ||
+                  mnotifyBalance?.status === "unconfigured" ? (
+                  <>
+                    Check provider setup under Admin → Providers
+                    {overview.pending > 0 ? ", then process the pending queue." : "."}
+                  </>
+                ) : overview.pending > 0 && overview.failed > 0 ? (
+                  <>
+                    Process the pending queue now, then retry failed messages. mNotify:{" "}
+                    {mnotifyBalance?.display ?? "—"}.
+                  </>
+                ) : overview.pending > 0 ? (
+                  <>
+                    Process pending now to send immediately (bypasses the worker). mNotify:{" "}
+                    {mnotifyBalance?.display ?? "—"}.
+                  </>
+                ) : (
+                  <>
+                    Retry failed to re-queue them for delivery. mNotify:{" "}
+                    {mnotifyBalance?.display ?? "—"}.
+                  </>
+                )}
+              </p>
+            </div>
+            <AdminMessagesActions
+              pendingCount={overview.pending}
+              failedCount={retryFailedCount}
+              campaignId={params.campaign}
+            />
+          </div>
         </AdminAlert>
       )}
 

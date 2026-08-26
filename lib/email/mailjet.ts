@@ -11,6 +11,13 @@ export type SendMailjetEmailParams = {
   subject: string;
   text: string;
   html?: string;
+  attachments?: {
+    filename: string;
+    content: Buffer | Uint8Array | string;
+    contentType?: string;
+    contentId?: string;
+    inline?: boolean;
+  }[];
 };
 
 export type SendMailjetResult =
@@ -55,6 +62,32 @@ export async function sendMailjetEmail(
 
   const auth = Buffer.from(`${config.apiKey}:${config.apiSecret}`).toString("base64");
 
+  const attachments = params.attachments?.filter((a) => !a.inline).map((a) => {
+    const buf = Buffer.isBuffer(a.content)
+      ? a.content
+      : typeof a.content === "string"
+        ? Buffer.from(a.content)
+        : Buffer.from(a.content);
+    return {
+      Filename: a.filename,
+      ContentType: a.contentType ?? "application/octet-stream",
+      Base64Content: buf.toString("base64"),
+    };
+  });
+  const inlined = params.attachments?.filter((a) => a.inline && a.contentId).map((a) => {
+    const buf = Buffer.isBuffer(a.content)
+      ? a.content
+      : typeof a.content === "string"
+        ? Buffer.from(a.content)
+        : Buffer.from(a.content);
+    return {
+      Filename: a.filename,
+      ContentType: a.contentType ?? "image/jpeg",
+      ContentID: a.contentId,
+      Base64Content: buf.toString("base64"),
+    };
+  });
+
   const body = {
     Messages: [
       {
@@ -71,6 +104,8 @@ export async function sendMailjetEmail(
         Subject: params.subject,
         TextPart: params.text,
         HTMLPart: params.html ?? params.text.replace(/\n/g, "<br>"),
+        ...(attachments?.length ? { Attachments: attachments } : {}),
+        ...(inlined?.length ? { InlinedAttachments: inlined } : {}),
       },
     ],
   };
@@ -82,6 +117,7 @@ export async function sendMailjetEmail(
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(25_000),
   });
 
   const data = (await res.json().catch(() => ({}))) as MailjetSendResponse;

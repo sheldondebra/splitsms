@@ -325,7 +325,7 @@ export async function getAdminMembersDashboard(params: {
       take: 5,
       include: {
         partner: { select: { fullName: true } },
-        customer: { select: { fullName: true, phone: true } },
+        customer: { select: { id: true, fullName: true, phone: true } },
       },
     }),
     prisma.user.findMany({
@@ -456,6 +456,7 @@ export async function getAdminMembersDashboard(params: {
     rows,
     recentConnect: connectLinksRecent.map((c) => ({
       id: c.id,
+      customerId: c.customer.id,
       externalRef: c.externalRef,
       label: c.label,
       partnerName: c.partner.fullName,

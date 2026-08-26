@@ -16,9 +16,9 @@ test("builds a professional password-change security notice", async () => {
   assert.match(content.subject, /password.*changed/i);
   assert.match(content.text, /successfully changed/i);
   assert.match(content.text, /didn't make this change/i);
-  assert.match(content.html, /account security/i);
+  assert.match(content.html, /Your password was changed/);
+  assert.match(content.html, /www\.splitsms\.com/);
   assert.match(content.html, new RegExp(supportUrl.replaceAll("/", "\\/")));
-  assert.match(content.html, /font-weight:700/);
   assert.doesNotMatch(
     `${content.subject}${content.text}${content.html}`,
     /ExistingPassword!42/,

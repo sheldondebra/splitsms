@@ -6,6 +6,7 @@ import { PrismaClient, SmsProviderType } from "../lib/generated/prisma/client";
 import { COUNTRIES_DATA } from "../lib/countries-data";
 import { getCountryDefaultCurrency } from "../lib/billing/country-currency";
 import { seedSampleTemplatesForUser } from "../lib/sms/seed-templates";
+import { supportEmail } from "../lib/site-config";
 
 const ADMIN = {
   fullName: "TecUnit Admin",
@@ -133,11 +134,32 @@ async function main() {
   );
   await ensureEmailMarketingTemplates();
 
+  const seedSubscribers = [
+    { email: ADMIN.email.toLowerCase(), fullName: ADMIN.fullName },
+    { email: supportEmail.toLowerCase(), fullName: "SplitSMS Support" },
+  ];
+  const seen = new Set<string>();
+  for (const row of seedSubscribers) {
+    if (seen.has(row.email)) continue;
+    seen.add(row.email);
+    await prisma.emailMarketingSubscriber.upsert({
+      where: { email: row.email },
+      create: {
+        email: row.email,
+        fullName: row.fullName,
+        source: "seed",
+        status: "subscribed",
+      },
+      update: {},
+    });
+  }
+
   console.log(`Seed completed. ${COUNTRIES_DATA.length} countries with SMS routes.`);
   if (templatesSeeded > 0) {
     console.log(`Seeded ${templatesSeeded} sample SMS templates for admin.`);
   }
   console.log("Seeded email marketing system templates.");
+  console.log("Seeded newsletter subscribers.");
   console.log(`Admin: ${ADMIN.email} / phone ${ADMIN.phone} (SUPER_ADMIN)`);
 }
 

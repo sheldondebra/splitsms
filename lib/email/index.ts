@@ -38,6 +38,13 @@ export async function sendOtpEmail(
   code: string,
   purpose: OtpEmailPurpose,
 ) {
+  if (purpose === "reset") {
+    const { loadEmailAutomationSettings } = await import("@/lib/email/automation-settings");
+    const settings = await loadEmailAutomationSettings();
+    if (!settings.resetPasswordOtp) {
+      return { ok: false as const, error: "Password-reset emails are turned off" };
+    }
+  }
   const { subject, text, html } = await otpEmailContent({ code, purpose });
   const configured = await isEmailConfiguredAsync();
 
@@ -61,12 +68,22 @@ export async function sendOtpEmail(
   return { ok: true as const, messageId: result.messageId };
 }
 
+export type EmailAttachment = {
+  filename: string;
+  content: Buffer | Uint8Array | string;
+  contentType?: string;
+  /** CID for inline images, without the cid: prefix. */
+  contentId?: string;
+  inline?: boolean;
+};
+
 export async function sendEmail(params: {
   to: string;
   subject: string;
   text: string;
   html?: string;
   toName?: string;
+  attachments?: EmailAttachment[];
 }) {
   const provider = await getActiveEmailProvider();
   if (!provider) {

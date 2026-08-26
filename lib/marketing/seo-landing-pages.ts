@@ -417,6 +417,170 @@ export const seoLandingPages: SeoLandingPage[] = [
     primaryCta: { href: "/api-docs", label: "Start with API docs" },
     secondaryCta: { href: "/integrations/google", label: "Connect Google" },
   },
+  {
+    slug: "retail",
+    title: "Retail SMS — Orders, Restocks & Pickup Codes | SplitSMS",
+    h1: "SMS for Retail & E-commerce",
+    excerpt:
+      "Send order confirmations, restock alerts, abandoned-cart nudges, and pickup codes by SMS. Works with WooCommerce, Paystack, and Flutterwave — or a till that has never seen a plugin.",
+    keywords: [
+      "retail SMS",
+      "ecommerce SMS Ghana",
+      "order confirmation SMS",
+      "abandoned cart SMS",
+      "restock alert SMS",
+      "pickup code SMS",
+      "SplitSMS",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "A shop text gets read in the queue at the bank. An email sits in a promotions tab until it dies there. SplitSMS gives retail and e-commerce teams the texts customers actually expect: order placed, payment received, restocked, ready for pickup — sent the moment your system says so, not whenever someone remembers to update a status page.",
+        ],
+      },
+      {
+        heading: "From checkout to pickup",
+        paragraphs: [
+          "WooCommerce, Paystack, and Flutterwave hook straight into the SplitSMS WordPress plugin — order events fire an SMS with no custom code. Running a physical till or a custom cart instead? The REST API takes the same job: one POST call per event, same delivery reports either side.",
+          "Abandoned cart reminders, low-stock alerts to your own staff, and “it's back in stock” texts to customers who asked — all templates, not one-off scripts.",
+        ],
+      },
+      {
+        heading: "Built for Ghana rates, not a US price list",
+        paragraphs: [
+          "Top up in GHS via Paystack, register a Sender ID your customers already recognize, and send to 190+ countries when the order ships across a border. No monthly minimum for a shop that has quiet weeks.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: "Do I need a developer to add SMS to my shop?",
+        answer:
+          "Not for WooCommerce. Install the SplitSMS plugin, connect Paystack or Flutterwave, and switch on order templates from wp-admin. Custom carts or POS systems use the REST API — that is the one path that benefits from a developer.",
+      },
+      {
+        question: "Can I send abandoned-cart and restock texts, not just order receipts?",
+        answer:
+          "Yes. Any event your store already fires — cart abandoned, back in stock, pickup ready — can trigger a template through the plugin or a single API call. It is the same wallet and Sender ID as your order confirmations.",
+      },
+    ],
+    relatedLinks: [
+      { href: "/solutions/woocommerce-sms", label: "WooCommerce SMS notifications" },
+      { href: "/solutions/paystack-sms", label: "Paystack SMS for WooCommerce" },
+      { href: "/integrations/woocommerce", label: "WooCommerce integration setup" },
+      { href: "/pricing", label: "Per-country SMS pricing" },
+    ],
+    primaryCta: { href: "/signup", label: "Start free — 5 SMS credits" },
+    secondaryCta: { href: "/solutions/woocommerce-sms", label: "See WooCommerce SMS" },
+  },
+  {
+    slug: "fintech",
+    title: "Fintech SMS — OTP, Debit Alerts & Device Checks | SplitSMS",
+    h1: "SMS for Banks, Wallets & Fintech",
+    excerpt:
+      "OTP for login and payouts, debit and credit alerts, new-device warnings — sent through routes built for the one message that cannot arrive late.",
+    keywords: [
+      "fintech SMS",
+      "bank SMS alerts Ghana",
+      "OTP for fintech",
+      "mobile money SMS",
+      "debit alert SMS",
+      "SMS for wallets",
+      "SplitSMS",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "A fintech does not get a second chance on a login code. If the OTP is late, the user assumes the app is broken and calls support — or worse, gives up on the transaction. SplitSMS treats OTP as a first-class endpoint with sandbox testing, HMAC-signed delivery webhooks, and multi-carrier failover, not a bulk-SMS feature bolted on for compliance.",
+        ],
+      },
+      {
+        heading: "Every account event, one wallet",
+        paragraphs: [
+          "Login OTP, payout confirmation, debit and credit alerts, new-device sign-in warnings, and password resets all route through the same API key and Sender ID — so finance does not reconcile three SMS invoices for one product.",
+        ],
+      },
+      {
+        heading: "Routed for Ghana and cross-border transfers",
+        paragraphs: [
+          "MTN, Telecel, and international carriers across 190+ countries, with failover when a route degrades. Delivery webhooks tell your backend whether the code actually landed, so you can offer a voice-call fallback instead of guessing.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: "Is SplitSMS fast enough for login OTP?",
+        answer:
+          "Routes carry multi-carrier failover so a code still lands if one network is congested. Sandbox keys let you measure real delivery time on your own numbers before committing production traffic.",
+      },
+      {
+        question: "Can I separate OTP traffic from marketing SMS?",
+        answer:
+          "Yes. Use dedicated Sender IDs and API keys per use case — carriers and customers both notice when promotional copy and one-time codes share an identity, so keep them apart from the start.",
+      },
+    ],
+    relatedLinks: [
+      { href: "/solutions/otp", label: "OTP SMS API" },
+      { href: "/api-docs", label: "REST API reference" },
+      { href: "/security", label: "Security & data handling" },
+      { href: "/pricing", label: "Per-country SMS pricing" },
+    ],
+    primaryCta: { href: "/signup", label: "Get sandbox API keys" },
+    secondaryCta: { href: "/solutions/otp", label: "See the OTP API" },
+  },
+  {
+    slug: "government",
+    title: "SMS for Government & Public Sector | SplitSMS",
+    h1: "SMS for Government & Public Sector",
+    excerpt:
+      "Reach citizens with notices, appointment reminders, and programme updates by SMS. Sender ID registration and Ghana-first billing, without an enterprise procurement cycle.",
+    keywords: [
+      "government SMS Ghana",
+      "public sector SMS",
+      "citizen notification SMS",
+      "SMS for ministries",
+      "SplitSMS",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "A notice printed at the district office reaches the people who happened to walk past it. The same notice by SMS reaches every registered phone number on the list — a permit renewal window, a clinic date, a programme deadline — without a poster campaign or a radio slot.",
+        ],
+      },
+      {
+        heading: "Registration through delivery, in one flow",
+        paragraphs: [
+          "Smart Forms collects citizen or beneficiary details on a link or QR code at the point of registration, saves the number to a group, and confirms with an SMS on the spot. When the appointment date or programme update comes around, the same group receives the reminder — no re-keying names from a paper register.",
+        ],
+      },
+      {
+        heading: "A Sender ID people recognize as official",
+        paragraphs: [
+          "Register a Sender ID for the department or programme so texts do not arrive from an anonymous long number. Delivery reports show what reached MTN, Telecel, and other networks, useful when a programme has to account for outreach, not just intention.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: "Can a government department register its own Sender ID?",
+        answer:
+          "Yes. Submit the department or programme name for Sender ID approval from the dashboard. SplitSMS tracks approval status and fails over to a backup route if one carrier has an issue.",
+      },
+      {
+        question: "How do we collect phone numbers before sending programme updates?",
+        answer:
+          "Smart Forms handles registration on a shared link or QR code at the point of contact, saves respondents into a contact group automatically, and sends a confirmation text — no separate database or spreadsheet import step.",
+      },
+    ],
+    relatedLinks: [
+      { href: "/smart-forms", label: "Smart Forms registration" },
+      { href: "/pricing", label: "Per-country SMS pricing" },
+      { href: "/security", label: "Security & data handling" },
+      { href: "/solutions", label: "All solutions" },
+    ],
+    primaryCta: { href: "/signup", label: "Start free — 5 SMS credits" },
+    secondaryCta: { href: "/smart-forms", label: "See Smart Forms" },
+  },
 ];
 
 export function getSeoLandingPage(slug: string) {

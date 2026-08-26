@@ -12,9 +12,12 @@ import {
 import { getFieldTypeMeta } from "@/lib/smart-forms/field-meta";
 import { saveRespondentAsContact } from "@/lib/smart-forms/save-contact";
 import { runSmartFormSmsAutomation } from "@/lib/smart-forms/sms-automation";
+import { runSmartFormEmailAutomation } from "@/lib/smart-forms/email-automation";
 import { applySmartFormMergeTags } from "@/lib/smart-forms/merge-tags";
 import { isSubmissionRateLimited } from "@/lib/smart-forms/limits";
-import { verifyCaptchaChallenge } from "@/lib/smart-forms/captcha";
+import { verifySmartFormRecaptcha } from "@/lib/smart-forms/security";
+import { parseRecaptchaMinScore } from "@/lib/auth/recaptcha";
+import { recaptchaSiteKey } from "@/lib/auth/signup-guard-shared";
 import type { SmartFormAnalyticsEventType } from "@/lib/generated/prisma/client";
 
 function hashIp(ip: string): string {
@@ -29,6 +32,7 @@ export async function getRequestMeta() {
     h.get("x-real-ip") ??
     "unknown";
   return {
+    ip,
     ipHash: hashIp(ip),
     userAgent: h.get("user-agent") ?? undefined,
     referrer: h.get("referer") ?? undefined,
@@ -147,7 +151,7 @@ export type SubmitSmartFormInput = {
   values: Record<string, string | string[]>;
   honeypot?: string;
   source?: string;
-  captcha?: { a: number; b: number; answer: number; token: string };
+  recaptchaToken?: string;
 };
 
 export type SubmitSmartFormResult =
@@ -174,15 +178,15 @@ export async function submitSmartFormResponse(
     return { ok: false, error: "Too many submissions. Please try again later." };
   }
 
-  if (form.captchaEnabled) {
-    const captcha = input.captcha;
-    if (
-      !captcha ||
-      !verifyCaptchaChallenge(captcha.a, captcha.b, captcha.answer, captcha.token)
-    ) {
-      return { ok: false, error: "Incorrect security check. Please try again." };
-    }
-  }
+  const recaptcha = await verifySmartFormRecaptcha({
+    enabled: form.captchaEnabled,
+    token: input.recaptchaToken,
+    siteKey: recaptchaSiteKey(),
+    secret: process.env.RECAPTCHA_SECRET_KEY,
+    minScore: parseRecaptchaMinScore(process.env.RECAPTCHA_MIN_SCORE),
+    ip: requestMeta.ip,
+  });
+  if (!recaptcha.ok) return recaptcha;
 
   if (form.submissionLimit != null) {
     const count = await prisma.smartFormResponse.count({ where: { formId: form.id } });
@@ -318,6 +322,9 @@ export async function submitSmartFormResponse(
   const automation = await prisma.smartFormSmsAutomation.findUnique({
     where: { formId: form.id },
   });
+  const emailAutomation = await prisma.smartFormEmailAutomation.findUnique({
+    where: { formId: form.id },
+  });
 
   const smsResult = await runSmartFormSmsAutomation({
     formId: form.id,
@@ -339,6 +346,16 @@ export async function submitSmartFormResponse(
       },
     });
   }
+
+  await runSmartFormEmailAutomation({
+    formId: form.id,
+    userId: form.userId,
+    formName: form.name,
+    automation: emailAutomation,
+    fields: publicForm.fields,
+    answers: answerRows.map((answer) => ({ fieldKey: answer.fieldKey, value: answer.value })),
+    submittedAt,
+  }).catch(() => undefined);
 
   const successSettings = publicForm.successSettings;
   const mergeCtx = {

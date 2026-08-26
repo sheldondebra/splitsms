@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server";
 import { pollAllGoogleFormAutomations } from "@/lib/google/forms-sms";
+import { isCronAuthorized } from "@/lib/security/cron-auth";
 
 /**
  * Cron/poll endpoint for Google Forms → SMS.
- * Protect with CRON_SECRET when set: Authorization: Bearer <CRON_SECRET>
+ * Requires Authorization: Bearer <CRON_SECRET> in production.
  */
 export async function POST(request: Request) {
-  const secret = process.env.CRON_SECRET?.trim();
-  if (secret) {
-    const auth = request.headers.get("authorization") ?? "";
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
+  if (!isCronAuthorized(request)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const result = await pollAllGoogleFormAutomations();

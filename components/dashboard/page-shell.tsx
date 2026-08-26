@@ -54,9 +54,14 @@ export function PageHeader({
     <div className="page-header-block">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         {(Icon || description || mobileDesc) && (
-          <div className="flex items-start gap-3 min-w-0">
+          <div
+            className={cn(
+              "flex items-start gap-3 min-w-0",
+              !description && !mobileDesc && "hidden md:flex",
+            )}
+          >
             {Icon && (
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary md:flex">
                 <Icon className="h-5 w-5" />
               </div>
             )}
@@ -68,7 +73,9 @@ export function PageHeader({
             )}
           </div>
         )}
-        {actions && <div className="flex flex-wrap gap-2 shrink-0">{actions}</div>}
+        {actions && (
+          <div className="flex w-full flex-wrap gap-2 shrink-0 md:w-auto">{actions}</div>
+        )}
       </div>
     </div>
   );
@@ -107,7 +114,7 @@ export function AppCardBody({
   return (
     <div
       className={cn(
-        "px-6 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-9",
+        "px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-9",
         fill && "flex flex-1 flex-col min-h-0",
         className,
       )}
@@ -159,7 +166,7 @@ export function MobileCardItem({
   return (
     <li
       className={cn(
-        "rounded-xl border border-border/60 bg-card p-5 shadow-sm active:scale-[0.99] transition-transform sm:p-6",
+        "rounded-xl border border-border/60 bg-card p-4 shadow-sm active:scale-[0.99] transition-transform sm:p-6",
         className,
       )}
     >

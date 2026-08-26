@@ -21,6 +21,8 @@ export type GoogleConnectionPublic = {
   connectedAt: Date;
   updatedAt: Date;
   lastError: string | null;
+  name: string | null;
+  pictureUrl: string | null;
 };
 
 export type AccessTokenResult =
@@ -34,7 +36,10 @@ export type AccessTokenResult =
 export async function getGoogleConnectionPublic(
   userId: string,
 ): Promise<GoogleConnectionPublic | null> {
-  const row = await prisma.googleConnection.findUnique({ where: { userId } });
+  const row = await prisma.googleConnection.findUnique({
+    where: { userId },
+    include: { user: { select: { fullName: true } } },
+  });
   if (!row) return null;
   return {
     email: row.email,
@@ -43,6 +48,23 @@ export async function getGoogleConnectionPublic(
     connectedAt: row.connectedAt,
     updatedAt: row.updatedAt,
     lastError: row.lastError,
+    name: row.user.fullName.trim() || null,
+    pictureUrl: null,
+  };
+}
+
+export async function getGoogleConnectionProfile(
+  userId: string,
+): Promise<GoogleConnectionPublic | null> {
+  const connection = await getGoogleConnectionPublic(userId);
+  if (!connection) return null;
+  const token = await getAccessTokenForUser(userId);
+  if (!token.ok) return connection;
+  const info = await fetchGoogleUserInfo(token.accessToken);
+  return {
+    ...connection,
+    name: info?.fullName?.trim() || connection.name,
+    pictureUrl: info?.picture ?? null,
   };
 }
 

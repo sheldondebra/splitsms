@@ -4,9 +4,10 @@ import {
   type EmailHeaderImagePosition,
   type EmailLayoutParams,
 } from "@/lib/email/layout";
+import { emailHtmlToPlainText, sanitizeMarketingBodyHtml } from "@/lib/email/sanitize-body-html";
+import { looksLikeHtml } from "@/lib/admin/email-marketing-body-format";
 import {
   buildMarketingVars,
-  defaultMarketingContactLine,
   interpolateMarketing,
   resolveMarketingCtaHref,
 } from "@/lib/admin/email-marketing-shared";
@@ -33,15 +34,15 @@ export function buildMarketingParts(input: MarketingEmailContentInput): {
   const vars = buildMarketingVars(input.recipientName);
   const subject = interpolateMarketing(input.subject, vars);
   const headline = interpolateMarketing(input.headline, vars);
-  const bodyText = interpolateMarketing(input.bodyText, vars);
+  const rawBody = interpolateMarketing(input.bodyText, vars);
+  const bodyIsHtml = looksLikeHtml(rawBody);
+  const bodyHtml = bodyIsHtml ? sanitizeMarketingBodyHtml(rawBody) : textToEmailParagraphs(rawBody);
+  const bodyPlainText = bodyIsHtml ? emailHtmlToPlainText(rawBody) : rawBody;
   const preheader = interpolateMarketing(
-    input.preheader?.trim() || bodyText.split("\n").find((l) => l.trim()) || headline,
+    input.preheader?.trim() || bodyPlainText.split("\n").find((l) => l.trim()) || headline,
     vars,
   );
-  const footerNote = interpolateMarketing(
-    input.footerNote?.trim() || "You are receiving this because you have an account with us.",
-    vars,
-  );
+  const footerNote = interpolateMarketing(input.footerNote?.trim() || "", vars);
   const ctaLabel = input.ctaLabel?.trim()
     ? interpolateMarketing(input.ctaLabel, vars)
     : undefined;
@@ -52,7 +53,7 @@ export function buildMarketingParts(input: MarketingEmailContentInput): {
   const textParts = [
     `Hi ${vars.firstName},`,
     "",
-    bodyText,
+    bodyPlainText,
     ctaHref && ctaLabel ? `\n${ctaLabel}: ${ctaHref}` : "",
     "",
     `— ${siteName}`,
@@ -67,11 +68,10 @@ export function buildMarketingParts(input: MarketingEmailContentInput): {
       preheader,
       headline,
       greeting: `Hi ${vars.firstName},`,
-      bodyHtml: textToEmailParagraphs(bodyText),
+      bodyHtml,
       ctaHref,
       ctaLabel,
       footerNote,
-      contactLine: defaultMarketingContactLine(),
       headerImageUrl: input.headerImageUrl,
       headerImagePosition: input.headerImagePosition,
     },

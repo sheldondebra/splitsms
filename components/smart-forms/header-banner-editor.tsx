@@ -31,6 +31,7 @@ export function HeaderBannerEditor({
   const inputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
   const hasBanner = Boolean(bannerUrl.trim());
+  const remoteUrl = bannerUrl.startsWith("data:") ? "" : bannerUrl;
 
   function handleFile(file: File | null) {
     if (!file) return;
@@ -53,20 +54,18 @@ export function HeaderBannerEditor({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       <div className="flex items-center justify-between gap-2">
         <Label>Header image</Label>
         {hasBanner ? (
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1 text-destructive hover:text-destructive"
             onClick={handleRemove}
+            className="inline-flex h-7 items-center gap-1 text-xs font-medium text-destructive hover:underline"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-3 w-3" />
             Remove
-          </Button>
+          </button>
         ) : null}
       </div>
 
@@ -77,51 +76,62 @@ export function HeaderBannerEditor({
             position={position}
             interactive
             onPositionChange={onPositionChange}
-            heightClass="h-36"
+            heightClass="h-28"
           />
         </div>
       ) : (
         <button
           type="button"
           className={cn(
-            "flex min-h-[120px] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 px-4 py-6 text-center transition-colors hover:border-primary/40 hover:bg-zinc-50",
+            "flex h-[5.5rem] w-full cursor-pointer items-center justify-center gap-3 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 px-3 text-left transition-colors hover:border-primary/40 hover:bg-zinc-50",
             isPending && "pointer-events-none opacity-60",
           )}
           disabled={isPending}
           onClick={() => inputRef.current?.click()}
         >
           {isPending ? (
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className="h-5 w-5 shrink-0 animate-spin text-muted-foreground" />
           ) : (
-            <ImageIcon className="h-8 w-8 text-muted-foreground" />
+            <ImageIcon className="h-5 w-5 shrink-0 text-muted-foreground" />
           )}
-          <div>
-            <p className="text-sm font-medium">
-              {isPending ? "Compressing image…" : "Upload header image"}
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              JPG, PNG, or WebP · auto-compressed · max 15 MB
-            </p>
-          </div>
+          <span className="min-w-0">
+            <span className="block text-sm font-medium">
+              {isPending ? "Compressing…" : "Upload image"}
+            </span>
+            <span className="mt-0.5 block text-[11px] text-muted-foreground">
+              JPG, PNG, or WebP · 15 MB max
+            </span>
+          </span>
         </button>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-9 gap-1.5"
-          disabled={isPending}
-          onClick={() => inputRef.current?.click()}
-        >
-          {isPending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Upload className="h-3.5 w-3.5" />
-          )}
-          {hasBanner ? "Replace image" : "Choose file"}
-        </Button>
+      <div className="flex gap-2">
+        {hasBanner ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 shrink-0 gap-1.5"
+            disabled={isPending}
+            onClick={() => inputRef.current?.click()}
+          >
+            {isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Upload className="h-3.5 w-3.5" />
+            )}
+            Replace
+          </Button>
+        ) : null}
+        <Input
+          value={remoteUrl}
+          onChange={(e) => {
+            onBannerUrlChange(e.target.value);
+            if (e.target.value.trim()) onPositionChange(DEFAULT_BANNER_POSITION);
+          }}
+          placeholder="Or paste image URL"
+          className="h-8 text-xs"
+        />
         <input
           ref={inputRef}
           type="file"
@@ -134,30 +144,11 @@ export function HeaderBannerEditor({
           }}
         />
       </div>
-
-      <div className="space-y-2 pt-1">
-        <Label className="text-xs text-muted-foreground">Or paste image URL</Label>
-        <Input
-          value={bannerUrl.startsWith("data:") ? "" : bannerUrl}
-          onChange={(e) => {
-            onBannerUrlChange(e.target.value);
-            if (e.target.value.trim()) {
-              onPositionChange(DEFAULT_BANNER_POSITION);
-            }
-          }}
-          placeholder="https://yoursite.com/banner.jpg"
-          className="h-10 text-sm"
-        />
-        {bannerUrl.startsWith("data:") ? (
-          <p className="text-xs text-muted-foreground">
-            Uploaded image saved ({formatBannerBytes(bannerUrl.length)}). Use Replace to change it.
-          </p>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Wide images work best (about 3:1). Drag the preview above to reposition after upload.
-          </p>
-        )}
-      </div>
+      {hasBanner ? (
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          Drag the preview to reposition.
+        </p>
+      ) : null}
     </div>
   );
 }

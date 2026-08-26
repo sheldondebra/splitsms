@@ -117,6 +117,40 @@ export function slackSenderIdAdminActionBlocks(input: {
   });
 }
 
+export function slackSenderIdDocumentUploadedBlocks(input: {
+  senderRecordId: string;
+  value: string;
+  countryCode: string;
+  memberName: string;
+  memberPhone?: string;
+  docTypeLabel: string;
+}): SlackBlock[] {
+  return buildSlackNotification({
+    category: "sender_ids",
+    status: "info",
+    title: "Verification document uploaded",
+    summary: slackQuote(
+      slackSummary([
+        `${SLACK.senderId} *${input.value}*`,
+        `${SLACK.country} ${input.countryCode}`,
+        `${SLACK.inbox} ${input.docTypeLabel}`,
+      ]),
+    ),
+    fields: [
+      slackField("Sender ID", slackCode(input.value), SLACK.senderId),
+      slackField("Document", input.docTypeLabel, SLACK.inbox),
+      slackField("Member", input.memberName, SLACK.member),
+      ...(input.memberPhone ? [slackField("Phone", input.memberPhone, SLACK.phone)] : []),
+    ],
+    actions: [
+      slackAction("Review sender IDs", buildSlackGoUrl("/admin/sender-ids?tab=pending"), {
+        style: "primary",
+        icon: SLACK.view,
+      }),
+    ],
+  });
+}
+
 export function slackSenderIdProviderDecisionBlocks(input: {
   value: string;
   memberName: string;

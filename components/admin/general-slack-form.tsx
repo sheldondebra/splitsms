@@ -5,11 +5,9 @@ import { saveSlackOfficeConfigAction, testSlackConnectionAction } from "@/lib/ac
 import type { SlackOfficeConfig } from "@/lib/slack/config-shared";
 import { isSlackSupportThreadsConfigured, maskSlackSecret } from "@/lib/slack/config-shared";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Save, Send } from "lucide-react";
-
-const inputClassName =
-  "h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 md:text-sm dark:bg-input/30";
 
 function SaveSlackButton() {
   const { pending } = useFormStatus();
@@ -64,14 +62,13 @@ export function GeneralSlackForm({
 
         <div className="space-y-2">
           <Label htmlFor="slackWebhookUrl">Incoming Webhook URL</Label>
-          <input
+          <Input
             id="slackWebhookUrl"
             name="webhookUrl"
             type="url"
             autoComplete="off"
             defaultValue={config.webhookUrl}
             placeholder="https://hooks.slack.com/services/…"
-            className={inputClassName}
           />
           <p className="text-[11px] text-muted-foreground">
             Used for payments, sender IDs, registrations, and support (when threads are off).
@@ -101,13 +98,12 @@ export function GeneralSlackForm({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="supportBotToken">Bot token</Label>
-              <input
+              <Input
                 id="supportBotToken"
                 name="supportBotToken"
                 type="password"
                 autoComplete="off"
                 placeholder="xoxb-…"
-                className={inputClassName}
               />
               {config.supportBotToken ? (
                 <p className="text-[11px] text-muted-foreground">
@@ -117,23 +113,21 @@ export function GeneralSlackForm({
             </div>
             <div className="space-y-2">
               <Label htmlFor="supportChannelId">Support channel ID</Label>
-              <input
+              <Input
                 id="supportChannelId"
                 name="supportChannelId"
                 defaultValue={config.supportChannelId}
                 placeholder="C0123456789"
-                className={inputClassName}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="supportSigningSecret">Signing secret</Label>
-              <input
+              <Input
                 id="supportSigningSecret"
                 name="supportSigningSecret"
                 type="password"
                 autoComplete="off"
                 placeholder="From Slack app Basic Information"
-                className={inputClassName}
               />
             </div>
           </div>

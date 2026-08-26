@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
+import { consumeApiKeyFlash } from "@/lib/auth/api-key-flash";
+import { redirect } from "next/navigation";
 import { ApiKeysManager } from "@/components/developers/api-keys-manager";
 import { Key, FileCode2 } from "lucide-react";
 import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
@@ -14,12 +16,27 @@ export default async function DevelopersApiKeysPage({
 }) {
   const session = await getSession();
   if (!session) return null;
-  const { created, keyId, revoked, restored, deleted } = await searchParams;
+  const { created, revoked, restored, deleted } = await searchParams;
+  if (created) {
+    redirect("/developers/api-keys");
+  }
+  const createdFlash = await consumeApiKeyFlash();
 
-  const [keys, wpSites] = await Promise.all([
+  const [keys, wpSites, requestCounts] = await Promise.all([
     prisma.apiKey.findMany({
       where: { userId: session.userId },
       orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        label: true,
+        keyPrefix: true,
+        isSandbox: true,
+        isActive: true,
+        rateLimitPerMinute: true,
+        permissions: true,
+        lastUsedAt: true,
+        createdAt: true,
+      },
     }),
     prisma.wordPressSite.findMany({
       where: { userId: session.userId, status: "connected" },
@@ -31,6 +48,11 @@ export default async function DevelopersApiKeysPage({
         lastSyncAt: true,
       },
       orderBy: { lastSyncAt: "desc" },
+    }),
+    prisma.apiLog.groupBy({
+      by: ["apiKeyId"],
+      where: { userId: session.userId },
+      _count: { _all: true },
     }),
   ]);
 
@@ -50,6 +72,11 @@ export default async function DevelopersApiKeysPage({
     sitesByKeyId.set(site.apiKeyId, list);
   }
 
+  const countByKeyId = new Map<string, number>();
+  for (const row of requestCounts) {
+    if (row.apiKeyId) countByKeyId.set(row.apiKeyId, row._count._all);
+  }
+
   const rows = keys.map((k) => ({
     id: k.id,
     label: k.label,
@@ -60,6 +87,7 @@ export default async function DevelopersApiKeysPage({
     permissions: k.permissions,
     lastUsedAt: k.lastUsedAt?.toISOString() ?? null,
     createdAt: k.createdAt.toISOString(),
+    requestCount: countByKeyId.get(k.id) ?? 0,
     connectedSites: sitesByKeyId.get(k.id) ?? [],
   }));
 
@@ -67,7 +95,7 @@ export default async function DevelopersApiKeysPage({
     <AppPage wide>
       <PageHeader
         title="API Keys"
-        description="Create keys, view saved secrets in this browser, revoke or restore, replace secrets, and see WordPress sites using each key."
+        description="View or copy each secret, expand a key to see recent requests, and revoke or replace keys in use."
         icon={Key}
         mobileDescription="Manage keys — view active and revoked."
         actions={
@@ -82,8 +110,8 @@ export default async function DevelopersApiKeysPage({
       />
       <ApiKeysManager
         keys={rows}
-        createdFromUrl={created}
-        createdKeyId={keyId}
+        createdSecret={createdFlash?.raw}
+        createdKeyId={createdFlash?.keyId}
         flash={{ revoked: !!revoked, restored: !!restored, deleted: !!deleted }}
       />
     </AppPage>

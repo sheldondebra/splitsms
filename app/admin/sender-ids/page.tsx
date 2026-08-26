@@ -16,6 +16,10 @@ import { Suspense } from "react";
 const senderInclude = {
   user: { select: { id: true, fullName: true, phone: true } },
   providerRegistrations: true,
+  verificationDocuments: {
+    select: { id: true, docType: true, filename: true, createdAt: true },
+    orderBy: { createdAt: "desc" },
+  },
 } as const;
 
 type TabId = "overview" | "pending" | "register" | "all" | "mnotify" | "banned";
@@ -49,7 +53,17 @@ export default async function AdminSenderIdsPage({
     await Promise.all([
     getAdminSenderIdsDashboard(),
     prisma.senderId.findMany({
-      where: { status: "PENDING" },
+      where: {
+        OR: [
+          { status: "PENDING" },
+          { providerStatus: { contains: "hold", mode: "insensitive" } },
+          {
+            providerRegistrations: {
+              some: { providerStatus: { contains: "hold", mode: "insensitive" } },
+            },
+          },
+        ],
+      },
       include: senderInclude,
       orderBy: { createdAt: "desc" },
     }),

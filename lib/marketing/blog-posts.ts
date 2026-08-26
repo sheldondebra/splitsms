@@ -14,6 +14,765 @@ export type BlogPost = {
 
 export const blogPosts: BlogPost[] = [
   {
+    slug: "how-to-send-bulk-sms-ghana-complete-guide",
+    title: "How to Send Bulk SMS in Ghana in 2026: A Complete Step-by-Step Guide",
+    excerpt:
+      "From Sender ID approval and contact lists to message length, scheduling, delivery reports, and cost — everything a Ghana business needs to send bulk SMS that actually arrives.",
+    category: "Guides",
+    readTime: "16 min read",
+    published: "2026-08-23",
+    updated: "2026-08-23",
+    keywords: [
+      "how to send bulk SMS Ghana",
+      "send bulk SMS Ghana",
+      "bulk SMS Ghana 2026",
+      "SMS blast Ghana",
+      "mass SMS Ghana",
+      "SplitSMS bulk SMS",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Sending bulk SMS in Ghana is simple once the pieces sit in the right order: an approved Sender ID, a clean contact list, a message that fits one or two segments, a funded wallet, and a way to see what was delivered. Most failed first campaigns skip one of those steps. This guide walks through each one in the order a real business should do it — churches, schools, shops, clinics, and SaaS teams included.",
+          "SplitSMS is a wallet-based platform: you top up in GHS via Paystack, pick an approved Sender ID, and send from the dashboard or the REST API. Ghana rates start around GHS 0.029 per 160-character segment. You get 5 free credits on signup so you can test on your own phone before a real blast.",
+          "If you already have an account, keep this page open while you work through Dashboard → Send, Contacts, and Sender IDs. If you do not, start at splitsms.com/signup, then come back to the checklist below.",
+        ],
+      },
+      {
+        heading: "What “bulk SMS” actually means in Ghana",
+        paragraphs: [
+          "Bulk SMS is one message (or a small set of personalized variants) sent to many phone numbers at once. It is not the same as chatting on WhatsApp. Carriers treat it as A2P traffic — application to person — which is why branded Sender IDs, routing, and delivery reports exist.",
+          "Typical Ghana use cases are fee reminders, event RSVPs, flash sales, appointment confirmations, OTP codes, order updates, and church or school announcements. Feature phones still matter here. SMS works without data, which is why it still beats email for anything time-sensitive.",
+          "Promotional bulk SMS (sales, events) and transactional SMS (OTP, receipts, shipping) share the same wallet on SplitSMS, but they should not share the same copy. Transactional texts should stay factual. Promotional texts should include a clear way to stop future marketing.",
+        ],
+      },
+      {
+        heading: "Step 1: Register a Sender ID before you import a list",
+        paragraphs: [
+          "Ghana recipients should see your brand name, not a random number. Open Dashboard → Sender IDs, submit a short alphanumeric name (usually up to 11 characters), and wait for carrier approval. Names that copy banks, networks, or the word OTP are often rejected. Match your trading name as closely as you can.",
+          "Do not wait until the morning of a campaign. Approval can take from hours to a few days depending on the name and the route. While it is pending, send tests with a fallback Sender ID only if your account allows it — otherwise wait. Sending a blast from an unapproved ID is how messages fail silently.",
+          "Once approved, that same Sender ID works for dashboard campaigns, Smart Forms, WordPress, and the API. One registration covers every channel. Details and rejection tips live in our Sender ID Ghana guide.",
+        ],
+      },
+      {
+        heading: "Step 2: Build a list you actually have permission to text",
+        paragraphs: [
+          "Do not buy phone dumps. Carriers and customers treat cold lists as spam, delivery drops, and you burn credits on dead numbers. Use customers who already gave you a number: checkout, registration, Smart Forms, Google Forms, school admission files, church membership, or CRM export.",
+          "On SplitSMS you can paste numbers, upload CSV, import Google Contacts, or pull from a connected Sheet. Normalize Ghana numbers to international format (233XXXXXXXXX) so MTN, Telecel, and AirtelTigo routes match. Remove duplicates before you send — one person should not get the same promo three times.",
+          "Keep marketing groups separate from transactional groups. A parent who opted in for fee alerts did not automatically opt in for a fundraiser blast. SplitSMS contact groups make that split easy if you name them clearly (Fees-2026, Events, Promo-opt-in).",
+        ],
+      },
+      {
+        heading: "Step 3: Write a message that fits the channel",
+        paragraphs: [
+          "GSM SMS is 160 characters per segment. Unicode (emoji, some Ghanaian language characters) drops that to 70. Two segments cost two credits. Before you hit send, read the character counter on the SplitSMS compose screen and decide if the extra segment is worth it.",
+          "Lead with who you are and what to do. Example: ACCRA MART: 20% off rice today only. Show this SMS at East Legon till 8pm. STOP to opt out. That is brand, offer, place, time, and an exit. Vague lines like “Big news coming soon!!!” waste money.",
+          "Personalization helps when you have the data. {first_name} and {amount} turn a blast into a reminder people take seriously. If you only have phone numbers, skip fake first names — “Dear Customer” is honest. Save merge fields for CSVs that actually contain them.",
+        ],
+      },
+      {
+        heading: "Step 4: Check cost, then top up the wallet",
+        paragraphs: [
+          "Cost is recipients × segments × country rate. One thousand Ghana numbers with a one-segment English message is about GHS 29 at GHS 0.029. Two-segment Unicode is roughly double. SplitSMS shows a live estimate on the send screen so you are not surprised after the fact.",
+          "Top up via Paystack from Dashboard → Wallet. Credits stay in the account until you send; they are not a monthly plan. If a campaign fails part-way, check the wallet first — empty balance is the most common “nothing happened” report we see.",
+          "Use the 5 free trial credits on your own handset and one colleague on each major network. Confirm the Sender ID, the copy, and that the text looks right on a cheap Android before you mail 5,000 parents.",
+        ],
+      },
+      {
+        heading: "Step 5: Send, schedule, or drip — pick one job per campaign",
+        paragraphs: [
+          "Immediate send is for flash sales, closures, and OTPs. Scheduled send is for school reminders at 6:30am, church notices Saturday morning, and payday promotions. SplitSMS campaigns let you schedule in your local time so you are not blasting at 1am because someone used UTC by mistake.",
+          "Do not mix five CTAs in one SMS. One campaign, one job: pay fees, confirm a seat, use a code, or show up. If you need a longer story, SMS the hook and point to a short link (Smart Form, WhatsApp, or your site).",
+          "For recurring work — weekly reminders, monthly collections — save the template and the group. Re-run with a new date rather than rewriting from scratch. That is how small teams stay consistent without a marketing department.",
+        ],
+      },
+      {
+        heading: "Step 6: Read delivery reports before you send again",
+        paragraphs: [
+          "A “sent” status from your laptop is not the same as delivered on the handset. Open delivery reports and look at delivered vs failed vs pending. Failures cluster around invalid numbers, barred lines, and unapproved Sender IDs.",
+          "Clean the list after every large send. Remove numbers that failed as invalid. Do not keep retrying the same dead rows — you pay again and the report stays ugly. If a whole network looks weak, check Sender ID status and wallet, then contact support with the campaign ID rather than guessing.",
+          "Developers can subscribe to delivery webhooks so your app stores the same statuses the dashboard shows. The webhook guide on this blog walks through signatures and retries.",
+        ],
+      },
+      {
+        heading: "Dashboard vs API vs WordPress vs Smart Forms",
+        paragraphs: [
+          "Use the dashboard when a person is sending: CSV upload, church blast, school reminder. Use the API when software is sending: OTP, order paid, booking confirmed. Use the WordPress plugin when WooCommerce or a form plugin should fire SMS without custom PHP. Use Smart Forms when you need a hosted form plus an automatic confirmation text.",
+          "All four spend the same wallet and can use the same Sender ID. You do not need four vendors. If you are unsure, start with dashboard send this week, then add API or WordPress only when a workflow is repeating daily.",
+        ],
+      },
+      {
+        heading: "Common mistakes that waste credits",
+        paragraphs: [
+          "Sending before Sender ID approval. Importing Excel files with notes in the phone column. Using emoji “to stand out” and doubling the segment count. Buying a 50,000-number list. Scheduling in the wrong timezone. Putting the entire newsletter into SMS instead of a 140-character prompt plus a link.",
+          "Fix those and most Ghana businesses get reliable delivery on the first paid campaign. If you want a second opinion on copy length or list format, send a 10-row test and look at the logs before you scale.",
+        ],
+      },
+      {
+        heading: "What to do next",
+        paragraphs: [
+          "Sign up, register a Sender ID, import a real (small) list, send to yourself, then schedule or send the live campaign. Pricing is on /pricing. API details are on /api-docs. Smart Forms are on /smart-forms. WordPress is on /integrations/wordpress.",
+          "Bulk SMS in Ghana is not a mystery. It is a short checklist executed in order. SplitSMS is built so that checklist fits in one afternoon, not a six-month carrier project.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "sms-campaign-roi-ghana-businesses",
+    title: "SMS Campaign ROI in Ghana: How to Measure What Every Text Is Worth",
+    excerpt:
+      "A practical way to calculate bulk SMS return: cost per delivered message, conversion, collections, and no-show reduction — with examples in GHS.",
+    category: "Strategy",
+    readTime: "15 min read",
+    published: "2026-08-23",
+    updated: "2026-08-23",
+    keywords: [
+      "SMS ROI Ghana",
+      "bulk SMS return on investment",
+      "SMS campaign results",
+      "measure SMS marketing",
+      "SMS cost per conversion Ghana",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "SMS feels cheap until nobody can say whether it paid for itself. Finance will ask. Pastors will ask. School bursars will ask. The answer is not “open rates are 90%.” Open rates are a reason to test SMS, not proof that a campaign made money.",
+          "This article shows how Ghana teams can measure SMS the same way they measure MoMo charges: credits out, results in. You do not need a data warehouse. You need a campaign name, a wallet debit, and one outcome you already track — payments, bookings, attendance, or sales.",
+        ],
+      },
+      {
+        heading: "Start with cost you can audit",
+        paragraphs: [
+          "SplitSMS shows sent count, failed count, and credits used per campaign. Cost = credits used × your effective GHS per credit. If Ghana is GHS 0.029 per segment and you sent 2,000 one-segment messages, that is about GHS 58. Two-segment messages double it. Failed sends that never left the platform should not be counted as “delivered cost.”",
+          "Write the campaign name in a sheet: date, audience size, segments, credits, GHS, and the offer. If you skip this, you will not remember whether last month’s PTA reminder was 400 or 4,000 people.",
+        ],
+      },
+      {
+        heading: "Pick one primary outcome per send",
+        paragraphs: [
+          "Retail: unique discount codes redeemed, or till sales in a 24-hour window versus a quiet Tuesday. Collections: fees received in 72 hours versus the previous term without SMS. Clinics: no-show rate this week versus last month. Churches: confirmed seats versus last event.",
+          "If you track five outcomes, you will credit SMS for everything and learn nothing. One campaign, one number. Secondary effects (brand recall) can wait until the primary number is stable.",
+        ],
+      },
+      {
+        heading: "A simple GHS example: fee reminder",
+        paragraphs: [
+          "A school texts 800 parents a one-segment reminder. Cost ≈ GHS 23. In the next three days, 40 extra families pay GHS 400 each who usually delay two weeks. That is GHS 16,000 of cash moved earlier — not new revenue, but cash-flow you can use for payroll. ROI on timing is still ROI for a bursar.",
+          "If only 5 extra families pay, SMS still likely beat a printer-and-envelope reminder. Compare to the actual alternative you would have used, not to a fantasy of 100% payment.",
+        ],
+      },
+      {
+        heading: "A simple GHS example: flash sale",
+        paragraphs: [
+          "A retailer texts 1,200 opted-in customers a one-segment 15% code. Cost ≈ GHS 35. Thirty people redeem with an average extra basket of GHS 80 attributable to the code. That is GHS 2,400 gross. After product cost, if contribution margin is 30%, SMS contributed about GHS 720 against GHS 35 spend. That is a campaign worth repeating.",
+          "If nobody redeems, the copy, timing, or list is wrong — not “SMS is dead.” Test a shorter offer, a Saturday 10am send, or a smaller VIP group before you abandon the channel.",
+        ],
+      },
+      {
+        heading: "Count no-shows as money too",
+        paragraphs: [
+          "A salon slot that sits empty is lost revenue you already staffed for. If SMS reminders cut no-shows from 20% to 8% on 50 weekly appointments at GHS 80 each, you recovered about 6 appointments × GHS 80 = GHS 480 per week. A weekly reminder to 50 people is a few cedis. That math is why clinics and salons stay on SMS even when they never run “marketing” campaigns.",
+        ],
+      },
+      {
+        heading: "Do not confuse delivered with converted",
+        paragraphs: [
+          "High delivery with zero action usually means the message asked for nothing, asked for too much, or went to people who did not care. Delivery is a health check on Sender ID and numbers. Conversion is a health check on offer and audience.",
+          "SplitSMS logs help you separate the two. If delivery is poor, fix routing and lists first. If delivery is fine and conversion is poor, fix the sentence you sent.",
+        ],
+      },
+      {
+        heading: "Attribution without pretending you have Google Ads",
+        paragraphs: [
+          "Use unique codes per campaign (EAST15 vs EAST15B). Use unique Smart Form links per poster versus SMS. Ask “How did you hear?” at till for a week. None of this is perfect. It is better than guessing.",
+          "OTP and order SMS are not ROI campaigns. They are cost of doing business, like receipts. Track their cost under operations, not marketing. Mixing them inflates “SMS marketing spend” and makes promotions look worse than they are.",
+        ],
+      },
+      {
+        heading: "A monthly SMS scorecard",
+        paragraphs: [
+          "Once a month, list campaigns, GHS spent, primary outcome, and a one-line note (repeat / rewrite / kill). Share it with whoever pays the wallet. Teams that do this keep SMS. Teams that only remember the one blast that “felt busy” eventually stop topping up.",
+          "SplitSMS account reports and delivery views give you the raw counts. The scorecard is your job. Fifteen minutes at month-end is enough.",
+        ],
+      },
+      {
+        heading: "How SplitSMS makes the numbers honest",
+        paragraphs: [
+          "Wallet history, campaign sent/failed counts, and per-message logs mean you are not estimating from memory. API users can store message IDs against orders. WordPress users can match WooCommerce order SMS to paid orders in the same week.",
+          "Start with 5 free credits, send a 20-person test, then run one campaign you can measure. Pricing is public on /pricing. If a campaign cannot be measured, it is probably too vague to send.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "import-csv-excel-contacts-bulk-sms",
+    title: "How to Import CSV and Excel Contacts for Bulk SMS (Without Wrecking the List)",
+    excerpt:
+      "Prepare phone columns, Ghana number formats, merge fields, duplicates, and encoding so your first SplitSMS upload sends to real handsets — not spreadsheet artefacts.",
+    category: "Guides",
+    readTime: "14 min read",
+    published: "2026-08-23",
+    updated: "2026-08-23",
+    keywords: [
+      "import contacts bulk SMS",
+      "CSV SMS Ghana",
+      "Excel phone list SMS",
+      "upload contacts SplitSMS",
+      "bulk SMS contact import",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Most bulk SMS problems start in the spreadsheet, not the gateway. A column of names in the phone field, numbers stored as 2.33E+11, leading zeros stripped by Excel, or a mix of 024… and +233… in the same file will fail a chunk of your blast and make the report look like the platform is broken.",
+          "This guide is the checklist we wish every first-time sender used before clicking Upload on SplitSMS. It applies whether you export from a school MIS, a church membership sheet, WooCommerce, or a Google Sheet.",
+        ],
+      },
+      {
+        heading: "Use a boring file on purpose",
+        paragraphs: [
+          "Save as CSV UTF-8 when you can. XLSX often works, but CSV fails less often on commas inside names. One header row. One phone column with a clear name: phone or mobile. Optional columns: first_name, last_name, email, group, amount, due_date — only if you will actually merge them.",
+          "Delete decorative header rows, merged cells, and “Notes” sheets. SplitSMS cannot guess that row 4 is a title and row 5 is data. If your export has junk at the top, delete it in Excel first.",
+        ],
+      },
+      {
+        heading: "Fix Ghana numbers before you import",
+        paragraphs: [
+          "Pick one format and convert the whole column. International without plus — 233201234567 — is the safest for APIs and most African gateways. Local 0201234567 is fine if every row is Ghana and you convert on import. Mixing 020, 23320, +233 20, and 00233 in one file is how duplicates and fails appear.",
+          "In Excel, format the phone column as Text before you paste, or you will lose the leading 0. If you already lost zeros, a formula that prepends 233 and strips spaces and dashes will save the file. Remove letters, parentheses, and “WhatsApp only” notes from the phone column — those belong in a notes column, not in to.",
+        ],
+      },
+      {
+        heading: "Stop Excel from eating your numbers",
+        paragraphs: [
+          "Scientific notation (2.332E+11) is not a phone number. Set the column to Text, re-paste from a source that still has the full digits, or import using Google Sheets (File → Import) which is slightly kinder to long numbers. Then export CSV.",
+          "If you maintain the master list in Sheets, connect Google Sheets to SplitSMS when you send often. Re-uploading a damaged Excel file every Friday is how errors return.",
+        ],
+      },
+      {
+        heading: "Map merge fields only when the data is real",
+        paragraphs: [
+          "Personalization like Hi {first_name}, your balance is GHS {amount} is powerful for collections. It is embarrassing when {first_name} is blank or “N/A”. Scan the column for empties. Use a fallback in copy (“Hi parent”) if many rows have no name.",
+          "Keep merge tokens matching the SplitSMS field names you mapped on upload. A heading called “Student” will not fill {first_name} unless you map it. Test on three rows: a complete row, a row with only a phone, and a row with a weird character in the name.",
+        ],
+      },
+      {
+        heading: "Dedupe like you mean it",
+        paragraphs: [
+          "Same parent with two children should get two fee texts if the amounts differ, or one combined text if you wrote it that way. Same person in “Members” and “Choir” should not get the same event SMS twice. Deduplicate on normalized phone, not on name (two people named Ama is normal).",
+          "SplitSMS groups help: import once into Parents-2026, then send. Do not import the same CSV into a new group every week without removing the old one.",
+        ],
+      },
+      {
+        heading: "Respect consent in the file itself",
+        paragraphs: [
+          "Add a column opted_in or source (checkout, form, staff). Filter marketing sends to opted_in = yes. Transactional fee and OTP lists can be wider, but still must be your members or customers — not a purchased dump.",
+          "When someone says stop, remove them from promo groups the same day. Leaving STOP numbers in the next blast is how you get complaints and poor routing reputation.",
+        ],
+      },
+      {
+        heading: "Import into SplitSMS",
+        paragraphs: [
+          "Open Contacts, choose import, upload the CSV, map phone (required) and any merge columns, pick or create a group, and review the preview rows. If the preview shows blank phones, cancel and fix the file. Do not “send anyway.”",
+          "After import, spot-check five random contacts. Then send a test campaign to a group that contains only your team. If those arrive with the right Sender ID and merge values, the list is ready.",
+        ],
+      },
+      {
+        heading: "After the send: clean from the report",
+        paragraphs: [
+          "Export or scan failed numbers. Invalid format and not a subscriber should leave the group. Temporary failures can be retried once; permanent invalids should not. A cleaner list next month is cheaper than a bigger list this month.",
+          "If you use Smart Forms, new phones can land in a group automatically so you are not copying from a form export every Monday. That is the long-term fix for messy CSVs.",
+        ],
+      },
+      {
+        heading: "When to skip CSV entirely",
+        paragraphs: [
+          "Google Contacts import, Google Sheets connect, WooCommerce order SMS, and the API are all better than a weekly Excel ritual when the data already lives in those systems. CSV is for one-off lists and schools that still live in spreadsheets. Use it well, then graduate the repeating workflows.",
+          "Need a working file today? One header, one phone column in 233 format, a short test group, then the real group. SplitSMS signup includes trial credits so the first test does not require a Paystack top-up.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "otp-sms-production-guide-ghana",
+    title: "OTP SMS in Production: Delivery, Security, Cost, and What Breaks at Scale",
+    excerpt:
+      "A full production checklist for SMS one-time passwords in Ghana: Sender IDs, timeouts, retries, webhooks, fraud, and how SplitSMS OTP APIs fit a real login stack.",
+    category: "Developers",
+    readTime: "16 min read",
+    published: "2026-08-23",
+    updated: "2026-08-23",
+    keywords: [
+      "OTP SMS Ghana",
+      "SMS verification API",
+      "two factor SMS Africa",
+      "OTP delivery Ghana",
+      "SplitSMS OTP",
+      "send OTP SMS API",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "A demo OTP that arrives on your phone is not a production OTP system. Production means the code arrives in seconds on MTN, Telecel, and AirtelTigo, expires on time, cannot be reused, is rate-limited, and does not bankrupt you when a bot hammers /login.",
+          "SplitSMS gives you send/verify style OTP endpoints, sandbox keys, and delivery webhooks so you are not inventing carrier accounts. This article is the operational layer around those APIs — the parts that usually fail after launch.",
+        ],
+      },
+      {
+        heading: "Use a dedicated OTP Sender ID and template",
+        paragraphs: [
+          "Do not send “Your code is 123456” from a marketing Sender ID that also blasts sales. Carriers and users treat OTP as transactional. Register a clear brand ID and keep the template stable: {brand}: your code is {code}. Valid 10 min. Do not share.",
+          "Changing the wording every week looks like phishing. Ghana users already see a lot of fake bank texts. Consistency plus an approved Sender ID is half of trust.",
+        ],
+      },
+      {
+        heading: "Generate codes you can defend",
+        paragraphs: [
+          "Six digits, cryptographically random, hashed at rest if you store them, single use, 5–10 minute TTL. Do not log raw codes in application logs. Do not put the code in a URL query string that will hit analytics.",
+          "SplitSMS can deliver the SMS; your app still owns session binding: this code belongs to this user-id or phone, created at this timestamp, with this attempt counter. Verify should increment attempts and lock after a small number of guesses.",
+        ],
+      },
+      {
+        heading: "Normalize Ghana numbers at the edge",
+        paragraphs: [
+          "If the UI accepts 0201234567, convert to 233201234567 before you call SplitSMS. If you accept +233, strip formatting. Failed OTP is often “we stored 020… and sent 20…” — a missing digit, not a downed network.",
+          "Reject numbers that are too short after normalization. Show the user the destination you will text (masked) so they can correct a typo before you spend a credit.",
+        ],
+      },
+      {
+        heading: "Rate limit like an attacker is already here",
+        paragraphs: [
+          "Cap OTP sends per phone per hour and per IP per hour. Bots will use you as a free SMS cannon against random Ghana numbers. That is a cost incident and a carrier reputation incident.",
+          "Add a cooldown between resends (45–60 seconds). SplitSMS will send what you ask; it will not know that the same phone requested 200 codes. That is your job. Use CAPTCHA on public signup if abuse appears.",
+        ],
+      },
+      {
+        heading: "Retries, idempotency, and “I didn’t get it”",
+        paragraphs: [
+          "The first user complaint is always “SMS didn’t come.” Check: wallet balance, Sender ID status, destination format, and the delivery webhook or dashboard log for that message id. Resend should invalidate or supersede the previous code so two valid codes are not floating.",
+          "Do not retry in a tight loop on your server. If the provider returns a 4xx for a bad number, stop. If it is 5xx or timeout, retry with backoff and an idempotency key so you do not double-send on network blips.",
+        ],
+      },
+      {
+        heading: "Webhooks close the loop",
+        paragraphs: [
+          "Subscribe to delivery webhooks, verify HMAC signatures, and store status on the OTP record. Your support screen should show “delivered to network at 14:02” instead of “we think we sent it.”",
+          "Pending for many minutes on one network may be a routing issue — split a sample across networks before you blame the user. The SplitSMS delivery webhook article covers payload fields and retries.",
+        ],
+      },
+      {
+        heading: "Cost control for OTP at scale",
+        paragraphs: [
+          "OTP is usually one segment. Cost is volume × rate. A fintech sending 50,000 OTP a day needs wallet alerts and a daily cap dashboard-side so a bug cannot drain GHS thousands overnight. SplitSMS low-balance emails exist so someone gets pinged before sends start failing.",
+          "Sandbox keys exist so CI and staging never hit live credits. Promote to live keys only on the production server. Never ship sk_live_ in a mobile app.",
+        ],
+      },
+      {
+        heading: "SMS OTP vs WhatsApp vs authenticator apps",
+        paragraphs: [
+          "Authenticator apps are stronger against SIM-swap. SMS OTP is what Ghana users complete without installing anything. Many products use SMS for signup and offer TOTP later. WhatsApp OTP depends on the user having WhatsApp and data. SMS remains the fallback that works on a feature phone in a village.",
+          "SplitSMS is the SMS layer. If you add WhatsApp later, keep SMS as backup for the users who will never scan a QR.",
+        ],
+      },
+      {
+        heading: "Launch checklist",
+        paragraphs: [
+          "Approved Sender ID. Sandbox test. Live test on three networks. Rate limits. Expiry and attempt caps. Webhooks verified. Wallet alert. No codes in logs. Masked phone on the verify screen. Support playbook for “I didn’t get the SMS.”",
+          "Create an API key with sms.send from the SplitSMS dashboard, read /api-docs, and start with the OTP endpoints rather than a homemade “send random number via bulk SMS” job. The bulk endpoint is the wrong tool for login codes.",
+        ],
+      },
+      {
+        heading: "SIM-swap and social engineering",
+        paragraphs: [
+          "SMS OTP is phishable. Attackers call users and ask them to read the code. Your UI should say SplitSMS / your brand will never call to ask for this code. High-value actions (password change, payout account) can require a second factor or a delay.",
+          "You cannot fix SIM-swap with a nicer template. You can reduce damage with alerts: “A login code was sent. If this was not you, reset your password.” SplitSMS can deliver that SMS; your app decides when to send it.",
+        ],
+      },
+      {
+        heading: "International numbers and roaming",
+        paragraphs: [
+          "If your product has Ghana plus Nigeria or diaspora users, do not assume one Sender ID and one rate. Check SplitSMS country pricing, test a real roaming handset if you claim “works abroad,” and fail closed when the number country is unsupported rather than billing a surprise route.",
+          "Store the country with the user profile. Retrying a UK number on a Ghana-only assumption is a common staging-vs-production bug.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "logistics-delivery-sms-ghana",
+    title: "Logistics and Delivery SMS in Ghana: Keep Customers Updated Without Call-Center Chaos",
+    excerpt:
+      "How couriers, last-mile teams, and e-commerce brands use SMS for pickup, out-for-delivery, failed attempt, and COD — with copy you can steal and a SplitSMS setup that scales.",
+    category: "Use cases",
+    readTime: "15 min read",
+    published: "2026-08-23",
+    updated: "2026-08-23",
+    keywords: [
+      "delivery SMS Ghana",
+      "courier SMS notifications",
+      "logistics SMS Africa",
+      "out for delivery SMS",
+      "e-commerce shipping SMS Ghana",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Ghana customers will call if they do not know where a parcel is. Each call costs more than an SMS. The brands that feel “premium” in last-mile are often just consistent: order confirmed, packed, out for delivery, delivered, or we missed you — each as a short text from a known Sender ID.",
+          "This playbook is for courier startups, shopify-style stores, pharmacies doing dispatch, and marketplaces that still coordinate riders on WhatsApp. WhatsApp is fine for the rider group. The customer should get SMS because it does not depend on them being in your broadcast list.",
+        ],
+      },
+      {
+        heading: "Map the journey to four or five texts, not twelve",
+        paragraphs: [
+          "Too many texts and people mute you. A solid set: (1) order received, (2) out for delivery with a window, (3) delivered or we missed you with a next step. Optional: delay if the rider is stuck in Accra traffic longer than the window you promised.",
+          "Do not SMS every warehouse scan. That is noise. SMS the moments the customer would have called about.",
+        ],
+      },
+      {
+        heading: "Copy that works on the road",
+        paragraphs: [
+          "Out for delivery: {brand}: Your order {id} is out for delivery in Accra today 2–5pm. Rider will call. Help: 055…. Missed: {brand}: We missed you for order {id}. Please call {phone} to reschedule today. Keep under 160 characters when you can so one credit covers it.",
+          "Include the order id. Without it, your support line becomes a guessing game. Include a human phone or WhatsApp for exceptions — SMS should reduce calls, not eliminate a contact path when the gate is locked.",
+        ],
+      },
+      {
+        heading: "Hook SMS to the system that already knows the status",
+        paragraphs: [
+          "If orders live in WooCommerce, use the SplitSMS WordPress plugin for paid / processing / completed — plus a custom status if you added “out for delivery.” If orders live in your own Node or Laravel app, fire SplitSMS send on status change with the same Sender ID you use for OTP.",
+          "Riders should not be responsible for remembering to text. If the status is in software, the SMS should be in software. Manual “please SMS the customer” in a WhatsApp group does not survive a 200-order Saturday.",
+        ],
+      },
+      {
+        heading: "Failed delivery is where SMS earns its keep",
+        paragraphs: [
+          "The expensive failure is a second trip. A same-day “we came, nobody answered, here is a number” text recovers a surprising share of parcels. Pair it with a Smart Form link to pick a new window if you do not want the phone to ring.",
+          "Log the SMS next to the attempt in your ops tool. When a customer claims “nobody came,” you have a timestamp and a delivered SMS. That is not aggression; it is how you train riders and customers at the same time.",
+        ],
+      },
+      {
+        heading: "Cash on delivery and MoMo",
+        paragraphs: [
+          "If you collect cash or MoMo on delivery, SMS the amount before the rider arrives: Please have GHS {amount} ready for order {id}. Surprise amounts cause refused parcels. If they already paid, say so — Paid. Rider bringing your order {id} — so they do not pay twice.",
+        ],
+      },
+      {
+        heading: "Numbers, Sender IDs, and trust",
+        paragraphs: [
+          "Use an approved brand Sender ID. A random number looks like a scam, especially when the text mentions money. Register the ID before you promise customers “we will text you.”",
+          "Store the customer phone from checkout in international format. Delivery to 024… vs 23324… should be a solved problem in your order table, not a debate at 7pm.",
+        ],
+      },
+      {
+        heading: "Cost for a real volume day",
+        paragraphs: [
+          "Three one-segment SMS per order × GHS 0.029 is under 9 pesewas of SMS per parcel in Ghana. One avoided failed trip pays for hundreds of texts. If you send six status texts per order, cut it down — the extra two are not “engagement,” they are noise.",
+          "Watch the wallet on peak days. SplitSMS low-balance alerts exist so Friday promo plus Saturday dispatch does not silently stop mid-route.",
+        ],
+      },
+      {
+        heading: "What to implement this week",
+        paragraphs: [
+          "List your order statuses. Assign at most five to SMS. Write templates with {id} and {amount}. Connect WooCommerce or your API. Test on all three major networks. Then turn it on for live orders, not for a fake staging customer only you remember.",
+          "Signup, Sender ID, and a test credit run are enough to prove the idea. Expand to Smart Forms for reschedule links once the basic status texts are boringly reliable.",
+        ],
+      },
+      {
+        heading: "Riders, dispatchers, and who owns the template",
+        paragraphs: [
+          "If riders can edit the SMS wording from a phone, you will get typos, extra charges (added emoji), and the occasional angry paragraph. Keep templates in the office system. Riders update status; software sends the text.",
+          "Give dispatch a SplitSMS login only if they need to send a one-off exception. Most teams never need that. Exceptions can be a saved “missed delivery” campaign to a one-number group.",
+        ],
+      },
+      {
+        heading: "Multi-drop days and rate limits",
+        paragraphs: [
+          "A 400-drop Saturday is 400–1,200 SMS if you send two or three per order. That is still a small wallet hit in Ghana. The failure mode is not cost — it is a script that loops on “pending” and resends. Idempotency on order-id + status is mandatory in your code.",
+          "SplitSMS will send what you POST. Your dispatch app must not POST “out for delivery” twice because the rider toggled the button. That is a product bug, not an SMS bug.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "personalize-bulk-sms-merge-fields",
+    title: "How to Personalize Bulk SMS: Names, Amounts, Dates, and Merge Fields That Don’t Look Fake",
+    excerpt:
+      "When to use merge fields in Ghana bulk SMS, how to prepare the data, and example templates for fees, appointments, and retail — plus the mistakes that make personalized texts worse than a generic blast.",
+    category: "SMS Marketing",
+    readTime: "14 min read",
+    published: "2026-08-23",
+    updated: "2026-08-23",
+    keywords: [
+      "personalized bulk SMS",
+      "SMS merge fields",
+      "custom SMS Ghana",
+      "mail merge SMS",
+      "dynamic SMS campaign",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "A generic blast is fine for “we are closed tomorrow.” It is weak for “you owe GHS 450” or “Ama, your 2pm is confirmed.” Personalization is not a gimmick. It is how collections, clinics, and schools get action without a phone tree.",
+          "It is also how you accidentally send Hi {first_name} to 3,000 people if the CSV column is empty. This guide is about doing merge fields the unglamorous way: data first, copy second, test third, blast fourth.",
+        ],
+      },
+      {
+        heading: "What is worth personalizing",
+        paragraphs: [
+          "Worth it: first name when you have it, amount due, due date, order id, appointment time, class or child’s name for schools. Not worth it: last name, middle name, fake “we miss you {name}!!!” energy on a promo that is really a 10% coupon.",
+          "If 40% of rows have no first name, do not merge first name. Use a segment: named vs unnamed. Or use a role: Hi parent, Hi member. Honesty beats a blank token.",
+        ],
+      },
+      {
+        heading: "Prepare the sheet as if a robot will read it",
+        paragraphs: [
+          "One row per recipient. Phone required. Merge columns with stable headers: first_name, amount, due_date, student. No “GHS 450.00 “ with a trailing space in some rows and “450” in others if you plan to print the value as-is. Normalize currency in the template (“GHS {amount}”) and keep amount numeric in the file.",
+          "Dates should be human in the SMS: 12 Sep, not 2026-09-12T00:00:00Z. Convert in the sheet before import. SplitSMS will substitute what you give it; it will not guess your school’s term calendar.",
+        ],
+      },
+      {
+        heading: "Templates you can copy",
+        paragraphs: [
+          "Fees: {school}: Dear parent, {student}’s fees of GHS {amount} are due {due_date}. Pay at the office or MoMo. Ignore if paid. Clinic: {clinic}: Hi {first_name}, reminder — {time} on {date}. Reply 1 to confirm. Retail: {brand}: {first_name}, your code EAST15 is valid till 8pm at East Legon.",
+          "Count characters with a real name and a worst-case long name. “Anastasia” should not push you into a second segment unless you accept the cost. The SplitSMS compose preview exists for this.",
+        ],
+      },
+      {
+        heading: "Preview is not optional",
+        paragraphs: [
+          "Send three tests: a complete row, a row with only phone, and a row with punctuation in the name (O’Neil, Nyamekye). Read them on a physical phone. If any token leaks as {amount}, stop the campaign.",
+          "Then send to a 10-person staff group. Only then the real group. Personalized mistakes feel ruder than generic mistakes because they look targeted.",
+        ],
+      },
+      {
+        heading: "Segmentation is personalization’s quieter cousin",
+        paragraphs: [
+          "Often you do not need {first_name}. You need two campaigns: Accra vs Kumasi, paid vs unpaid, members vs visitors. That is still “personal” in the useful sense. Over-merging a bad list is worse than two clean generic texts.",
+          "SplitSMS contact groups are how you do this without a CRM. Name groups after the decision, not after the date you imported the file.",
+        ],
+      },
+      {
+        heading: "Transactional vs promo tone",
+        paragraphs: [
+          "Fee and appointment SMS should sound like the institution. Promo SMS can be warmer but still short. Do not mix a debt reminder and a pizza coupon in one personalized paragraph. People remember the coupon and forget the debt — or get angry about both.",
+        ],
+      },
+      {
+        heading: "Privacy",
+        paragraphs: [
+          "Amounts and student names are sensitive. Do not forward the CSV on WhatsApp. Limit who can export SplitSMS contacts. If a phone is shared in a household, think about what the SMS reveals on the lock screen. Sometimes “fees due” without the amount is enough.",
+        ],
+      },
+      {
+        heading: "Where the data should live long term",
+        paragraphs: [
+          "If every send starts from a new Excel export, merge fields will keep breaking. Smart Forms, Google Sheets connect, and the API keep phone + metadata together. CSV is a bridge, not a strategy.",
+          "Start with one personalized reminder campaign this week, ten test rows, then scale. SplitSMS trial credits cover the tests. Public pricing is on /pricing.",
+        ],
+      },
+      {
+        heading: "Unicode, names, and accidental extra segments",
+        paragraphs: [
+          "A Ghanaian name with a character outside the GSM alphabet, or a single emoji in the template, can switch the whole message to Unicode and cut the segment from 160 characters to 70. That doubles cost for every recipient, not just the one with the special character — depending on how the campaign is encoded.",
+          "Keep templates in plain English or carefully tested Twi copy. If you must use native script, accept the segment cost in the estimate before you send. Never add emoji “for warmth” on a 3,000-parent fee reminder.",
+        ],
+      },
+      {
+        heading: "Legal and reputational lines",
+        paragraphs: [
+          "Personalized debt SMS should not shame people in a shared household. Avoid “you are a defaulter” language. State the amount and the pay-by date. If a number is a company gate phone, do not merge a child’s name onto it.",
+          "Ghana promotional SMS should still offer a stop path. Personalization does not cancel consent rules. See the compliance article on this blog for Sender IDs and opt-outs.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "school-parent-sms-playbook-ghana",
+    title: "School Parent SMS Playbook for Ghana: Fees, Attendance, Exams, and Emergencies",
+    excerpt:
+      "A detailed operating guide for Ghana schools and training centres: which messages to send, when to send them, how to keep lists clean, and how SplitSMS replaces scattered WhatsApp groups for official notices.",
+    category: "Use cases",
+    readTime: "16 min read",
+    published: "2026-08-23",
+    updated: "2026-08-23",
+    keywords: [
+      "school SMS Ghana",
+      "parent SMS alerts",
+      "school fee reminder SMS",
+      "PTA SMS Ghana",
+      "education bulk SMS",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "WhatsApp groups are where rumours live. Official school communication should be boring, timestamped, and complete: every parent who should have heard it, heard it. SMS is still the channel that reaches a guardian on a feature phone in traffic, without data, without being an admin of 84 groups.",
+          "This playbook is for private basic schools, SHS support programmes, crèches, and training centres in Ghana. It assumes you already have a term calendar and a spreadsheet of phones. SplitSMS is how you send without forwarding a broadcast list to a teacher’s personal phone.",
+        ],
+      },
+      {
+        heading: "Decide what is official SMS vs what stays on WhatsApp",
+        paragraphs: [
+          "SMS: fee due dates, exam timetables, closures, emergency pickup, PTA date and time, report-card collection. WhatsApp: class photos, optional bake sales, teacher chatter. If everything is SMS, parents mute you. If nothing official is SMS, the bursar spends the term on calls.",
+          "Write this split down. When a teacher asks to “just SMS the whole school” about a lost water bottle, the answer is no.",
+        ],
+      },
+      {
+        heading: "Build groups the way the school is actually organised",
+        paragraphs: [
+          "Groups by class or year are enough for most schools: Creche, BS1, BS2, JHS1. Add Staff, Board, and Transport if those lists are real. Do not make 40 groups you will not maintain. A parent with two children should be in two class groups or in one “All parents” group plus class groups — pick a rule and stick to it so they are not double-texted on whole-school notices.",
+          "Import from your admission CSV once per term. Remove withdrawn pupils the week they leave. A text to a departed family is how you look careless.",
+        ],
+      },
+      {
+        heading: "Fee reminders that collect without sounding like a threat",
+        paragraphs: [
+          "Cadence that works: two weeks before, three days before, due-date morning, and one arrears notice after. Personalize with student name and amount when the data is clean. Always include how to pay (MoMo short code, bank, office hours).",
+          "Example: {school}: Reminder — {student} term fees GHS {amount} due {date}. Pay via MoMo {code} or at the office 8am–2pm. Ignore if paid. That last sentence saves you from angry parents who already paid.",
+        ],
+      },
+      {
+        heading: "Attendance and pickup",
+        paragraphs: [
+          "Same-day absence SMS (“{student} is not in school as of 8:30am — please call the office”) is an operational product, not marketing. It requires a process: who marks the register, who clicks send. If that process is not real, do not promise parents you will text.",
+          "Emergency early closing should be SMS to all, not a WhatsApp hop from headteacher to teachers to parents. Minutes matter when rain floods a compound.",
+        ],
+      },
+      {
+        heading: "Exams, reports, and PTA",
+        paragraphs: [
+          "Send the timetable a week ahead and the morning of the first paper. Send report collection window once, with a reminder 24 hours before. PTA: date, time, whether attendance is required, and whether there is a fee for the meeting (be honest).",
+          "Keep each SMS to one event. Combining PTA + fees + sports day in one paragraph guarantees nobody notes the time.",
+        ],
+      },
+      {
+        heading: "Sender ID and who is allowed to send",
+        paragraphs: [
+          "Register the school’s trading name as Sender ID. Do not send from a teacher’s personal name. Limit dashboard logins. A leaked password plus a parent list is a data incident. SplitSMS accounts should follow the same seriousness as your fee records.",
+        ],
+      },
+      {
+        heading: "Cost for a term",
+        paragraphs: [
+          "A 400-parent school sending eight one-segment official SMS in a term is 3,200 segments. At about GHS 0.029 that is roughly GHS 93 for the whole term’s official spine — less than one banner print run. Arrears and emergency texts are extra and still cheap next to empty seats.",
+          "Budget it as operations, not “marketing.” Parents are not a promo audience; they are the school’s partners. Consent still matters for fundraising blasts that are not about their child’s fees or safety.",
+        ],
+      },
+      {
+        heading: "Smart Forms for events and new admissions",
+        paragraphs: [
+          "Use a Smart Form for sports day registration or new-intake enquiries so phones land in a group with a confirmation SMS. That is cleaner than a paper list typed by a tired secretary on Sunday night.",
+          "You can still export CSV for the office. The win is that the parent already got “we received this” on their lock screen.",
+        ],
+      },
+      {
+        heading: "A one-term starter plan",
+        paragraphs: [
+          "Week 0: Sender ID, import class groups, test to staff. Week 1: fee reminder template. Mid-term: one PTA or exam SMS. Keep a shared doc of templates so you are not rewriting from memory. Review failed numbers after the first whole-school send.",
+          "Sign up at splitsms.com/signup, claim trial credits, and run the staff test this week. The short “school fee alerts” story on this blog is a cousin of this playbook; this one is the operating manual.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "sms-delivery-reports-failed-messages-ghana",
+    title: "SMS Delivery Reports Explained: Why Messages Fail in Ghana and How to Fix Them",
+    excerpt:
+      "Sent, delivered, failed, pending — what each status means on SplitSMS, the usual Ghana causes (numbers, Sender IDs, wallet, networks), and a practical repair order for your next campaign.",
+    category: "Guides",
+    readTime: "15 min read",
+    published: "2026-08-23",
+    updated: "2026-08-23",
+    keywords: [
+      "SMS delivery report Ghana",
+      "SMS failed delivery",
+      "SMS not delivered Ghana",
+      "DLR SMS",
+      "SplitSMS delivery logs",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "If you cannot explain a failed SMS, you will keep paying for the same mistakes. Delivery reports (DLR) are how SplitSMS and the carriers tell you what happened after you clicked send. They are not perfect — some phones never return a receipt — but they are far better than hoping.",
+          "This article translates the statuses you will see in the dashboard and in webhooks, then gives a repair order so you do not change five things at once.",
+        ],
+      },
+      {
+        heading: "The statuses that matter",
+        paragraphs: [
+          "Queued or sending means SplitSMS accepted the job. Sent to network means a carrier took it. Delivered means a handset-level or network-level success came back. Failed means the route or number was rejected. Pending too long often means the network has not said yet — wait, then treat as failed if your SLA is tight (OTP).",
+          "Do not celebrate “sent” for OTP. Celebrate delivered, or a login that succeeded. Campaigns can tolerate a small fail rate. Login cannot.",
+        ],
+      },
+      {
+        heading: "Cause 1: the number was never a number",
+        paragraphs: [
+          "Too short, letters in the field, Excel scientific notation, missing 233, extra zeros. These fail fast and should be stripped from the group. If 20% of a school list fails, the MIS export is wrong — do not keep blasting it.",
+        ],
+      },
+      {
+        heading: "Cause 2: Sender ID",
+        paragraphs: [
+          "Unapproved, rejected, or mistyped Sender ID is a classic “works on my phone with a test ID, fails in production” story. Check Dashboard → Sender IDs before you schedule 10,000. If the ID was approved last month and suddenly fails, check whether you switched routes or spelled it differently in the API payload.",
+        ],
+      },
+      {
+        heading: "Cause 3: wallet and credits",
+        paragraphs: [
+          "Empty wallet stops the queue. Partial sends happen when credits run out mid-campaign. Top up, then use retry only for the unsent remainder — not the whole list, or you double-text people who already got it. SplitSMS can email you on low balance so this is not a surprise on Monday morning.",
+        ],
+      },
+      {
+        heading: "Cause 4: the destination line",
+        paragraphs: [
+          "Barred, inactive, or ported numbers fail at the network. There is nothing to “fix” except removing them. Porting between Ghana networks can lag; a number that worked last term might fail this term. Cleaning after each term is cheaper than arguing with a parent whose line is dead.",
+        ],
+      },
+      {
+        heading: "Cause 5: content and filters",
+        paragraphs: [
+          "Heavy URL shorteners, “WIN NOW”, fake bank language, or unicode that looks like a different brand can be filtered. If tests to your own phone work but a promo blast fails at scale, read the copy like a fraud filter. Then resend a calmer version to a small slice.",
+        ],
+      },
+      {
+        heading: "How to read a campaign like an engineer",
+        paragraphs: [
+          "Look at fail rate by prefix (024 vs 020 vs 027) if you can. A single prefix collapsing points at a network or a formatting bug for that prefix. Uniform low delivery across prefixes points at Sender ID or account routing. A handful of fails in a huge list is normal.",
+          "Developers should log provider message ids and webhook status. Support should ask for campaign id and a sample phone, not “SMS is down.”",
+        ],
+      },
+      {
+        heading: "Retries without making it worse",
+        paragraphs: [
+          "Retry failed-invalid? No. Retry failed-temporary or pending after 15 minutes? Once, for OTP and critical alerts. Retry the entire delivered list? Never. SplitSMS admin tools can retry insufficient-credit cases after a top-up — that is the right kind of retry.",
+        ],
+      },
+      {
+        heading: "Make reports part of the weekly habit",
+        paragraphs: [
+          "After every large send, export or scan fails, update the group, and note the fail rate in your SMS scorecard. That is how lists get healthier and costs go down.",
+          "Open your last campaign in SplitSMS, pick ten fails, and classify them with this article. If you cannot classify them, send the campaign id to support. Guessing is how rumours about “the network” start.",
+        ],
+      },
+      {
+        heading: "OTP is a special case",
+        paragraphs: [
+          "A marketing blast can live with 4% failed. A login code cannot. For OTP, treat pending longer than a minute as a support event: check Sender ID, destination format, and wallet, then resend once with a new code. Do not queue three codes to the same phone in ten seconds — the user will type the first one that arrives, which may already be invalid.",
+          "Store the provider message id on the OTP row. When someone writes “I never got it,” you should see delivered, failed, or still pending before you argue. The production OTP guide on this blog covers rate limits and webhooks in more depth.",
+        ],
+      },
+      {
+        heading: "What “unknown” or missing DLR really means",
+        paragraphs: [
+          "Some networks return a thin acknowledgement and never a final delivered flag. If the user received the text, your report can still look pending. That is why you should not refund or retry solely on a missing DLR when the customer says they have the SMS. Ask them to reply with the last three digits of the Sender ID they saw.",
+          "If nobody on that network is getting DLR and nobody is receiving, that is a route problem. If DLR is missing but people are logging in, do not panic-retry. Log it, and mention it to support with timestamps.",
+        ],
+      },
+      {
+        heading: "A one-page repair order",
+        paragraphs: [
+          "1) Wallet. 2) Sender ID spelling and approval. 3) Sample five failed numbers — format vs barred. 4) Fail rate by network prefix. 5) Copy/filter suspicion on promos. 6) Retry only the unsent or truly temporary fails. 7) Update the group. 8) Write the fail % in your monthly SMS notes.",
+          "Do this in order. Skipping to “maybe we need another provider” before step 3 is how teams churn platforms and keep the same spreadsheet.",
+        ],
+      },
+    ],
+  },
+  {
     slug: "how-to-choose-splitsms",
     title: "How to Choose SplitSMS: A Buyer’s Guide for Ghana Businesses",
     excerpt:
@@ -3037,8 +3796,8 @@ export function getRelatedBlogPosts(post: BlogPost, limit = 3): BlogPost[] {
       }
       // Soft boost for recent connect / Google / website guides
       if (
-        /google|website|choose|event|connect|wordpress|agency/i.test(p.slug) &&
-        /google|website|choose|event|connect|wordpress|agency/i.test(post.slug)
+        /google|website|choose|event|connect|wordpress|agency|otp|delivery|school|csv|bulk|logistics|personalize/i.test(p.slug) &&
+        /google|website|choose|event|connect|wordpress|agency|otp|delivery|school|csv|bulk|logistics|personalize/i.test(post.slug)
       ) {
         score += 1;
       }

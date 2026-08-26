@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PublicSmartFormView } from "@/components/smart-forms/public-smart-form";
-import { createCaptchaChallenge } from "@/lib/smart-forms/captcha";
 import {
   getPublishedSmartFormByShortCode,
   recordSmartFormOpen,
 } from "@/lib/smart-forms/public";
+import { recaptchaSiteKey } from "@/lib/auth/signup-guard-shared";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 
 export async function generateMetadata({
@@ -47,7 +47,11 @@ export default async function PublicSmartFormPage({
 
   await recordSmartFormOpen(found.form.id, found.form.userId, source, "page");
 
-  const captcha = found.publicForm.captchaEnabled ? createCaptchaChallenge() : null;
-
-  return <PublicSmartFormView form={found.publicForm} source={source} captcha={captcha} />;
+  return (
+    <PublicSmartFormView
+      form={found.publicForm}
+      source={source}
+      recaptchaSiteKey={found.publicForm.captchaEnabled ? recaptchaSiteKey() : null}
+    />
+  );
 }

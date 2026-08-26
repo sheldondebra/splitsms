@@ -7,7 +7,7 @@ import { FormAnalyticsDashboard } from "@/components/smart-forms/form-analytics-
 import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { BarChart3, ArrowLeft } from "lucide-react";
+import { BarChart3, ArrowLeft, FileBarChart2 } from "lucide-react";
 
 export default async function SmartFormAnalyticsPage({
   params,
@@ -38,13 +38,22 @@ export default async function SmartFormAnalyticsPage({
         description={`Performance for ${data.formName}`}
         icon={BarChart3}
         actions={
-          <Link
-            href={`/dashboard/forms/${formId}/builder`}
-            className={cn(buttonVariants({ variant: "outline" }), "h-10 gap-2")}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to form
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/dashboard/forms/${formId}/report`}
+              className={cn(buttonVariants({ variant: "outline" }), "h-10 gap-2")}
+            >
+              <FileBarChart2 className="h-4 w-4" />
+              Report
+            </Link>
+            <Link
+              href={`/dashboard/forms/${formId}/builder`}
+              className={cn(buttonVariants({ variant: "outline" }), "h-10 gap-2")}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to form
+            </Link>
+          </div>
         }
       />
 

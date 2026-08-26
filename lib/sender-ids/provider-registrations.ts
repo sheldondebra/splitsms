@@ -51,13 +51,14 @@ async function maybeNotifyProviderStatusChange(
 }
 
 export async function ensureSenderProviderRows(senderId: string) {
-  for (const provider of ALL_SENDER_PROVIDERS) {
-    await prisma.senderIdProviderRegistration.upsert({
-      where: { senderId_provider: { senderId, provider } },
-      create: { senderId, provider, status: "PENDING" },
-      update: {},
-    });
-  }
+  await prisma.senderIdProviderRegistration.createMany({
+    data: ALL_SENDER_PROVIDERS.map((provider) => ({
+      senderId,
+      provider,
+      status: "PENDING" as const,
+    })),
+    skipDuplicates: true,
+  });
 }
 
 export async function updateSenderProviderRegistration(
@@ -76,25 +77,45 @@ export async function updateSenderProviderRegistration(
     select: { status: true },
   });
 
-  await prisma.senderIdProviderRegistration.upsert({
-    where: { senderId_provider: { senderId, provider } },
-    create: {
-      senderId,
-      provider,
-      status: data.status,
-      providerStatus: data.providerStatus ?? undefined,
-      externalRef: data.externalRef ?? undefined,
-      error: data.error ?? undefined,
-      submittedAt: data.submittedAt ?? new Date(),
-    },
-    update: {
-      status: data.status,
-      providerStatus: data.providerStatus ?? undefined,
-      externalRef: data.externalRef ?? undefined,
-      error: data.error ?? undefined,
-      submittedAt: data.submittedAt ?? new Date(),
-    },
-  });
+  const createData = {
+    senderId,
+    provider,
+    status: data.status,
+    providerStatus: data.providerStatus ?? undefined,
+    externalRef: data.externalRef ?? undefined,
+    error: data.error ?? undefined,
+    submittedAt: data.submittedAt ?? new Date(),
+  };
+  const updateData = {
+    status: data.status,
+    providerStatus: data.providerStatus ?? undefined,
+    externalRef: data.externalRef ?? undefined,
+    error: data.error ?? undefined,
+    submittedAt: data.submittedAt ?? new Date(),
+  };
+
+  try {
+    await prisma.senderIdProviderRegistration.upsert({
+      where: { senderId_provider: { senderId, provider } },
+      create: createData,
+      update: updateData,
+    });
+  } catch (error) {
+    // Concurrent create races can still trip P2002 on upsert; retry as update.
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: string }).code === "P2002"
+    ) {
+      await prisma.senderIdProviderRegistration.update({
+        where: { senderId_provider: { senderId, provider } },
+        data: updateData,
+      });
+    } else {
+      throw error;
+    }
+  }
 
   await maybeNotifyProviderStatusChange(senderId, provider, previous?.status, data);
 }
@@ -135,64 +156,10 @@ export async function backfillSenderProviderRegistrations(senderId?: string) {
   }
 }
 
-export function mapProviderStatusText(
-  text: string | undefined,
-): SenderIdProviderStatus {
-  const s = (text ?? "").toLowerCase().trim();
-  if (!s) return "PENDING";
+export {
+  extractMnotifySenderStatusText,
+  isMnotifyHoldStatus,
+  mapMnotifyStatusToLocal,
+  mapProviderStatusText,
+} from "@/lib/sender-ids/provider-status";
 
-  if (
-    s.includes("delete") ||
-    s.includes("removed") ||
-    s.includes("not found") ||
-    s.includes("does not exist") ||
-    s.includes("no sender") ||
-    s.includes("invalid sender")
-  ) {
-    return "REJECTED";
-  }
-
-  // Hold / review states must win over "approved" substrings (e.g. "approved on hold").
-  if (
-    s.includes("hold") ||
-    s.includes("await") ||
-    s.includes("review") ||
-    s.includes("processing") ||
-    s.includes("in progress") ||
-    s.includes("submitted") ||
-    s.includes("waiting") ||
-    s.includes("pending")
-  ) {
-    return "PENDING";
-  }
-
-  if (
-    s.includes("reject") ||
-    s.includes("deny") ||
-    s.includes("denied") ||
-    s.includes("declin")
-  ) {
-    return "REJECTED";
-  }
-
-  if (
-    s.includes("approve") ||
-    s.includes("active") ||
-    s.includes("complete") ||
-    s.includes("provisioned") ||
-    s === "ok" ||
-    s === "success" ||
-    s === "enabled"
-  ) {
-    return "APPROVED";
-  }
-
-  if (s.includes("fail") || s.includes("error")) return "FAILED";
-  return "PENDING";
-}
-
-/** True when mNotify status text indicates the sender is on hold / awaiting review. */
-export function isMnotifyHoldStatus(text: string | null | undefined) {
-  const s = (text ?? "").toLowerCase();
-  return s.includes("hold") || s.includes("await") || s.includes("review");
-}

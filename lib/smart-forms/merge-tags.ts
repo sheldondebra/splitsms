@@ -20,6 +20,13 @@ export const DEFAULT_RESPONDENT_SMS =
 export const DEFAULT_ADMIN_SMS =
   "New submission on {{form_name}} from {{name}} - {{phone}}.";
 
+export const DEFAULT_RESPONDENT_EMAIL_SUBJECT = "Thank you for submitting {{form_name}}";
+export const DEFAULT_RESPONDENT_EMAIL =
+  "Hi {{first_name}},\n\nThank you for submitting {{form_name}}. We have received your details and will follow up if needed.";
+export const DEFAULT_ADMIN_EMAIL_SUBJECT = "New submission on {{form_name}}";
+export const DEFAULT_ADMIN_EMAIL =
+  "A new response was submitted on {{form_name}}.\n\nName: {{name}}\nPhone: {{phone}}\nEmail: {{email}}";
+
 function answerMap(answers: { fieldKey: string; value: string }[]) {
   return new Map(answers.map((a) => [a.fieldKey, a.value]));
 }

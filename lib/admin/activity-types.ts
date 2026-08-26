@@ -10,6 +10,7 @@ export type SerializedActivityLog = {
     fullName: string;
     phone: string;
     role: string;
+    accountId: string | null;
   } | null;
 };
 
@@ -22,6 +23,13 @@ export type AdminActivityDashboard = {
   };
   logs: SerializedActivityLog[];
   actionOptions: string[];
+  accountIds: Record<string, string>;
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
 };
 
 export function activityActionIcon(action: string) {

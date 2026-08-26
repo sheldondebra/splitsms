@@ -48,21 +48,24 @@ export const defaultKeywords = [
   "event SMS Ghana",
 ];
 
-/** Brand logo — PNG wordmark with icon for structured data */
+/** Square mark for Gmail, Apple Mail, BIMI, and Organization JSON-LD (min 112×112). */
 export const brandLogo = {
-  path: "/smslogo.png",
-  url: `${siteUrl}/smslogo.png`,
-  width: 1024,
-  height: 343,
+  path: "/icon.png",
+  url: `${siteUrl}/icon.png`,
+  width: 512,
+  height: 512,
   alt: "SplitSMS — Bulk SMS platform and SMS API",
 } as const;
 
+/** Default share card for Facebook, WhatsApp, LinkedIn, Twitter, iMessage. */
 export const defaultOpenGraphImages = [
   {
-    url: "/opengraph-image",
+    url: `${siteUrl}/og.png`,
+    secureUrl: `${siteUrl}/og.png`,
     width: 1200,
     height: 630,
-    alt: "SplitSMS — Bulk SMS Platform & SMS API for 190+ Countries",
+    alt: "SplitSMS bulk SMS platform and SMS API for Ghana and 190+ countries",
+    type: "image/png",
   },
 ];
 
@@ -176,7 +179,7 @@ export function articleJsonLd(input: {
     url: `${siteUrl}${input.path}`,
     datePublished: input.datePublished,
     dateModified: input.dateModified ?? input.datePublished,
-    image: input.image ?? `${siteUrl}/opengraph-image`,
+    image: input.image ?? `${siteUrl}/og.png`,
     author: { "@id": `${siteUrl}/#organization` },
     publisher: { "@id": `${siteUrl}/#organization` },
     mainEntityOfPage: `${siteUrl}${input.path}`,

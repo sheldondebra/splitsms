@@ -35,10 +35,12 @@ const PENDING_CLASS =
 export function SenderIdStatusBadge({
   status,
   compact,
+  onHold,
   providerSubmittedAt,
 }: {
   status: SenderIdStatus;
   compact?: boolean;
+  onHold?: boolean;
   providerSubmittedAt?: Date | string | null;
 }) {
   const shell = cn(
@@ -48,6 +50,17 @@ export function SenderIdStatusBadge({
       : "gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
   );
   const iconClass = compact ? "h-2.5 w-2.5" : "h-3.5 w-3.5";
+
+  if (status === "PENDING" && onHold) {
+    return (
+      <span className={cn(shell, PENDING_CLASS)}>
+        <Loader2
+          className={cn(iconClass, "shrink-0 animate-spin text-amber-600 dark:text-amber-400")}
+        />
+        {compact ? "On hold" : "On hold — action needed"}
+      </span>
+    );
+  }
 
   if (status === "PENDING") {
     const pending = memberSenderPendingLabel(providerSubmittedAt ?? null);

@@ -2,6 +2,13 @@ import { headers } from "next/headers";
 import { consumeRateLimitSlot, rateLimitKey } from "@/lib/auth/rate-limit";
 import { shouldBlockAuthBot } from "@/lib/auth/bot-guard";
 import {
+  RECAPTCHA_SIGNUP_ACTION,
+  parseRecaptchaMinScore,
+  recaptchaEnforcement,
+  signupCaptchaKind,
+  verifyRecaptchaToken,
+} from "@/lib/auth/recaptcha";
+import {
   HONEYPOT_FIELD,
   HONEYPOT_FIELD_LEGACY,
   isHoneypotTripped,
@@ -14,39 +21,22 @@ export { HONEYPOT_FIELD } from "@/lib/auth/signup-guard-shared";
 export type AuthGuardError = "rate_limit" | "captcha" | "blocked";
 export type AuthGuardResult = { ok: true } | { ok: false; error: AuthGuardError };
 
-function isRecaptchaEnabled(): boolean {
-  return Boolean(recaptchaSiteKey() && process.env.RECAPTCHA_SECRET_KEY?.trim());
-}
-
 function isTurnstileEnabled(): boolean {
   return Boolean(turnstileSiteKey() && process.env.TURNSTILE_SECRET_KEY?.trim());
 }
 
 async function verifyRecaptcha(token: string, ip: string): Promise<boolean> {
   const secret = process.env.RECAPTCHA_SECRET_KEY?.trim();
-  if (!secret) return true;
+  if (!secret) return false;
 
-  const body = new URLSearchParams({ secret, response: token });
-  if (ip && ip !== "unknown") body.set("remoteip", ip);
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 4000);
-
-  try {
-    const res = await fetch("https://www.google.com/recaptcha/api/siteverify", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body,
-      signal: controller.signal,
-    });
-    if (!res.ok) return false;
-    const data = (await res.json()) as { success?: boolean };
-    return Boolean(data.success);
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timeout);
-  }
+  const result = await verifyRecaptchaToken({
+    token,
+    ip,
+    secret,
+    minScore: parseRecaptchaMinScore(process.env.RECAPTCHA_MIN_SCORE),
+    expectedAction: RECAPTCHA_SIGNUP_ACTION,
+  });
+  return result.ok;
 }
 
 async function verifyTurnstile(token: string, ip: string): Promise<boolean> {
@@ -104,12 +94,23 @@ export async function assertSignupBotAllowed(input: GuardInput): Promise<AuthGua
   const { ip, userAgent } = await readRequestMeta();
   if (shouldBlockAuthBot(userAgent)) return { ok: false, error: "blocked" };
 
-  if (isRecaptchaEnabled()) {
+  const recaptchaMode = recaptchaEnforcement({
+    siteKey: recaptchaSiteKey(),
+    secret: process.env.RECAPTCHA_SECRET_KEY,
+    production: process.env.NODE_ENV === "production",
+  });
+  const challenge = signupCaptchaKind(recaptchaMode, isTurnstileEnabled());
+
+  if (!challenge && recaptchaMode === "misconfigured") {
+    return { ok: false, error: "captcha" };
+  }
+
+  if (challenge === "recaptcha") {
     const token = String(input.recaptchaToken ?? "").trim();
     if (!token) return { ok: false, error: "captcha" };
     const valid = await verifyRecaptcha(token, ip);
     if (!valid) return { ok: false, error: "captcha" };
-  } else if (isTurnstileEnabled()) {
+  } else if (challenge === "turnstile") {
     const token = String(input.turnstileToken ?? "").trim();
     if (!token) return { ok: false, error: "captcha" };
     const valid = await verifyTurnstile(token, ip);
@@ -136,9 +137,9 @@ export async function assertOtpBotAllowed(input: GuardInput): Promise<AuthGuardR
 export async function consumeSignupIpSlot(): Promise<AuthGuardResult> {
   const { ip } = await readRequestMeta();
   const limit = await consumeRateLimitSlot(rateLimitKey("signup_ip", ip), {
-    maxAttempts: 10,
+    maxAttempts: 3,
     windowMs: 60 * 60 * 1000,
-    lockoutMs: 30 * 60 * 1000,
+    lockoutMs: 60 * 60 * 1000,
   });
   if (!limit.allowed) return { ok: false, error: "rate_limit" };
   return { ok: true };
@@ -148,9 +149,9 @@ export async function consumeSignupIpSlot(): Promise<AuthGuardResult> {
 export async function consumeOtpIpSlot(): Promise<AuthGuardResult> {
   const { ip } = await readRequestMeta();
   const limit = await consumeRateLimitSlot(rateLimitKey("otp_ip", ip), {
-    maxAttempts: 12,
+    maxAttempts: 6,
     windowMs: 15 * 60 * 1000,
-    lockoutMs: 20 * 60 * 1000,
+    lockoutMs: 30 * 60 * 1000,
   });
   if (!limit.allowed) return { ok: false, error: "rate_limit" };
   return { ok: true };

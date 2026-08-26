@@ -6,16 +6,18 @@ import {
   AdminCard,
   AdminListRow,
   AdminEmpty,
-  AdminAlert,
   AdminStatCard,
 } from "@/components/admin/admin-page-shell";
 import {
   MemberAvatar,
   StatusPill,
-  ActionBar,
 } from "@/components/admin/member-detail/member-detail-ui";
 import { MaskedBalance } from "@/components/admin/member-detail/masked-balance";
 import { MemberHeroMeta } from "@/components/admin/member-detail/member-hero-meta";
+import { MemberPasswordPanel } from "@/components/admin/member-detail/member-password-panel";
+import { MemberVerificationPanel } from "@/components/admin/member-detail/member-verification-panel";
+import { MemberBillingPanel } from "@/components/admin/member-detail/member-billing-panel";
+import { MemberTransactionHistory } from "@/components/admin/member-detail/member-transaction-history";
 import { MemberUsageCharts } from "@/components/admin/member-detail/member-usage-charts";
 import { MemberUserDetails } from "@/components/admin/member-detail/member-user-details";
 import { MemberMessagingPanel } from "@/components/admin/member-detail/member-messaging-panel";
@@ -25,20 +27,14 @@ import { SenderIdProviderBadges } from "@/components/admin/sender-id-provider-ba
 import { AdminSupportTicketCard } from "@/components/admin/admin-support-ticket-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { AdminMemberDetail } from "@/lib/admin/member-detail";
 import type { SmsProviderType } from "@/lib/generated/prisma/client";
 import {
-  adminAdjustSmsCreditsAction,
-  adminAdjustWalletAction,
   adminUpdateMemberAccessAction,
-  adminSetVerifiedAction,
-  adminUnlockLoginAction,
-  adminResetPasswordAction,
-  adminSendPasswordResetLinkAction,
   adminRevokeApiKeyAction,
   adminSyncSenderIdStatusAction,
   adminApproveSenderFromMemberAction,
@@ -54,14 +50,12 @@ import {
   Monitor,
   Smartphone,
   Key,
-  Shield,
   MessageSquare,
   Wallet,
   Radio,
   CheckCircle2,
   XCircle,
   Globe,
-  User,
   Activity,
   LayoutGrid,
   BadgeCheck,
@@ -70,9 +64,17 @@ import {
   Users,
   FileText,
   Zap,
+  Eye,
+  EyeOff,
+  Coins,
+  KeyRound,
+  ArrowUpRight,
+  Mail,
+  Phone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 type Props = {
   data: AdminMemberDetail;
@@ -82,8 +84,33 @@ type Props = {
     error?: string;
     temp?: string;
     cooldown?: string;
+    detail?: string;
   };
 };
+
+function AdminApiKeyPrefixReveal({ keyPrefix }: { keyPrefix: string }) {
+  const [revealed, setRevealed] = useState(false);
+  const masked = `${keyPrefix.slice(0, 8)}${"•".repeat(Math.max(6, keyPrefix.length - 8))}`;
+
+  return (
+    <p className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+      <span className="min-w-0 truncate">{revealed ? `${keyPrefix}••••` : masked}</span>
+      <button
+        type="button"
+        onClick={() => setRevealed((v) => !v)}
+        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        aria-label={revealed ? "Hide API key prefix" : "Show API key prefix"}
+        title={
+          revealed
+            ? "Hide prefix (full secret is not stored)"
+            : "Show stored prefix (full secret is not recoverable)"
+        }
+      >
+        {revealed ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+      </button>
+    </p>
+  );
+}
 
 const TAB_ITEMS = [
   { value: "overview", label: "Overview", icon: LayoutGrid },
@@ -103,12 +130,16 @@ function defaultTab(saved?: string) {
   if (saved.startsWith("sender") || saved === "created") return "senders";
   if (saved === "reply" || saved === "ticket") return "activity";
   if (saved === "api_key") return "api";
-  if (saved === "credits" || saved === "wallet") return "billing";
+  if (saved === "credits" || saved === "wallet" || saved.startsWith("credits_") || saved.startsWith("wallet_")) return "billing";
   if (
     saved === "access" ||
     saved === "verify" ||
     saved === "unlock" ||
     saved === "password" ||
+    saved === "suspended" ||
+    saved === "suspended_email_failed" ||
+    saved === "suspended_no_email" ||
+    saved === "reactivated" ||
     saved.startsWith("reset")
   ) {
     return saved === "access" ? "access" : "security";
@@ -129,8 +160,9 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
   const [copied, setCopied] = useState(false);
 
   const copyId = async () => {
-    await navigator.clipboard.writeText(id);
+    await navigator.clipboard.writeText(user.accountId);
     setCopied(true);
+    toast.success("Member ID copied", { description: user.accountId });
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -144,20 +176,6 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
         Members
       </Link>
 
-      {flash?.saved && (
-        <AdminAlert variant="success">
-          <div className="flex items-start gap-2">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
-            <span>{flashMessage(flash.saved, flash.temp)}</span>
-          </div>
-        </AdminAlert>
-      )}
-      {flash?.error && (
-        <AdminAlert variant="warning">
-          Action failed: {flash.error.replace(/_/g, " ")}
-        </AdminAlert>
-      )}
-
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.07] via-transparent to-transparent pointer-events-none" />
@@ -169,9 +187,15 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
                 <h1 className="text-xl md:text-2xl font-bold tracking-tight truncate">
                   {user.fullName}
                 </h1>
-                <p className="font-mono text-sm text-muted-foreground mt-0.5">{user.phone}</p>
+                <p className="mt-0.5 flex items-center gap-1.5 font-mono text-sm text-muted-foreground">
+                  <Phone className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+                  <span className="min-w-0 truncate">{user.phone}</span>
+                </p>
                 {user.email && (
-                  <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Mail className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+                    <span className="min-w-0 truncate">{user.email}</span>
+                  </p>
                 )}
                 <div className="flex flex-wrap items-center gap-2 mt-3">
                   <StatusPill status={account.status} />
@@ -198,70 +222,170 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 lg:justify-end shrink-0">
-              <Link
-                href={`/admin/members/${id}?tab=messaging`}
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-              >
-                SMS & logs
-              </Link>
-              <Link
-                href={`/admin/members/${id}?tab=billing`}
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-              >
-                Add credits
-              </Link>
-              <Link
-                href={`/admin/members/${id}?tab=security`}
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-              >
-                Reset access
-              </Link>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[17.5rem] shrink-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground lg:text-right">
+                Quick actions
+              </p>
+              <div className="grid grid-cols-1 gap-1.5 rounded-xl border border-border/60 bg-muted/20 p-1.5 sm:grid-cols-1">
+                <Link
+                  href={`/admin/members/${id}?tab=messaging`}
+                  className={cn(
+                    "group flex items-center gap-3 rounded-lg border border-transparent bg-background px-3 py-2.5 transition-all",
+                    "hover:border-primary/25 hover:bg-primary/[0.04] hover:shadow-sm",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                  )}
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-500/10 text-sky-700 dark:text-sky-300">
+                    <MessageSquare className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="block text-sm font-semibold text-foreground">SMS & logs</span>
+                    <span className="block text-[11px] text-muted-foreground">
+                      Delivery, failures, routing
+                    </span>
+                  </span>
+                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                </Link>
+
+                <Link
+                  href={`/admin/members/${id}?tab=billing`}
+                  className={cn(
+                    "group flex items-center gap-3 rounded-lg border border-transparent bg-background px-3 py-2.5 transition-all",
+                    "hover:border-emerald-500/25 hover:bg-emerald-500/[0.04] hover:shadow-sm",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30",
+                  )}
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                    <Coins className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="block text-sm font-semibold text-foreground">Add credits</span>
+                    <span className="block text-[11px] text-muted-foreground">
+                      Top up SMS or wallet
+                    </span>
+                  </span>
+                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                </Link>
+
+                <Link
+                  href={`/admin/members/${id}?tab=security`}
+                  className={cn(
+                    "group flex items-center gap-3 rounded-lg border border-transparent bg-background px-3 py-2.5 transition-all",
+                    "hover:border-amber-500/25 hover:bg-amber-500/[0.04] hover:shadow-sm",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30",
+                  )}
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-800 dark:text-amber-200">
+                    <KeyRound className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="block text-sm font-semibold text-foreground">Reset access</span>
+                    <span className="block text-[11px] text-muted-foreground">
+                      Password, lock, verify
+                    </span>
+                  </span>
+                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                </Link>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <AdminStatCard
-              label="SMS credits"
-              value={smsCredit?.balance ?? 0}
-              icon={MessageSquare}
-              variant="primary"
-              className="p-4"
-            />
-            <AdminStatCard
-              label="Wallet"
-              value={
-                wallet ? (
-                  <MaskedBalance
-                    amount={data.walletBalance}
-                    currency={data.walletCurrency}
-                    size="sm"
-                  />
-                ) : (
-                  "—"
-                )
-              }
-              icon={Wallet}
-              className="p-4"
-            />
-            <AdminStatCard
-              label="Messages"
-              value={counts.messages.toLocaleString()}
-              hint={`${data.analytics.failureRate}% fail · avg ${data.analytics.avgDeliverySec != null ? `${data.analytics.avgDeliverySec}s` : "—"} delivery`}
-              icon={Radio}
-              variant={counts.failedMessages > 10 ? "warning" : "default"}
-              className="p-4"
-            />
-            <AdminStatCard
-              label="API requests"
-              value={counts.apiLogs.toLocaleString()}
-              hint={`${counts.apiKeys} active keys`}
-              icon={Key}
-              className="p-4"
-            />
-          </div>
+          <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10">
+            <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-border/40">
+              <div className="flex items-start gap-2.5 px-3.5 py-3 min-w-0 bg-primary/[0.04]">
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/12 text-primary">
+                  <MessageSquare className="h-3.5 w-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg font-bold tabular-nums leading-none text-primary">
+                    {smsCredit?.balance ?? 0}
+                  </p>
+                  <p className="mt-1 text-[11px] font-medium leading-tight text-foreground">
+                    SMS credits
+                  </p>
+                </div>
+              </div>
 
-          <MemberHeroMeta data={data} copied={copied} onCopyId={copyId} />
+              <div className="flex items-start gap-2.5 px-3.5 py-3 min-w-0">
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                  <Wallet className="h-3.5 w-3.5" />
+                </div>
+                <div className="min-w-0">
+                  {wallet ? (
+                    <MaskedBalance
+                      amount={data.walletBalance}
+                      currency={data.walletCurrency}
+                      size="sm"
+                      className="gap-1.5 [&_span]:text-lg [&_span]:leading-none"
+                    />
+                  ) : (
+                    <p className="text-lg font-bold leading-none">—</p>
+                  )}
+                  <p className="mt-1 text-[11px] font-medium leading-tight text-foreground">
+                    Wallet
+                  </p>
+                </div>
+              </div>
+
+              <div
+                className={cn(
+                  "flex items-start gap-2.5 px-3.5 py-3 min-w-0",
+                  counts.failedMessages > 10 && "bg-amber-500/[0.04]",
+                )}
+              >
+                <div
+                  className={cn(
+                    "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
+                    counts.failedMessages > 10
+                      ? "bg-amber-500/12 text-amber-700 dark:text-amber-300"
+                      : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  <Radio className="h-3.5 w-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <p
+                    className={cn(
+                      "text-lg font-bold tabular-nums leading-none",
+                      counts.failedMessages > 10 &&
+                        "text-amber-700 dark:text-amber-300",
+                    )}
+                  >
+                    {counts.messages.toLocaleString()}
+                  </p>
+                  <p className="mt-1 text-[11px] font-medium leading-tight text-foreground">
+                    Messages
+                  </p>
+                  <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">
+                    {data.analytics.failureRate}% fail · avg{" "}
+                    {data.analytics.avgDeliverySec != null
+                      ? `${data.analytics.avgDeliverySec}s`
+                      : "—"}{" "}
+                    delivery
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5 px-3.5 py-3 min-w-0">
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                  <Key className="h-3.5 w-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg font-bold tabular-nums leading-none">
+                    {counts.apiLogs.toLocaleString()}
+                  </p>
+                  <p className="mt-1 text-[11px] font-medium leading-tight text-foreground">
+                    API requests
+                  </p>
+                  <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">
+                    {counts.apiKeys} active keys
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <MemberHeroMeta data={data} copied={copied} onCopyId={copyId} />
+          </div>
         </div>
       </div>
 
@@ -272,12 +396,12 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
               <TabsTrigger
                 key={value}
                 value={value}
-                className="h-9 gap-1.5 rounded-lg px-3 text-xs sm:text-sm"
+                className="h-9 gap-1.5 rounded-lg px-3 text-xs sm:text-sm hover:bg-orange-700 hover:text-white data-active:bg-orange-700 data-active:text-white data-active:shadow-none dark:hover:bg-orange-600 dark:hover:text-white dark:data-active:bg-orange-600 dark:data-active:text-white"
               >
                 <Icon className="h-3.5 w-3.5" />
                 {label}
                 {value === "senders" && data.senderIds.some((s) => s.status === "PENDING") && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
                 )}
               </TabsTrigger>
             ))}
@@ -315,7 +439,7 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
         </TabsContent>
 
         <TabsContent value="messaging" className="mt-6">
-          <MemberMessagingPanel data={data} flash={flash} />
+          <MemberMessagingPanel data={data} />
         </TabsContent>
 
         <TabsContent value="sessions" className="mt-6">
@@ -383,9 +507,7 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-sm truncate">{k.label}</p>
-                          <p className="font-mono text-[10px] text-muted-foreground">
-                            {k.keyPrefix}••••
-                          </p>
+                          <AdminApiKeyPrefixReveal keyPrefix={k.keyPrefix} />
                         </div>
                       </div>
                       <div className="flex flex-col gap-1 items-end">
@@ -459,10 +581,26 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
                             {format(l.createdAt, "MMM d HH:mm:ss")}
                           </td>
                           <td className="px-3 py-2.5">
-                            <span className="font-mono font-semibold text-foreground">
+                            <span
+                              className={cn(
+                                "inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide",
+                                l.method === "GET" &&
+                                  "bg-red-500/15 text-red-700 dark:text-red-300",
+                                l.method === "POST" &&
+                                  "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+                                l.method === "PUT" &&
+                                  "bg-amber-500/15 text-amber-800 dark:text-amber-200",
+                                l.method === "PATCH" &&
+                                  "bg-sky-500/15 text-sky-800 dark:text-sky-200",
+                                l.method === "DELETE" &&
+                                  "bg-rose-600/15 text-rose-700 dark:text-rose-300",
+                                !["GET", "POST", "PUT", "PATCH", "DELETE"].includes(l.method) &&
+                                  "bg-muted text-muted-foreground",
+                              )}
+                            >
                               {l.method}
                             </span>
-                            <span className="font-mono text-muted-foreground block truncate max-w-[220px]">
+                            <span className="font-mono text-muted-foreground block truncate max-w-[220px] mt-1">
                               {l.path}
                             </span>
                             {l.apiKey?.label && (
@@ -521,82 +659,109 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
             {data.senderIds.length === 0 ? (
               <AdminEmpty>No sender IDs.</AdminEmpty>
             ) : (
-              <div className="space-y-3">
-                {data.senderIds.map((s) => (
-                  <div
-                    key={s.id}
-                    className={cn(
-                      "rounded-xl border-l-4 p-4 space-y-3 bg-muted/10",
-                      s.status === "APPROVED" && "border-l-emerald-500",
-                      s.status === "PENDING" && "border-l-amber-500",
-                      s.status === "REJECTED" && "border-l-destructive",
-                    )}
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-lg font-bold tracking-wide">{s.value}</span>
-                      <Badge variant="outline" className="text-[10px]">
-                        {s.countryCode}
-                      </Badge>
-                      <StatusPill status={s.status} />
-                      {s.isDefault && (
-                        <Badge className="bg-primary/15 text-primary border-0 text-[10px]">
-                          Default
-                        </Badge>
-                      )}
+              <div className="overflow-hidden rounded-xl bg-muted/10">
+                <div className="divide-y divide-border/40">
+                  {data.senderIds.map((s) => (
+                    <div key={s.id} className="space-y-3 px-3.5 py-3.5">
+                      <div className="flex items-start gap-3">
+                        <span
+                          className={cn(
+                            "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+                            s.status === "APPROVED" &&
+                              "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
+                            s.status === "PENDING" &&
+                              "bg-amber-500/12 text-amber-800 dark:text-amber-200",
+                            s.status === "REJECTED" &&
+                              "bg-destructive/12 text-destructive",
+                            !["APPROVED", "PENDING", "REJECTED"].includes(s.status) &&
+                              "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          <BadgeCheck className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono text-base font-bold tracking-wide">
+                              {s.value}
+                            </span>
+                            <Badge variant="outline" className="text-[10px]">
+                              {s.countryCode}
+                            </Badge>
+                            <StatusPill status={s.status} />
+                            {s.isDefault && (
+                              <Badge className="bg-primary/15 text-primary border-0 text-[10px]">
+                                Default
+                              </Badge>
+                            )}
+                          </div>
+                          <SenderIdProviderBadges
+                            registrations={s.providerRegistrations ?? []}
+                          />
+                          {s.providerStatus && (
+                            <p className="text-xs text-muted-foreground">{s.providerStatus}</p>
+                          )}
+                          {s.adminNote && (
+                            <p className="text-xs text-muted-foreground italic">{s.adminNote}</p>
+                          )}
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <form action={adminSyncSenderIdStatusAction}>
+                              <input type="hidden" name="userId" value={id} />
+                              <input type="hidden" name="senderId" value={s.id} />
+                              <Button type="submit" size="sm" variant="secondary">
+                                <Radio className="h-3.5 w-3.5 mr-1" />
+                                Sync all providers
+                              </Button>
+                            </form>
+                            {s.status === "PENDING" && (
+                              <>
+                                <form action={adminApproveSenderFromMemberAction}>
+                                  <input type="hidden" name="id" value={s.id} />
+                                  <input type="hidden" name="userId" value={id} />
+                                  <input type="hidden" name="setDefault" value="1" />
+                                  <Button type="submit" size="sm">
+                                    {s.providerSubmittedAt
+                                      ? "Confirm approval"
+                                      : "Approve & submit to carriers"}
+                                  </Button>
+                                </form>
+                                <form
+                                  action={adminRejectSenderFromMemberAction}
+                                  className="flex gap-2 items-center"
+                                >
+                                  <input type="hidden" name="id" value={s.id} />
+                                  <input type="hidden" name="userId" value={id} />
+                                  <input type="hidden" name="addToBanList" value="on" />
+                                  <Input
+                                    name="note"
+                                    placeholder="Reason"
+                                    className="h-8 w-28 text-xs"
+                                  />
+                                  <Button type="submit" size="sm" variant="destructive">
+                                    Deny & ban
+                                  </Button>
+                                </form>
+                              </>
+                            )}
+                            {s.status !== "REJECTED" && (
+                              <form action={adminBlockSenderIdAction}>
+                                <input type="hidden" name="userId" value={id} />
+                                <input type="hidden" name="senderId" value={s.id} />
+                                <Button
+                                  type="submit"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive"
+                                >
+                                  Block & ban
+                                </Button>
+                              </form>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <SenderIdProviderBadges
-                      registrations={s.providerRegistrations ?? []}
-                    />
-                    {s.providerStatus && (
-                      <p className="text-xs text-muted-foreground">{s.providerStatus}</p>
-                    )}
-                    {s.adminNote && (
-                      <p className="text-xs text-muted-foreground italic">{s.adminNote}</p>
-                    )}
-                    <ActionBar>
-                      <form action={adminSyncSenderIdStatusAction}>
-                        <input type="hidden" name="userId" value={id} />
-                        <input type="hidden" name="senderId" value={s.id} />
-                        <Button type="submit" size="sm" variant="secondary">
-                          <Radio className="h-3.5 w-3.5 mr-1" />
-                          Sync all providers
-                        </Button>
-                      </form>
-                      {s.status === "PENDING" && (
-                        <>
-                          <form action={adminApproveSenderFromMemberAction}>
-                            <input type="hidden" name="id" value={s.id} />
-                            <input type="hidden" name="userId" value={id} />
-                            <input type="hidden" name="setDefault" value="1" />
-                            <Button type="submit" size="sm">
-                              {s.providerSubmittedAt
-                                ? "Confirm approval"
-                                : "Approve & submit to carriers"}
-                            </Button>
-                          </form>
-                          <form action={adminRejectSenderFromMemberAction} className="flex gap-2 items-center">
-                            <input type="hidden" name="id" value={s.id} />
-                            <input type="hidden" name="userId" value={id} />
-                            <input type="hidden" name="addToBanList" value="on" />
-                            <Input name="note" placeholder="Reason" className="h-8 w-28 text-xs" />
-                            <Button type="submit" size="sm" variant="destructive">
-                              Deny & ban
-                            </Button>
-                          </form>
-                        </>
-                      )}
-                      {s.status !== "REJECTED" && (
-                        <form action={adminBlockSenderIdAction}>
-                          <input type="hidden" name="userId" value={id} />
-                          <input type="hidden" name="senderId" value={s.id} />
-                          <Button type="submit" size="sm" variant="ghost" className="text-destructive">
-                            Block & ban
-                          </Button>
-                        </form>
-                      )}
-                    </ActionBar>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
           </AdminCard>
@@ -711,111 +876,40 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
           </AdminCard>
         </TabsContent>
 
-        <TabsContent value="billing" className="mt-6">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <AdminCard title="SMS credits" className="border-primary/20">
-              <form action={adminAdjustSmsCreditsAction} className="space-y-4">
-                <input type="hidden" name="userId" value={id} />
-                <p className="text-3xl font-bold tabular-nums text-primary">
-                  {smsCredit?.balance ?? 0}
-                  <span className="text-sm font-normal text-muted-foreground ml-2">credits</span>
-                </p>
-                <div className="space-y-2">
-                  <Label>Adjust (+ / −)</Label>
-                  <Input name="amount" type="number" placeholder="100 or -50" required />
-                </div>
-                <div className="space-y-2">
-                  <Label>Note</Label>
-                  <Input name="note" placeholder="Reason" />
-                </div>
-                <Button type="submit" className="w-full">
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Apply adjustment
-                </Button>
-              </form>
-            </AdminCard>
-            <AdminCard title="Wallet">
-              {wallet ? (
-                <form action={adminAdjustWalletAction} className="space-y-4">
-                  <input type="hidden" name="userId" value={id} />
-                  <MaskedBalance
-                    amount={data.walletBalance}
-                    currency={data.walletCurrency}
-                  />
-                  <p className="text-xs text-muted-foreground -mt-2">
-                    Click the eye icon to reveal the full balance before adjusting.
-                  </p>
-                  <div className="space-y-2">
-                    <Label>Adjust (+ / −)</Label>
-                    <Input name="amount" type="number" step="0.01" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Note</Label>
-                    <Input name="note" />
-                  </div>
-                  <Button type="submit" variant="secondary" className="w-full">
-                    <Wallet className="h-4 w-4 mr-2" />
-                    Adjust wallet
-                  </Button>
-                </form>
-              ) : (
-                <AdminEmpty>No wallet.</AdminEmpty>
-              )}
-            </AdminCard>
-          </div>
+        <TabsContent value="billing" className="mt-6 space-y-4">
+          <MemberBillingPanel
+            userId={id}
+            memberName={user.fullName}
+            email={user.email}
+            smsBalance={smsCredit?.balance ?? 0}
+            hasWallet={Boolean(wallet)}
+            walletBalance={data.walletBalance}
+            walletCurrency={data.walletCurrency}
+            pricePerCredit={data.billingPricing.pricePerCredit}
+            pricingCurrency={data.billingPricing.currency}
+          />
+          <MemberTransactionHistory transactions={data.transactions} />
         </TabsContent>
 
         <TabsContent value="security" className="space-y-4 mt-6">
           <div className="grid gap-4 lg:grid-cols-2">
-            <AdminCard title="Verification">
-              <p className="text-sm text-muted-foreground mb-4">
-                Phone verification and login lock state.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <form action={adminSetVerifiedAction}>
-                  <input type="hidden" name="userId" value={id} />
-                  <input type="hidden" name="verified" value={user.isVerified ? "0" : "1"} />
-                  <Button type="submit" variant="outline" size="sm">
-                    <User className="h-3.5 w-3.5 mr-1" />
-                    {user.isVerified ? "Mark unverified" : "Mark verified"}
-                  </Button>
-                </form>
-                <form action={adminUnlockLoginAction}>
-                  <input type="hidden" name="userId" value={id} />
-                  <Button type="submit" variant="outline" size="sm">
-                    Unlock login
-                  </Button>
-                </form>
-              </div>
-            </AdminCard>
-            <AdminCard title="Password & reset">
-              <form action={adminResetPasswordAction} className="space-y-3">
-                <input type="hidden" name="userId" value={id} />
-                <div className="space-y-2">
-                  <Label>New password</Label>
-                  <Input
-                    name="password"
-                    type="text"
-                    className="font-mono"
-                    placeholder="Auto-generate if empty"
-                  />
-                </div>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="generate" value="1" className="rounded" />
-                  Generate random password
-                </label>
-                <Button type="submit" variant="secondary" className="w-full">
-                  <Shield className="h-4 w-4 mr-2" />
-                  Set password
-                </Button>
-              </form>
-              <form action={adminSendPasswordResetLinkAction} className="mt-4 pt-4 border-t border-border/50">
-                <input type="hidden" name="userId" value={id} />
-                <Button type="submit" variant="outline" className="w-full">
-                  Send reset OTP to {user.phone}
-                </Button>
-              </form>
-            </AdminCard>
+            <MemberVerificationPanel
+              userId={id}
+              memberName={user.fullName}
+              email={user.email}
+              isVerified={user.isVerified}
+              failedLoginCount={user.failedLoginCount}
+              lockedUntil={user.lockedUntil}
+              accountStatus={account.status}
+              suspendedReason={account.suspendedReason}
+            />
+            <MemberPasswordPanel
+              userId={id}
+              memberName={user.fullName}
+              phone={user.phone}
+              email={user.email}
+              memberId={user.accountId}
+            />
           </div>
         </TabsContent>
 
@@ -975,45 +1069,23 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
                 </div>
               )}
             </AdminCard>
-            <AdminCard title="Transactions">
-              {data.transactions.length === 0 ? (
-                <AdminEmpty>No transactions.</AdminEmpty>
+            <AdminCard title="Audit trail">
+              {data.auditLogs.length === 0 ? (
+                <AdminEmpty>No audit entries.</AdminEmpty>
               ) : (
-                <ul className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                  {data.transactions.map((t) => (
-                    <li
-                      key={t.id}
-                      className="flex justify-between gap-2 text-sm py-2 border-b border-border/40 last:border-0"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-medium">{t.type}</p>
-                        <p className="text-xs text-muted-foreground truncate">{t.description}</p>
-                      </div>
-                      <span className="tabular-nums shrink-0 font-semibold">
-                        {t.credits != null ? `${t.credits} cr` : `${t.currency} ${t.amount}`}
+                <div className="rounded-xl border border-border/50 divide-y divide-border/40 max-h-96 overflow-y-auto">
+                  {data.auditLogs.map((a) => (
+                    <div key={a.id} className="flex items-center justify-between gap-4 px-4 py-2.5 text-xs">
+                      <code className="text-primary font-semibold">{a.action}</code>
+                      <span className="text-muted-foreground tabular-nums">
+                        {format(a.createdAt, "MMM d, HH:mm")}
                       </span>
-                    </li>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
             </AdminCard>
           </div>
-          <AdminCard title="Audit trail">
-            {data.auditLogs.length === 0 ? (
-              <AdminEmpty>No audit entries.</AdminEmpty>
-            ) : (
-              <div className="rounded-xl border border-border/50 divide-y divide-border/40 max-h-96 overflow-y-auto">
-                {data.auditLogs.map((a) => (
-                  <div key={a.id} className="flex items-center justify-between gap-4 px-4 py-2.5 text-xs">
-                    <code className="text-primary font-semibold">{a.action}</code>
-                    <span className="text-muted-foreground tabular-nums">
-                      {format(a.createdAt, "MMM d, HH:mm")}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </AdminCard>
           {(data.webhooks.length > 0 || data.wordpressSites.length > 0) && (
             <AdminCard title="Integrations">
               <ul className="space-y-2 text-sm">
@@ -1076,29 +1148,4 @@ function FeatureList({ account }: { account: AdminMemberDetail["account"] }) {
       ))}
     </ul>
   );
-}
-
-function flashMessage(saved: string, temp?: string) {
-  const map: Record<string, string> = {
-    credits: "SMS credits updated successfully.",
-    wallet: "Wallet balance updated successfully.",
-    access: "Access settings saved.",
-    verify: "Verification status updated.",
-    unlock: "Login lock cleared.",
-    password: temp
-      ? `Password set. Share this temporary password securely: ${temp}`
-      : "Password updated.",
-    reset_sent: "Password reset OTP sent via SMS.",
-    reset_failed: "Could not send reset OTP — check cooldown, country route, or provider settings in Admin → Providers.",
-    api_key: "API key status updated.",
-    created: "Sender ID registered and submitted to providers.",
-    sender_sync: "Sender ID synced with all providers.",
-    sender_approved: "Sender ID approved.",
-    sender_rejected: "Sender ID rejected.",
-    sender_blocked: "Sender ID blocked.",
-    reply: "Support reply sent — member notified by email and SMS.",
-    ticket: "Ticket status updated.",
-    outreach_sent: "Message sent to member via SMS and/or email.",
-  };
-  return map[saved] ?? "Changes saved.";
 }

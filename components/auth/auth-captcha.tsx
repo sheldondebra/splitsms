@@ -1,14 +1,24 @@
 "use client";
 
-import { authCaptchaProvider } from "@/lib/auth/signup-guard-shared";
+import { useCaptchaConfig } from "@/components/auth/auth-captcha-provider";
 import { AuthRecaptcha } from "@/components/auth/auth-recaptcha";
 import { AuthTurnstile } from "@/components/auth/auth-turnstile";
+import { publicCaptchaConfig } from "@/lib/auth/signup-guard-shared";
 
 /** Signup/login bot check widget — Google reCAPTCHA (free) or Cloudflare Turnstile. */
-export function AuthCaptcha() {
-  const provider = authCaptchaProvider();
+export function AuthCaptcha({
+  action,
+  notice,
+  quiet,
+}: { action?: string; notice?: string; quiet?: boolean } = {}) {
+  const fromServer = useCaptchaConfig();
+  const config = fromServer.provider ? fromServer : publicCaptchaConfig();
 
-  if (provider === "recaptcha") return <AuthRecaptcha />;
-  if (provider === "turnstile") return <AuthTurnstile />;
+  if (config.provider === "recaptcha") {
+    return (
+      <AuthRecaptcha siteKey={config.siteKey} action={action} notice={notice} quiet={quiet} />
+    );
+  }
+  if (config.provider === "turnstile") return <AuthTurnstile siteKey={config.siteKey} />;
   return null;
 }

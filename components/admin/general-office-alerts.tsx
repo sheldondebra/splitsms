@@ -1,6 +1,6 @@
 import { AdminAlert } from "@/components/admin/admin-page-shell";
 import { emailProviderLabel } from "@/lib/email/config";
-import type { EmailOfficeStored } from "@/lib/email/office-config";
+import type { EmailOfficePublic } from "@/lib/email/office-config";
 
 type GeneralOfficeAlertsProps = {
   params: {
@@ -23,7 +23,7 @@ type GeneralOfficeAlertsProps = {
   envResendDiag?: {
     hasApiKey: boolean;
   };
-  stored: EmailOfficeStored;
+  stored: EmailOfficePublic;
 };
 
 export function GeneralOfficeAlerts({
@@ -116,13 +116,13 @@ export function GeneralOfficeAlerts({
             {stored.provider === "resend" ? (
               <>
                 <li>{envResendDiag?.hasApiKey ? "✓" : "✗"} RESEND_API_KEY in .env</li>
-                <li>{stored.resendApiKey ? "✓" : "○"} Resend API key saved here</li>
+                <li>{stored.hasResendApiKey ? "✓" : "○"} Resend API key saved here</li>
               </>
             ) : stored.provider === "mailjet" ? (
               <>
                 <li>{envMailjetDiag.hasApiKey ? "✓" : "✗"} MAILJET_API_KEY in .env</li>
                 <li>{envMailjetDiag.hasSecret ? "✓" : "✗"} MAILJET_API_SECRET in .env</li>
-                <li>{stored.apiKey ? "✓" : "○"} API key saved here</li>
+                <li>{stored.hasApiKey ? "✓" : "○"} API key saved here</li>
               </>
             ) : (
               <>

@@ -131,10 +131,11 @@ function CodeBlock({ title, icon: Icon, code }: { title: string; icon: typeof Wa
 }
 
 export function DevelopersOverview({ baseUrl, stats }: DevelopersOverviewProps) {
-  const quickCurl = `curl -X GET '${baseUrl}/api/v1/balance' \\
+  const apiPrefix = `${baseUrl.replace(/\/$/, "")}/api/v1`;
+  const quickCurl = `curl -X GET '${apiPrefix}/balance' \\
   -H "Authorization: Bearer YOUR_API_KEY"`;
 
-  const sendCurl = `curl -X POST '${baseUrl}/api/v1/sms/send' \\
+  const sendCurl = `curl -X POST '${apiPrefix}/sms/send' \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"sender":"MYBRAND","recipients":["233201234567"],"message":"Hello"}'`;
@@ -157,22 +158,29 @@ export function DevelopersOverview({ baseUrl, stats }: DevelopersOverviewProps) 
         }
       />
 
-      <AppCard className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background overflow-hidden">
-        <AppCardBody className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+      <AppCard className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background">
+        <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6 sm:py-5">
+          <div className="min-w-0">
+            <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
               <Globe2 className="h-3.5 w-3.5" />
               REST API · 190+ countries
-            </span>
-            <span className="text-xs text-muted-foreground">Base URL</span>
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Production endpoint for SMS, wallet, contacts, and OTP.
+            </p>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <code className="flex-1 rounded-xl border border-border/60 bg-card px-4 py-3 text-sm font-mono truncate">
-              {baseUrl}
-            </code>
-            <CopyButton value={baseUrl} label="Copy base URL" />
+          <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border/60 bg-card p-1.5 pl-3 sm:w-[min(100%,28rem)] sm:shrink-0">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Base URL
+              </p>
+              <code className="block truncate font-mono text-sm" title={apiPrefix}>
+                {apiPrefix}
+              </code>
+            </div>
+            <CopyButton value={apiPrefix} label="Copy" className="shrink-0" />
           </div>
-        </AppCardBody>
+        </div>
       </AppCard>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

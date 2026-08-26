@@ -1,8 +1,7 @@
-import Link from "next/link";
-import { AdminPage, AdminCard } from "@/components/admin/admin-page-shell";
-import { GeneralEmailPanel } from "@/components/admin/general-email-panel";
-import { GeneralOfficeAlerts } from "@/components/admin/general-office-alerts";
-import { GeneralOfficeNotifyPanel } from "@/components/admin/general-office-notify-panel";
+import { Settings } from "lucide-react";
+import { AdminPage, AdminPageHeader } from "@/components/admin/admin-page-shell";
+import { GeneralSettingsView } from "@/components/admin/general-settings-view";
+import { resolveGeneralSettingsTab } from "@/lib/admin/general-settings-tab";
 import {
   getMailjetEnvDiagnostics,
   getSmtpEnvDiagnostics,
@@ -12,12 +11,15 @@ import {
   isResendEnvConfigured,
 } from "@/lib/email/config";
 import { isEmailConfiguredAsync } from "@/lib/email";
-import { loadEmailOfficeRaw, loadEmailOfficeStored } from "@/lib/email/office-config";
+import {
+  loadEmailOfficeRaw,
+  loadEmailOfficeStored,
+  toPublicEmailOffice,
+} from "@/lib/email/office-config";
 import { loadGeneralOfficeConfig } from "@/lib/general-office/config";
 import { loadSlackOfficeConfig } from "@/lib/slack/config";
 import { getSiteUrl } from "@/lib/site-config";
 import { loadGatewayLastTest } from "@/lib/payments/gateway-settings";
-import { GeneralSlackPanel } from "@/components/admin/general-slack-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,7 @@ export default async function AdminGeneralOfficePage({
   searchParams,
 }: {
   searchParams: Promise<{
+    tab?: string;
     test?: string;
     result?: string;
     to?: string;
@@ -50,49 +53,33 @@ export default async function AdminGeneralOfficePage({
   const envSmtpDiag = getSmtpEnvDiagnostics();
   const envResendDiag = getResendEnvDiagnostics();
   const senderSavedInDashboard = Boolean(raw?.fromEmail?.trim());
+  const initialTab = resolveGeneralSettingsTab(params);
 
   return (
-    <AdminPage narrow>
-      <p className="text-sm text-muted-foreground -mt-2">
-        Configure email, SMS alerts, and Slack notifications for your admin team.
-      </p>
-
-      <GeneralOfficeAlerts
+    <AdminPage>
+      <AdminPageHeader
+        title="Settings"
+        description="Configure outbound email, operations alerts, and Slack from one place."
+        icon={Settings}
+      />
+      <GeneralSettingsView
+        initialTab={initialTab}
         params={params}
         configured={configured}
-        envMailjetDiag={envMailjetDiag}
-        envSmtpDiag={envSmtpDiag}
-        envResendDiag={envResendDiag}
-        stored={stored}
-      />
-
-      <GeneralEmailPanel
-        configured={configured}
-        stored={stored}
+        stored={toPublicEmailOffice(stored)}
         envMailjetConfigured={envMailjetConfigured}
         envSmtpConfigured={envSmtpConfigured}
         envResendConfigured={envResendConfigured}
+        envMailjetDiag={envMailjetDiag}
+        envSmtpDiag={envSmtpDiag}
+        envResendDiag={envResendDiag}
         senderSavedInDashboard={senderSavedInDashboard}
         connectionTest={connectionTest}
         sendTest={sendTest}
-      />
-
-      <GeneralOfficeNotifyPanel config={officeConfig} />
-
-      <GeneralSlackPanel
-        config={slackConfig}
+        officeConfig={officeConfig}
+        slackConfig={slackConfig}
         eventsUrl={`${getSiteUrl()}/api/slack/events`}
       />
-
-      <AdminCard title="Support inbox">
-        <p className="text-sm text-muted-foreground">
-          Reply to member tickets from{" "}
-          <Link href="/admin/support" className="text-primary font-medium hover:underline">
-            Admin → Support
-          </Link>
-          . New tickets also trigger alerts above.
-        </p>
-      </AdminCard>
     </AdminPage>
   );
 }

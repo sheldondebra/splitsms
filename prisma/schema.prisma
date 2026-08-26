@@ -145,6 +145,13 @@ enum SenderIdStatus {
   REJECTED
 }
 
+enum SenderIdDocumentType {
+  BUSINESS_REGISTRATION
+  PASSPORT
+  GHANA_CARD
+  OTHER_ID
+}
+
 enum SenderIdProviderType {
   MNOTIFY
   TWILIO
@@ -235,6 +242,7 @@ model User {
   emailMarketingCampaigns   EmailMarketingCampaign[] @relation("EmailMarketingCampaignCreator")
   googleConnection          GoogleConnection?
   googleFormSmsAutomations  GoogleFormSmsAutomation[]
+  senderIdVerificationDocuments SenderIdVerificationDocument[]
 }
 
 model MemberAccount {
@@ -777,9 +785,28 @@ model SenderId {
   providerSubmittedAt DateTime?
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
-  providerRegistrations SenderIdProviderRegistration[]
+  providerRegistrations  SenderIdProviderRegistration[]
+  verificationDocuments  SenderIdVerificationDocument[]
 
   @@index([userId, status])
+}
+
+model SenderIdVerificationDocument {
+  id           String               @id @default(cuid())
+  senderId     String
+  sender       SenderId             @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  docType      SenderIdDocumentType
+  filename     String
+  contentType  String
+  content      Bytes
+  reviewedAt   DateTime?
+  reviewedById String?
+  createdAt    DateTime             @default(now())
+
+  @@index([senderId])
+  @@index([userId])
 }
 
 model SenderIdProviderRegistration {
@@ -1158,6 +1185,7 @@ model SmartForm {
   responses             SmartFormResponse[]
   analyticsEvents       SmartFormAnalyticsEvent[]
   smsAutomation         SmartFormSmsAutomation?
+  emailAutomation       SmartFormEmailAutomation?
   exports               SmartFormExport[]
 
   @@unique([userId, slug])
@@ -1259,6 +1287,33 @@ model SmartFormSmsAutomation {
   updatedAt                 DateTime  @updatedAt
 }
 
+enum SmartFormReportFrequency {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+model SmartFormEmailAutomation {
+  id                        String                   @id @default(cuid())
+  formId                    String                   @unique
+  form                      SmartForm                @relation(fields: [formId], references: [id], onDelete: Cascade)
+  sendToRespondent          Boolean                  @default(false)
+  sendToAdmin               Boolean                  @default(false)
+  adminEmail                String?
+  respondentSubject         String?
+  respondentMessageTemplate String?                  @db.Text
+  adminSubject              String?
+  adminMessageTemplate      String?                  @db.Text
+  reportFrequency           SmartFormReportFrequency @default(NONE)
+  reportEmail               String?
+  lastReportSentAt          DateTime?
+  createdAt                 DateTime                 @default(now())
+  updatedAt                 DateTime                 @updatedAt
+
+  @@index([reportFrequency, lastReportSentAt])
+}
+
 model SmartFormExport {
   id         String              @id @default(cuid())
   formId     String
@@ -1331,6 +1386,18 @@ model EmailMarketingCampaign {
   @@index([createdById])
 }
 
+/// Sidecar for header images — the marketing template/campaign tables are not
+/// owned by the app role, so imageUrl cannot be added there.
+model EmailMarketingImage {
+  id        String   @id @default(cuid())
+  kind      String
+  targetId  String
+  imageUrl  String
+  updatedAt DateTime @updatedAt
+
+  @@unique([kind, targetId])
+}
+
 model EmailMarketingDelivery {
   id         String                 @id @default(cuid())
   campaignId String
@@ -1345,6 +1412,20 @@ model EmailMarketingDelivery {
 
   @@index([campaignId, status])
   @@index([email])
+}
+
+model EmailMarketingSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  fullName  String?
+  source    String   @default("footer")
+  status    String   @default("subscribed")
+  ipHash    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
 }
 
 /// OAuth connection for Google product APIs (Contacts/Sheets/Forms) — separate from Google Sign-In.

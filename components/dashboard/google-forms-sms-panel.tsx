@@ -1,19 +1,17 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   deleteGoogleFormSmsAutomationAction,
   saveGoogleFormSmsAutomationAction,
   toggleGoogleFormSmsAutomationAction,
 } from "@/lib/actions/google-forms";
-import type { GoogleFormQuestion, GoogleFormSummary } from "@/lib/google/forms";
-import { GOOGLE_FORMS_SCOPES } from "@/lib/google/scopes";
-import { googleConnectHref } from "@/lib/google/connect-url";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { AppCard, AppCardBody } from "@/components/dashboard/page-shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { Copy, Loader2 } from "lucide-react";
 
 type AutomationRow = {
   id: string;
@@ -25,258 +23,273 @@ type AutomationRow = {
   messageTemplate: string;
 };
 
+function looksLikeGoogleForm(url: string) {
+  return /docs\.google\.com\/forms\//i.test(url);
+}
+
 export function GoogleFormsSmsPanel({
-  connected,
   senderIds,
   automations,
+  serviceAccountEmail,
 }: {
-  connected: boolean;
   senderIds: string[];
   automations: AutomationRow[];
+  serviceAccountEmail: string;
 }) {
-  const [forms, setForms] = useState<GoogleFormSummary[] | null>(null);
-  const [questions, setQuestions] = useState<GoogleFormQuestion[]>([]);
+  const [sheetUrl, setSheetUrl] = useState("");
+  const [headers, setHeaders] = useState<string[]>([]);
   const [formTitle, setFormTitle] = useState("");
   const [formId, setFormId] = useState("");
   const [phoneFieldId, setPhoneFieldId] = useState("");
   const [senderId, setSenderId] = useState(senderIds[0] ?? "");
   const [messageTemplate, setMessageTemplate] = useState(
-    "Thanks for your submission{{name}}!",
+    "Thanks for submitting the form.",
   );
   const [loading, setLoading] = useState(false);
+  const [needsShare, setNeedsShare] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [connectUrl, setConnectUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const connectHref = googleConnectHref({
-    scopes: [...GOOGLE_FORMS_SCOPES],
-    returnTo: "/dashboard/integrations/google/forms",
-  });
-
-  async function loadForms() {
+  async function continueWithSheet() {
     setLoading(true);
     setError(null);
-    try {
-      const res = await fetch("/api/dashboard/google/forms");
-      const data = await res.json();
-      if (!res.ok) {
-        setConnectUrl(data.connectUrl ?? null);
-        setError("Connect Google and grant Forms access.");
-        return;
-      }
-      setForms(data.forms ?? []);
-    } catch {
-      setError("Could not list Google Forms.");
-    } finally {
+    setNeedsShare(false);
+    if (looksLikeGoogleForm(sheetUrl)) {
       setLoading(false);
+      setError(
+        "Paste the Google Sheet that stores answers. In your form: Responses → Link to Sheets.",
+      );
+      return;
     }
-  }
-
-  useEffect(() => {
-    if (connected) void loadForms();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connected]);
-
-  async function onPickForm(id: string) {
-    setFormId(id);
-    setLoading(true);
-    setError(null);
     try {
       const res = await fetch(
-        `/api/dashboard/google/forms?formId=${encodeURIComponent(id)}`,
+        `/api/dashboard/google/forms/sheet?url=${encodeURIComponent(sheetUrl)}`,
       );
       const data = await res.json();
-      if (!res.ok) {
-        setConnectUrl(data.connectUrl ?? null);
-        setError("Could not load form questions.");
+      if (res.status === 403) {
+        setNeedsShare(true);
         return;
       }
+      if (!res.ok) {
+        setError("We couldn’t open that link. Check it’s a Google Sheet and try again.");
+        return;
+      }
+      const cols = (data.headers as string[]) ?? [];
+      setFormId(data.id ?? "");
       setFormTitle(data.title ?? "");
-      setQuestions(data.questions ?? []);
-      const phoneGuess =
-        (data.questions as GoogleFormQuestion[] | undefined)?.find((q) =>
-          /phone|mobile|whatsapp|tel/i.test(q.title),
-        )?.questionId ?? "";
-      setPhoneFieldId(phoneGuess);
+      setHeaders(cols);
+      setPhoneFieldId(cols.find((h) => /phone|mobile|whatsapp|tel/i.test(h)) ?? cols[0] ?? "");
     } catch {
-      setError("Could not load form questions.");
+      setError("We couldn’t open that link. Try again.");
     } finally {
       setLoading(false);
     }
   }
+
+  async function copyEmail() {
+    if (!serviceAccountEmail) return;
+    try {
+      await navigator.clipboard.writeText(serviceAccountEmail);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  const ready = Boolean(formId && headers.length > 0);
 
   return (
     <div className="space-y-6">
-      {!connected ? (
-        <div className="rounded-xl border p-4 space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Connect Google, pick a form, map the phone question, and SplitSMS will
-            send SMS when new responses arrive (about every 45 seconds).
-          </p>
-          <a href={connectHref} className={cn(buttonVariants({ size: "sm" }))}>
-            Connect Google
-          </a>
-        </div>
-      ) : (
-        <div className="rounded-xl border p-4 space-y-4">
-          <div className="flex flex-wrap gap-2 items-center justify-between">
-            <h2 className="font-semibold">New automation</h2>
-            <Button type="button" size="sm" variant="outline" onClick={loadForms} disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh forms"}
+      <AppCard>
+        <AppCardBody className="space-y-5">
+          <div>
+            <h2 className="text-base font-semibold tracking-tight">
+              Paste your Google Sheet
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Use the sheet that collects form answers. We’ll text new rows from here on.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              value={sheetUrl}
+              onChange={(e) => {
+                setSheetUrl(e.target.value);
+                setFormId("");
+                setHeaders([]);
+                setNeedsShare(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void continueWithSheet();
+                }
+              }}
+              placeholder="Paste Google Sheet link"
+              aria-label="Google Sheet link"
+            />
+            <Button
+              type="button"
+              onClick={() => void continueWithSheet()}
+              disabled={loading || !sheetUrl.trim()}
+              className="h-10 shrink-0 px-4"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continue"}
             </Button>
           </div>
 
-          {error && (
-            <div className="space-y-2">
-              <p className="text-sm text-destructive">{error}</p>
-              {connectUrl && (
-                <a
-                  href={connectUrl}
-                  className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
-                >
-                  Grant access
-                </a>
-              )}
+          {needsShare ? (
+            <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4">
+              <p className="text-sm font-medium">Share the sheet, then Continue again.</p>
+              <p className="text-sm text-muted-foreground">
+                In Google Sheets: Share → add this email as Viewer.
+              </p>
+              <div className="flex gap-2">
+                <Input readOnly value={serviceAccountEmail} className="font-mono text-xs" />
+                <Button type="button" variant="outline" onClick={() => void copyEmail()} className="h-10 shrink-0 gap-1.5">
+                  <Copy className="h-4 w-4" />
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              </div>
             </div>
-          )}
+          ) : null}
 
-          {forms && (
-            <div className="space-y-2 max-h-40 overflow-auto">
-              {forms.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No Google Forms found.</p>
-              ) : (
-                forms.map((f) => (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => onPickForm(f.id)}
-                    className={cn(
-                      "w-full text-left rounded-lg border px-3 py-2 text-sm hover:bg-muted/50",
-                      formId === f.id && "border-primary bg-primary/5",
-                    )}
-                  >
-                    {f.name}
-                  </button>
-                ))
-              )}
-            </div>
-          )}
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-          {formId && questions.length > 0 && (
+          {ready ? (
             <form
               action={(fd) => startTransition(() => saveGoogleFormSmsAutomationAction(fd))}
-              className="space-y-3"
+              className="space-y-4 border-t border-border/60 pt-5"
             >
               <input type="hidden" name="formId" value={formId} />
               <input type="hidden" name="formTitle" value={formTitle} />
+              {senderIds.length === 1 ? (
+                <input type="hidden" name="senderId" value={senderId} />
+              ) : null}
 
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Phone question</label>
+              <p className="text-sm">
+                Using <span className="font-medium">{formTitle || "this sheet"}</span>
+              </p>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium" htmlFor="phoneFieldId">
+                  Phone column
+                </label>
                 <select
+                  id="phoneFieldId"
                   name="phoneFieldId"
                   className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
                   value={phoneFieldId}
                   onChange={(e) => setPhoneFieldId(e.target.value)}
                   required
                 >
-                  <option value="">Select question</option>
-                  {questions.map((q) => (
-                    <option key={q.questionId} value={q.questionId}>
-                      {q.title}
+                  {headers.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Sender ID</label>
-                <select
-                  name="senderId"
-                  className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                  value={senderId}
-                  onChange={(e) => setSenderId(e.target.value)}
-                  required
-                >
-                  {senderIds.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {senderIds.length > 1 ? (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium" htmlFor="senderId">
+                    Sender ID
+                  </label>
+                  <select
+                    id="senderId"
+                    name="senderId"
+                    className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    value={senderId}
+                    onChange={(e) => setSenderId(e.target.value)}
+                    required
+                  >
+                    {senderIds.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
 
-              <div className="space-y-1">
-                <label className="text-sm font-medium">SMS template</label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium" htmlFor="messageTemplate">
+                  Message
+                </label>
                 <Textarea
+                  id="messageTemplate"
                   name="messageTemplate"
                   value={messageTemplate}
                   onChange={(e) => setMessageTemplate(e.target.value)}
-                  rows={4}
+                  rows={3}
                   required
                 />
-                <p className="text-xs text-muted-foreground">
-                  Use {"{{Question title}}"} merge tags from your form questions.
-                </p>
               </div>
 
-              <Button type="submit" disabled={pending || !phoneFieldId || senderIds.length === 0}>
-                {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save automation"}
+              <Button
+                type="submit"
+                disabled={pending || !phoneFieldId || senderIds.length === 0}
+                className="h-10 px-4"
+              >
+                {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Turn on SMS"}
               </Button>
-              {senderIds.length === 0 && (
+              {senderIds.length === 0 ? (
                 <p className="text-sm text-destructive">
-                  Approve a Sender ID before enabling Form SMS.
+                  You need an approved Sender ID first.
                 </p>
-              )}
+              ) : null}
             </form>
-          )}
-        </div>
-      )}
+          ) : null}
+        </AppCardBody>
+      </AppCard>
 
-      <div className="rounded-xl border p-4 space-y-3">
-        <h2 className="font-semibold">Active automations</h2>
-        {automations.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No Google Form automations yet.</p>
-        ) : (
-          <ul className="space-y-3">
-            {automations.map((a) => (
-              <li key={a.id} className="rounded-lg border px-3 py-3 space-y-2">
-                <div className="flex flex-wrap items-center gap-2 justify-between">
-                  <div>
-                    <p className="font-medium text-sm">{a.formTitle ?? a.formId}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {a.lastPolledAt
-                        ? `Last checked ${new Date(a.lastPolledAt).toLocaleString()}`
-                        : "Not polled yet"}
+      {automations.length > 0 ? (
+        <AppCard>
+          <AppCardBody className="space-y-4">
+            <h2 className="text-base font-semibold tracking-tight">Your forms</h2>
+            <ul className="space-y-3">
+              {automations.map((a) => (
+                <li
+                  key={a.id}
+                  className="flex flex-col gap-3 rounded-xl border border-border/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{a.formTitle ?? "Google Sheet"}</p>
+                    <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+                      {a.messageTemplate}
                     </p>
+                    {a.lastError ? (
+                      <p className="mt-1 text-xs text-destructive">{a.lastError}</p>
+                    ) : null}
                   </div>
-                  <Badge variant={a.isActive ? "default" : "outline"}>
-                    {a.isActive ? "Active" : "Paused"}
-                  </Badge>
-                </div>
-                {a.lastError && (
-                  <p className="text-xs text-destructive">{a.lastError}</p>
-                )}
-                <p className="text-xs text-muted-foreground line-clamp-2">{a.messageTemplate}</p>
-                <div className="flex flex-wrap gap-2">
-                  <form action={toggleGoogleFormSmsAutomationAction}>
-                    <input type="hidden" name="id" value={a.id} />
-                    <input type="hidden" name="isActive" value={a.isActive ? "0" : "1"} />
-                    <Button type="submit" size="sm" variant="outline">
-                      {a.isActive ? "Pause" : "Resume"}
-                    </Button>
-                  </form>
-                  <form action={deleteGoogleFormSmsAutomationAction}>
-                    <input type="hidden" name="id" value={a.id} />
-                    <Button type="submit" size="sm" variant="destructive">
-                      Delete
-                    </Button>
-                  </form>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <Badge variant={a.isActive ? "default" : "outline"}>
+                      {a.isActive ? "On" : "Off"}
+                    </Badge>
+                    <form action={toggleGoogleFormSmsAutomationAction}>
+                      <input type="hidden" name="id" value={a.id} />
+                      <input type="hidden" name="isActive" value={a.isActive ? "0" : "1"} />
+                      <Button type="submit" size="sm" variant="outline">
+                        {a.isActive ? "Pause" : "Resume"}
+                      </Button>
+                    </form>
+                    <form action={deleteGoogleFormSmsAutomationAction}>
+                      <input type="hidden" name="id" value={a.id} />
+                      <Button type="submit" size="sm" variant="ghost">
+                        Remove
+                      </Button>
+                    </form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </AppCardBody>
+        </AppCard>
+      ) : null}
     </div>
   );
 }

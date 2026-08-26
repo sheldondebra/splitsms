@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/permissions";
 import { RATE_LIMIT_TIERS } from "@/lib/api/rate-limit";
 import { normalizeApiKeyBaseLabel, retiredApiKeyLabel } from "@/lib/api/key-labels";
+import { setApiKeyFlash } from "@/lib/auth/api-key-flash";
 
 function hashKey(raw: string) {
   return createHash("sha256").update(raw).digest("hex");
@@ -57,9 +58,8 @@ export async function createApiKeyAction(formData: FormData) {
 
   revalidatePath("/dashboard/api-keys");
   revalidatePath("/developers/api-keys");
-  redirect(
-    `/developers/api-keys?created=${encodeURIComponent(raw)}&keyId=${encodeURIComponent(created.id)}`,
-  );
+  await setApiKeyFlash({ raw, keyId: created.id });
+  redirect("/developers/api-keys");
 }
 
 export async function revokeApiKeyAction(formData: FormData) {
@@ -156,7 +156,55 @@ export async function rotateApiKeyAction(formData: FormData) {
   });
 
   revalidatePath("/developers/api-keys");
-  redirect(
-    `/developers/api-keys?created=${encodeURIComponent(raw)}&keyId=${encodeURIComponent(rotated.id)}`,
-  );
+  await setApiKeyFlash({ raw, keyId: rotated.id });
+  redirect("/developers/api-keys");
+}
+
+export type ApiKeyRequestRow = {
+  id: string;
+  method: string;
+  path: string;
+  statusCode: number;
+  durationMs: number;
+  errorCode: string | null;
+  createdAt: string;
+};
+
+export async function listApiKeyRequestsAction(keyId: string) {
+  const session = await getSession();
+  if (!session) return { ok: false as const, error: "unauthorized" };
+
+  const owned = await prisma.apiKey.findFirst({
+    where: { id: keyId, userId: session.userId },
+    select: { id: true },
+  });
+  if (!owned) return { ok: false as const, error: "unauthorized" };
+
+  const logs = await prisma.apiLog.findMany({
+    where: { userId: session.userId, apiKeyId: keyId },
+    orderBy: { createdAt: "desc" },
+    take: 25,
+    select: {
+      id: true,
+      method: true,
+      path: true,
+      statusCode: true,
+      durationMs: true,
+      errorCode: true,
+      createdAt: true,
+    },
+  });
+
+  return {
+    ok: true as const,
+    logs: logs.map((l) => ({
+      id: l.id,
+      method: l.method,
+      path: l.path,
+      statusCode: l.statusCode,
+      durationMs: l.durationMs,
+      errorCode: l.errorCode,
+      createdAt: l.createdAt.toISOString(),
+    })) satisfies ApiKeyRequestRow[],
+  };
 }

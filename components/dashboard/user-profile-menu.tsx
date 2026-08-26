@@ -14,9 +14,16 @@ export type MemberProfileSummary = {
 type UserProfileMenuProps = {
   profile: MemberProfileSummary;
   className?: string;
+  showChevron?: boolean;
+  variant?: "compact" | "pill" | "icon";
 };
 
-export function UserProfileMenu({ profile, className }: UserProfileMenuProps) {
+export function UserProfileMenu({
+  profile,
+  className,
+  showChevron,
+  variant = "compact",
+}: UserProfileMenuProps) {
   return (
     <HeaderAccountMenu
       profile={{
@@ -26,7 +33,8 @@ export function UserProfileMenu({ profile, className }: UserProfileMenuProps) {
         role: profile.role ?? "MEMBER",
       }}
       className={className}
-      variant="compact"
+      variant={variant}
+      showChevron={showChevron}
     />
   );
 }

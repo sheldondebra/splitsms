@@ -1,26 +1,17 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getSession } from "@/lib/auth/session";
 import { Logo } from "@/components/brand/logo";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { GoBackLink } from "@/components/errors/go-back-link";
-import { Home, LayoutDashboard, LifeBuoy } from "lucide-react";
+import { Home, LifeBuoy } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Page not found",
   robots: { index: false, follow: false },
 };
 
-export default async function NotFound() {
-  const session = await getSession();
-  const dashboardHref =
-    session?.role === "ADMIN" || session?.role === "SUPER_ADMIN"
-      ? "/admin"
-      : session?.role === "RESELLER"
-        ? "/reseller"
-        : "/dashboard";
-
+export default function NotFound() {
   return (
     <div className="relative flex min-h-[100dvh] flex-col bg-background">
       <div
@@ -30,7 +21,7 @@ export default async function NotFound() {
 
       <header className="relative z-10 border-b border-border/60 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-14 max-w-6xl items-center px-4 sm:px-6">
-          <Logo size="sm" className="w-[140px]" />
+          <Logo size="lg" />
         </div>
       </header>
 
@@ -58,28 +49,15 @@ export default async function NotFound() {
               <Home className="h-4 w-4" />
               Back to home
             </Link>
-            {session ? (
-              <Link
-                href={dashboardHref}
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "lg" }),
-                  "h-11 gap-2 rounded-xl font-semibold",
-                )}
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                Open dashboard
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "lg" }),
-                  "h-11 gap-2 rounded-xl font-semibold",
-                )}
-              >
-                Sign in
-              </Link>
-            )}
+            <Link
+              href="/login"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "lg" }),
+                "h-11 gap-2 rounded-xl font-semibold",
+              )}
+            >
+              Sign in
+            </Link>
           </div>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground">

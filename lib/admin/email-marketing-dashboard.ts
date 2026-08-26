@@ -3,10 +3,18 @@ import { ensureEmailMarketingTemplates } from "@/lib/admin/email-marketing-templ
 import {
   EMAIL_MARKETING_INACTIVE_DAYS_DEFAULT,
   EMAIL_MARKETING_MAX_RECIPIENTS,
+  EMAIL_MARKETING_NEWSLETTER_MAX_RECIPIENTS,
 } from "@/lib/admin/email-marketing-shared";
 import { countMarketingAudience } from "@/lib/admin/email-marketing-audience";
+import { attachCampaignImages, attachTemplateImages } from "@/lib/admin/email-marketing-images";
 
-export type EmailMarketingTab = "overview" | "compose" | "templates" | "history";
+export type EmailMarketingTab =
+  | "overview"
+  | "compose"
+  | "templates"
+  | "subscribers"
+  | "history"
+  | "automations";
 
 export async function getEmailMarketingDashboard(params: {
   tab?: string;
@@ -17,7 +25,9 @@ export async function getEmailMarketingDashboard(params: {
   const tab: EmailMarketingTab =
     params.tab === "compose" ||
     params.tab === "templates" ||
-    params.tab === "history"
+    params.tab === "subscribers" ||
+    params.tab === "history" ||
+    params.tab === "automations"
       ? params.tab
       : "overview";
 
@@ -69,7 +79,7 @@ export async function getEmailMarketingDashboard(params: {
     }
   }
 
-  const [allCount, inactiveCount, memberCount, resellerCount, enterpriseCount] =
+  const [allCount, inactiveCount, memberCount, resellerCount, enterpriseCount, newsletterCount] =
     await Promise.all([
       countMarketingAudience({ audienceType: "all" }),
       countMarketingAudience({
@@ -79,7 +89,18 @@ export async function getEmailMarketingDashboard(params: {
       countMarketingAudience({ audienceType: "role_member" }),
       countMarketingAudience({ audienceType: "role_reseller" }),
       countMarketingAudience({ audienceType: "role_enterprise" }),
+      countMarketingAudience({ audienceType: "newsletter" }),
     ]);
+
+  const subscribers = await prisma.emailMarketingSubscriber.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
+
+  const [templatesWithImages, campaignsWithImages] = await Promise.all([
+    attachTemplateImages(templates),
+    attachCampaignImages(campaigns),
+  ]);
 
   let selectedCampaign = null as
     | (typeof campaigns)[number] & {
@@ -117,6 +138,14 @@ export async function getEmailMarketingDashboard(params: {
     });
   }
 
+  const selectedWithImage = selectedCampaign
+    ? {
+        ...selectedCampaign,
+        imageUrl:
+          (await attachCampaignImages([{ id: selectedCampaign.id }]))[0]?.imageUrl ?? null,
+      }
+    : null;
+
   const deliverySent =
     recentDeliveries.find((d) => d.status === "sent")?._count ?? 0;
   const deliveryFailed =
@@ -125,10 +154,13 @@ export async function getEmailMarketingDashboard(params: {
   return {
     tab,
     maxRecipients: EMAIL_MARKETING_MAX_RECIPIENTS,
+    newsletterMaxRecipients: EMAIL_MARKETING_NEWSLETTER_MAX_RECIPIENTS,
     inactiveDaysDefault: EMAIL_MARKETING_INACTIVE_DAYS_DEFAULT,
-    templates,
-    campaigns,
-    selectedCampaign,
+    templates: templatesWithImages,
+    campaigns: campaignsWithImages,
+    selectedCampaign: selectedWithImage,
+    subscribers,
+    subscriberCount: newsletterCount,
     stats: {
       campaignCount: totals._count,
       emailsSent: totals._sum.sentCount ?? 0,
@@ -147,6 +179,7 @@ export async function getEmailMarketingDashboard(params: {
       role_member: memberCount,
       role_reseller: resellerCount,
       role_enterprise: enterpriseCount,
+      newsletter: newsletterCount,
     },
   };
 }

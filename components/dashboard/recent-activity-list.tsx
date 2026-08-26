@@ -21,6 +21,19 @@ function statusDotClass(status: string) {
   return "bg-muted-foreground/40";
 }
 
+function statusBadgeClass(status: string) {
+  if (status === "SENT" || status === "DELIVERED") {
+    return "border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300";
+  }
+  if (status === "FAILED" || status === "REJECTED" || status === "EXPIRED") {
+    return "border-red-500/40 bg-red-500/15 text-red-700 dark:text-red-300";
+  }
+  if (status === "PENDING") {
+    return "border-amber-500/40 bg-amber-500/15 text-amber-800 dark:text-amber-300";
+  }
+  return "border-border bg-muted text-muted-foreground";
+}
+
 export function RecentActivityList({ messages }: { messages: Message[] }) {
   return (
     <div className="rounded-2xl border border-border/60 bg-card">
@@ -60,7 +73,12 @@ export function RecentActivityList({ messages }: { messages: Message[] }) {
                 <p className="text-xs text-muted-foreground truncate">{m.body}</p>
               </div>
               <div className="text-right shrink-0">
-                <p className="text-xs font-medium text-muted-foreground">
+                <p
+                  className={cn(
+                    "inline-flex items-center rounded-md border px-1.5 py-px text-[10px] font-semibold leading-4",
+                    statusBadgeClass(m.status),
+                  )}
+                >
                   {STATUS_LABELS[m.status] ?? m.status}
                 </p>
                 <p className="text-[10px] text-muted-foreground/80 mt-0.5 tabular-nums">

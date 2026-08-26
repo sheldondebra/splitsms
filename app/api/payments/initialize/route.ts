@@ -10,12 +10,19 @@ import {
   buildCheckoutMetadata,
   resolveResellerCheckoutContext,
 } from "@/lib/payments/reseller-checkout";
+import { asMetadataRecord } from "@/lib/payments/topup-credits";
 import { z } from "zod";
 
 const schema = z.object({
   amount: z.number().positive(),
   method: z.enum(["PAYSTACK", "FLUTTERWAVE", "STRIPE", "MTN_MOMO", "MANUAL"]),
   returnPath: z.string().optional(),
+  buyCreditsOnFund: z.boolean().optional(),
+  countryCode: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z]{2}$/)
+    .optional(),
   offline: z
     .object({
       payerName: z.string().optional(),
@@ -56,6 +63,12 @@ export async function POST(request: Request) {
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
   const checkoutCtx = await resolveResellerCheckoutContext(session.userId);
   const checkoutMeta = buildCheckoutMetadata(checkoutCtx);
+  const creditMeta = body.data.buyCreditsOnFund
+    ? {
+        buyCreditsOnFund: true,
+        creditCountryCode: (body.data.countryCode ?? user?.countryCode ?? "GH").toUpperCase(),
+      }
+    : {};
 
   const payment = await prisma.payment.create({
     data: {
@@ -65,8 +78,9 @@ export async function POST(request: Request) {
       currency: wallet.currency,
       providerReference: body.data.method === "MANUAL" ? undefined : `pending-${Date.now()}`,
       status: "PENDING",
-      metadata:
-        body.data.method === "MANUAL"
+      metadata: {
+        ...asMetadataRecord(checkoutMeta),
+        ...(body.data.method === "MANUAL"
           ? {
               payerName: body.data.offline?.payerName?.trim() || null,
               payerPhone: body.data.offline?.payerPhone?.trim() || null,
@@ -75,7 +89,9 @@ export async function POST(request: Request) {
               paidAt: body.data.offline?.paidAt?.trim() || null,
               note: body.data.offline?.note?.trim() || null,
             }
-          : checkoutMeta,
+          : {}),
+        ...creditMeta,
+      },
     },
   });
 

@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/db";
-import type { SenderIdStatus } from "@/lib/generated/prisma/client";
 import {
   ALL_SENDER_PROVIDERS,
   backfillSenderProviderRegistrations,
   ensureSenderProviderRows,
+  mapMnotifyStatusToLocal,
   updateSenderProviderRegistration,
 } from "@/lib/sender-ids/provider-registrations";
 import {
@@ -20,6 +20,11 @@ import {
 } from "@/lib/sender-ids/providers/twilio";
 import { resolveSenderRegistrationProviders } from "@/lib/sms/routing-policy";
 import { reconcileSenderIdPlatformStatus } from "@/lib/sender-ids/reconcile-status";
+import { isMnotifyHoldStatus } from "@/lib/sender-ids/provider-status";
+import {
+  notifyUserSenderIdDocumentsRequested,
+  senderIdDocumentRequestOnCooldown,
+} from "@/lib/sender-ids/notifications";
 import type { SenderIdProviderType } from "@/lib/generated/prisma/client";
 
 /** Restore senders wrongly marked rejected before carrier submission. */
@@ -48,13 +53,6 @@ async function healPlatformOnlySenderWronglyRejected(
       providerStatus: "Awaiting SplitSMS approval",
     });
   }
-}
-
-export function mapMnotifyStatusToLocal(providerStatus: string | undefined): SenderIdStatus {
-  const s = (providerStatus ?? "").toLowerCase();
-  if (s.includes("approve")) return "APPROVED";
-  if (s.includes("reject") || s.includes("deny") || s.includes("denied")) return "REJECTED";
-  return "PENDING";
 }
 
 export async function maybeSetFirstDefault(userId: string, senderRecordId: string) {
@@ -188,6 +186,8 @@ export async function syncSenderIdFromProviders(senderRecordId: string) {
 
   await ensureSenderProviderRows(senderRecordId);
 
+  const wasOnHold = isMnotifyHoldStatus(sender.providerStatus);
+
   const regMap = new Map(sender.providerRegistrations.map((r) => [r.provider, r]));
   const twilioReg = regMap.get("TWILIO");
   const infobipReg = regMap.get("INFOBIP");
@@ -218,15 +218,26 @@ export async function syncSenderIdFromProviders(senderRecordId: string) {
   });
 
   if (mnotifyResult.providerStatus) {
+    const combinedProviderStatus = [mnotifyResult, twilioResult, infobipResult]
+      .filter((r) => r.status !== "SKIPPED" && r.providerStatus)
+      .map((r) => r.providerStatus)
+      .join(" · ");
+
     await prisma.senderId.update({
       where: { id: senderRecordId },
-      data: {
-        providerStatus: [mnotifyResult, twilioResult, infobipResult]
-          .filter((r) => r.status !== "SKIPPED" && r.providerStatus)
-          .map((r) => r.providerStatus)
-          .join(" · "),
-      },
+      data: { providerStatus: combinedProviderStatus },
     });
+
+    const isNowOnHold = isMnotifyHoldStatus(combinedProviderStatus);
+    if (isNowOnHold && !wasOnHold) {
+      const onCooldown = await senderIdDocumentRequestOnCooldown(senderRecordId).catch(() => true);
+      if (!onCooldown) {
+        await notifyUserSenderIdDocumentsRequested(
+          senderRecordId,
+          "Your sender ID is on hold with the carrier. If you can provide a business registration document, or a Passport / Ghana Card, it can help resolve this faster.",
+        ).catch(() => undefined);
+      }
+    }
   }
 
   await reconcileSenderIdPlatformStatus(senderRecordId);
@@ -286,6 +297,45 @@ export async function syncUserSenderIdsFromMnotify(userId: string) {
   for (const row of senders) {
     await syncSenderIdFromProviders(row.id);
   }
+}
+
+/** Sync carrier status for pending sender IDs already submitted to providers. */
+export async function syncPendingSenderIdsFromProviders(limit = 25) {
+  const senders = await prisma.senderId.findMany({
+    where: {
+      status: "PENDING",
+      providerSubmittedAt: { not: null },
+    },
+    select: { id: true },
+    orderBy: { updatedAt: "asc" },
+    take: Math.min(80, Math.max(1, limit)),
+  });
+
+  let synced = 0;
+  let errors = 0;
+  let approved = 0;
+
+  for (const row of senders) {
+    try {
+      await syncSenderIdFromProviders(row.id);
+      synced += 1;
+      const refreshed = await prisma.senderId.findUnique({
+        where: { id: row.id },
+        select: { status: true },
+      });
+      if (refreshed?.status === "APPROVED") approved += 1;
+    } catch {
+      errors += 1;
+    }
+  }
+
+  return {
+    checked: senders.length,
+    synced,
+    errors,
+    approved,
+    pending: Math.max(0, synced - approved),
+  };
 }
 
 /** Sync carrier registration status for submitted sender IDs (pending + approved). */
@@ -371,4 +421,5 @@ export async function applyProviderStatusToSender(
   return localStatus;
 }
 
+export { mapMnotifyStatusToLocal } from "@/lib/sender-ids/provider-registrations";
 export { submitSenderIdToMnotify } from "@/lib/sender-ids/providers/mnotify";

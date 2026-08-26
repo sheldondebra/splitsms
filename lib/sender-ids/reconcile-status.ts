@@ -109,7 +109,9 @@ export async function reconcileSenderIdPlatformStatus(senderRecordId: string) {
     const { maybeSetFirstDefault } = await import("@/lib/sender-ids/provider-sync");
     const { notifyUserSenderIdApproved } = await import("@/lib/sender-ids/notifications");
     await maybeSetFirstDefault(sender.userId, senderRecordId).catch(() => undefined);
-    await notifyUserSenderIdApproved(senderRecordId).catch(() => undefined);
+    await notifyUserSenderIdApproved(senderRecordId).catch((error) => {
+      console.error("sender-id approval notify failed", senderRecordId, error);
+    });
   }
 }
 

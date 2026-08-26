@@ -8,6 +8,8 @@ import {
   CartesianGrid,
   Cell,
   Legend,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -200,9 +202,63 @@ export function CountryBarChart({
       <BarChart data={data} layout="vertical" margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
         <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
-        <YAxis type="category" dataKey="country" width={40} tick={{ fontSize: 11 }} />
+        <YAxis type="category" dataKey="country" width={96} tick={{ fontSize: 11 }} />
         <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
         <Bar dataKey="count" fill="var(--primary)" radius={[0, 4, 4, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function SimpleLineChart({
+  data,
+  dataKey = "value",
+}: {
+  data: { date: string; value?: number; sent?: number }[];
+  dataKey?: string;
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={260}>
+      <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+        <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+        <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+        <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
+        <Line
+          type="monotone"
+          dataKey={dataKey}
+          stroke="var(--primary)"
+          strokeWidth={2}
+          dot={false}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function ReasonBarChart({
+  data,
+}: {
+  data: { reason: string; count: number }[];
+}) {
+  if (data.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground text-center py-16">No failure reasons</p>
+    );
+  }
+  return (
+    <ResponsiveContainer width="100%" height={Math.max(260, data.length * 28)}>
+      <BarChart data={data} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+        <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+        <YAxis
+          type="category"
+          dataKey="reason"
+          width={160}
+          tick={{ fontSize: 10 }}
+        />
+        <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
+        <Bar dataKey="count" fill="#ef4444" radius={[0, 4, 4, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

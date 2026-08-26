@@ -71,7 +71,7 @@ export function SendCostPreview({
 
   if (!message.trim() && recipientCount === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border/80 bg-muted/20 p-5 text-sm text-muted-foreground leading-relaxed">
+      <div className="hidden rounded-xl border border-dashed border-border/80 bg-muted/20 p-5 text-sm text-muted-foreground leading-relaxed md:block">
         <p className="font-medium text-foreground">Cost preview</p>
         <p className="mt-2">Add phone numbers and a message to see segments, credits, and estimated charge.</p>
       </div>

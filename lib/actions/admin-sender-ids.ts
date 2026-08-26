@@ -16,7 +16,12 @@ import {
   maybeSetFirstDefault,
 } from "@/lib/sender-ids/provider-sync";
 import { senderHasProviderApproval } from "@/lib/sender-ids/reconcile-status";
-import { notifyUserSenderIdApproved, notifyUserSenderIdRejected, notifyUserSenderIdSubmitted } from "@/lib/sender-ids/notifications";
+import {
+  notifyUserSenderIdApproved,
+  notifyUserSenderIdDocumentsRequested,
+  notifyUserSenderIdRejected,
+  notifyUserSenderIdSubmitted,
+} from "@/lib/sender-ids/notifications";
 import { notifySlackSenderIdAdminAction } from "@/lib/slack/sender-id-events";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -316,6 +321,12 @@ export async function rejectSenderIdCore(
   );
 
   await notifyUserSenderIdRejected(id, note).catch(() => undefined);
+  if (!opts?.ban) {
+    await notifyUserSenderIdDocumentsRequested(
+      id,
+      "Your sender ID was not approved. If you can provide a business registration document, or a Passport / Ghana Card, we'll take another look.",
+    ).catch(() => undefined);
+  }
 
   void notifySlackSenderIdAdminAction({
     action: opts?.ban ? "blocked" : "denied",
@@ -760,6 +771,23 @@ export async function submitSenderToProvidersJsonAction(input: {
     ok: true,
     message: `${row.value} submitted to carriers.`,
     steps,
+  };
+}
+
+export async function requestSenderIdDocumentJsonAction(input: {
+  senderId: string;
+}): Promise<SenderIdMutationResult & { url?: string }> {
+  await requireAdminSession();
+  const result = await notifyUserSenderIdDocumentsRequested(
+    input.senderId,
+    "We'd like a document to help verify this sender ID.",
+  );
+  if (!result.ok) return { ok: false, error: "notfound", message: "Sender ID not found." };
+
+  return {
+    ok: true,
+    message: `Verification link emailed to the member for ${result.value}.`,
+    url: result.uploadUrl,
   };
 }
 

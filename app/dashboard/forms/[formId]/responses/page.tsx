@@ -8,7 +8,7 @@ import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
 import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ClipboardList, ArrowLeft, Download } from "lucide-react";
+import { ClipboardList, ArrowLeft, Download, FileBarChart2 } from "lucide-react";
 import { exportSmartFormToGoogleSheetsAction } from "@/lib/actions/google-sheets";
 import { getGoogleConnectionPublic } from "@/lib/google/connection";
 import { googleConnectHref } from "@/lib/google/connect-url";
@@ -68,6 +68,13 @@ export default async function SmartFormResponsesPage({
         icon={ClipboardList}
         actions={
           <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/dashboard/forms/${formId}/report`}
+              className={cn(buttonVariants({ variant: "outline" }), "h-10 gap-2")}
+            >
+              <FileBarChart2 className="h-4 w-4" />
+              Report
+            </Link>
             <a
               href={`/api/dashboard/forms/${formId}/responses/export`}
               className={cn(buttonVariants({ variant: "outline" }), "h-10 gap-2")}

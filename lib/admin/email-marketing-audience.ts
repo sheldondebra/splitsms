@@ -3,6 +3,7 @@ import type { Prisma, UserRole } from "@/lib/generated/prisma/client";
 import {
   EMAIL_MARKETING_INACTIVE_DAYS_DEFAULT,
   EMAIL_MARKETING_MAX_RECIPIENTS,
+  EMAIL_MARKETING_NEWSLETTER_MAX_RECIPIENTS,
   type EmailMarketingAudienceType,
 } from "@/lib/admin/email-marketing-shared";
 
@@ -29,10 +30,24 @@ export async function resolveMarketingAudience(input: {
   manualEmails?: string[];
   max?: number;
 }): Promise<MarketingRecipient[]> {
-  const max = Math.min(
-    Math.max(1, input.max ?? EMAIL_MARKETING_MAX_RECIPIENTS),
-    EMAIL_MARKETING_MAX_RECIPIENTS,
-  );
+  const cap =
+    input.audienceType === "newsletter"
+      ? EMAIL_MARKETING_NEWSLETTER_MAX_RECIPIENTS
+      : EMAIL_MARKETING_MAX_RECIPIENTS;
+  const max = Math.min(Math.max(1, input.max ?? cap), cap);
+
+  if (input.audienceType === "newsletter") {
+    const rows = await prisma.emailMarketingSubscriber.findMany({
+      where: { status: "subscribed" },
+      select: { email: true, fullName: true },
+      orderBy: { createdAt: "desc" },
+      take: max,
+    });
+    return rows.map((row) => ({
+      fullName: row.fullName?.trim() || row.email.split("@")[0] || "there",
+      email: row.email,
+    }));
+  }
 
   if (input.audienceType === "manual") {
     const emails = [
@@ -112,6 +127,11 @@ export async function countMarketingAudience(input: {
   inactiveDays?: number;
 }) {
   if (input.audienceType === "manual") return 0;
+  if (input.audienceType === "newsletter") {
+    return prisma.emailMarketingSubscriber.count({
+      where: { status: "subscribed" },
+    });
+  }
   const recipients = await resolveMarketingAudience({
     ...input,
     max: EMAIL_MARKETING_MAX_RECIPIENTS,

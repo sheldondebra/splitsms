@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Headphones, Loader2, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -257,20 +256,22 @@ export function SupportChatPanel({
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden",
+        "flex min-w-0 flex-col overflow-hidden",
         embedded
-          ? "min-h-[360px] bg-transparent"
-          : "h-[min(420px,55vh)] max-h-[420px] rounded-2xl border border-border/60 bg-card",
+          ? "min-h-[360px] min-w-0 bg-transparent"
+          : "flex h-[min(28rem,calc(100dvh-11.5rem))] max-h-[28rem] min-w-0 w-full rounded-2xl border border-border/60 bg-card md:h-[min(420px,55vh)] md:max-h-[420px]",
         className,
       )}
     >
-      <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-border/50 shrink-0">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary">
+      <div className="flex min-w-0 items-center gap-2.5 px-3 py-2.5 border-b border-border/50 shrink-0">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
           <Headphones className="h-3.5 w-3.5" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold leading-none">Support chat</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">{presence.detail}</p>
+          <p className="text-sm font-semibold leading-none truncate">Support chat</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5 truncate" title={presence.detail}>
+            {presence.detail}
+          </p>
         </div>
         <span
           className={cn(
@@ -291,7 +292,7 @@ export function SupportChatPanel({
             const msg = thread.messages[0]!;
             return (
               <div key={thread.key} className="flex justify-start">
-                <div className="max-w-[92%] rounded-xl rounded-bl-sm bg-muted/70 px-2.5 py-2 text-xs leading-snug text-muted-foreground">
+                <div className="max-w-[92%] rounded-xl rounded-bl-sm bg-muted/70 px-2.5 py-2 text-sm leading-snug text-muted-foreground md:text-xs">
                   {msg.body}
                 </div>
               </div>
@@ -338,7 +339,7 @@ export function SupportChatPanel({
                 >
                   <div
                     className={cn(
-                      "max-w-[90%] rounded-lg px-2.5 py-1.5 text-xs leading-snug",
+                      "max-w-[90%] rounded-2xl px-3 py-2 text-sm leading-snug md:rounded-lg md:px-2.5 md:py-1.5 md:text-xs",
                       msg.role === "user"
                         ? closed
                           ? "bg-muted text-muted-foreground rounded-br-sm"
@@ -348,10 +349,10 @@ export function SupportChatPanel({
                           : "bg-muted/80 text-foreground rounded-bl-sm",
                     )}
                   >
-                    <p className="line-clamp-4 break-words">{msg.body}</p>
+                    <p className="break-words">{msg.body}</p>
                     <p
                       className={cn(
-                        "text-[9px] mt-1 tabular-nums opacity-70",
+                        "text-[10px] mt-1 tabular-nums opacity-70 md:text-[9px]",
                         msg.role === "user" && !closed && "text-primary-foreground/80",
                       )}
                     >
@@ -380,30 +381,31 @@ export function SupportChatPanel({
         <p className="text-[9px] text-muted-foreground px-3 pb-0.5 shrink-0">Syncing…</p>
       )}
 
-      <form onSubmit={handleSubmit} className="p-2 border-t border-border/50 shrink-0">
-        <div className="flex gap-1.5 items-end rounded-lg border bg-muted/30 p-1.5 focus-within:ring-2 focus-within:ring-primary/20">
-          <Textarea
+      <form onSubmit={handleSubmit} className="border-t border-border/50 bg-background p-2.5 shrink-0 min-w-0">
+        <div className="flex min-w-0 flex-nowrap items-center gap-2">
+          <input
+            type="text"
             name="message"
-            rows={1}
-            placeholder="Quick question…"
+            placeholder="Message…"
             required
             value={text}
             onChange={(e) => setText(e.target.value)}
             disabled={sending}
-            className="min-h-[36px] max-h-20 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 text-xs py-2"
+            autoComplete="off"
+            enterKeyHint="send"
+            className="h-11 min-w-0 flex-1 rounded-full border border-border/60 bg-muted/40 px-4 text-base leading-none shadow-none outline-none placeholder:text-muted-foreground focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15 disabled:opacity-50 md:h-10 md:text-sm"
           />
           <Button
             type="submit"
-            size="icon"
             disabled={sending || !text.trim()}
-            className="h-8 w-8 shrink-0 rounded-md"
+            className="app-btn-compact h-11 shrink-0 gap-1.5 rounded-full px-4 text-sm font-semibold md:h-10"
           >
             {sending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Send className="h-3.5 w-3.5" />
+              <Send className="h-4 w-4" />
             )}
-            <span className="sr-only">Send</span>
+            Send
           </Button>
         </div>
       </form>

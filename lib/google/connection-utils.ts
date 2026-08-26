@@ -28,6 +28,7 @@ export function mergeScopes(...lists: string[][]): string[] {
 export function parseScopeString(scope: string | undefined | null): string[] {
   if (!scope?.trim()) return [];
   return scope
+    .replace(/\+/g, " ")
     .split(/\s+/)
     .map((s) => s.trim())
     .filter(Boolean);

@@ -1,10 +1,16 @@
 import { prisma } from "@/lib/db";
-import type { SenderIdProviderStatus, SenderIdProviderType } from "@/lib/generated/prisma/client";
+import type {
+  SenderIdDocumentType,
+  SenderIdProviderStatus,
+  SenderIdProviderType,
+} from "@/lib/generated/prisma/client";
 import { loadSlackOfficeConfig } from "@/lib/slack/config";
 import { isSlackConfigured } from "@/lib/slack/config-shared";
 import { postSlackMessage } from "@/lib/slack/client";
+import { senderIdDocumentTypeLabel } from "@/lib/email/templates";
 import {
   slackSenderIdAdminActionBlocks,
+  slackSenderIdDocumentUploadedBlocks,
   slackSenderIdProviderDecisionBlocks,
 } from "@/lib/slack/blocks";
 
@@ -52,6 +58,34 @@ export async function notifySlackSenderIdAdminAction(input: {
     {
       text: `${emoji} ${actionLabel}: ${input.value} — by ${input.actorName}`,
       blocks: slackSenderIdAdminActionBlocks({ ...input, actionLabel }),
+    },
+    config,
+  );
+}
+
+export async function notifySlackSenderIdDocumentUploaded(input: {
+  senderRecordId: string;
+  value: string;
+  countryCode: string;
+  memberName: string;
+  memberPhone?: string;
+  docType: SenderIdDocumentType;
+  adminUrl?: string;
+}) {
+  const config = await slackReady();
+  if (!config) return;
+
+  await postSlackMessage(
+    {
+      text: `:inbox_tray: Verification document uploaded: ${input.value} — ${input.memberName}`,
+      blocks: slackSenderIdDocumentUploadedBlocks({
+        senderRecordId: input.senderRecordId,
+        value: input.value,
+        countryCode: input.countryCode,
+        memberName: input.memberName,
+        memberPhone: input.memberPhone,
+        docTypeLabel: senderIdDocumentTypeLabel(input.docType),
+      }),
     },
     config,
   );

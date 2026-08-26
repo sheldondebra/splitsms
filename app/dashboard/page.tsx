@@ -12,7 +12,7 @@ import {
 import { buildSupportChatMessages } from "@/lib/support/chat";
 import { loadSupportPresence } from "@/lib/support/presence";
 import { DashboardMetrics, DashboardAlert } from "@/components/dashboard/dashboard-metrics";
-import { DashboardWelcomeBalance } from "@/components/dashboard/dashboard-welcome-balance";
+import { DashboardWelcomeHero } from "@/components/dashboard/dashboard-welcome-balance";
 import { RecentActivityList } from "@/components/dashboard/recent-activity-list";
 import { DeliverySyncPoller } from "@/components/dashboard/delivery-sync-poller";
 import { SetupStrip } from "@/components/dashboard/setup-strip";
@@ -77,34 +77,7 @@ export default async function DashboardPage() {
   return (
     <div className="app-page space-y-5 md:space-y-6 pb-2">
       <DeliverySyncPoller active={hasInTransit} />
-      <div className="hidden md:flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-[1.65rem]">
-            Welcome back, {firstName}
-          </h1>
-          <DashboardWelcomeBalance balance={balance} />
-        </div>
-        <Link
-          href="/dashboard/send"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors shrink-0"
-        >
-          <Send className="h-4 w-4" />
-          Send SMS
-        </Link>
-      </div>
-
-      <div className="md:hidden space-y-3">
-        <p className="text-sm text-muted-foreground">Hi {firstName}</p>
-        <DashboardWelcomeBalance balance={balance} className="mt-0" />
-      </div>
-
-      <Link
-        href="/dashboard/send"
-        className="md:hidden flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 active:scale-[0.98] transition-transform"
-      >
-        <Send className="h-5 w-5" />
-        Send SMS
-      </Link>
+      <DashboardWelcomeHero firstName={firstName} balance={balance} />
 
       <SetupStrip
         phoneVerified={user?.isVerified ?? false}
@@ -167,8 +140,8 @@ export default async function DashboardPage() {
         ]}
       />
 
-      <div className="grid gap-6 lg:grid-cols-5 lg:items-stretch">
-        <div className="lg:col-span-3 space-y-6">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-5 lg:items-stretch">
+        <div className="min-w-0 space-y-6 lg:col-span-3">
           <DashboardChartsPanel
             dailySms={data.charts.dailySms}
             deliveryChart={data.charts.deliveryChart}
@@ -182,7 +155,7 @@ export default async function DashboardPage() {
           <RecentActivityList messages={recentMessages} />
         </div>
 
-        <div className="lg:col-span-2">
+        <div className="min-w-0 lg:col-span-2">
           <SupportChatPanel
             initialMessages={chatMessages}
             initialPresence={supportPresence}

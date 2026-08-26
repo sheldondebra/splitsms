@@ -4,7 +4,13 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SeoLandingPage } from "@/lib/marketing/seo-landing-pages";
 
-export function SeoLandingPageContent({ page }: { page: SeoLandingPage }) {
+export function SeoLandingPageContent({
+  page,
+  backLink = { href: "/solutions", label: "All solutions" },
+}: {
+  page: SeoLandingPage;
+  backLink?: { href: string; label: string };
+}) {
   return (
     <>
       <section className="relative overflow-hidden border-b border-border">
@@ -14,10 +20,10 @@ export function SeoLandingPageContent({ page }: { page: SeoLandingPage }) {
         />
         <div className="relative mx-auto max-w-4xl px-4 pt-14 pb-12 md:pt-20 md:pb-16">
           <Link
-            href="/solutions"
+            href={backLink.href}
             className="text-sm text-muted-foreground hover:text-primary transition-colors"
           >
-            ← All solutions
+            ← {backLink.label}
           </Link>
           <h1 className="mt-6 text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
             {page.h1}

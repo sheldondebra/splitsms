@@ -20,11 +20,13 @@ import {
   type RankedOpportunity,
 } from "../../lib/seo/opportunity";
 
+process.env.GOOGLE_CLOUD_QUOTA_PROJECT ??= "splitsms";
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const OUT_DIR = join(ROOT, "scripts/seo/out");
 const OUT_FILE = join(OUT_DIR, "gsc-report.json");
 const SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
-const DEFAULT_SITE = "https://www.splitsms.com/";
+const DEFAULT_SITE = "sc-domain:splitsms.com";
 
 type ApiRow = {
   keys?: string[] | null;
@@ -146,10 +148,10 @@ async function fetchDimension(
 
 async function main() {
   const { days } = parseArgs(process.argv.slice(2));
-  const siteUrl = (process.env.GSC_SITE_URL?.trim() || DEFAULT_SITE).replace(
-    /\/?$/,
-    "/",
-  );
+  const rawSite = process.env.GSC_SITE_URL?.trim() || DEFAULT_SITE;
+  const siteUrl = rawSite.startsWith("sc-domain:")
+    ? rawSite.replace(/\/$/, "")
+    : rawSite.replace(/\/?$/, "/");
   const { startDate, endDate } = dateRange(days);
 
   console.log(`GSC site: ${siteUrl}`);

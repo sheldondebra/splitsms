@@ -1,4 +1,4 @@
-import { dashboardNavCategories } from "@/lib/navigation/dashboard-nav";
+import { dashboardNavCategories, isNavActive } from "@/lib/navigation/dashboard-nav";
 import { developersNavItems } from "@/lib/navigation/developers-nav";
 import { isDevelopersNavActive } from "@/lib/navigation/developers-nav";
 
@@ -7,10 +7,12 @@ const PAGE_TITLES: Record<string, string> = {
   "/dashboard/send": "Send SMS",
   "/dashboard/sender-ids": "Sender IDs",
   "/dashboard/contacts": "Contacts",
+  "/dashboard/forms": "Smart Forms",
   "/dashboard/campaigns": "Campaigns",
   "/dashboard/templates": "Templates",
   "/dashboard/wallet": "Wallet",
   "/dashboard/reports": "Message results",
+  "/dashboard/account-reports": "My reports",
   "/dashboard/pricing": "Pricing",
   "/dashboard/transactions": "Transactions",
   "/dashboard/invoices": "Invoices",
@@ -31,6 +33,8 @@ const PAGE_TITLES: Record<string, string> = {
 
 export function getMemberPageTitle(pathname: string): string {
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+  if (pathname.startsWith("/dashboard/account-reports")) return "My reports";
+  if (/^\/dashboard\/forms\/[^/]+\/report/.test(pathname)) return "Form report";
 
   for (const item of developersNavItems) {
     if (isDevelopersNavActive(pathname, item.href, item.exact)) {
@@ -40,7 +44,7 @@ export function getMemberPageTitle(pathname: string): string {
 
   for (const cat of dashboardNavCategories) {
     for (const item of cat.items) {
-      if (pathname.startsWith(item.href) && item.href !== "/dashboard") {
+      if (isNavActive(pathname, item.href)) {
         return item.label;
       }
     }

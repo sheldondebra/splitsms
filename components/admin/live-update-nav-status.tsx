@@ -2,41 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import type { LiveUpdateNavState } from "@/lib/admin/live-update-nav";
 import { cn } from "@/lib/utils";
 
-export type LiveUpdateNavState = "idle" | "busy" | "error";
+export type { LiveUpdateNavState };
 
-type LiveStatsPayload = {
-  stats?: {
-    pending?: number;
-    processing?: number;
-    failedLast15m?: number;
-    activeCampaigns?: number;
-  };
-  campaigns?: Array<{ pending?: number; processing?: number; failed?: number; status?: string }>;
-};
-
-export function resolveLiveUpdateNavState(data: LiveStatsPayload | null): LiveUpdateNavState {
-  if (!data?.stats) return "idle";
-  const failed =
-    (data.stats.failedLast15m ?? 0) > 0 ||
-    (data.campaigns ?? []).some((c) => (c.failed ?? 0) > 0);
-  if (failed) return "error";
-
-  const busy =
-    (data.stats.pending ?? 0) > 0 ||
-    (data.stats.processing ?? 0) > 0 ||
-    (data.campaigns ?? []).some(
-      (c) =>
-        c.status === "SENDING" ||
-        (c.pending ?? 0) > 0 ||
-        (c.processing ?? 0) > 0,
-    );
-  if (busy) return "busy";
-  return "idle";
-}
-
-/** Polls live-update stats for sidebar / nav status icons. */
+/** Polls a state-only endpoint so the Network tab never sees queue payloads. */
 export function useLiveUpdateNavState(pollMs = 4000): LiveUpdateNavState {
   const [state, setState] = useState<LiveUpdateNavState>("idle");
 
@@ -45,10 +16,10 @@ export function useLiveUpdateNavState(pollMs = 4000): LiveUpdateNavState {
 
     async function ping() {
       try {
-        const res = await fetch("/api/admin/live-update", { cache: "no-store" });
+        const res = await fetch("/api/admin/live-update/status", { cache: "no-store" });
         if (!res.ok) return;
-        const json = (await res.json()) as LiveStatsPayload;
-        if (!cancelled) setState(resolveLiveUpdateNavState(json));
+        const json = (await res.json()) as { state?: LiveUpdateNavState };
+        if (!cancelled && json.state) setState(json.state);
       } catch {
         /* keep last known state */
       }

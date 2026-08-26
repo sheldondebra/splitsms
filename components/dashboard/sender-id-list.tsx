@@ -1,11 +1,11 @@
 "use client";
 
-import { setDefaultSenderIdAction } from "@/lib/actions/sender-ids";
+import { resendSenderIdVerificationEmailAction, setDefaultSenderIdAction } from "@/lib/actions/sender-ids";
 import { SenderIdStatusBadge } from "@/components/dashboard/sender-id-status-badge";
 import { memberSenderNote } from "@/lib/sms/member-facing";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Star } from "lucide-react";
+import { Mail, Star } from "lucide-react";
 import type { SenderIdStatus } from "@/lib/generated/prisma/client";
 
 export type SenderIdItem = {
@@ -17,6 +17,8 @@ export type SenderIdItem = {
   adminNote: string | null;
   providerSubmittedAt: string | null;
   createdAt: string;
+  onHold: boolean;
+  hasDocument: boolean;
 };
 
 export function SenderIdList({ items }: { items: SenderIdItem[] }) {
@@ -26,13 +28,14 @@ export function SenderIdList({ items }: { items: SenderIdItem[] }) {
     <ul className="divide-y divide-border/60 rounded-xl border border-border/60 overflow-hidden">
       {items.map((s) => {
         const denyReason = memberSenderNote(s.adminNote, s.status);
+        const needsDocument = (s.onHold || s.status === "REJECTED") && !s.hasDocument;
 
         return (
           <li
             key={s.id}
             className={cn(
               "flex flex-col gap-1.5 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3",
-              s.status === "PENDING" && "bg-amber-500/[0.04]",
+              (s.status === "PENDING" || s.onHold) && "bg-amber-500/[0.04]",
               s.status === "REJECTED" && "bg-destructive/[0.03]",
             )}
           >
@@ -50,6 +53,7 @@ export function SenderIdList({ items }: { items: SenderIdItem[] }) {
                 <SenderIdStatusBadge
                   status={s.status}
                   compact
+                  onHold={s.onHold}
                   providerSubmittedAt={s.providerSubmittedAt}
                 />
               </div>
@@ -66,6 +70,23 @@ export function SenderIdList({ items }: { items: SenderIdItem[] }) {
                 <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2">
                   <span className="font-medium text-foreground">Reason: </span>
                   {denyReason}
+                </p>
+              )}
+              {needsDocument && (
+                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-amber-800 dark:text-amber-300">
+                  <Mail className="h-3 w-3 shrink-0" />
+                  We emailed you a link to upload a verification document.
+                  <form action={resendSenderIdVerificationEmailAction} className="inline">
+                    <input type="hidden" name="id" value={s.id} />
+                    <button type="submit" className="font-semibold underline hover:no-underline">
+                      Resend email
+                    </button>
+                  </form>
+                </p>
+              )}
+              {s.hasDocument && (s.onHold || s.status === "REJECTED") && (
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Document submitted — awaiting review.
                 </p>
               )}
             </div>

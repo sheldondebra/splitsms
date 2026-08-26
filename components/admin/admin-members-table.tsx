@@ -41,7 +41,9 @@ import {
   Globe,
   Link2,
   Loader2,
+  Mail,
   MessageSquare,
+  Phone,
   Puzzle,
   ShieldCheck,
   ShieldOff,
@@ -404,9 +406,15 @@ export function AdminMembersTable({
                   </p>
                 </TableCell>
                 <TableCell>
-                  <p className="font-mono text-xs">{m.phone}</p>
+                  <p className="flex items-center gap-1.5 font-mono text-xs">
+                    <Phone className="h-3 w-3 shrink-0 text-muted-foreground opacity-70" aria-hidden />
+                    <span className="min-w-0 truncate">{m.phone}</span>
+                  </p>
                   {m.email && (
-                    <p className="text-[11px] text-muted-foreground truncate max-w-[160px]">{m.email}</p>
+                    <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground max-w-[180px]">
+                      <Mail className="h-3 w-3 shrink-0 opacity-70" aria-hidden />
+                      <span className="min-w-0 truncate">{m.email}</span>
+                    </p>
                   )}
                 </TableCell>
                 <TableCell>

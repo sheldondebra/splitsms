@@ -23,6 +23,7 @@ import {
   submitSenderToProvidersJsonAction,
   syncSenderProvidersJsonAction,
   notifySenderIdLiveJsonAction,
+  requestSenderIdDocumentJsonAction,
   blockSenderIdAction,
   adminSyncAllSenderProvidersAction,
 } from "@/lib/actions/admin-sender-ids";
@@ -52,6 +53,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { SenderIdProviderRegistration } from "@/lib/generated/prisma/client";
+import { isMnotifyHoldStatus } from "@/lib/sender-ids/provider-status";
 import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
@@ -60,6 +62,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Download,
+  FileText,
   Globe,
   Loader2,
   Mail,
@@ -184,6 +188,13 @@ function SenderIdPaginatedList({
   );
 }
 
+type SenderVerificationDocumentRow = {
+  id: string;
+  docType: string;
+  filename: string;
+  createdAt: Date;
+};
+
 type SenderRow = {
   id: string;
   value: string;
@@ -196,6 +207,14 @@ type SenderRow = {
   createdAt: Date;
   user: { id: string; fullName: string; phone: string };
   providerRegistrations: SenderIdProviderRegistration[];
+  verificationDocuments?: SenderVerificationDocumentRow[];
+};
+
+const SENDER_DOCUMENT_TYPE_LABEL: Record<string, string> = {
+  BUSINESS_REGISTRATION: "Business reg.",
+  PASSPORT: "Passport",
+  GHANA_CARD: "Ghana Card",
+  OTHER_ID: "Government ID",
 };
 
 type TabId = "overview" | "pending" | "register" | "all" | "mnotify" | "banned";
@@ -213,9 +232,20 @@ function anyProviderApproved(regs: SenderIdProviderRegistration[]) {
   return regs.some((r) => r.status === "APPROVED");
 }
 
+function isSenderOnHold(s: {
+  providerStatus: string | null;
+  providerRegistrations: SenderIdProviderRegistration[];
+}) {
+  return (
+    isMnotifyHoldStatus(s.providerStatus) ||
+    s.providerRegistrations.some((r) => isMnotifyHoldStatus(r.providerStatus))
+  );
+}
+
 function SenderStatsBar({ stats }: { stats: AdminSenderIdsDashboard["stats"] }) {
   const items = [
     { label: "Pending", value: stats.pending, hot: stats.pending > 0, primary: true },
+    { label: "On hold", value: stats.onHoldCount, hot: stats.onHoldCount > 0, warn: true },
     { label: "Approved", value: stats.approved, hot: false },
     { label: "Denied", value: stats.rejected, hot: stats.rejected > 0 },
     {
@@ -229,7 +259,7 @@ function SenderStatsBar({ stats }: { stats: AdminSenderIdsDashboard["stats"] }) 
 
   return (
     <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-x divide-y sm:divide-y-0 lg:divide-y-0 divide-border/50">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-y sm:divide-y-0 lg:divide-y-0 divide-border/50">
         {items.map(({ label, value, hot, primary, warn }) => (
           <div
             key={label}
@@ -309,19 +339,35 @@ export function AdminSenderIdsView({
   detail?: string;
 }) {
   const router = useRouter();
-  const tab =
+  const [tab, setTab] = useState<TabId>(
     initialTab === "overview" ||
-    initialTab === "register" ||
-    initialTab === "all" ||
-    initialTab === "pending" ||
-    initialTab === "mnotify" ||
-    initialTab === "banned"
+      initialTab === "register" ||
+      initialTab === "all" ||
+      initialTab === "pending" ||
+      initialTab === "mnotify" ||
+      initialTab === "banned"
       ? initialTab
-      : "pending";
+      : "pending",
+  );
+
+  useEffect(() => {
+    if (
+      initialTab === "overview" ||
+      initialTab === "register" ||
+      initialTab === "all" ||
+      initialTab === "pending" ||
+      initialTab === "mnotify" ||
+      initialTab === "banned"
+    ) {
+      setTab(initialTab);
+    }
+  }, [initialTab]);
 
   function onTabChange(value: string) {
+    const next = value as TabId;
+    setTab(next);
     const params = new URLSearchParams();
-    params.set("tab", value);
+    params.set("tab", next);
     router.replace(`/admin/sender-ids?${params.toString()}`, { scroll: false });
   }
 
@@ -405,11 +451,11 @@ export function AdminSenderIdsView({
 
         <TabsContent value="pending" className="mt-0">
           <AdminCard
-            title="Pending requests"
+            title="Pending & on hold"
             description={
               pending.length === 0
                 ? "No requests awaiting review"
-                : "Review each request, submit to carriers, then confirm approval when ready"
+                : "Includes SplitSMS review and sender IDs providers have placed on hold"
             }
             dense
           >
@@ -528,7 +574,8 @@ function SenderIdAdminRow({
 
   const submitted = Boolean(s.providerSubmittedAt);
   const denied = allProvidersDenied(s.providerRegistrations);
-  const approvedOnCarrier = anyProviderApproved(s.providerRegistrations);
+  const onHold = isSenderOnHold(s);
+  const approvedOnCarrier = anyProviderApproved(s.providerRegistrations) && !onHold;
   const providerRejectedOrFailed = s.providerRegistrations.some(
     (r) => r.status === "REJECTED" || r.status === "FAILED",
   );
@@ -541,7 +588,9 @@ function SenderIdAdminRow({
     s.adminNote?.toLowerCase().includes("approved by splitsms"),
   );
 
-  const statusLine = !submitted
+  const statusLine = onHold
+    ? "On hold at the provider"
+    : !submitted
     ? s.adminNote?.toLowerCase().includes("cancelled")
       ? "Cancelled — not submitted to registrar"
       : "Not submitted to carriers yet"
@@ -553,7 +602,9 @@ function SenderIdAdminRow({
           ? "Approved by SplitSMS — waiting on carriers"
           : "Waiting on carrier registration";
 
-  const StatusIcon = !submitted
+  const StatusIcon = onHold
+    ? Clock
+    : !submitted
     ? Clock
     : approvedOnCarrier
       ? CheckCircle2
@@ -566,13 +617,15 @@ function SenderIdAdminRow({
   const primary =
     s.status === "PENDING" && !submitted
       ? ({ kind: "approve_submit" as const, label: "Approve & submit" })
-      : s.status === "PENDING" && submitted && !(denied && !approvedOnCarrier)
-        ? ({ kind: "confirm_approval" as const, label: "Confirm approval" })
-        : canResubmit && (denied || s.status === "REJECTED")
-          ? ({ kind: "resubmit" as const, label: "Re-submit" })
-          : s.status === "APPROVED"
-            ? ({ kind: "notify_live" as const, label: "Notify: live now" })
-            : null;
+      : canResubmit && (denied || s.status === "REJECTED")
+        ? ({ kind: "resubmit" as const, label: "Re-submit" })
+        : s.status === "PENDING" && submitted && approvedOnCarrier
+          ? ({ kind: "confirm_approval" as const, label: "Confirm approval" })
+          : s.status === "PENDING" && submitted && waitingOnCarrier
+            ? ({ kind: "submitted" as const, label: "Submitted to providers" })
+            : s.status === "APPROVED"
+              ? ({ kind: "notify_live" as const, label: "Notify: live now" })
+              : null;
 
   function runNotifyLive() {
     startMenuTransition(async () => {
@@ -613,6 +666,28 @@ function SenderIdAdminRow({
     });
   }
 
+  function runRequestDocument() {
+    startMenuTransition(async () => {
+      const toastId = toast.loading(`Requesting a document from ${s.user.fullName}…`);
+      const result = await requestSenderIdDocumentJsonAction({ senderId: s.id });
+      if (!result.ok) {
+        toast.error("Request failed", { id: toastId, description: result.message });
+        return;
+      }
+      if (result.url) {
+        try {
+          await navigator.clipboard.writeText(result.url);
+          toast.success("Email sent — link copied", { id: toastId, description: result.message });
+        } catch {
+          toast.success("Email sent", { id: toastId, description: result.message });
+        }
+      } else {
+        toast.success("Requested", { id: toastId, description: result.message });
+      }
+      router.refresh();
+    });
+  }
+
   function runSubmitOnly() {
     startMenuTransition(async () => {
       const toastId = toast.loading("Submitting to carriers…");
@@ -633,8 +708,8 @@ function SenderIdAdminRow({
     <li
       className={cn(
         "rounded-xl border px-3 py-3 transition-colors sm:px-4",
-        waitingOnCarrier
-          ? "border-primary/25 bg-primary/[0.03]"
+        waitingOnCarrier || onHold
+          ? "border-amber-500/30 bg-amber-500/[0.04]"
           : approvedOnCarrier
             ? "border-emerald-500/25 bg-emerald-500/[0.03]"
             : denied
@@ -649,6 +724,15 @@ function SenderIdAdminRow({
             <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px]", statusBadgeClass(s.status))}>
               {s.status}
             </Badge>
+            {onHold ? (
+              <Badge
+                variant="outline"
+                className="h-5 gap-1 border-amber-500/40 bg-amber-500/10 px-1.5 text-[10px] text-amber-800 dark:text-amber-200"
+              >
+                <Clock className="h-3 w-3" />
+                On hold
+              </Badge>
+            ) : null}
             <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[10px]">
               <Globe className="h-3 w-3" />
               {s.countryCode}
@@ -694,6 +778,25 @@ function SenderIdAdminRow({
             </p>
             <SenderIdProviderPanel registrations={s.providerRegistrations} compact />
           </div>
+
+          {s.verificationDocuments && s.verificationDocuments.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <FileText className="h-3 w-3" />
+                Documents
+              </span>
+              {s.verificationDocuments.map((doc) => (
+                <a
+                  key={doc.id}
+                  href={`/admin/sender-ids/documents/${doc.id}`}
+                  className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-muted/40 px-1.5 py-0.5 text-[11px] font-medium text-foreground hover:border-primary/40 hover:text-primary"
+                >
+                  <Download className="h-3 w-3" />
+                  {SENDER_DOCUMENT_TYPE_LABEL[doc.docType] ?? "Document"}
+                </a>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="flex shrink-0 items-center gap-2 self-end sm:self-center">
@@ -702,10 +805,22 @@ function SenderIdAdminRow({
               type="button"
               size="sm"
               className="h-8 gap-1.5 text-xs"
-              disabled={primary.kind === "confirm_approval" && denied && !approvedOnCarrier}
               onClick={() => setApproveOpen(true)}
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
+              {primary.label}
+            </Button>
+          ) : null}
+
+          {primary?.kind === "submitted" ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 text-xs"
+              disabled
+            >
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
               {primary.label}
             </Button>
           ) : null}
@@ -768,6 +883,12 @@ function SenderIdAdminRow({
                 <RefreshCw className="h-4 w-4" />
                 Sync carriers
               </DropdownMenuItem>
+              {s.status !== "APPROVED" ? (
+                <DropdownMenuItem onClick={runRequestDocument}>
+                  <FileText className="h-4 w-4" />
+                  Request document (email + copy link)
+                </DropdownMenuItem>
+              ) : null}
               {!submitted && s.status === "PENDING" ? (
                 <DropdownMenuItem onClick={runSubmitOnly}>
                   <Send className="h-4 w-4" />

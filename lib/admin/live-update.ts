@@ -256,3 +256,18 @@ export async function getAdminLiveUpdateSnapshot(): Promise<LiveUpdateSnapshot> 
     events,
   };
 }
+
+/** Counts only — used by the nav poller so Network tab never sees message/payment rows. */
+export async function getAdminLiveUpdateNavCounts() {
+  const since15 = new Date(Date.now() - 15 * 60 * 1000);
+  const [pending, processing, failedLast15m, sendingCampaigns] = await Promise.all([
+    prisma.message.count({ where: { status: "PENDING", isSandbox: false } }),
+    prisma.message.count({ where: { status: "PROCESSING", isSandbox: false } }),
+    prisma.message.count({
+      where: { status: "FAILED", isSandbox: false, failedAt: { gte: since15 } },
+    }),
+    prisma.campaign.count({ where: { status: "SENDING" } }),
+  ]);
+
+  return { pending, processing, failedLast15m, sendingCampaigns };
+}

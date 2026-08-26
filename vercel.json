@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/process-sms",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/sync-sender-ids",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/email-automations",
+      "schedule": "0 9 * * *"
     }
   ],
   "headers": [

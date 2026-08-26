@@ -42,22 +42,22 @@ export function AdminPageHeader({
 }) {
   return (
     <div className="admin-page-header flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      {(Icon || description) && (
-        <div className="flex items-start gap-3 min-w-0 flex-1">
-          {Icon && (
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
-              <Icon className="h-5 w-5" />
-            </div>
-          )}
-          {description && (
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl pt-0.5">
-              <span className="sr-only">{title}</span>
+      <div className="flex items-start gap-3 min-w-0 flex-1">
+        {Icon ? (
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <Icon className="h-5 w-5" />
+          </div>
+        ) : null}
+        <div className="min-w-0 pt-0.5">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">{title}</h1>
+          {description ? (
+            <p className="mt-1 text-sm text-muted-foreground leading-relaxed max-w-2xl">
               {description}
             </p>
-          )}
+          ) : null}
         </div>
-      )}
-      {actions && <div className="flex flex-wrap gap-2 shrink-0">{actions}</div>}
+      </div>
+      {actions ? <div className="flex flex-wrap gap-2 shrink-0">{actions}</div> : null}
     </div>
   );
 }

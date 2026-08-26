@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { LifeBuoy, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import {
   submitPublicSupportAction,
   type PublicSupportState,
@@ -10,22 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { supportCategories, type SupportCategory } from "@/lib/marketing/support-page";
 import { cn } from "@/lib/utils";
-
-const categories = [
-  { value: "bug", label: "Bug report" },
-  { value: "error", label: "Error or outage" },
-  { value: "billing", label: "Billing & wallet" },
-  { value: "api", label: "API & integrations" },
-  { value: "wordpress", label: "WordPress plugin" },
-  { value: "account", label: "Account access" },
-  { value: "feature", label: "Feature request" },
-  { value: "other", label: "Other" },
-] as const;
 
 const initialState: PublicSupportState = {};
 
-export function SupportForm() {
+export function SupportForm({ defaultCategory }: { defaultCategory?: SupportCategory }) {
   const [state, formAction, pending] = useActionState(
     submitPublicSupportAction,
     initialState,
@@ -47,7 +37,7 @@ export function SupportForm() {
             name="name"
             required
             autoComplete="name"
-            placeholder="Jane Doe"
+            placeholder="Ama Mensah"
             aria-invalid={Boolean(state.fieldErrors?.name)}
           />
           {state.fieldErrors?.name ? (
@@ -74,10 +64,11 @@ export function SupportForm() {
       <div className="space-y-2">
         <Label htmlFor="support-category">What do you need help with?</Label>
         <select
+          key={defaultCategory ?? "none"}
           id="support-category"
           name="category"
           required
-          defaultValue=""
+          defaultValue={defaultCategory ?? ""}
           className={cn(
             "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
             "ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -87,7 +78,7 @@ export function SupportForm() {
           <option value="" disabled>
             Select a topic…
           </option>
-          {categories.map(({ value, label }) => (
+          {supportCategories.map(({ value, label }) => (
             <option key={value} value={value}>
               {label}
             </option>
@@ -104,7 +95,7 @@ export function SupportForm() {
           id="support-subject"
           name="subject"
           required
-          placeholder="Brief summary of your issue"
+          placeholder="Sender ID still pending after two days"
           aria-invalid={Boolean(state.fieldErrors?.subject)}
         />
         {state.fieldErrors?.subject ? (
@@ -118,8 +109,8 @@ export function SupportForm() {
           id="support-message"
           name="message"
           required
-          rows={6}
-          placeholder="Describe the bug, error message, steps to reproduce, or what you expected to happen…"
+          rows={7}
+          placeholder="What you sent, to which number, at what time, and what the log shows. Paste the message ID if you have one."
           aria-invalid={Boolean(state.fieldErrors?.message)}
         />
         {state.fieldErrors?.message ? (
@@ -127,28 +118,16 @@ export function SupportForm() {
         ) : null}
       </div>
 
-      <Button type="submit" size="lg" className="w-full sm:w-auto gap-2" disabled={pending}>
+      <Button type="submit" size="lg" className="w-full gap-2 sm:w-auto" disabled={pending}>
         {pending ? (
           "Sending…"
         ) : (
           <>
             <Send className="h-4 w-4" />
-            Submit support request
+            Submit request
           </>
         )}
       </Button>
     </form>
-  );
-}
-
-export function SupportFormIntro() {
-  return (
-    <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
-      <LifeBuoy className="h-5 w-5 shrink-0 text-primary mt-0.5" />
-      <p className="text-sm text-muted-foreground leading-relaxed">
-        Report bugs, delivery errors, billing questions, API issues, or WordPress plugin problems.
-        We typically respond by email within one business day.
-      </p>
-    </div>
   );
 }

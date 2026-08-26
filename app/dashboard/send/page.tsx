@@ -143,31 +143,43 @@ export default async function SendSmsPage({
 
   return (
     <AppPage>
-      <PageHeader
-        title="Send SMS"
-        description="Pick a template or write your own — preview how it looks before you send."
-        icon={Send}
-        mobileDescription="Template, message preview, cost estimate, then send."
-        actions={
-          <Link
-            href="/dashboard/wallet"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "gap-2 h-10 rounded-xl font-medium",
-            )}
-          >
-            <Wallet className="h-4 w-4" />
-            {balance?.creditBalance ?? 0} credits
-          </Link>
-        }
-      />
+      <div className="hidden md:block">
+        <PageHeader
+          title="Send SMS"
+          description="Pick a template or write your own — preview how it looks before you send."
+          icon={Send}
+          actions={
+            <Link
+              href="/dashboard/wallet"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "gap-2 h-10 rounded-xl font-medium",
+              )}
+            >
+              <Wallet className="h-4 w-4" />
+              {balance?.creditBalance ?? 0} credits
+            </Link>
+          }
+        />
+      </div>
+
+      <div className="flex items-center justify-between gap-3 md:hidden">
+        <p className="text-sm text-muted-foreground">Compose and send</p>
+        <Link
+          href="/dashboard/wallet"
+          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/60 bg-card px-2.5 text-[13px] font-semibold tabular-nums"
+        >
+          <Wallet className="h-3.5 w-3.5 text-primary" />
+          {balance?.creditBalance ?? 0}
+        </Link>
+      </div>
 
       <Suspense fallback={null}>
         <SendPageToasts />
       </Suspense>
 
-      <AppCard className="overflow-visible">
-        <AppCardBody>
+      <AppCard className="overflow-visible max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:shadow-none">
+        <AppCardBody className="max-md:px-0 max-md:py-0">
           <SendSmsForm
             userId={session.userId}
             registeredSenders={senderIds}

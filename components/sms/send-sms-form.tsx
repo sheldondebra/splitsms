@@ -454,9 +454,9 @@ export function SendSmsForm({
       <form
         id="send-sms-form"
         onSubmit={handleSubmit}
-        className="grid gap-6 xl:grid-cols-[1fr_minmax(300px,340px)] xl:items-start"
+        className="grid gap-4 md:gap-6 xl:grid-cols-[1fr_minmax(300px,340px)] xl:items-start"
       >
-        <div className="space-y-5 min-w-0">
+        <div className="min-w-0 space-y-3 md:space-y-5">
           {restoredNotice && (
             <div
               role="status"
@@ -580,7 +580,7 @@ export function SendSmsForm({
           />
 
           {/* Template */}
-          <div className="rounded-xl border border-border/60 bg-card p-4 sm:p-5 space-y-3">
+          <div className="space-y-3 rounded-xl border border-border/60 bg-card p-3.5 md:p-5">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-primary shrink-0" />
@@ -630,7 +630,7 @@ export function SendSmsForm({
           </div>
 
           {/* Recipients */}
-          <div className="rounded-xl border border-border/60 bg-card p-4 sm:p-5 space-y-3">
+          <div className="space-y-3 rounded-xl border border-border/60 bg-card p-3.5 md:p-5">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-primary shrink-0" />
@@ -687,7 +687,7 @@ export function SendSmsForm({
           </div>
 
           {/* Message */}
-          <div className="rounded-xl border border-border/60 bg-card p-4 sm:p-5 space-y-3">
+          <div className="space-y-3 rounded-xl border border-border/60 bg-card p-3.5 md:p-5">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-primary shrink-0" />
@@ -799,12 +799,14 @@ export function SendSmsForm({
             </div>
           </div>
 
-          <div className="xl:hidden space-y-4">
-            <SmsPreview message={body} senderLabel={senderId} showVariableHints={false} />
+          <div className="xl:hidden space-y-3">
+            {body.trim() ? (
+              <SmsPreview message={body} senderLabel={senderId} showVariableHints={false} compact />
+            ) : null}
             <SendCostPreview message={body} recipientsRaw={recipients} countryCode={countryCode} />
           </div>
 
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:items-center max-md:sticky max-md:bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] max-md:z-20 max-md:-mx-4 max-md:border-t max-md:border-border/50 max-md:bg-background/90 max-md:px-4 max-md:py-3 max-md:backdrop-blur-xl">
             <div className="flex flex-1 gap-2">
               <Button
                 type="button"

@@ -61,6 +61,11 @@ export async function creditWalletFromPayment(paymentId: string) {
   });
 
   if (!credited) {
+    await import("@/lib/payments/topup-credits")
+      .then(({ convertTopUpToCredits }) => convertTopUpToCredits(paymentId))
+      .catch((err) =>
+        console.error("[wallet] auto credit convert failed after existing fund", paymentId, err),
+      );
     return prisma.payment.findUnique({ where: { id: paymentId } });
   }
 
@@ -90,6 +95,10 @@ export async function creditWalletFromPayment(paymentId: string) {
   void import("@/lib/slack/notify")
     .then(({ notifySlackOnlinePayment }) => notifySlackOnlinePayment(paymentId))
     .catch(() => undefined);
+
+  await import("@/lib/payments/topup-credits")
+    .then(({ convertTopUpToCredits }) => convertTopUpToCredits(paymentId))
+    .catch((err) => console.error("[wallet] auto credit convert failed after fund", paymentId, err));
 
   return payment;
 }

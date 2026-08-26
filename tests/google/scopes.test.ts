@@ -57,6 +57,19 @@ test("parseScopeString splits whitespace", () => {
   ]);
 });
 
+test("parseScopeString treats plus signs as spaces from query strings", () => {
+  assert.deepEqual(
+    parseScopeString(
+      "email+https://www.googleapis.com/auth/drive.readonly+openid",
+    ),
+    [
+      "email",
+      "https://www.googleapis.com/auth/drive.readonly",
+      "openid",
+    ],
+  );
+});
+
 test("resolveGrantedScopes trusts token scopes and does not invent requested ones", () => {
   const token =
     "openid email profile https://www.googleapis.com/auth/contacts.readonly";

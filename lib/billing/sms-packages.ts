@@ -44,6 +44,28 @@ export function packageTotalCost(credits: number, pricePerCredit: number): numbe
   return Math.round(credits * pricePerCredit * 100) / 100;
 }
 
+/** How many SMS credits a wallet amount buys at the member's unit rate. */
+export function creditsFromAmount(
+  amount: number,
+  pricePerCredit: number,
+): { credits: number; cost: number; remainder: number } {
+  if (!Number.isFinite(amount) || amount <= 0 || !Number.isFinite(pricePerCredit) || pricePerCredit <= 0) {
+    return { credits: 0, cost: 0, remainder: Number.isFinite(amount) && amount > 0 ? roundMoney(amount) : 0 };
+  }
+
+  const credits = Math.floor((amount + Number.EPSILON) / pricePerCredit);
+  const cost = packageTotalCost(credits, pricePerCredit);
+  return {
+    credits,
+    cost,
+    remainder: roundMoney(Math.max(0, amount - cost)),
+  };
+}
+
+function roundMoney(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
 export function formatWalletMoney(amount: number, currency: string): string {
   return `${currency} ${amount.toLocaleString(undefined, {
     minimumFractionDigits: 2,

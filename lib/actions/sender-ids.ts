@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants/defaults";
 import { normalizeSenderIdValue, validateSenderIdForRegistration } from "@/lib/sender-ids/normalize";
-import { notifyAdminsNewSenderId } from "@/lib/sender-ids/notifications";
+import { notifyAdminsNewSenderId, notifyUserSenderIdDocumentsRequested } from "@/lib/sender-ids/notifications";
 import { getOrCreateMemberAccount } from "@/lib/admin/member-account";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -125,4 +125,23 @@ export async function setDefaultSenderIdAction(formData: FormData) {
   revalidatePath("/dashboard/sender-ids");
   revalidatePath("/dashboard/send");
   redirect("/dashboard/sender-ids?default=1");
+}
+
+/** Member asks us to resend the verification-document upload link. */
+export async function resendSenderIdVerificationEmailAction(formData: FormData) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  const id = String(formData.get("id") ?? "");
+  const sender = await prisma.senderId.findFirst({
+    where: { id, userId: session.userId },
+  });
+  if (!sender) redirect("/dashboard/sender-ids?error=notfound");
+
+  await notifyUserSenderIdDocumentsRequested(
+    id,
+    "We still need a document to continue reviewing this sender ID.",
+  ).catch(() => undefined);
+
+  redirect("/dashboard/sender-ids?docsent=1");
 }

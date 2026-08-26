@@ -1,10 +1,12 @@
 import { createHash, randomBytes } from "crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
 import {
   createPkcePair,
   fetchGoogleUserInfo,
   getGoogleClientCredentials,
+  googleCallbackUri,
   resolveGoogleOAuthOrigin,
 } from "@/lib/auth/google";
 import { GOOGLE_BASE_SCOPES } from "@/lib/google/scopes";
@@ -34,7 +36,28 @@ function cookieSecure() {
 }
 
 export function googleConnectCallbackUri(origin: string) {
-  return `${origin.replace(/\/$/, "")}/api/integrations/google/callback`;
+  // Same authorized redirect as Google Sign-In so Cloud Console only needs one URI.
+  return googleCallbackUri(origin);
+}
+
+export function safeConnectReturnTo(raw: string | null | undefined) {
+  if (!raw) return "/dashboard/integrations/google";
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//")) {
+    return "/dashboard/integrations/google";
+  }
+  return trimmed;
+}
+
+export function googleConnectResultUrl(
+  origin: string,
+  returnTo: string | null | undefined,
+  params: { error?: string; connected?: boolean },
+) {
+  const url = new URL(safeConnectReturnTo(returnTo), origin);
+  if (params.error) url.searchParams.set("error", params.error);
+  if (params.connected) url.searchParams.set("connected", "1");
+  return url;
 }
 
 export { createPkcePair, getGoogleClientCredentials, resolveGoogleOAuthOrigin, fetchGoogleUserInfo };
@@ -198,6 +221,16 @@ export async function revokeGoogleToken(token: string): Promise<void> {
 export async function setConnectPkceCookie(verifier: string) {
   const cookieStore = await cookies();
   cookieStore.set(GOOGLE_CONNECT_PKCE_COOKIE, verifier, {
+    httpOnly: true,
+    secure: cookieSecure(),
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 15,
+  });
+}
+
+export function applyConnectPkceCookie(response: NextResponse, verifier: string) {
+  response.cookies.set(GOOGLE_CONNECT_PKCE_COOKIE, verifier, {
     httpOnly: true,
     secure: cookieSecure(),
     sameSite: "lax",

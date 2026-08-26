@@ -6,14 +6,9 @@ import { enqueueSmsJob } from "@/lib/queue/enqueue-sms";
 import { resolveApprovedSenderForUser } from "@/lib/sender-ids/validate-send";
 import { countSmsUnits } from "@/lib/sms/units";
 import { validateRecipientPhone } from "@/lib/sms/phone-validation";
-import { getAccessTokenForUser } from "@/lib/google/connection";
-import {
-  getGoogleFormQuestions,
-  listGoogleFormResponses,
-  pickPhoneFromAnswers,
-  renderTemplate,
-} from "@/lib/google/forms";
-import { GOOGLE_FORMS_SCOPES } from "@/lib/google/scopes";
+import { pickPhoneFromAnswers, renderTemplate } from "@/lib/google/forms";
+import { readFormResponseSheet, sheetRowToAnswers } from "@/lib/google/forms-sheet";
+import { getGoogleServiceAccountAccessToken } from "@/lib/google/service-account";
 
 async function sendGoogleFormSms(opts: {
   userId: string;
@@ -84,24 +79,18 @@ export async function pollGoogleFormAutomation(automationId: string) {
   });
   if (!automation || !automation.isActive) return { processed: 0 };
 
-  const token = await getAccessTokenForUser(automation.userId, [...GOOGLE_FORMS_SCOPES]);
-  if (!token.ok) {
+  const token = await getGoogleServiceAccountAccessToken().catch(() => null);
+  if (!token) {
     await prisma.googleFormSmsAutomation.update({
       where: { id: automationId },
-      data: { lastError: token.code, lastPolledAt: new Date() },
+      data: { lastError: "google_sa_missing", lastPolledAt: new Date() },
     });
-    return { processed: 0, error: token.code };
+    return { processed: 0, error: "google_sa_missing" };
   }
 
-  let responses;
+  let sheet;
   try {
-    const filter = automation.cursor
-      ? `timestamp > ${automation.cursor}`
-      : undefined;
-    responses = await listGoogleFormResponses(token.accessToken, automation.formId, {
-      filter,
-      pageSize: 50,
-    });
+    sheet = await readFormResponseSheet(token, automation.formId);
   } catch (e) {
     await prisma.googleFormSmsAutomation.update({
       where: { id: automationId },
@@ -113,45 +102,46 @@ export async function pollGoogleFormAutomation(automationId: string) {
     return { processed: 0 };
   }
 
-  // Newest first from API — process oldest first for cursor stability
-  responses = [...responses].sort(
-    (a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime(),
-  );
-
+  const alreadySeen = Math.max(0, Number(automation.cursor ?? 0) || 0);
   const titles =
-    (automation.questionTitles as Record<string, string> | null) ?? {};
+    (automation.questionTitles as Record<string, string> | null) ??
+    Object.fromEntries(sheet.headers.filter(Boolean).map((h) => [h, h]));
   let processed = 0;
-  let latestCursor = automation.cursor;
+  let latestCursor = alreadySeen;
 
-  for (const row of responses) {
+  for (let i = alreadySeen; i < sheet.rows.length; i++) {
+    const row = sheet.rows[i] ?? [];
+    const responseId = `row-${i + 2}`;
+    const answers = sheetRowToAnswers(sheet.headers, row);
+
     const existing = await prisma.googleFormSmsSend.findUnique({
       where: {
         automationId_responseId: {
           automationId: automation.id,
-          responseId: row.responseId,
+          responseId,
         },
       },
     });
     if (existing) {
-      latestCursor = row.createTime;
+      latestCursor = i + 1;
       continue;
     }
 
-    const phone = pickPhoneFromAnswers(row.answers, automation.phoneFieldId);
+    const phone = pickPhoneFromAnswers(answers, automation.phoneFieldId);
     if (!phone) {
       await prisma.googleFormSmsSend.create({
         data: {
           automationId: automation.id,
-          responseId: row.responseId,
+          responseId,
           status: "skipped",
           error: "no_phone",
         },
       });
-      latestCursor = row.createTime;
+      latestCursor = i + 1;
       continue;
     }
 
-    const body = renderTemplate(automation.messageTemplate, row.answers, titles);
+    const body = renderTemplate(automation.messageTemplate, answers, titles);
     const send = await sendGoogleFormSms({
       userId: automation.userId,
       recipientRaw: phone,
@@ -162,7 +152,7 @@ export async function pollGoogleFormAutomation(automationId: string) {
     await prisma.googleFormSmsSend.create({
       data: {
         automationId: automation.id,
-        responseId: row.responseId,
+        responseId,
         phone,
         status: send.ok ? "queued" : "failed",
         error: send.ok ? null : send.error,
@@ -176,20 +166,20 @@ export async function pollGoogleFormAutomation(automationId: string) {
           isActive: false,
           lastError: "insufficient_credits",
           lastPolledAt: new Date(),
-          cursor: latestCursor,
+          cursor: String(i + 1),
         },
       });
       return { processed, paused: true };
     }
 
     processed++;
-    latestCursor = row.createTime;
+    latestCursor = i + 1;
   }
 
   await prisma.googleFormSmsAutomation.update({
     where: { id: automation.id },
     data: {
-      cursor: latestCursor,
+      cursor: String(latestCursor),
       lastPolledAt: new Date(),
       lastError: null,
     },
@@ -213,9 +203,21 @@ export async function pollAllGoogleFormAutomations() {
   return { automations: automations.length, processed: total };
 }
 
-export async function loadFormQuestionsForUser(userId: string, formId: string) {
-  const token = await getAccessTokenForUser(userId, [...GOOGLE_FORMS_SCOPES]);
-  if (!token.ok) return { ok: false as const, code: token.code, missingScopes: token.missingScopes };
-  const detail = await getGoogleFormQuestions(token.accessToken, formId);
-  return { ok: true as const, ...detail };
+export async function loadFormQuestionsForUser(_userId: string, formId: string) {
+  try {
+    const token = await getGoogleServiceAccountAccessToken();
+    const sheet = await readFormResponseSheet(token, formId);
+    return {
+      ok: true as const,
+      title: sheet.title,
+      questions: sheet.headers.filter(Boolean).map((title) => ({
+        questionId: title,
+        title,
+      })),
+      rowCount: sheet.rows.length,
+    };
+  } catch (e) {
+    const code = e instanceof Error && e.message === "share_required" ? "share_required" : "forms_list_failed";
+    return { ok: false as const, code, missingScopes: [] as string[] };
+  }
 }

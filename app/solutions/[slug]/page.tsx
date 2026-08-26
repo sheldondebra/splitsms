@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!page) return { title: "Solution not found" };
 
   return buildPageMetadata({
-    title: page.title,
+    title: page.title.replace(/\s*\|\s*SplitSMS\s*$/i, ""),
     description: page.excerpt,
     path: `/solutions/${slug}`,
     keywords: page.keywords,

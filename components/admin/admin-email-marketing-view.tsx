@@ -10,14 +10,21 @@ import {
   LayoutTemplate,
   History,
   Users,
+  ChevronRight,
+  Zap,
 } from "lucide-react";
+import { format } from "date-fns";
 import {
   AdminPage,
   AdminPageHeader,
   AdminStatCard,
   AdminCard,
+  AdminEmpty,
 } from "@/components/admin/admin-page-shell";
 import { AdminEmailMarketingChart } from "@/components/admin/admin-email-marketing-chart";
+import { AdminEmailMarketingSubscribers } from "@/components/admin/admin-email-marketing-subscribers";
+import { EmailMarketingImageField } from "@/components/admin/email-marketing-image-field";
+import { EmailBodyRichTextEditor } from "@/components/admin/email-body-rich-text-editor";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,17 +32,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { EmailMarketingDashboard } from "@/lib/admin/email-marketing-dashboard";
 import {
+  adminCreateEmailMarketingTemplateAction,
+  adminDeleteEmailMarketingTemplateAction,
   adminSendEmailMarketingAction,
   adminUpdateEmailMarketingTemplateAction,
 } from "@/lib/actions/admin-email-marketing";
 import type { EmailMarketingAudienceType } from "@/lib/admin/email-marketing-shared";
 import { marketingEmailContentPreview } from "@/lib/admin/email-marketing-content";
+import { EmailAutomationsForm } from "@/components/admin/email-automations-form";
+import type { EmailAutomationSettings } from "@/lib/email/automation-settings";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: Megaphone },
   { id: "compose", label: "Compose", icon: Send },
   { id: "templates", label: "Templates", icon: LayoutTemplate },
+  { id: "subscribers", label: "Subscribers", icon: Users },
   { id: "history", label: "History", icon: History },
+  { id: "automations", label: "Automations", icon: Zap },
 ] as const;
 
 type TemplateRow = EmailMarketingDashboard["templates"][number];
@@ -55,6 +68,27 @@ function flashMessage(flash: {
   if (flash.saved === "template") {
     return { tone: "ok" as const, text: "Template saved." };
   }
+  if (flash.saved === "template_created") {
+    return { tone: "ok" as const, text: "Template created." };
+  }
+  if (flash.saved === "template_deleted") {
+    return { tone: "ok" as const, text: "Template deleted." };
+  }
+  if (flash.saved === "subscribers") {
+    return {
+      tone: "ok" as const,
+      text: `Added ${flash.count ?? 0} subscriber(s) to the newsletter list.`,
+    };
+  }
+  if (flash.saved === "subscriber") {
+    return { tone: "ok" as const, text: "Subscriber updated." };
+  }
+  if (flash.saved === "subscriber_deleted") {
+    return { tone: "ok" as const, text: "Subscriber removed." };
+  }
+  if (flash.saved === "automations") {
+    return { tone: "ok" as const, text: "Email automations saved." };
+  }
   if (flash.error === "marketing_fields") {
     return { tone: "err" as const, text: "Subject, headline, and body are required." };
   }
@@ -63,6 +97,12 @@ function flashMessage(flash: {
   }
   if (flash.error === "marketing_template") {
     return { tone: "err" as const, text: "Template could not be updated." };
+  }
+  if (flash.error === "marketing_subscribers") {
+    return { tone: "err" as const, text: "Could not update the newsletter list." };
+  }
+  if (flash.error === "marketing_image") {
+    return { tone: "err" as const, text: "Image upload failed. Use PNG, JPG, WEBP, or GIF under 2 MB." };
   }
   return null;
 }
@@ -74,8 +114,148 @@ function statusBadge(status: string) {
     FAILED: "bg-destructive/10 text-destructive",
     SENDING: "bg-primary/10 text-primary",
     DRAFT: "bg-muted text-muted-foreground",
+    sent: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    failed: "bg-destructive/10 text-destructive",
   };
   return map[status] ?? "bg-muted text-muted-foreground";
+}
+
+function statusLabel(status: string) {
+  const map: Record<string, string> = {
+    SENT: "Sent",
+    PARTIAL: "Partial",
+    FAILED: "Failed",
+    SENDING: "Sending",
+    DRAFT: "Draft",
+    sent: "Sent",
+    failed: "Failed",
+  };
+  return map[status] ?? status;
+}
+
+function audienceLabel(type: string) {
+  const map: Record<string, string> = {
+    all: "All members",
+    inactive: "Inactive",
+    role_member: "Members",
+    role_reseller: "Resellers",
+    role_enterprise: "Enterprise",
+    newsletter: "Newsletter",
+    manual: "Custom emails",
+  };
+  return map[type] ?? type;
+}
+
+type CampaignRow = EmailMarketingDashboard["campaigns"][number];
+
+function CampaignsTable({
+  campaigns,
+  selectedId,
+  showAudience,
+  showSender,
+}: {
+  campaigns: CampaignRow[];
+  selectedId?: string | null;
+  showAudience?: boolean;
+  showSender?: boolean;
+}) {
+  return (
+    <div className="-mx-5 -mb-5 overflow-x-auto">
+      <table className="w-full min-w-[640px] text-sm">
+        <thead className="bg-muted/30">
+          <tr className="text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+            <th className="px-5 py-2.5 font-semibold">Campaign</th>
+            {showAudience ? <th className="px-3 py-2.5 font-semibold">Audience</th> : null}
+            <th className="px-3 py-2.5 font-semibold">Status</th>
+            <th className="px-3 py-2.5 font-semibold">Results</th>
+            {showSender ? <th className="px-3 py-2.5 font-semibold">Sent by</th> : null}
+            <th className="px-5 py-2.5 font-semibold">
+              <span className="sr-only">Open</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {campaigns.map((campaign) => {
+            const selected = selectedId === campaign.id;
+            const createdAt = new Date(campaign.createdAt);
+            return (
+              <tr
+                key={campaign.id}
+                className={cn(
+                  "border-t border-border/40 hover:bg-muted/25",
+                  selected && "bg-primary/[0.04]",
+                )}
+              >
+                <td className="max-w-[22rem] px-5 py-3">
+                  <Link
+                    href={`/admin/email-marketing?tab=history&campaignId=${campaign.id}`}
+                    className="font-medium hover:underline"
+                  >
+                    {campaign.name || campaign.subject}
+                  </Link>
+                  {campaign.name ? (
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                      {campaign.subject}
+                    </p>
+                  ) : null}
+                  <p className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
+                    {Number.isNaN(createdAt.getTime())
+                      ? "—"
+                      : format(createdAt, "MMM d, yyyy · h:mm a")}
+                  </p>
+                </td>
+                {showAudience ? (
+                  <td className="px-3 py-3">
+                    <span className="inline-flex h-5 items-center rounded-full border border-border/70 px-2 text-[11px] font-medium text-muted-foreground">
+                      {audienceLabel(campaign.audienceType)}
+                    </span>
+                  </td>
+                ) : null}
+                <td className="px-3 py-3">
+                  <span
+                    className={cn(
+                      "inline-flex h-5 items-center rounded-full px-2 text-[11px] font-semibold",
+                      statusBadge(campaign.status),
+                    )}
+                  >
+                    {statusLabel(campaign.status)}
+                  </span>
+                </td>
+                <td className="px-3 py-3">
+                  <p className="tabular-nums font-medium">{campaign.sentCount} sent</p>
+                  <p
+                    className={cn(
+                      "text-[11px] tabular-nums",
+                      campaign.failedCount > 0 ? "text-destructive" : "text-muted-foreground",
+                    )}
+                  >
+                    {campaign.failedCount} failed
+                    {campaign.recipientCount > 0
+                      ? ` · ${campaign.recipientCount} total`
+                      : ""}
+                  </p>
+                </td>
+                {showSender ? (
+                  <td className="whitespace-nowrap px-3 py-3 text-muted-foreground">
+                    {campaign.createdBy?.fullName ?? "—"}
+                  </td>
+                ) : null}
+                <td className="px-5 py-3 text-right">
+                  <Link
+                    href={`/admin/email-marketing?tab=history&campaignId=${campaign.id}`}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                    aria-label={`View deliveries for ${campaign.name || campaign.subject}`}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 function ComposePanel({
@@ -103,6 +283,7 @@ function ComposePanel({
   const [ctaLabel, setCtaLabel] = useState(initial?.ctaLabel ?? "");
   const [ctaHref, setCtaHref] = useState(initial?.ctaHref ?? "");
   const [footerNote, setFooterNote] = useState(initial?.footerNote ?? "");
+  const [imageUrl, setImageUrl] = useState(initial?.imageUrl ?? "");
   const [campaignName, setCampaignName] = useState("");
   const [audienceType, setAudienceType] = useState<EmailMarketingAudienceType>("all");
   const [inactiveDays, setInactiveDays] = useState(String(data.inactiveDaysDefault));
@@ -119,7 +300,9 @@ function ComposePanel({
     setCtaLabel(t.ctaLabel ?? "");
     setCtaHref(t.ctaHref ?? "");
     setFooterNote(t.footerNote ?? "");
+    setImageUrl(t.imageUrl ?? "");
     if (t.slug === "inactive-reengagement") setAudienceType("inactive");
+    if (t.slug.startsWith("newsletter")) setAudienceType("newsletter");
   }
 
   const previewHtml = useMemo(() => {
@@ -133,7 +316,7 @@ function ComposePanel({
         ctaLabel,
         ctaHref,
         footerNote,
-        headerImageUrl: branding.headerImageUrl || undefined,
+        headerImageUrl: imageUrl || branding.headerImageUrl || undefined,
         headerImagePosition: branding.headerImagePosition,
       }).html;
     } catch {
@@ -147,6 +330,7 @@ function ComposePanel({
     ctaLabel,
     ctaHref,
     footerNote,
+    imageUrl,
     branding.headerImageUrl,
     branding.headerImagePosition,
   ]);
@@ -156,7 +340,9 @@ function ComposePanel({
       ? "Paste one or more emails (comma or newline)."
       : audienceType === "inactive"
         ? `~${data.audienceCounts.inactive} inactive members (cap ${data.maxRecipients})`
-        : `~${data.audienceCounts[audienceType as keyof typeof data.audienceCounts] ?? 0} recipients (cap ${data.maxRecipients})`;
+        : audienceType === "newsletter"
+          ? `~${data.audienceCounts.newsletter} newsletter subscribers (cap ${data.newsletterMaxRecipients})`
+          : `~${data.audienceCounts[audienceType as keyof typeof data.audienceCounts] ?? 0} recipients (cap ${data.maxRecipients})`;
 
   return (
     <form action={adminSendEmailMarketingAction} className="grid gap-6 lg:grid-cols-2">
@@ -227,14 +413,11 @@ function ComposePanel({
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="bodyText">Body</Label>
-            <Textarea
-              id="bodyText"
+            <EmailBodyRichTextEditor
+              key={templateId}
               name="bodyText"
-              required
-              rows={8}
-              value={bodyText}
-              onChange={(e) => setBodyText(e.target.value)}
-              className="font-sans text-sm"
+              defaultValue={bodyText}
+              onChange={setBodyText}
             />
             <p className="text-[11px] text-muted-foreground">
               Merge tags: {"{{firstName}}"}, {"{{fullName}}"}, {"{{siteName}}"}, {"{{siteUrl}}"}
@@ -268,6 +451,7 @@ function ComposePanel({
               onChange={(e) => setFooterNote(e.target.value)}
             />
           </div>
+          <EmailMarketingImageField value={imageUrl} onChange={setImageUrl} />
         </div>
 
         <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4">
@@ -283,6 +467,7 @@ function ComposePanel({
                 ["role_member", "Members only"],
                 ["role_reseller", "Resellers"],
                 ["role_enterprise", "Enterprise"],
+                ["newsletter", "Newsletter list"],
                 ["manual", "Manual emails"],
               ] as const
             ).map(([value, label]) => (
@@ -383,6 +568,57 @@ function TemplatesPanel({
   }
 
   return (
+    <div className="space-y-6">
+      <form
+        action={adminCreateEmailMarketingTemplateAction}
+        className="space-y-3 rounded-xl border border-border/60 bg-card p-5"
+      >
+        <h3 className="font-semibold">New template</h3>
+        <p className="text-sm text-muted-foreground">
+          Create a custom campaign template. System templates stay in the list and can be edited but not deleted.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="create-name">Name</Label>
+            <Input id="create-name" name="name" required placeholder="April product note" />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="create-description">Description</Label>
+            <Input id="create-description" name="description" placeholder="Optional" />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="create-subject">Subject</Label>
+            <Input id="create-subject" name="subject" required />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="create-preheader">Preheader</Label>
+            <Input id="create-preheader" name="preheader" />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="create-headline">Headline</Label>
+            <Input id="create-headline" name="headline" required />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="create-bodyText">Body</Label>
+            <EmailBodyRichTextEditor id="create-bodyText" name="bodyText" defaultValue="" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="create-ctaLabel">CTA label</Label>
+            <Input id="create-ctaLabel" name="ctaLabel" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="create-ctaHref">CTA link</Label>
+            <Input id="create-ctaHref" name="ctaHref" placeholder="/dashboard" />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="create-footerNote">Footer note</Label>
+            <Input id="create-footerNote" name="footerNote" />
+          </div>
+          <EmailMarketingImageField id="create-imageUrl" value="" />
+        </div>
+        <Button type="submit">Create template</Button>
+      </form>
+
     <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
       <div className="space-y-1">
         {templates.map((t) => (
@@ -403,6 +639,7 @@ function TemplatesPanel({
         ))}
       </div>
 
+      <div className="space-y-4">
       <form
         key={selected.id}
         action={adminUpdateEmailMarketingTemplateAction}
@@ -442,7 +679,7 @@ function TemplatesPanel({
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="bodyText">Body</Label>
-            <Textarea id="bodyText" name="bodyText" rows={8} defaultValue={selected.bodyText} required />
+            <EmailBodyRichTextEditor id="bodyText" name="bodyText" defaultValue={selected.bodyText} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="ctaLabel">CTA label</Label>
@@ -456,6 +693,7 @@ function TemplatesPanel({
             <Label htmlFor="footerNote">Footer note</Label>
             <Input id="footerNote" name="footerNote" defaultValue={selected.footerNote ?? ""} />
           </div>
+          <EmailMarketingImageField id="edit-imageUrl" value={selected.imageUrl ?? ""} />
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="submit">Save template</Button>
@@ -467,6 +705,21 @@ function TemplatesPanel({
           </Link>
         </div>
       </form>
+      {!selected.isSystem ? (
+        <form
+          action={adminDeleteEmailMarketingTemplateAction}
+          onSubmit={(e) => {
+            if (!confirm("Delete this template?")) e.preventDefault();
+          }}
+        >
+          <input type="hidden" name="templateId" value={selected.id} />
+          <Button type="submit" variant="destructive">
+            Delete template
+          </Button>
+        </form>
+      ) : null}
+        </div>
+      </div>
     </div>
   );
 }
@@ -476,6 +729,7 @@ export function AdminEmailMarketingView({
   flash,
   templateId,
   branding,
+  automations,
 }: {
   data: EmailMarketingDashboard;
   flash: {
@@ -489,6 +743,7 @@ export function AdminEmailMarketingView({
     headerImageUrl: string;
     headerImagePosition: "above" | "below";
   };
+  automations: EmailAutomationSettings;
 }) {
   const notice = flashMessage(flash);
 
@@ -496,7 +751,7 @@ export function AdminEmailMarketingView({
     <AdminPage wide>
       <AdminPageHeader
         title="Email Marketing"
-        description="Send branded feature campaigns to members or custom emails. Templates include SmartForms, Reseller, Bulk SMS, and WordPress."
+        description="Send branded feature campaigns to members, newsletter subscribers, or pasted emails. Templates include SmartForms, Reseller, Bulk SMS, WordPress, and newsletter automations."
         icon={Mail}
         actions={
           <Link href="/admin/email-marketing?tab=compose" className={buttonVariants()}>
@@ -519,7 +774,10 @@ export function AdminEmailMarketingView({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-1 rounded-xl border border-border/60 bg-muted/30 p-1">
+      <nav
+        aria-label="Email marketing"
+        className="flex gap-1 overflow-x-auto border-b border-border app-scroll-x"
+      >
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const active = data.tab === tab.id;
@@ -528,18 +786,21 @@ export function AdminEmailMarketingView({
               key={tab.id}
               href={`/admin/email-marketing?tab=${tab.id}`}
               className={cn(
-                "inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors",
+                "relative inline-flex shrink-0 items-center gap-2 px-3 pb-2.5 text-sm font-medium transition-colors",
                 active
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
               <Icon className="h-4 w-4" />
               {tab.label}
+              {active ? (
+                <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-primary" />
+              ) : null}
             </Link>
           );
         })}
-      </div>
+      </nav>
 
       {data.tab === "overview" && (
         <div className="space-y-6">
@@ -575,7 +836,7 @@ export function AdminEmailMarketingView({
           </AdminCard>
 
           <AdminCard title="Audience snapshot">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {(
                 [
                   ["All with email", data.audienceCounts.all],
@@ -583,6 +844,7 @@ export function AdminEmailMarketingView({
                   ["Members", data.audienceCounts.role_member],
                   ["Resellers", data.audienceCounts.role_reseller],
                   ["Enterprise", data.audienceCounts.role_enterprise],
+                  ["Newsletter", data.audienceCounts.newsletter],
                 ] as const
               ).map(([label, value]) => (
                 <div
@@ -610,55 +872,9 @@ export function AdminEmailMarketingView({
             }
           >
             {data.campaigns.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">
-                No campaigns yet. Compose your first feature email.
-              </p>
+              <AdminEmpty dense>No campaigns yet. Compose your first feature email.</AdminEmpty>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-xs text-muted-foreground">
-                      <th className="py-2 pr-3 font-medium">Campaign</th>
-                      <th className="py-2 pr-3 font-medium">Status</th>
-                      <th className="py-2 pr-3 font-medium">Sent</th>
-                      <th className="py-2 font-medium">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.campaigns.slice(0, 8).map((c) => (
-                      <tr key={c.id} className="border-b border-border/40">
-                        <td className="py-2.5 pr-3">
-                          <Link
-                            href={`/admin/email-marketing?tab=history&campaignId=${c.id}`}
-                            className="font-medium hover:underline"
-                          >
-                            {c.name || c.subject}
-                          </Link>
-                          <p className="text-[11px] text-muted-foreground truncate max-w-[280px]">
-                            {c.template?.name ?? "Custom"} · {c.audienceType}
-                          </p>
-                        </td>
-                        <td className="py-2.5 pr-3">
-                          <span
-                            className={cn(
-                              "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
-                              statusBadge(c.status),
-                            )}
-                          >
-                            {c.status}
-                          </span>
-                        </td>
-                        <td className="py-2.5 pr-3 tabular-nums">
-                          {c.sentCount}/{c.recipientCount}
-                        </td>
-                        <td className="py-2.5 text-muted-foreground">
-                          {new Date(c.createdAt).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <CampaignsTable campaigns={data.campaigns.slice(0, 8)} />
             )}
           </AdminCard>
         </div>
@@ -680,94 +896,98 @@ export function AdminEmailMarketingView({
         </AdminCard>
       )}
 
+      {data.tab === "subscribers" && (
+        <AdminCard title="Newsletter list">
+          <AdminEmailMarketingSubscribers
+            subscribers={data.subscribers}
+            count={data.subscriberCount}
+          />
+        </AdminCard>
+      )}
+
+      {data.tab === "automations" && <EmailAutomationsForm settings={automations} />}
+
       {data.tab === "history" && (
         <div className="space-y-6">
-          <AdminCard title="Campaign history">
+          <AdminCard
+            title="Campaign history"
+            description="Open a campaign to inspect each recipient."
+            actions={
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {data.campaigns.length} {data.campaigns.length === 1 ? "campaign" : "campaigns"}
+              </span>
+            }
+          >
             {data.campaigns.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">
-                No send history yet.
-              </p>
+              <AdminEmpty dense>No send history yet.</AdminEmpty>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-xs text-muted-foreground">
-                      <th className="py-2 pr-3 font-medium">Campaign</th>
-                      <th className="py-2 pr-3 font-medium">Audience</th>
-                      <th className="py-2 pr-3 font-medium">Status</th>
-                      <th className="py-2 pr-3 font-medium">Results</th>
-                      <th className="py-2 font-medium">By</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.campaigns.map((c) => (
-                      <tr key={c.id} className="border-b border-border/40">
-                        <td className="py-2.5 pr-3">
-                          <Link
-                            href={`/admin/email-marketing?tab=history&campaignId=${c.id}`}
-                            className="font-medium hover:underline"
-                          >
-                            {c.name || c.subject}
-                          </Link>
-                          <p className="text-[11px] text-muted-foreground">
-                            {new Date(c.createdAt).toLocaleString()}
-                          </p>
-                        </td>
-                        <td className="py-2.5 pr-3 text-muted-foreground">{c.audienceType}</td>
-                        <td className="py-2.5 pr-3">
-                          <span
-                            className={cn(
-                              "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
-                              statusBadge(c.status),
-                            )}
-                          >
-                            {c.status}
-                          </span>
-                        </td>
-                        <td className="py-2.5 pr-3 tabular-nums">
-                          {c.sentCount} sent · {c.failedCount} failed
-                        </td>
-                        <td className="py-2.5 text-muted-foreground">
-                          {c.createdBy?.fullName ?? "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <CampaignsTable
+                campaigns={data.campaigns}
+                selectedId={data.selectedCampaign?.id}
+                showAudience
+                showSender
+              />
             )}
           </AdminCard>
 
           {data.selectedCampaign && (
-            <AdminCard title={`Deliveries · ${data.selectedCampaign.name || data.selectedCampaign.subject}`}>
-              <div className="mb-3 text-xs text-muted-foreground">
-                Subject: {data.selectedCampaign.subject}
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-xs text-muted-foreground">
-                      <th className="py-2 pr-3 font-medium">Recipient</th>
-                      <th className="py-2 pr-3 font-medium">Status</th>
-                      <th className="py-2 font-medium">Detail</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.selectedCampaign.deliveries.map((d) => (
-                      <tr key={d.id} className="border-b border-border/40">
-                        <td className="py-2 pr-3">
-                          <span className="font-medium">{d.fullName ?? "—"}</span>
-                          <p className="text-[11px] text-muted-foreground">{d.email}</p>
-                        </td>
-                        <td className="py-2 pr-3 capitalize">{d.status}</td>
-                        <td className="py-2 text-muted-foreground text-xs">
-                          {d.error || (d.sentAt ? new Date(d.sentAt).toLocaleString() : "—")}
-                        </td>
+            <AdminCard
+              title="Deliveries"
+              description={data.selectedCampaign.subject}
+            >
+              {data.selectedCampaign.deliveries.length === 0 ? (
+                <AdminEmpty dense>No delivery rows for this campaign.</AdminEmpty>
+              ) : (
+                <div className="-mx-5 -mb-5 overflow-x-auto">
+                  <table className="w-full min-w-[560px] text-sm">
+                    <thead className="bg-muted/30">
+                      <tr className="text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                        <th className="px-5 py-2.5 font-semibold">Recipient</th>
+                        <th className="px-3 py-2.5 font-semibold">Status</th>
+                        <th className="px-5 py-2.5 font-semibold">Detail</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {data.selectedCampaign.deliveries.map((delivery) => {
+                        const sentAt = delivery.sentAt
+                          ? new Date(delivery.sentAt)
+                          : null;
+                        return (
+                          <tr
+                            key={delivery.id}
+                            className="border-t border-border/40 hover:bg-muted/25"
+                          >
+                            <td className="px-5 py-3">
+                              <p className="font-medium">
+                                {delivery.fullName || "—"}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">
+                                {delivery.email}
+                              </p>
+                            </td>
+                            <td className="px-3 py-3">
+                              <span
+                                className={cn(
+                                  "inline-flex h-5 items-center rounded-full px-2 text-[11px] font-semibold",
+                                  statusBadge(delivery.status),
+                                )}
+                              >
+                                {statusLabel(delivery.status)}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3 text-xs text-muted-foreground">
+                              {delivery.error ||
+                                (sentAt && !Number.isNaN(sentAt.getTime())
+                                  ? format(sentAt, "MMM d, yyyy · h:mm a")
+                                  : "—")}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </AdminCard>
           )}
         </div>

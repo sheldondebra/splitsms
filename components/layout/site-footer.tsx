@@ -1,11 +1,14 @@
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { AuthCaptchaProvider } from "@/components/auth/auth-captcha-provider";
 import { Logo } from "@/components/brand/logo";
+import { NewsletterSubscribeBand } from "@/components/marketing/newsletter-subscribe-form";
 import { buttonVariants } from "@/components/ui/button";
 import {
   MarketingCtaArrow,
   marketingCtaClass,
 } from "@/components/marketing/marketing-cta-arrow";
+import { publicCaptchaConfig } from "@/lib/auth/signup-guard-shared";
 import { cn } from "@/lib/utils";
 import {
   Send,
@@ -20,8 +23,10 @@ import {
 } from "lucide-react";
 
 const productLinks = [
-  { href: "/features", label: "SMS features" },
+  { href: "/products", label: "SMS products" },
   { href: "/solutions", label: "SMS solutions" },
+  { href: "/features", label: "SMS features" },
+  { href: "/how-to", label: "How to" },
   { href: "/smart-forms", label: "Smart Forms" },
   { href: "/google", label: "Google features" },
   { href: "/reseller-platform", label: "Reseller Platform" },
@@ -31,9 +36,9 @@ const productLinks = [
 ];
 
 const solutionLinks = [
+  { href: "/solutions", label: "All solutions" },
+  { href: "/solutions#use-cases", label: "Use cases" },
   { href: "/solutions/sms", label: "SMS Ghana" },
-  { href: "/solutions/mnotify", label: "mNotify alternative" },
-  { href: "/solutions/infobip", label: "Infobip alternative" },
   { href: "/solutions/otp", label: "OTP SMS API" },
   { href: "/solutions/woocommerce-sms", label: "WooCommerce SMS" },
   { href: "/solutions/paystack-sms", label: "Paystack SMS" },
@@ -41,8 +46,9 @@ const solutionLinks = [
 ];
 
 const developerLinks = [
+  { href: "/docs", label: "Developers" },
   { href: "/vibe-coders", label: "Vibe coders" },
-  { href: "/docs", label: "Documentation" },
+  { href: "/docs/api", label: "API guides" },
   { href: "/changelog", label: "Changelog" },
   { href: "/sdk", label: "SDKs" },
   { href: "/api-docs", label: "API docs" },
@@ -65,6 +71,7 @@ const wordpressIntegrationLinks = [
 const companyLinks = [
   { href: "/company", label: "About SplitSMS" },
   { href: "https://www.tecunitgh.com", label: "Tecunit" },
+  { href: "/how-to", label: "How to" },
   { href: "/support", label: "Support" },
 ];
 
@@ -132,8 +139,13 @@ function FooterLinkGroup({
 
 export function SiteFooter() {
   const year = new Date().getFullYear();
+  const captcha = publicCaptchaConfig();
 
   return (
+    <>
+      <AuthCaptchaProvider config={captcha}>
+        <NewsletterSubscribeBand />
+      </AuthCaptchaProvider>
     <footer className="site-footer-surface relative overflow-hidden border-t border-border text-foreground w-full">
       <div
         className="pointer-events-none absolute inset-0 opacity-40 dark:opacity-60"
@@ -263,5 +275,6 @@ export function SiteFooter() {
         </div>
       </div>
     </footer>
+    </>
   );
 }

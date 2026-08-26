@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { PublicSmartFormView } from "@/components/smart-forms/public-smart-form";
-import { createCaptchaChallenge } from "@/lib/smart-forms/captcha";
 import {
   getPublishedSmartFormByShortCode,
   recordSmartFormOpen,
 } from "@/lib/smart-forms/public";
+import { recaptchaSiteKey } from "@/lib/auth/signup-guard-shared";
 
 export default async function EmbedSmartFormPage({
   params,
@@ -21,14 +21,12 @@ export default async function EmbedSmartFormPage({
 
   await recordSmartFormOpen(found.form.id, found.form.userId, source, "embed");
 
-  const captcha = found.publicForm.captchaEnabled ? createCaptchaChallenge() : null;
-
   return (
     <PublicSmartFormView
       form={found.publicForm}
       source={source ?? "iframe"}
       embedMode
-      captcha={captcha}
+      recaptchaSiteKey={found.publicForm.captchaEnabled ? recaptchaSiteKey() : null}
     />
   );
 }

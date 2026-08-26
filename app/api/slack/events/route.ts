@@ -22,7 +22,11 @@ export async function POST(request: Request) {
   const config = await loadSlackOfficeConfig();
   const signingSecret = config.supportSigningSecret.trim();
 
-  if (signingSecret) {
+  if (!signingSecret) {
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: "not_configured" }, { status: 503 });
+    }
+  } else {
     const valid = verifySlackRequestSignature(
       signingSecret,
       request.headers.get("x-slack-signature"),

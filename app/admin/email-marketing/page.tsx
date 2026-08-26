@@ -1,6 +1,7 @@
 import { getEmailMarketingDashboard } from "@/lib/admin/email-marketing-dashboard";
 import { AdminEmailMarketingView } from "@/components/admin/admin-email-marketing-view";
 import { loadEmailOfficeStored } from "@/lib/email/office-config";
+import { loadEmailAutomationSettings } from "@/lib/email/automation-settings";
 
 export default async function AdminEmailMarketingPage({
   searchParams,
@@ -16,12 +17,13 @@ export default async function AdminEmailMarketingPage({
   }>;
 }) {
   const params = await searchParams;
-  const [data, emailOffice] = await Promise.all([
+  const [data, emailOffice, automations] = await Promise.all([
     getEmailMarketingDashboard({
       tab: params.tab,
       campaignId: params.campaignId,
     }),
     loadEmailOfficeStored(),
+    loadEmailAutomationSettings(),
   ]);
 
   return (
@@ -32,6 +34,7 @@ export default async function AdminEmailMarketingPage({
         headerImageUrl: emailOffice.headerImageUrl,
         headerImagePosition: emailOffice.headerImagePosition,
       }}
+      automations={automations}
       flash={{
         saved: params.saved,
         error: params.error,

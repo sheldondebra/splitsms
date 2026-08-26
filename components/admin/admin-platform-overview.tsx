@@ -12,6 +12,12 @@ import { AdminProcessPendingButton } from "@/components/admin/admin-process-pend
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
+  creditCoverPulse,
+  creditCoverPulseMeters,
+  type CreditCoverMeterTone,
+} from "@/lib/admin/credit-cover";
+import type { CreditCoverSnapshot } from "@/lib/admin/credit-cover-dashboard";
+import {
   ArrowRight,
   CheckCircle2,
   AlertTriangle,
@@ -24,6 +30,7 @@ import {
   Send,
   Inbox,
   Clock,
+  Scale,
 } from "lucide-react";
 
 type Stats = Awaited<ReturnType<typeof getAdminDashboardOverview>>;
@@ -113,14 +120,124 @@ function MetricLink({
   );
 }
 
+function PulseMeterTile({
+  label,
+  value,
+  pct,
+  tone,
+}: {
+  label: string;
+  value: string;
+  pct: number;
+  tone: CreditCoverMeterTone;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-xl border px-3 py-2",
+        tone === "green" &&
+          "border-emerald-500/25 bg-emerald-500/8 text-emerald-950 dark:text-emerald-100",
+        tone === "yellow" &&
+          "border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100",
+        tone === "red" &&
+          "border-red-500/30 bg-red-500/10 text-red-950 dark:text-red-100",
+        tone === "muted" && "border-current/10 bg-background/40",
+      )}
+    >
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-y-0 left-0",
+          tone === "green" && "bg-emerald-500/35",
+          tone === "yellow" && "bg-amber-400/45",
+          tone === "red" && "bg-red-500/40",
+          tone === "muted" && "bg-muted/40",
+        )}
+        style={{ width: `${pct}%` }}
+        aria-hidden
+      />
+      <div className="relative">
+        <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{label}</p>
+        <p className="mt-0.5 text-sm font-bold tabular-nums">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function CreditCoverPulseCard({ data }: { data: CreditCoverSnapshot }) {
+  const pulse = creditCoverPulse(data);
+  const meters = creditCoverPulseMeters(data);
+  const coverLabel =
+    data.cover == null
+      ? "—"
+      : data.cover >= 0
+        ? `${data.cover.toLocaleString()} surplus`
+        : `${Math.abs(data.cover).toLocaleString()} short`;
+
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border px-4 py-4 sm:px-5",
+        pulse.tone === "danger" &&
+          "border-destructive/30 bg-destructive/8 text-destructive",
+        pulse.tone === "warn" &&
+          "border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100",
+        pulse.tone === "ok" &&
+          "border-border/60 bg-card text-foreground",
+        pulse.tone === "muted" &&
+          "border-border/60 bg-muted/20 text-foreground",
+      )}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-3 min-w-0">
+          <Scale className="mt-0.5 h-5 w-5 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-base font-semibold leading-tight">{pulse.title}</p>
+            <p className="mt-0.5 text-xs opacity-85">{pulse.detail}</p>
+          </div>
+        </div>
+        <Link
+          href="/admin/credit-cover"
+          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-current/20 bg-background/40 px-3 py-1 text-xs font-semibold hover:bg-background/70"
+        >
+          Credit cover
+          <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <PulseMeterTile
+          label="Members"
+          value={data.memberCredits.toLocaleString()}
+          pct={meters.members.pct}
+          tone={meters.members.tone}
+        />
+        <PulseMeterTile
+          label="Stock"
+          value={data.providerCredits == null ? "—" : data.providerCredits.toLocaleString()}
+          pct={meters.stock.pct}
+          tone={meters.stock.tone}
+        />
+        <PulseMeterTile
+          label="Cover"
+          value={coverLabel}
+          pct={meters.cover.pct}
+          tone={meters.cover.tone}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function AdminPlatformOverview({
   stats,
   operations,
   sms,
+  creditCover,
 }: {
   stats: Stats;
   operations: Ops;
   sms: SmsOverview;
+  creditCover: CreditCoverSnapshot;
 }) {
   const { health, counts } = operations;
   const delivery = describeSmsDeliveryMode(health);
@@ -270,6 +387,8 @@ export function AdminPlatformOverview({
           </div>
         </div>
       </div>
+
+      <CreditCoverPulseCard data={creditCover} />
 
       <AdminCard
         title="App overview"

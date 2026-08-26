@@ -111,6 +111,15 @@ export async function processMessageJob(
       const { syncMnotifyDeliveryAfterSend } = await import("@/lib/sms/sync-mnotify-dlr");
       void syncMnotifyDeliveryAfterSend(result.providerRef).catch(() => undefined);
     }
+
+    // Already force-resent once — don't start another 10s watcher loop.
+    if (message.failureReason?.startsWith("auto-resend:slow-dlr") !== true) {
+      const { watchDeliveryAndForceResend } = await import(
+        "@/lib/sms/force-resend-slow-delivery"
+      );
+      void watchDeliveryAndForceResend(messageId).catch(() => undefined);
+    }
+
     if (!options?.skipCampaignSync) {
       await syncCampaignStatus(message.campaignId);
     }

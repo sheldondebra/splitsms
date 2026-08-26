@@ -10,6 +10,7 @@ import {
   saveMnotifyBalanceCache,
 } from "@/lib/mnotify/balance";
 import { buildMnotifyUrl, trimApiKey } from "@/lib/mnotify/internal";
+import { extractMnotifySenderStatusText } from "@/lib/sender-ids/provider-status";
 
 export type MnotifyQuickSmsParams = {
   recipients: string[];
@@ -421,12 +422,11 @@ export async function checkMnotifySenderIdStatus(senderName: string) {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ sender_name: senderName }),
+      cache: "no-store",
     });
 
     const data = (await res.json()) as MnotifySenderIdResponse;
-    const providerStatus =
-      data.summary?.status ??
-      (data.summary as { status?: string; "sender name"?: string } | undefined)?.status;
+    const providerStatus = extractMnotifySenderStatusText(data);
     const messageText = String(data.message ?? data.status ?? "").toLowerCase();
     const statusText = (providerStatus ?? "").toLowerCase();
 

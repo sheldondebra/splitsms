@@ -1,7 +1,15 @@
 import { getSiteUrl, siteName, supportEmail } from "@/lib/site-config";
 
 export const EMAIL_MARKETING_MAX_RECIPIENTS = 200;
+export const EMAIL_MARKETING_NEWSLETTER_MAX_RECIPIENTS = 5000;
 export const EMAIL_MARKETING_INACTIVE_DAYS_DEFAULT = 30;
+
+export const EMAIL_MARKETING_SITE_IMAGES = [
+  { href: "/og.png", label: "Homepage banner" },
+  { href: "/logo.png", label: "Logo" },
+  { href: "/icon.png", label: "App icon" },
+  { href: "/smslogo-dark.png", label: "SMS mark" },
+] as const;
 
 export type EmailMarketingAudienceType =
   | "all"
@@ -9,13 +17,14 @@ export type EmailMarketingAudienceType =
   | "role_member"
   | "role_reseller"
   | "role_enterprise"
-  | "manual";
+  | "manual"
+  | "newsletter";
 
 export type EmailMarketingTemplateSeed = {
   slug: string;
   name: string;
   description: string;
-  category: "feature" | "reengagement" | "custom";
+  category: "feature" | "reengagement" | "newsletter" | "custom";
   subject: string;
   preheader: string;
   headline: string;
@@ -23,6 +32,7 @@ export type EmailMarketingTemplateSeed = {
   ctaLabel: string;
   ctaHref: string;
   footerNote: string;
+  imageUrl?: string;
 };
 
 export const EMAIL_MARKETING_SYSTEM_TEMPLATES: EmailMarketingTemplateSeed[] = [
@@ -42,6 +52,7 @@ Ready to try it on your next campaign?`,
     ctaLabel: "Explore SmartForms",
     ctaHref: "/smart-forms",
     footerNote: "You are receiving this because you have a SplitSMS account.",
+    imageUrl: "/og.png",
   },
   {
     slug: "reseller",
@@ -59,6 +70,7 @@ If you serve agencies, schools, churches, or businesses — this is built for yo
     ctaLabel: "Become a Reseller",
     ctaHref: "/reseller-platform",
     footerNote: "You are receiving this because you have a SplitSMS account.",
+    imageUrl: "/logo.png",
   },
   {
     slug: "bulk-sms",
@@ -76,6 +88,7 @@ Whether you are announcing an offer or sending reminders, you stay in control of
     ctaLabel: "Start a campaign",
     ctaHref: "/dashboard/campaigns",
     footerNote: "You are receiving this because you have a SplitSMS account.",
+    imageUrl: "/og.png",
   },
   {
     slug: "wordpress-plugin",
@@ -93,6 +106,7 @@ One plugin. Your existing WordPress workflow.`,
     ctaLabel: "Get the WordPress plugin",
     ctaHref: "/docs/wordpress",
     footerNote: "You are receiving this because you have a SplitSMS account.",
+    imageUrl: "/icon.png",
   },
   {
     slug: "inactive-reengagement",
@@ -110,6 +124,7 @@ Need a hand getting started again? Reply or contact support — we are happy to 
     ctaLabel: "Open dashboard",
     ctaHref: "/dashboard",
     footerNote: "You are receiving this because you have a SplitSMS account.",
+    imageUrl: "/logo.png",
   },
   {
     slug: "custom",
@@ -125,6 +140,75 @@ Share what is new, what your audience should do next, and why it matters.`,
     ctaLabel: "Learn more",
     ctaHref: "/",
     footerNote: "You are receiving this because you have a SplitSMS account.",
+    imageUrl: "/og.png",
+  },
+  {
+    slug: "newsletter-welcome",
+    name: "Newsletter welcome",
+    description: "Automation sent when someone joins the newsletter list",
+    category: "newsletter",
+    subject: "You're on the SplitSMS newsletter",
+    preheader: "Product notes, delivery tips, and SMS ideas — no spam",
+    headline: "Welcome to the SplitSMS list",
+    bodyText: `Thanks for subscribing. We'll send practical notes on bulk SMS, SmartForms, and delivery across Africa — not a daily inbox dump.
+
+You can explore the dashboard, docs, and pricing any time. If this wasn't you, use the unsubscribe link in this email.`,
+    ctaLabel: "Open SplitSMS",
+    ctaHref: "/",
+    footerNote: "You subscribed to the SplitSMS newsletter.",
+    imageUrl: "/og.png",
+  },
+  {
+    slug: "newsletter-whats-new",
+    name: "Newsletter: what's new",
+    description: "Feature roundup for the newsletter list",
+    category: "newsletter",
+    subject: "What's new at SplitSMS",
+    preheader: "Smarter forms, faster campaigns, clearer reports",
+    headline: "New tools for your next campaign",
+    bodyText: `Here's what teams are using this month:
+
+• SmartForms that capture leads and fire SMS follow-ups
+• Bulk campaigns with delivery tracking
+• Reseller tools if you sell SMS under your own brand
+
+Tap below to try the one that fits your workflow.`,
+    ctaLabel: "See features",
+    ctaHref: "/features",
+    footerNote: "You are receiving this because you subscribed to the SplitSMS newsletter.",
+    imageUrl: "/logo.png",
+  },
+  {
+    slug: "newsletter-delivery",
+    name: "Newsletter: delivery",
+    description: "How SplitSMS routes messages across Africa",
+    category: "newsletter",
+    subject: "How SplitSMS delivers across Africa",
+    preheader: "Routes, Sender IDs, and delivery you can actually track",
+    headline: "Delivery that holds up at volume",
+    bodyText: `Reliable bulk SMS is routing, not luck. SplitSMS sends through primary and fallback routes so OTP, alerts, and campaigns keep moving.
+
+Upload a list, pick a Sender ID, and watch delivery land in the dashboard — then reuse the same path from the API or WordPress.`,
+    ctaLabel: "View coverage",
+    ctaHref: "/features",
+    footerNote: "You are receiving this because you subscribed to the SplitSMS newsletter.",
+    imageUrl: "/og.png",
+  },
+  {
+    slug: "newsletter-smart-forms",
+    name: "Newsletter: SmartForms",
+    description: "Promote lead-capture forms to newsletter subscribers",
+    category: "newsletter",
+    subject: "Capture leads with SmartForms",
+    preheader: "Forms that collect data and trigger SMS automatically",
+    headline: "Turn a form into a conversation",
+    bodyText: `SmartForms collect registrations, bookings, and support requests — then send SMS confirmations without extra tools.
+
+Build the form, point it at a phone field, and let SplitSMS handle the follow-up.`,
+    ctaLabel: "Try SmartForms",
+    ctaHref: "/smart-forms",
+    footerNote: "You are receiving this because you subscribed to the SplitSMS newsletter.",
+    imageUrl: "/icon.png",
   },
 ];
 

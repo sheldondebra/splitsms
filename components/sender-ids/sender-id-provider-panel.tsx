@@ -5,8 +5,10 @@ import type {
   SenderIdProviderStatus,
   SenderIdProviderType,
 } from "@/lib/generated/prisma/client";
+import { isMnotifyHoldStatus } from "@/lib/sender-ids/provider-status";
 import {
   CheckCircle2,
+  Clock,
   Loader2,
   MinusCircle,
   XCircle,
@@ -77,6 +79,10 @@ function resolveStatus(
   return reg?.status ?? "SKIPPED";
 }
 
+function registrationOnHold(reg: SenderIdProviderReg | undefined) {
+  return isMnotifyHoldStatus(reg?.providerStatus);
+}
+
 export function SenderIdProviderPanel({
   registrations,
   className,
@@ -97,25 +103,28 @@ export function SenderIdProviderPanel({
           const reg = byProvider.get(id);
           if (!reg) return null;
           const status = resolveStatus(reg);
+          const onHold = registrationOnHold(reg);
           const meta = STATUS_META[status];
-          const Icon = meta.icon;
+          const Icon = onHold ? Clock : meta.icon;
           return (
             <Badge
               key={id}
               variant={meta.badge}
               className={cn(
                 "text-[10px] font-medium gap-1",
-                status === "APPROVED" &&
+                status === "APPROVED" && !onHold &&
                   "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
-                status === "PENDING" && "border-primary/30 bg-primary/5 text-primary",
+                onHold &&
+                  "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200",
+                status === "PENDING" && !onHold && "border-primary/30 bg-primary/5 text-primary",
               )}
               title={reg.error ?? reg.providerStatus ?? `${label}: ${meta.label}`}
             >
               <Icon
-                className={cn("h-3 w-3", meta.className, meta.spin && "animate-spin")}
+                className={cn("h-3 w-3", onHold ? "text-amber-700 dark:text-amber-300" : meta.className, meta.spin && !onHold && "animate-spin")}
                 aria-hidden
               />
-              {label}: {meta.label.toLowerCase()}
+              {label}: {onHold ? "on hold" : meta.label.toLowerCase()}
             </Badge>
           );
         })}
@@ -137,8 +146,9 @@ export function SenderIdProviderPanel({
         {PROVIDERS.map(({ id, label, hint }) => {
           const reg = byProvider.get(id);
           const status = resolveStatus(reg);
+          const onHold = registrationOnHold(reg);
           const meta = STATUS_META[status];
-          const Icon = meta.icon;
+          const Icon = onHold ? Clock : meta.icon;
           const detail = reg?.error ?? reg?.providerStatus;
 
           return (
@@ -149,11 +159,11 @@ export function SenderIdProviderPanel({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold text-foreground">{label}</p>
-                  <Badge variant={meta.badge} className="text-[10px] h-5 px-2 gap-1">
-                    {status === "PENDING" && reg ? (
+                  <Badge variant={meta.badge} className={cn("text-[10px] h-5 px-2 gap-1", onHold && "border-amber-500/40 bg-amber-500/10 text-amber-800")}>
+                    {status === "PENDING" && reg && !onHold ? (
                       <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
                     ) : null}
-                    {meta.label}
+                    {onHold ? "On hold" : meta.label}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>
@@ -166,8 +176,8 @@ export function SenderIdProviderPanel({
               <Icon
                 className={cn(
                   "h-5 w-5 shrink-0",
-                  meta.className,
-                  meta.spin && reg && "animate-spin",
+                  onHold ? "text-amber-600 dark:text-amber-400" : meta.className,
+                  meta.spin && reg && !onHold && "animate-spin",
                 )}
                 aria-hidden
               />

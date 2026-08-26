@@ -65,6 +65,78 @@ export async function saveSmartFormAutomationAction(
   return { ok: true };
 }
 
+const emailAutomationSchema = z.object({
+  sendToRespondent: z.boolean(),
+  sendToAdmin: z.boolean(),
+  adminEmail: z.string().max(500),
+  respondentSubject: z.string().max(160),
+  respondentMessageTemplate: z.string().max(4000),
+  adminSubject: z.string().max(160),
+  adminMessageTemplate: z.string().max(4000),
+  reportFrequency: z.enum(["NONE", "DAILY", "WEEKLY", "MONTHLY"]),
+  reportEmail: z.string().max(500),
+});
+
+export async function saveSmartFormEmailAutomationAction(
+  formId: string,
+  payloadJson: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Not signed in." };
+
+  let payload: z.infer<typeof emailAutomationSchema>;
+  try {
+    payload = emailAutomationSchema.parse(JSON.parse(payloadJson));
+  } catch {
+    return { ok: false, error: "Invalid email settings." };
+  }
+
+  const form = await prisma.smartForm.findFirst({
+    where: { id: formId, userId: session.userId },
+    select: { id: true },
+  });
+  if (!form) return { ok: false, error: "Form not found." };
+
+  const inactive =
+    !payload.sendToRespondent &&
+    !payload.sendToAdmin &&
+    payload.reportFrequency === "NONE";
+
+  if (inactive) {
+    await prisma.smartFormEmailAutomation.deleteMany({ where: { formId } });
+  } else {
+    await prisma.smartFormEmailAutomation.upsert({
+      where: { formId },
+      create: {
+        formId,
+        sendToRespondent: payload.sendToRespondent,
+        sendToAdmin: payload.sendToAdmin,
+        adminEmail: payload.adminEmail.trim() || null,
+        respondentSubject: payload.respondentSubject.trim() || null,
+        respondentMessageTemplate: payload.respondentMessageTemplate.trim() || null,
+        adminSubject: payload.adminSubject.trim() || null,
+        adminMessageTemplate: payload.adminMessageTemplate.trim() || null,
+        reportFrequency: payload.reportFrequency,
+        reportEmail: payload.reportEmail.trim() || null,
+      },
+      update: {
+        sendToRespondent: payload.sendToRespondent,
+        sendToAdmin: payload.sendToAdmin,
+        adminEmail: payload.adminEmail.trim() || null,
+        respondentSubject: payload.respondentSubject.trim() || null,
+        respondentMessageTemplate: payload.respondentMessageTemplate.trim() || null,
+        adminSubject: payload.adminSubject.trim() || null,
+        adminMessageTemplate: payload.adminMessageTemplate.trim() || null,
+        reportFrequency: payload.reportFrequency,
+        reportEmail: payload.reportEmail.trim() || null,
+      },
+    });
+  }
+
+  revalidatePath(`/dashboard/forms/${formId}/builder`);
+  return { ok: true };
+}
+
 export async function retryRespondentSmsAction(formId: string, responseId: string) {
   const session = await getSession();
   if (!session) return { ok: false as const, error: "Not signed in." };

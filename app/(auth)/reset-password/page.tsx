@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { resetPasswordAction } from "@/lib/actions/auth";
-import { getPasswordResetSession } from "@/lib/auth/reset-session";
+import {
+  createPasswordResetSession,
+  getPasswordResetSession,
+} from "@/lib/auth/reset-session";
+import { verifyPasswordResetLinkToken } from "@/lib/auth/password-reset-link";
 import { AuthLayout, AuthCard } from "@/components/auth/auth-layout";
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { PasswordField } from "@/components/auth/password-field";
@@ -19,12 +23,19 @@ export const metadata: Metadata = authPageMetadata(
 export default async function ResetPasswordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; token?: string }>;
 }) {
+  const { error, token } = await searchParams;
+
+  if (token) {
+    const payload = await verifyPasswordResetLinkToken(token);
+    if (!payload) redirect("/forgot-password?error=session");
+    await createPasswordResetSession(payload.userId, payload.phone);
+    redirect("/reset-password");
+  }
+
   const reset = await getPasswordResetSession();
   if (!reset) redirect("/forgot-password?error=session");
-
-  const { error } = await searchParams;
 
   return (
     <AuthLayout

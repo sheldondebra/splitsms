@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -176,9 +177,13 @@ export function HomePageContent() {
     <>
       {/* Hero */}
       <section className="relative border-b overflow-hidden" aria-labelledby="hero-heading">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/images/hero-background.png')" }}
+        <Image
+          src="/images/hero-background.png"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
           aria-hidden
         />
         <div className="absolute inset-0 bg-black/70" aria-hidden />
@@ -279,11 +284,12 @@ export function HomePageContent() {
         <div className="mx-auto max-w-6xl px-4">
           <div className="grid gap-10 lg:grid-cols-2 lg:gap-16 lg:items-center">
             <div className="relative overflow-hidden rounded-2xl bg-muted min-h-[320px] sm:min-h-[400px] lg:min-h-[520px]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src="/images/splitsms-selling.png"
                 alt="Professional reviewing SMS on her phone"
-                className="absolute inset-0 h-full w-full object-cover object-center"
+                fill
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                className="object-cover object-center"
               />
             </div>
 
@@ -849,11 +855,12 @@ export function HomePageContent() {
           </div>
 
           <div className="order-1 relative min-h-[300px] sm:min-h-[400px] lg:order-2 lg:min-h-full">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src="/images/rest-api-developer.png"
               alt="Developer working with code and API dashboards"
-              className="absolute inset-0 h-full w-full object-cover object-center"
+              fill
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              className="object-cover object-center"
             />
           </div>
         </div>
@@ -865,11 +872,12 @@ export function HomePageContent() {
       <section className="border-t" aria-labelledby="faq">
         <div className="grid lg:grid-cols-2 lg:min-h-[560px]">
           <div className="relative min-h-[280px] sm:min-h-[360px] lg:min-h-full order-2 lg:order-1">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src="/images/faq-sms.png"
               alt="Person reading an SMS on their phone"
-              className="absolute inset-0 h-full w-full object-cover object-center"
+              fill
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              className="object-cover object-center"
             />
           </div>
 

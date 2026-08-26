@@ -10,9 +10,8 @@ export async function renderEmailLayout(params: EmailLayoutParams) {
   return emailLayout({
     ...params,
     headerImageUrl:
-      params.headerImageUrl !== undefined
-        ? params.headerImageUrl
-        : stored.headerImageUrl || undefined,
+      params.headerImageUrl ||
+      (params.showLogo ? stored.headerImageUrl || undefined : undefined),
     headerImagePosition: params.headerImagePosition ?? stored.headerImagePosition,
   });
 }

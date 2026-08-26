@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { createAndSendOtp, verifyOtp } from "@/lib/auth/otp";
 import { checkRateLimit, recordFailedAttempt, rateLimitKey } from "@/lib/auth/rate-limit";
-import { assertOtpBotAllowed, consumeOtpIpSlot } from "@/lib/auth/signup-guard";
+import {
+  assertOtpBotAllowed,
+  assertSignupBotAllowed,
+  consumeOtpIpSlot,
+} from "@/lib/auth/signup-guard";
 import { shouldBlockAuthBot } from "@/lib/auth/bot-guard";
 import { normalizePhone } from "@/lib/auth/validation";
+import { resolvePublicOtpPurpose, signupIdentityBlockReason } from "@/lib/auth/signup-spam";
 import { z } from "zod";
 
 const sendSchema = z.object({
@@ -13,6 +18,8 @@ const sendSchema = z.object({
   company_website: z.string().optional(),
   ss_hp_field: z.string().optional(),
   turnstileToken: z.string().optional(),
+  recaptchaToken: z.string().optional(),
+  "g-recaptcha-response": z.string().optional(),
 });
 
 const verifySchema = z.object({
@@ -40,15 +47,36 @@ export async function handlePublicSendOtp(request: Request) {
 
   const phone = normalizePhone(body.data.phone);
   const countryCode = body.data.countryCode ?? "GH";
-  const purpose = purposeMap[body.data.purpose ?? "signup"];
+  const purposeKey = resolvePublicOtpPurpose(body.data.purpose);
+  const purpose = purposeMap[purposeKey];
 
-  const otpBot = await assertOtpBotAllowed({
-    honeypot: body.data.ss_hp_field || body.data.company_website,
-    turnstileToken: body.data.turnstileToken,
-  });
-  if (!otpBot.ok) {
-    const status = otpBot.error === "rate_limit" ? 429 : 403;
-    return NextResponse.json({ error: "Too many requests" }, { status });
+  if (signupIdentityBlockReason({ phone, countryCode })) {
+    return NextResponse.json({ error: "Invalid phone" }, { status: 400 });
+  }
+
+  const honeypot = body.data.ss_hp_field || body.data.company_website;
+  const recaptchaToken =
+    body.data.recaptchaToken ?? body.data["g-recaptcha-response"];
+
+  if (purposeKey === "signup") {
+    const signupBot = await assertSignupBotAllowed({
+      honeypot,
+      turnstileToken: body.data.turnstileToken,
+      recaptchaToken,
+    });
+    if (!signupBot.ok) {
+      const status = signupBot.error === "rate_limit" ? 429 : 403;
+      return NextResponse.json({ error: "Too many requests" }, { status });
+    }
+  } else {
+    const otpBot = await assertOtpBotAllowed({
+      honeypot,
+      turnstileToken: body.data.turnstileToken,
+    });
+    if (!otpBot.ok) {
+      const status = otpBot.error === "rate_limit" ? 429 : 403;
+      return NextResponse.json({ error: "Too many requests" }, { status });
+    }
   }
 
   const otpIp = await consumeOtpIpSlot();
@@ -83,7 +111,7 @@ export async function handlePublicVerifyOtp(request: Request) {
   }
 
   const phone = normalizePhone(body.data.phone);
-  const purpose = purposeMap[body.data.purpose ?? "signup"];
+  const purpose = purposeMap[resolvePublicOtpPurpose(body.data.purpose)];
 
   const limit = await checkRateLimit(rateLimitKey("otp", phone));
   if (!limit.allowed) {

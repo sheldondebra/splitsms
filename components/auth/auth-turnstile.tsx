@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import Script from "next/script";
-import { turnstileSiteKey } from "@/lib/auth/signup-guard-shared";
 
 declare global {
   interface Window {
@@ -15,22 +14,26 @@ declare global {
   }
 }
 
-export function AuthTurnstile() {
-  const siteKey = turnstileSiteKey();
+export function AuthTurnstile({ siteKey }: { siteKey: string }) {
   const ref = useRef<HTMLDivElement>(null);
+  const rendered = useRef(false);
 
-  useEffect(() => {
-    if (!siteKey || !ref.current || !window.turnstile) return;
+  const mount = useCallback(() => {
+    if (!siteKey || !ref.current || rendered.current || !window.turnstile) return;
     window.turnstile.render(ref.current, { sitekey: siteKey, theme: "auto" });
+    rendered.current = true;
   }, [siteKey]);
 
-  if (!siteKey) return null;
+  useEffect(() => {
+    mount();
+  }, [mount]);
 
   return (
     <>
       <Script
-        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-        strategy="lazyOnload"
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+        strategy="afterInteractive"
+        onLoad={mount}
       />
       <div ref={ref} className="flex justify-center min-h-[65px]" />
     </>

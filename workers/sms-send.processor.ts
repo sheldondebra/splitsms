@@ -15,7 +15,7 @@ new Worker<SmsSendJob>(
   async (job) => {
     await processMessageJob(job.data.messageId, job.data.countryCode);
   },
-  { connection, concurrency: 20 },
+  { connection, concurrency: 32 },
 );
 
 console.log("SMS send worker running...");

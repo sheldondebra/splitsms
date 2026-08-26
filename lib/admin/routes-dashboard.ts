@@ -87,7 +87,7 @@ export async function getAdminRoutesDashboard() {
       loadSmsRoutingPolicy(),
       getMnotifyStatus(),
       fetchAllSmsProviderBalances(),
-      getRecentSmsRoutingLogs(40),
+      getRecentSmsRoutingLogs(200),
       prisma.smsProvider.findMany({ orderBy: { type: "asc" } }),
       prisma.smsRoute.findMany({
         include: {

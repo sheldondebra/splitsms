@@ -8,7 +8,11 @@ export async function POST(request: Request) {
   const signature = request.headers.get("x-paystack-signature");
   const { config } = await loadPaystackSettings();
 
-  if (config.secretKey && !(await verifyPaystackSignature(rawBody, signature))) {
+  if (!config.secretKey) {
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
+    }
+  } else if (!(await verifyPaystackSignature(rawBody, signature))) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 

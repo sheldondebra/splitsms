@@ -67,6 +67,12 @@ export async function createSession(payload: SessionPayload) {
   await clearImpersonationCookie();
 }
 
+/** True when a session cookie exists — does not decode or return user fields. */
+export async function hasSessionCookie(): Promise<boolean> {
+  const cookieStore = await cookies();
+  return Boolean(cookieStore.get(COOKIE_NAME)?.value);
+}
+
 /** Real signed-in user (never swapped for impersonation). Use for admin gates. */
 export const getRealSession = cache(async (): Promise<SessionPayload | null> => {
   return readCookieSession();

@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { AdminPage } from "@/components/admin/admin-page-shell";
+import { MemberAdminToasts } from "@/components/admin/member-admin-toasts";
 import { MemberDetailView } from "@/components/admin/member-detail-view";
 import { getAdminMemberDetail } from "@/lib/admin/member-detail";
 
@@ -13,6 +15,7 @@ export default async function AdminMemberDetailPage({
     error?: string;
     temp?: string;
     cooldown?: string;
+    detail?: string;
   }>;
 }) {
   const { id } = await params;
@@ -21,6 +24,9 @@ export default async function AdminMemberDetailPage({
 
   return (
     <AdminPage wide>
+      <Suspense fallback={null}>
+        <MemberAdminToasts memberId={id} />
+      </Suspense>
       <MemberDetailView
         data={data}
         initialTab={q.tab}
@@ -29,6 +35,7 @@ export default async function AdminMemberDetailPage({
           error: q.error,
           temp: q.temp,
           cooldown: q.cooldown,
+          detail: q.detail,
         }}
       />
     </AdminPage>

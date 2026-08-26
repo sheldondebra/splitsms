@@ -118,6 +118,62 @@
   --sidebar-ring: oklch(0.75 0.2 45);
 }
 
+html {
+  --scroll-size: 8px;
+  --scroll-thumb: color-mix(in oklab, var(--primary) 40%, transparent);
+  --scroll-thumb-hover: color-mix(in oklab, var(--primary) 72%, transparent);
+}
+
+@media (max-width: 767px) {
+  html {
+    --scroll-size: 4px;
+    --scroll-thumb: color-mix(in oklab, var(--primary) 48%, transparent);
+  }
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: var(--scroll-size);
+  height: var(--scroll-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 3px 0;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--scroll-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scroll-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  * {
+    scrollbar-width: thin;
+  }
+  *::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+  *::-webkit-scrollbar-thumb {
+    border-width: 0;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -280,24 +336,24 @@
     padding-top: env(safe-area-inset-top, 0px);
   }
 
-  /* Dashboard / admin sidebar scroll — light orange thumb */
+  /* Thin overlay thumb — matches global scrollbar */
   .sidebar-scroll {
     scrollbar-width: thin;
-    scrollbar-color: oklch(0.72 0.19 45 / 0.45) transparent;
+    scrollbar-color: var(--scroll-thumb) transparent;
   }
   .sidebar-scroll::-webkit-scrollbar {
     width: 5px;
   }
   .sidebar-scroll::-webkit-scrollbar-track {
     background: transparent;
-    margin: 4px 0;
+    margin: 6px 0;
   }
   .sidebar-scroll::-webkit-scrollbar-thumb {
-    background: oklch(0.78 0.14 55 / 0.5);
+    background-color: var(--scroll-thumb);
     border-radius: 999px;
   }
   .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.72 0.19 45 / 0.7);
+    background-color: var(--scroll-thumb-hover);
   }
   .sidebar-footer {
     @apply shrink-0 border-t border-sidebar-border/80 bg-sidebar/95 backdrop-blur-sm;
@@ -309,10 +365,13 @@
 
   /* Member app (dashboard + developers) — mobile-first */
   .member-main {
-    @apply bg-background pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:pb-8 md:bg-muted/25;
+    @apply bg-background pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:pb-8 md:bg-muted/25;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    -webkit-tap-highlight-color: transparent;
   }
   .member-content {
-    @apply w-full max-w-none px-5 pt-4 pb-5 min-w-0 sm:px-6 md:px-8 lg:px-12 xl:px-14 md:pt-7 md:pb-10;
+    @apply w-full max-w-none px-4 pt-3 pb-4 min-w-0 sm:px-6 md:px-8 lg:px-12 xl:px-14 md:pt-7 md:pb-10;
   }
 
   .admin-main {
@@ -329,7 +388,7 @@
   }
 
   .app-page {
-    @apply w-full min-w-0 space-y-6 md:space-y-9 lg:space-y-11;
+    @apply w-full min-w-0 space-y-4 md:space-y-9 lg:space-y-11;
   }
   .app-page-narrow {
     @apply w-full md:max-w-3xl md:mx-auto;
@@ -360,7 +419,7 @@
     .app-page textarea {
       @apply min-h-11 text-base;
     }
-    .app-page button[type="submit"],
+    .app-page button[type="submit"]:not(.app-btn-compact),
     .app-page .app-btn-primary {
       @apply w-full min-h-11 text-base font-semibold;
     }
@@ -371,7 +430,7 @@
       @apply text-sm;
     }
     .app-scroll-x {
-      @apply -mx-5 px-5 overflow-x-auto overscroll-x-contain sm:-mx-6 sm:px-6;
+      @apply -mx-4 px-4 overflow-x-auto overscroll-x-contain sm:-mx-6 sm:px-6;
     }
     .app-page .grid-mobile-stack {
       grid-template-columns: repeat(1, minmax(0, 1fr));
@@ -419,4 +478,10 @@
 
 [data-sonner-toast][data-type="loading"] [data-icon] {
   color: var(--primary);
+}
+
+/* reCAPTCHA v3 is invisible. Hide Google's floating badge; attribution lives on the form. */
+.grecaptcha-badge {
+  visibility: hidden !important;
+  pointer-events: none;
 }

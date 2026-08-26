@@ -20,7 +20,11 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, Loader2, ShieldX, XCircle } from "lucide-react";
+
+const dialogFooterClass =
+  "mx-0 mb-0 flex-col-reverse gap-2 border-t border-border/60 bg-muted/20 px-5 py-4 sm:flex-row sm:justify-end";
 
 type SenderSummary = {
   id: string;
@@ -150,11 +154,11 @@ export function SenderIdApproveDialog({
           )}
         </div>
 
-        <DialogFooter className="border-t border-border/60 bg-muted/20 px-5 py-4 flex-row gap-2 sm:justify-end">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-9" disabled={pending}>
+        <DialogFooter className={dialogFooterClass}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-9 w-full sm:w-auto" disabled={pending}>
             Cancel
           </Button>
-          <Button type="button" onClick={runApprove} className="h-9 gap-1.5" disabled={pending || !purpose.trim()}>
+          <Button type="button" onClick={runApprove} className="h-9 w-full gap-1.5 sm:w-auto" disabled={pending || !purpose.trim()}>
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {pending
               ? "Processing…"
@@ -215,10 +219,10 @@ export function SenderIdDenyDialog({
         }
       }}
     >
-      <DialogContent className="sm:max-w-md gap-0 p-0 overflow-hidden">
-        <div className="px-5 pt-5 pb-4">
-          <DialogHeader className="text-left gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10 text-destructive mb-1">
+      <DialogContent className="sm:max-w-md gap-0 overflow-hidden p-0">
+        <div className="space-y-4 px-5 pt-5 pb-5">
+          <DialogHeader className="gap-2 text-left">
+            <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
               <ShieldX className="h-5 w-5" />
             </div>
             <DialogTitle>Deny sender ID request?</DialogTitle>
@@ -227,7 +231,22 @@ export function SenderIdDenyDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="mt-4 space-y-2">
+          <dl className="space-y-1.5 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 text-xs">
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">Sender ID</dt>
+              <dd className="font-mono font-semibold">{sender.value}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">Country</dt>
+              <dd>{sender.countryCode}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">Member</dt>
+              <dd className="text-right">{sender.memberName}</dd>
+            </div>
+          </dl>
+
+          <div className="space-y-2">
             <Label htmlFor={`deny-reason-${sender.id}`} className="text-xs">
               Reason for denial
             </Label>
@@ -236,29 +255,54 @@ export function SenderIdDenyDialog({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={3}
-              className="text-sm resize-none"
+              className="resize-none text-sm"
               required
               disabled={pending}
             />
           </div>
 
-          <label className="mt-3 flex items-start gap-2 text-xs text-muted-foreground cursor-pointer">
-            <input
-              type="checkbox"
+          <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/15 px-3 py-2.5">
+            <Checkbox
               checked={ban}
               onChange={(e) => setBan(e.target.checked)}
-              className="mt-0.5 rounded border-border"
               disabled={pending}
+              className="mt-0.5"
+              aria-labelledby={`ban-label-${sender.id}`}
             />
-            Add this name to the ban list
-          </label>
+            <button
+              type="button"
+              id={`ban-label-${sender.id}`}
+              disabled={pending}
+              onClick={() => setBan((v) => !v)}
+              className="min-w-0 flex-1 text-left disabled:opacity-50"
+            >
+              <span className="block text-xs font-medium text-foreground">
+                Add this name to the ban list
+              </span>
+              <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                Blocks future requests for this exact sender ID.
+              </span>
+            </button>
+          </div>
         </div>
 
-        <DialogFooter className="border-t border-border/60 bg-muted/20 px-5 py-4 flex-row gap-2 sm:justify-end">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-9" disabled={pending}>
+        <DialogFooter className={dialogFooterClass}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="h-9 w-full sm:w-auto"
+            disabled={pending}
+          >
             Cancel
           </Button>
-          <Button type="button" variant="destructive" onClick={runDeny} className="h-9 gap-1.5" disabled={pending || !reason.trim()}>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={runDeny}
+            className="h-9 w-full gap-1.5 sm:w-auto"
+            disabled={pending || !reason.trim()}
+          >
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {pending ? "Denying…" : "Deny & notify member"}
           </Button>
@@ -352,12 +396,12 @@ export function SenderIdCancelDialog({
           </div>
         </div>
 
-        <DialogFooter className="border-t border-border/60 bg-muted/20 px-5 py-4 flex-row gap-2 sm:justify-end">
+        <DialogFooter className={dialogFooterClass}>
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="h-9"
+            className="h-9 w-full sm:w-auto"
             disabled={pending}
           >
             {pending ? (

@@ -1,8 +1,12 @@
 import { prisma } from "@/lib/db";
+import type { SenderIdDocumentType } from "@/lib/generated/prisma/client";
 import { sendEmail } from "@/lib/email";
 import {
   senderIdAdminAlertContent,
   senderIdApprovedMemberContent,
+  senderIdDocumentRequestMemberContent,
+  senderIdDocumentUploadedAdminAlertContent,
+  senderIdDocumentUploadedMemberContent,
   senderIdLiveMemberContent,
   senderIdRejectedMemberContent,
   senderIdSubmittedMemberContent,
@@ -11,6 +15,10 @@ import { resolveAdminAlertRecipients } from "@/lib/admin/alert-recipients";
 import { createNotification } from "@/lib/notifications";
 import { sendPlatformAlertSms } from "@/lib/sms/platform-notify";
 import { getSiteUrl, siteName } from "@/lib/site-config";
+import {
+  buildSenderIdVerificationUrl,
+  createSenderIdVerificationToken,
+} from "@/lib/sender-ids/verification-link";
 
 export async function notifyAdminsNewSenderId(senderRecordId: string) {
   const sender = await prisma.senderId.findUnique({
@@ -123,13 +131,8 @@ export async function notifyUserSenderIdApproved(senderRecordId: string) {
 
   const title = `Sender ID approved: ${sender.value}`;
   const message = `Your sender ID "${sender.value}" is ready to use when sending SMS.`;
-  const smsText = `${siteName}: Your sender ID "${sender.value}" is approved and ready to use.`;
-
-  await createNotification(sender.user.id, "SYSTEM", title, message, {
-    kind: "sender_id_approved",
-    senderId: senderRecordId,
-    value: sender.value,
-  });
+  const sendUrl = `${getSiteUrl()}/dashboard/send`;
+  const smsText = `${siteName}: Your sender ID "${sender.value}" is approved and live. Send SMS now: ${sendUrl}`;
 
   const tasks: Promise<unknown>[] = [];
   if (sender.user.email) {
@@ -137,12 +140,20 @@ export async function notifyUserSenderIdApproved(senderRecordId: string) {
       value: sender.value,
       memberName: sender.user.fullName,
     });
-    tasks.push(sendEmail({ to: sender.user.email, subject, text, html }));
+    tasks.push(sendEmail({ to: sender.user.email, toName: sender.user.fullName, subject, text, html }));
   }
   if (sender.user.phone) {
     tasks.push(sendPlatformAlertSms(sender.user.phone, smsText));
   }
   await Promise.allSettled(tasks);
+
+  await createNotification(sender.user.id, "SYSTEM", title, message, {
+    kind: "sender_id_approved",
+    senderId: senderRecordId,
+    value: sender.value,
+    href: "/dashboard/send",
+    ctaLabel: "Send SMS",
+  });
 }
 
 /** Force-notify member that their sender ID is live (SMS + email). Always sends. */
@@ -263,4 +274,129 @@ export async function notifyUserSenderIdRejected(senderRecordId: string, reason:
   await Promise.allSettled(tasks);
 
   await ensureRegisterSenderIdNotification(sender.user.id).catch(() => undefined);
+}
+
+const DOCUMENT_REQUEST_KIND = "sender_id_documents_requested";
+const DOCUMENT_REQUEST_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000;
+
+/** True if we already emailed this member a document-upload request recently. */
+export async function senderIdDocumentRequestOnCooldown(senderRecordId: string) {
+  const last = await prisma.notification.findFirst({
+    where: {
+      type: "SYSTEM",
+      AND: [
+        { metadata: { path: ["kind"], equals: DOCUMENT_REQUEST_KIND } },
+        { metadata: { path: ["senderId"], equals: senderRecordId } },
+      ],
+    },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
+  });
+  if (!last) return false;
+  return Date.now() - last.createdAt.getTime() < DOCUMENT_REQUEST_COOLDOWN_MS;
+}
+
+/**
+ * Email a member a secure link to upload a verification document, because their
+ * sender ID is on hold at the carrier or was not approved. Callers should check
+ * `senderIdDocumentRequestOnCooldown` first to avoid re-sending on every sync.
+ */
+export async function notifyUserSenderIdDocumentsRequested(
+  senderRecordId: string,
+  reason: string,
+): Promise<{ ok: true; uploadUrl: string; value: string } | { ok: false }> {
+  const sender = await prisma.senderId.findUnique({
+    where: { id: senderRecordId },
+    include: {
+      user: { select: { id: true, fullName: true, phone: true, email: true } },
+    },
+  });
+  if (!sender) return { ok: false };
+
+  const token = await createSenderIdVerificationToken(sender.user.id, senderRecordId);
+  const uploadUrl = buildSenderIdVerificationUrl(token);
+  const note = reason.trim() || "We need one more document to continue reviewing this sender ID.";
+
+  const title = `Verify sender ID: ${sender.value}`;
+  const message = "Upload a business registration document, or a Passport / Ghana Card, to continue.";
+
+  await createNotification(sender.user.id, "SYSTEM", title, message, {
+    kind: DOCUMENT_REQUEST_KIND,
+    senderId: senderRecordId,
+    value: sender.value,
+    href: uploadUrl,
+    ctaLabel: "Upload document",
+  });
+
+  const tasks: Promise<unknown>[] = [];
+  if (sender.user.email) {
+    const { subject, text, html } = await senderIdDocumentRequestMemberContent({
+      value: sender.value,
+      memberName: sender.user.fullName,
+      reason: note,
+      uploadUrl,
+    });
+    tasks.push(sendEmail({ to: sender.user.email, toName: sender.user.fullName, subject, text, html }));
+  }
+  if (sender.user.phone) {
+    const smsText = `${siteName}: Verify sender ID "${sender.value}" — upload a document: ${uploadUrl}`;
+    tasks.push(sendPlatformAlertSms(sender.user.phone, smsText));
+  }
+  await Promise.allSettled(tasks);
+
+  return { ok: true, uploadUrl, value: sender.value };
+}
+
+/** After a member uploads a verification document: confirm to them, alert admins, ping Slack. */
+export async function notifyDocumentUploaded(documentId: string) {
+  const doc = await prisma.senderIdVerificationDocument.findUnique({
+    where: { id: documentId },
+    include: {
+      sender: { select: { id: true, value: true, countryCode: true } },
+      user: { select: { id: true, fullName: true, phone: true, email: true } },
+    },
+  });
+  if (!doc) return;
+
+  const adminUrl = `${getSiteUrl()}/admin/sender-ids?tab=pending`;
+
+  if (doc.user.email) {
+    const { subject, text, html } = await senderIdDocumentUploadedMemberContent({
+      value: doc.sender.value,
+      memberName: doc.user.fullName,
+      docType: doc.docType as SenderIdDocumentType,
+    });
+    await sendEmail({ to: doc.user.email, toName: doc.user.fullName, subject, text, html }).catch(
+      () => undefined,
+    );
+  }
+
+  const { subject, text, html } = await senderIdDocumentUploadedAdminAlertContent({
+    value: doc.sender.value,
+    memberName: doc.user.fullName,
+    memberPhone: doc.user.phone,
+    memberEmail: doc.user.email,
+    docType: doc.docType as SenderIdDocumentType,
+    adminUrl,
+  });
+  const recipients = await resolveAdminAlertRecipients();
+  await Promise.allSettled(
+    recipients
+      .filter((r) => r.email)
+      .map((r) => sendEmail({ to: r.email!, toName: r.name, subject, text, html })),
+  );
+
+  void import("@/lib/slack/sender-id-events")
+    .then(({ notifySlackSenderIdDocumentUploaded }) =>
+      notifySlackSenderIdDocumentUploaded({
+        senderRecordId: doc.sender.id,
+        value: doc.sender.value,
+        countryCode: doc.sender.countryCode,
+        memberName: doc.user.fullName,
+        memberPhone: doc.user.phone,
+        docType: doc.docType as SenderIdDocumentType,
+        adminUrl,
+      }),
+    )
+    .catch(() => undefined);
 }

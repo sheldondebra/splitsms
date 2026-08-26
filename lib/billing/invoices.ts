@@ -92,3 +92,11 @@ export async function createInvoiceFromTransaction(
     },
   });
 }
+
+export {
+  INVOICE_STATUS_LABELS,
+  invoiceSummary,
+  parseInvoiceItems,
+  serializeInvoice,
+} from "@/lib/billing/invoice-format";
+export type { InvoiceLineItem, MemberInvoiceRow } from "@/lib/billing/invoice-format";

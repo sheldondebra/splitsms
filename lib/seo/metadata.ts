@@ -16,6 +16,10 @@ export type BuildPageMetadataOptions = {
   modifiedTime?: string;
 };
 
+export const shareTitle = "SplitSMS | Bulk SMS Platform and SMS API";
+export const shareDescription =
+  "Send bulk SMS, OTP, and campaigns in Ghana, Nigeria, and 190+ countries. REST API, WordPress, and pay-as-you-go credits.";
+
 export function pageUrl(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${siteUrl}${normalized}`;
@@ -48,7 +52,7 @@ export function buildPageMetadata(options: BuildPageMetadataOptions): Metadata {
       url,
       siteName,
       type: ogType,
-      locale: "en",
+      locale: "en_US",
       images: defaultOpenGraphImages,
       ...(ogType === "article" && publishedTime
         ? { publishedTime, ...(modifiedTime ? { modifiedTime } : {}) }
@@ -58,7 +62,12 @@ export function buildPageMetadata(options: BuildPageMetadataOptions): Metadata {
       card: "summary_large_image",
       title: resolvedTitle,
       description,
-      images: [defaultOpenGraphImages[0].url],
+      images: [
+        {
+          url: defaultOpenGraphImages[0].url,
+          alt: defaultOpenGraphImages[0].alt,
+        },
+      ],
     },
     robots: noIndex
       ? { index: false, follow: false }

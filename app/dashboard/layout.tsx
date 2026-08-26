@@ -15,7 +15,7 @@ import { userNeedsProfileCompletion } from "@/lib/auth/phone-auth";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
-import type { Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -27,6 +27,14 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: light)", color: "#fafafa" },
     { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
   ],
+};
+
+export const metadata: Metadata = {
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "SplitSMS",
+  },
 };
 
 export default async function DashboardLayout({
@@ -63,9 +71,9 @@ export default async function DashboardLayout({
   }
 
   const firstName = user?.fullName?.split(" ")[0] ?? "there";
-  const showResellerPortal =
-    Boolean(reseller && reseller.status === "APPROVED" && reseller.isActive) ||
-    ["ADMIN", "SUPER_ADMIN", "RESELLER"].includes(session.role);
+  const showResellerPortal = Boolean(
+    reseller && reseller.status === "APPROVED" && reseller.isActive,
+  );
 
   return (
     <TenantThemeWrap tenant={memberTenant}>

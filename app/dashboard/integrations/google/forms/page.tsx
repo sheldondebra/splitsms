@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
-import { getGoogleConnectionPublic } from "@/lib/google/connection";
 import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 import { GoogleFormsSmsPanel } from "@/components/dashboard/google-forms-sms-panel";
 import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { FileInput, ArrowLeft } from "lucide-react";
+import { googleFormsServiceAccountEmail } from "@/lib/google/sheet-id";
 
 export const metadata = {
   title: "Google Forms SMS",
@@ -22,8 +22,7 @@ export default async function GoogleFormsSmsPage({
   if (!session) return null;
 
   const query = await searchParams;
-  const [connection, automations, senderIds] = await Promise.all([
-    getGoogleConnectionPublic(session.userId),
+  const [automations, senderIds] = await Promise.all([
     prisma.googleFormSmsAutomation.findMany({
       where: { userId: session.userId },
       orderBy: { updatedAt: "desc" },
@@ -36,10 +35,10 @@ export default async function GoogleFormsSmsPage({
   ]);
 
   return (
-    <AppPage>
+    <AppPage narrow>
       <PageHeader
         title="Google Forms → SMS"
-        description="Pick a Google Form once. New responses trigger SMS automatically."
+        description="Paste your sheet. New answers get an SMS."
         icon={FileInput}
         actions={
           <Link
@@ -47,7 +46,7 @@ export default async function GoogleFormsSmsPage({
             className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-2")}
           >
             <ArrowLeft className="h-4 w-4" />
-            Google connection
+            Google
           </Link>
         }
       />
@@ -61,9 +60,19 @@ export default async function GoogleFormsSmsPage({
       {query.error === "invalid" ? (
         <FriendlyAlert error="Fill in phone field and message template." />
       ) : null}
+      {query.error === "share" ? (
+        <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          Share the sheet as Viewer, then try again.
+        </p>
+      ) : null}
+      {query.error === "sheet" ? (
+        <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          We couldn’t open that sheet. Check the link and try again.
+        </p>
+      ) : null}
 
       <GoogleFormsSmsPanel
-        connected={Boolean(connection)}
+        serviceAccountEmail={googleFormsServiceAccountEmail()}
         senderIds={senderIds.map((s) => s.value)}
         automations={automations.map((a) => ({
           id: a.id,

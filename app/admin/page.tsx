@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getAdminDashboardOverview } from "@/lib/analytics/admin-dashboard";
 import { getAdminOperationsDashboard } from "@/lib/admin/operations-dashboard";
 import { getAdminReportsOverview } from "@/lib/admin/messages-dashboard";
+import { getCreditCoverSnapshot } from "@/lib/admin/credit-cover-dashboard";
 import { AdminOperationsPanel } from "@/components/admin/admin-operations-panel";
 import { AdminPlatformOverview } from "@/components/admin/admin-platform-overview";
 import {
@@ -74,6 +75,7 @@ export default async function AdminDashboardPage({
     getAdminOperationsDashboard(),
     getAdminReportsOverview(),
   ]);
+  const creditCover = await getCreditCoverSnapshot(stats.providerBalances);
 
   const systemSyncRan = params.systemSync === "1";
 
@@ -129,7 +131,12 @@ export default async function AdminDashboardPage({
 
       <ProviderBalancesPanel balances={stats.providerBalances} compact />
 
-      <AdminPlatformOverview stats={stats} operations={operations} sms={sms} />
+      <AdminPlatformOverview
+        stats={stats}
+        operations={operations}
+        sms={sms}
+        creditCover={creditCover}
+      />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <AdminStatCard

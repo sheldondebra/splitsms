@@ -1,13 +1,14 @@
 import { format, formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { AdminCard, AdminEmpty } from "@/components/admin/admin-page-shell";
+import { ExpandableMessage } from "@/components/admin/expandable-message";
 import { MemberOutreachPanel } from "@/components/admin/member-detail/member-outreach-panel";
 import { ProviderBadge } from "@/components/admin/provider-badge";
 import { Badge } from "@/components/ui/badge";
 import type { AdminMemberDetail } from "@/lib/admin/member-detail";
 import type { SmsProviderType } from "@/lib/generated/prisma/client";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, Clock, Route, Timer } from "lucide-react";
+import { AlertTriangle, CalendarClock, Clock, Route, Timer } from "lucide-react";
 
 function formatDuration(seconds: number | null) {
   if (seconds == null) return "—";
@@ -41,10 +42,8 @@ function MessageStatusBadge({ status }: { status: string }) {
 
 export function MemberMessagingPanel({
   data,
-  flash,
 }: {
   data: AdminMemberDetail;
-  flash?: { saved?: string; error?: string };
 }) {
   const { recentMessages, routingLogs, wordpressLogs, analytics } = data;
   const failed = recentMessages.filter((m) => m.status === "FAILED");
@@ -57,7 +56,6 @@ export function MemberMessagingPanel({
         email={data.user.email}
         needsOnboarding={data.outreach.needsOnboarding}
         vars={data.outreach.vars}
-        flash={flash}
       />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-border/60 bg-card p-4">
@@ -169,7 +167,14 @@ export function MemberMessagingPanel({
                         )}
                       >
                         <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">
-                          {format(m.createdAt, "MMM d HH:mm")}
+                          <span className="inline-flex items-center gap-1.5">
+                            <CalendarClock className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                            <span>{format(m.createdAt, "MMM d")}</span>
+                            <span className="opacity-40" aria-hidden>
+                              |
+                            </span>
+                            <span>{format(m.createdAt, "h:mm a")}</span>
+                          </span>
                         </td>
                         <td className="px-3 py-2.5 font-mono">{m.recipient}</td>
                         <td className="px-3 py-2.5 font-mono">{m.senderId}</td>
@@ -203,8 +208,8 @@ export function MemberMessagingPanel({
                             "—"
                           )}
                         </td>
-                        <td className="px-3 py-2.5 max-w-[200px] truncate text-muted-foreground">
-                          {m.body}
+                        <td className="px-3 py-2.5 align-top">
+                          <ExpandableMessage body={m.body} />
                         </td>
                       </tr>
                     );

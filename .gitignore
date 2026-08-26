@@ -50,6 +50,10 @@ next-env.d.ts
 /public/uploads/reseller-logos/*
 !/public/uploads/reseller-logos/.gitkeep
 
+# email marketing header images (keep folder)
+/public/uploads/email-marketing/*
+!/public/uploads/email-marketing/.gitkeep
+
 .tmp-google-oauth-profile/
 
 # Search Console SEO CLI

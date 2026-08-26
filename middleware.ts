@@ -70,6 +70,12 @@ function externalResellerPortal(session: { userId: string; role: string }, tenan
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (pathname === "/go" || pathname.startsWith("/go/")) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-splitsms-pathname", pathname);
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
   if (
     request.method === "POST" &&
     (pathname.startsWith("/api/auth/") || pathname.startsWith("/api/v1/otp/"))
@@ -212,5 +218,6 @@ export const config = {
     "/complete-profile",
     "/complete-phone",
     "/onboarding",
+    "/go",
   ],
 };

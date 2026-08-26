@@ -100,6 +100,7 @@ export async function getSmartFormForUser(userId: string, formId: string) {
       fields: { orderBy: { sortOrder: "asc" } },
       contactGroup: { select: { id: true, name: true } },
       smsAutomation: true,
+      emailAutomation: true,
     },
   });
 }

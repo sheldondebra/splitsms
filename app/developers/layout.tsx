@@ -12,7 +12,7 @@ import { ensureRegisterSenderIdNotification } from "@/lib/sender-ids/notificatio
 import { prisma } from "@/lib/db";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
 import { after } from "next/server";
-import type { Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -20,6 +20,18 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
+};
+
+export const metadata: Metadata = {
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "SplitSMS",
+  },
 };
 
 export default async function DevelopersLayout({

@@ -4,9 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
-import { googleConnectHref } from "@/lib/google/connect-url";
 import { loadFormQuestionsForUser } from "@/lib/google/forms-sms";
-import { GOOGLE_FORMS_SCOPES } from "@/lib/google/scopes";
+import { parseGoogleSpreadsheetId } from "@/lib/google/sheet-id";
 import { resolveApprovedSenderForUser } from "@/lib/sender-ids/validate-send";
 
 async function requireUserId() {
@@ -17,7 +16,7 @@ async function requireUserId() {
 
 export async function saveGoogleFormSmsAutomationAction(formData: FormData) {
   const userId = await requireUserId();
-  const formId = String(formData.get("formId") ?? "").trim();
+  const formId = parseGoogleSpreadsheetId(String(formData.get("formId") ?? "")) ?? "";
   const phoneFieldId = String(formData.get("phoneFieldId") ?? "").trim();
   const senderIdRaw = String(formData.get("senderId") ?? "").trim();
   const messageTemplate = String(formData.get("messageTemplate") ?? "").trim();
@@ -37,13 +36,7 @@ export async function saveGoogleFormSmsAutomationAction(formData: FormData) {
   const questions = await loadFormQuestionsForUser(userId, formId);
   if (!questions.ok) {
     redirect(
-      googleConnectHref({
-        scopes: questions.missingScopes?.length
-          ? questions.missingScopes
-          : [...GOOGLE_FORMS_SCOPES],
-        returnTo: "/dashboard/integrations/google/forms",
-        force: questions.code === "reconnect",
-      }),
+      `/dashboard/integrations/google/forms?error=${questions.code === "share_required" ? "share" : "sheet"}`,
     );
   }
 
@@ -62,8 +55,7 @@ export async function saveGoogleFormSmsAutomationAction(formData: FormData) {
       senderId,
       messageTemplate,
       isActive: true,
-      // Start from now so we don't SMS historical responses on first connect
-      cursor: new Date().toISOString(),
+      cursor: String(questions.rowCount),
       lastError: null,
     },
     update: {

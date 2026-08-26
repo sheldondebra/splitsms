@@ -26,6 +26,7 @@ export async function getAdminSenderIdsDashboard() {
     statusGroups,
     providerGroups,
     mismatchCount,
+    onHoldCount,
     recent,
     signups,
     total,
@@ -45,6 +46,18 @@ export async function getAdminSenderIdsDashboard() {
         providerRegistrations: {
           none: { status: "APPROVED" },
         },
+      },
+    }),
+    prisma.senderId.count({
+      where: {
+        OR: [
+          { providerStatus: { contains: "hold", mode: "insensitive" } },
+          {
+            providerRegistrations: {
+              some: { providerStatus: { contains: "hold", mode: "insensitive" } },
+            },
+          },
+        ],
       },
     }),
     prisma.senderId.findMany({
@@ -108,7 +121,7 @@ export async function getAdminSenderIdsDashboard() {
   const rejected = statusGroups.find((g) => g.status === "REJECTED")?._count ?? 0;
 
   return {
-    stats: { total, pending, approved, rejected, mismatchCount },
+    stats: { total, pending, approved, rejected, mismatchCount, onHoldCount },
     statusChart,
     providerChart,
     signupChart,

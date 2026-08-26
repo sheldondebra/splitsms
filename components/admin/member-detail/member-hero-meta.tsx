@@ -1,12 +1,11 @@
 import { format, formatDistanceToNow } from "date-fns";
-import { DetailTile } from "@/components/admin/member-detail/member-detail-ui";
 import type { AdminMemberDetail } from "@/lib/admin/member-detail";
 import { cn } from "@/lib/utils";
 import {
   Calendar,
   Check,
   Copy,
-  Fingerprint,
+  Hash,
   Link2,
   MapPin,
   Puzzle,
@@ -31,56 +30,79 @@ export function MemberHeroMeta({ data, copied, onCopyId }: Props) {
   const { user, acquisition } = data;
   const SourceIcon = SOURCE_ICONS[acquisition.source] ?? UserPlus;
   const lastActive = data.sessions[0]?.lastActiveAt;
+  const memberId = user.accountId;
 
   return (
-    <div className="space-y-3 border-t border-border/50 pt-4">
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <DetailTile
-          icon={Calendar}
-          label="Member since"
-          value={format(user.createdAt, "MMM d, yyyy")}
-          hint={formatDistanceToNow(user.createdAt, { addSuffix: true })}
-        />
-        <DetailTile
-          icon={MapPin}
-          label="Country"
-          value={user.countryName}
-          hint={user.countryCode}
-        />
-        <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2.5 min-w-0 sm:col-span-2 lg:col-span-1">
-          <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-            <Fingerprint className="h-3 w-3 shrink-0" />
-            <span>Member ID</span>
-          </div>
+    <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-border/40 border-t border-border/40 bg-background/50">
+      <div className="flex items-start gap-2.5 px-3.5 py-3 min-w-0">
+        <Calendar className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <div className="min-w-0">
+          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            Member since
+          </p>
+          <p className="mt-0.5 text-sm font-semibold truncate">
+            {format(user.createdAt, "MMM d, yyyy")}
+          </p>
+          <p className="mt-0.5 text-[10px] text-muted-foreground truncate">
+            {formatDistanceToNow(user.createdAt, { addSuffix: true })}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-start gap-2.5 px-3.5 py-3 min-w-0">
+        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <div className="min-w-0">
+          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            Country
+          </p>
+          <p className="mt-0.5 text-sm font-semibold truncate">{user.countryName}</p>
+          <p className="mt-0.5 text-[10px] text-muted-foreground truncate">
+            {user.countryCode}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-start gap-2.5 px-3.5 py-3 min-w-0">
+        <Hash className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            Member ID
+          </p>
           <button
             type="button"
             onClick={onCopyId}
-            title={user.id}
+            title={`Member ID ${memberId}`}
             className={cn(
-              "mt-1 flex w-full items-center gap-2 rounded-md text-left transition-colors",
+              "mt-0.5 flex w-full max-w-full items-center gap-1.5 rounded-md text-left transition-colors",
               "hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
             )}
           >
-            <span className="min-w-0 flex-1 truncate font-mono text-xs font-semibold">{user.id}</span>
+            <span className="font-mono text-sm font-semibold tracking-wider tabular-nums">
+              {memberId}
+            </span>
             <span
               className={cn(
-                "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background/80",
-                copied && "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background/80",
+                copied &&
+                  "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
               )}
             >
-              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
             </span>
           </button>
-          <p className="mt-1 text-[10px] text-muted-foreground">
-            {copied ? "Copied to clipboard" : "Click to copy full ID"}
+          <p className="mt-0.5 text-[10px] text-muted-foreground">
+            {copied ? "Copied" : "Click to copy"}
           </p>
         </div>
-        <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2.5 min-w-0 sm:col-span-2 lg:col-span-1">
-          <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-            <SourceIcon className="h-3 w-3 shrink-0" />
-            <span>Acquisition</span>
-          </div>
-          <p className="mt-1 text-sm font-semibold truncate">{acquisition.sourceLabel}</p>
+      </div>
+
+      <div className="flex items-start gap-2.5 px-3.5 py-3 min-w-0">
+        <SourceIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <div className="min-w-0">
+          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            Acquisition
+          </p>
+          <p className="mt-0.5 text-sm font-semibold truncate">{acquisition.sourceLabel}</p>
           <p className="mt-0.5 text-[10px] text-muted-foreground truncate">
             {lastActive
               ? `Last active ${formatDistanceToNow(lastActive, { addSuffix: true })}`

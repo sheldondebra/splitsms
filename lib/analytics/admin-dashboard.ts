@@ -131,20 +131,92 @@ export async function getAdminDashboardOverview() {
   };
 }
 
+export type AdminNavBadgePreviewItem = {
+  id: string;
+  title: string;
+  subtitle: string;
+  href: string;
+};
+
+export type AdminNavBadgePreviews = {
+  operations: AdminNavBadgePreviewItem[];
+  payments: AdminNavBadgePreviewItem[];
+  senderIds: AdminNavBadgePreviewItem[];
+  support: AdminNavBadgePreviewItem[];
+};
+
 export async function getAdminNavBadges() {
-  const [pendingPayments, pendingSenderIds, openSupportTickets, pendingResellerPayouts] =
-    await Promise.all([
-      prisma.payment.count({ where: { status: "PENDING" } }),
-      prisma.senderId.count({ where: { status: "PENDING" } }),
-      prisma.supportTicket.count({ where: { status: "OPEN" } }),
-      prisma.resellerPayoutRequest.count({ where: { status: "PENDING" } }),
-    ]);
+  const [
+    pendingPaymentsCount,
+    pendingSenderIdsCount,
+    openSupportTicketsCount,
+    pendingResellerPayouts,
+    pendingPayments,
+    pendingSenders,
+    openTickets,
+  ] = await Promise.all([
+    prisma.payment.count({ where: { status: "PENDING" } }),
+    prisma.senderId.count({ where: { status: "PENDING" } }),
+    prisma.supportTicket.count({ where: { status: "OPEN" } }),
+    prisma.resellerPayoutRequest.count({ where: { status: "PENDING" } }),
+    prisma.payment.findMany({
+      where: { status: "PENDING" },
+      orderBy: { createdAt: "asc" },
+      take: 5,
+      include: { user: { select: { fullName: true, phone: true } } },
+    }),
+    prisma.senderId.findMany({
+      where: { status: "PENDING" },
+      orderBy: { createdAt: "asc" },
+      take: 5,
+      include: { user: { select: { fullName: true, phone: true } } },
+    }),
+    prisma.supportTicket.findMany({
+      where: { status: "OPEN" },
+      orderBy: { createdAt: "asc" },
+      take: 5,
+      include: { user: { select: { fullName: true, phone: true } } },
+    }),
+  ]);
+
+  const paymentPreviews: AdminNavBadgePreviewItem[] = pendingPayments.map((p) => ({
+    id: p.id,
+    title: `${p.user.fullName} · ${p.currency} ${p.amount.toString()}`,
+    subtitle: `${p.method} · ${p.user.phone}`,
+    href: "/admin/payments",
+  }));
+
+  const senderPreviews: AdminNavBadgePreviewItem[] = pendingSenders.map((s) => ({
+    id: s.id,
+    title: s.value,
+    subtitle: `${s.user.fullName} · ${s.user.phone}`,
+    href: "/admin/sender-ids",
+  }));
+
+  const supportPreviews: AdminNavBadgePreviewItem[] = openTickets.map((t) => ({
+    id: t.id,
+    title: t.subject,
+    subtitle: `${t.user.fullName} · ${t.user.phone}`,
+    href: `/admin/support?status=OPEN`,
+  }));
+
+  const operations = [...paymentPreviews, ...senderPreviews, ...supportPreviews].slice(0, 5);
+
   return {
-    "pending-payments": pendingPayments,
-    "pending-sender-ids": pendingSenderIds,
-    "open-support-tickets": openSupportTickets,
+    "pending-payments": pendingPaymentsCount,
+    "pending-sender-ids": pendingSenderIdsCount,
+    "open-support-tickets": openSupportTicketsCount,
     "pending-reseller-payouts": pendingResellerPayouts,
     "operations-attention":
-      pendingPayments + pendingSenderIds + openSupportTickets + pendingResellerPayouts,
+      pendingPaymentsCount +
+      pendingSenderIdsCount +
+      openSupportTicketsCount +
+      pendingResellerPayouts,
+    previews: {
+      operations,
+      payments: paymentPreviews,
+      senderIds: senderPreviews,
+      support: supportPreviews,
+    } satisfies AdminNavBadgePreviews,
   } as const;
 }

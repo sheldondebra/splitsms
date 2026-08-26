@@ -511,12 +511,35 @@ export async function adminRetryFailedSmsAction(formData: FormData) {
     byUser.set(msg.userId, list);
   }
 
+  const { deductSmsCredits } = await import("@/lib/sms/billing");
+  const { createNotification } = await import("@/lib/notifications");
+  const { sendEmail } = await import("@/lib/email");
+  const { sendPlatformAlertSms } = await import("@/lib/sms/platform-notify");
+  const { getSiteUrl } = await import("@/lib/site-config");
+  const {
+    insufficientCreditsRetryEmailContent,
+    failedMessagesRetryEmailContent,
+  } = await import("@/lib/email/templates");
+
+  const retryable: typeof failed = [];
+  let creditsBlockedUsers = 0;
+  let creditsBlockedMessages = 0;
+  let notifiedShortfall = 0;
+
   for (const [userId, messages] of byUser) {
     const unitsNeeded = messages.reduce((s, m) => s + m.smsUnits, 0);
     const costNeeded = messages.reduce((s, m) => s + (m.cost?.toNumber() ?? 0), 0);
-    const wallet = await prisma.wallet.findUnique({ where: { userId } });
+    const [wallet, credit, user] = await Promise.all([
+      prisma.wallet.findUnique({ where: { userId } }),
+      prisma.smsCredit.findUnique({ where: { userId }, select: { balance: true } }),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { fullName: true, email: true, phone: true },
+      }),
+    ]);
+    const balance = credit?.balance ?? 0;
+
     try {
-      const { deductSmsCredits } = await import("@/lib/sms/billing");
       await deductSmsCredits(
         userId,
         unitsNeeded,
@@ -525,32 +548,114 @@ export async function adminRetryFailedSmsAction(formData: FormData) {
         `Admin retry ${messages.length} failed messages`,
         messages[0]?.countryCode ?? "GH",
       );
+      retryable.push(...messages);
+
+      if (user?.email?.trim()) {
+        const content = await failedMessagesRetryEmailContent({
+          memberName: user.fullName,
+          messageCount: messages.length,
+          dashboardUrl: `${getSiteUrl()}/dashboard/reports`,
+        });
+        await sendEmail({
+          to: user.email.trim(),
+          toName: user.fullName,
+          subject: content.subject,
+          text: content.text,
+          html: content.html,
+        }).catch(() => undefined);
+      }
     } catch {
-      redirect(`${returnTo}?error=credits`);
+      creditsBlockedUsers += 1;
+      creditsBlockedMessages += messages.length;
+
+      const title = "Not enough SMS credits";
+      const message =
+        `Retry blocked — your account does not have enough SMS credits for a re-send. ` +
+        `${messages.length.toLocaleString()} failed message${messages.length === 1 ? "" : "s"} ` +
+        `need about ${unitsNeeded.toLocaleString()} credit${unitsNeeded === 1 ? "" : "s"} ` +
+        `(you have ${balance.toLocaleString()}). Top up credits or ask support to retry a smaller batch.`;
+
+      await createNotification(userId, "LOW_BALANCE", title, message, {
+        href: "/dashboard/wallet",
+        ctaLabel: "Top up wallet",
+        creditsNeeded: unitsNeeded,
+        balance,
+        messagesBlocked: messages.length,
+        source: "admin_retry_blocked",
+      }).catch(() => undefined);
+
+      if (user?.email?.trim()) {
+        const content = await insufficientCreditsRetryEmailContent({
+          memberName: user.fullName,
+          balance,
+          messagesBlocked: messages.length,
+          creditsNeeded: unitsNeeded,
+          topupUrl: `${getSiteUrl()}/dashboard/wallet`,
+        });
+        const emailed = await sendEmail({
+          to: user.email.trim(),
+          toName: user.fullName,
+          subject: content.subject,
+          text: content.text,
+          html: content.html,
+        }).catch(() => ({ ok: false as const }));
+        if (emailed.ok) notifiedShortfall += 1;
+      }
+
+      if (user?.phone) {
+        const smsText =
+          `SplitSMS: Retry blocked — not enough SMS credits to resend ` +
+          `${messages.length} message${messages.length === 1 ? "" : "s"}. ` +
+          `Balance ${balance}. Top up: ${getSiteUrl()}/dashboard/wallet`;
+        await sendPlatformAlertSms(user.phone, smsText.slice(0, 160)).catch(() => undefined);
+      }
     }
   }
 
-  await prisma.message.updateMany({
-    where: { id: { in: failed.map((m) => m.id) } },
-    data: { status: "PENDING", failureReason: null, failedAt: null },
-  });
+  if (retryable.length > 0) {
+    await prisma.message.updateMany({
+      where: { id: { in: retryable.map((m) => m.id) } },
+      data: { status: "PENDING", failureReason: null, failedAt: null },
+    });
 
-  await warmDatabaseConnection().catch(() => undefined);
-  await enqueueSmsJobsInline(
-    failed.map((msg) => ({
-      messageId: msg.id,
-      countryCode: msg.countryCode ?? "GH",
-      priority: msg.priority,
-    })),
-  );
+    await warmDatabaseConnection().catch(() => undefined);
+    await enqueueSmsJobsInline(
+      retryable.map((msg) => ({
+        messageId: msg.id,
+        countryCode: msg.countryCode ?? "GH",
+        priority: msg.priority,
+      })),
+    );
 
-  await logAdminSmsAction(session, "SMS_FAILED_RETRIED", {
-    count: failed.length,
-    campaignId: campaignId ?? null,
-  });
+    await logAdminSmsAction(session, "SMS_FAILED_RETRIED", {
+      count: retryable.length,
+      campaignId: campaignId ?? null,
+      creditsBlockedUsers,
+      creditsBlockedMessages,
+      notifiedShortfall,
+    });
+  } else if (creditsBlockedUsers > 0) {
+    await logAdminSmsAction(session, "SMS_FAILED_RETRY_CREDITS_BLOCKED", {
+      creditsBlockedUsers,
+      creditsBlockedMessages,
+      notifiedShortfall,
+      campaignId: campaignId ?? null,
+    });
+  }
 
   revalidatePath("/admin/messages");
   revalidatePath("/admin/operations");
 
-  redirect(`${returnTo}?retried=${failed.length}`);
+  const qs = new URLSearchParams();
+  qs.set("retried", String(retryable.length));
+  if (creditsBlockedUsers > 0) {
+    qs.set("credits_blocked", String(creditsBlockedUsers));
+    qs.set("credits_messages", String(creditsBlockedMessages));
+    qs.set("notified", String(notifiedShortfall));
+  }
+  if (retryable.length === 0 && creditsBlockedUsers > 0) {
+    qs.set("error", "credits");
+  }
+
+  redirect(`${returnTo}?${qs.toString()}`);
 }

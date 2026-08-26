@@ -18,6 +18,45 @@ export const pricingPageMetadata: Metadata = buildPageMetadata({
   ],
 });
 
+export const productsPageMetadata: Metadata = buildPageMetadata({
+  absoluteTitle:
+    "SMS Products — Bulk SMS, OTP API, Smart Forms & Reseller Tools | SplitSMS",
+  title: "SMS Products",
+  description:
+    "SplitSMS products: bulk SMS campaigns, OTP verification API, Smart Forms, WooCommerce alerts, Google SMS, WordPress plugin, and a reseller platform. Pay-as-you-go for Ghana and 190+ countries.",
+  path: "/products",
+  keywords: [
+    "SMS products",
+    "bulk SMS software",
+    "OTP SMS product",
+    "SMS campaign tool",
+    "Smart Forms SMS",
+    "WooCommerce SMS product",
+    "SMS API Ghana",
+    "SMS reseller platform",
+    "SplitSMS products",
+  ],
+});
+
+export const solutionsPageMetadata: Metadata = buildPageMetadata({
+  absoluteTitle: "SMS Solutions — Campaigns, OTP, Alerts & API for Any Organisation | SplitSMS",
+  title: "SMS Solutions",
+  description:
+    "SplitSMS is a full SMS platform: bulk campaigns, OTP, transactional alerts, Smart Forms, and API. Used by shops, banks, government, schools, logistics, HR, and any team that needs a message to land.",
+  path: "/solutions",
+  keywords: [
+    "SMS solutions",
+    "SMS platform Ghana",
+    "bulk SMS use cases",
+    "OTP API Ghana",
+    "transactional SMS",
+    "government SMS",
+    "business SMS platform",
+    "SMS API Africa",
+    "SplitSMS solutions",
+  ],
+});
+
 export const featuresPageMetadata: Metadata = buildPageMetadata({
   absoluteTitle:
     "Bulk SMS Features — Campaigns, OTP API, Google & Ghana Pricing | SplitSMS",
@@ -78,6 +117,22 @@ export const integrationsHubMetadata: Metadata = buildPageMetadata({
     "Flutterwave SMS",
     "Elementor SMS",
     "SplitSMS integrations",
+  ],
+});
+
+export const howToPageMetadata: Metadata = buildPageMetadata({
+  title: "How to — Step-by-step SplitSMS Guides",
+  description:
+    "How to use SplitSMS: send SMS, WordPress & WooCommerce, delivery reports, Smart Forms, Google Contacts/Sheets/Forms, API keys, and wallet top-ups.",
+  path: "/how-to",
+  keywords: [
+    "how to send SMS Ghana",
+    "WooCommerce SMS setup",
+    "WordPress SMS plugin guide",
+    "Google Forms SMS",
+    "Smart Forms SMS",
+    "SMS delivery reports",
+    "SplitSMS how to",
   ],
 });
 
@@ -154,10 +209,18 @@ export const googleFeaturesMetadata: Metadata = buildPageMetadata({
 });
 
 export const supportPageMetadata: Metadata = buildPageMetadata({
-  title: "Support — Report Bugs & Get Help",
+  title: "Support — Sender ID, Billing, API & WordPress Help",
   description:
-    "Submit a support request for SplitSMS — bugs, errors, billing, API, WordPress plugin, and account help.",
+    "Get SplitSMS help by email: pending Sender IDs, failed SMS, wallet top-ups, OTP API errors, and the WordPress plugin. Accra business hours, usually same day.",
   path: "/support",
+  keywords: [
+    "SplitSMS support",
+    "SMS support Ghana",
+    "Sender ID help",
+    "bulk SMS billing",
+    "SMS API support",
+    "WordPress SMS plugin help",
+  ],
 });
 
 export const companyPageMetadata: Metadata = buildPageMetadata({
@@ -197,6 +260,21 @@ export const dataProtectionMetadata: Metadata = buildPageMetadata({
   title: "Data Protection",
   description: "SplitSMS data protection policy and compliance information.",
   path: "/data-protection",
+});
+
+export const adsFunnelMetadata: Metadata = buildPageMetadata({
+  title: "Start sending SMS",
+  description:
+    "Pay-as-you-go SMS for Ghana and 190+ countries. Bulk campaigns, WordPress order alerts, and OTP API. 5 free credits on signup.",
+  path: "/go",
+  noIndex: true,
+  keywords: [
+    "bulk SMS Ghana",
+    "SMS API",
+    "WooCommerce SMS",
+    "OTP SMS",
+    "SplitSMS",
+  ],
 });
 
 export function authPageMetadata(

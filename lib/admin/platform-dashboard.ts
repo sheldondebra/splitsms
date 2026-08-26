@@ -56,49 +56,6 @@ export async function getAdminSupportDashboard(q?: string, status?: string) {
   };
 }
 
-export async function getAdminFormsDashboard(q?: string, status?: string) {
-  const where = {
-    ...(status && status !== "all" ? { status: status.toUpperCase() as "DRAFT" | "PUBLISHED" | "CLOSED" } : {}),
-    ...(q
-      ? {
-          OR: [
-            { name: { contains: q, mode: "insensitive" as const } },
-            { shortCode: { contains: q, mode: "insensitive" as const } },
-            { user: { fullName: { contains: q, mode: "insensitive" as const } } },
-          ],
-        }
-      : {}),
-  };
-
-  const [forms, stats, totalResponses] = await Promise.all([
-    prisma.smartForm.findMany({
-      where,
-      orderBy: { updatedAt: "desc" },
-      take: 100,
-      include: {
-        user: { select: { id: true, fullName: true, phone: true } },
-        _count: { select: { responses: true, fields: true } },
-      },
-    }),
-    prisma.smartForm.groupBy({
-      by: ["status"],
-      _count: true,
-    }),
-    prisma.smartFormResponse.count(),
-  ]);
-
-  return {
-    forms,
-    query: q ?? "",
-    statusFilter: status ?? "all",
-    stats: {
-      total: forms.length,
-      totalResponses,
-      byStatus: stats.map((s) => ({ status: s.status, count: s._count })),
-    },
-  };
-}
-
 export async function getAdminCampaignsDashboard(q?: string, status?: string) {
   const where = {
     ...(status && status !== "all"

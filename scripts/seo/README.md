@@ -34,9 +34,16 @@ npm run seo:install-verification -- ~/Downloads/googleXXXXXXXX.html
 
 ## 4. Submit the sitemap
 
-In Search Console → Sitemaps, submit:
+```bash
+gcloud auth application-default login \
+  --scopes=https://www.googleapis.com/auth/webmasters
 
-`https://www.splitsms.com/sitemap.xml`
+npm run seo:gsc-submit
+```
+
+This adds the URL-prefix property if needed, submits `https://www.splitsms.com/sitemap.xml`, and inspects flagship URLs.
+
+You can also paste the same sitemap URL in Search Console → Sitemaps.
 
 ## 5. Enable the API + ADC (`gcloud`)
 

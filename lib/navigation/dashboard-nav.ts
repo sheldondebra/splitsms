@@ -9,6 +9,7 @@ import {
   FileText,
   Wallet,
   BarChart3,
+  FileBarChart2,
   DollarSign,
   ScrollText,
   Workflow,
@@ -19,7 +20,6 @@ import {
   Receipt,
   Puzzle,
   Link2,
-  MoreHorizontal,
 } from "lucide-react";
 
 export type DashboardNavItem = {
@@ -55,7 +55,7 @@ export const dashboardNavSections: DashboardNavSection[] = [
       { href: "/dashboard/send", label: "Send SMS", icon: Send, mobile: true },
       { href: "/dashboard/sender-ids", label: "Sender ID", icon: BadgeCheck },
       { href: "/dashboard/contacts", label: "Contacts", icon: Users },
-      { href: "/dashboard/forms", label: "Smart Forms", icon: FileText },
+      { href: "/dashboard/forms", label: "Smart Forms", icon: FileText, mobile: true },
       { href: "/dashboard/campaigns", label: "Campaigns", icon: Megaphone },
       { href: "/dashboard/wallet", label: "Wallet", icon: Wallet, mobile: true },
     ],
@@ -68,6 +68,7 @@ export const dashboardNavSections: DashboardNavSection[] = [
     items: [
       { href: "/dashboard/templates", label: "Templates", icon: FileStack },
       { href: "/dashboard/reports", label: "Message results", icon: BarChart3 },
+      { href: "/dashboard/account-reports", label: "My reports", icon: FileBarChart2 },
       { href: "/dashboard/transactions", label: "Transactions", icon: ScrollText },
       { href: "/dashboard/invoices", label: "Invoices", icon: Receipt },
       { href: "/dashboard/pricing", label: "Pricing", icon: DollarSign },
@@ -100,7 +101,18 @@ export const mobileNavItems = dashboardNavCategories
   .flatMap((c) => c.items)
   .filter((item) => item.mobile);
 
-export function isNavActive(pathname: string, href: string) {
+const dashboardNavHrefs = dashboardNavSections.flatMap((section) =>
+  section.items.map((item) => item.href),
+);
+
+function navHrefMatches(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === "/dashboard";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function isNavActive(pathname: string, href: string) {
+  if (!navHrefMatches(pathname, href)) return false;
+  return !dashboardNavHrefs.some(
+    (other) => other !== href && other.length > href.length && navHrefMatches(pathname, other),
+  );
 }

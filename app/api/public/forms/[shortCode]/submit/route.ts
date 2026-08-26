@@ -6,14 +6,7 @@ const bodySchema = z.object({
   values: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
   honeypot: z.string().optional(),
   source: z.string().optional(),
-  captcha: z
-    .object({
-      a: z.number(),
-      b: z.number(),
-      answer: z.number(),
-      token: z.string(),
-    })
-    .optional(),
+  recaptchaToken: z.string().optional(),
 });
 
 export async function POST(
@@ -34,7 +27,7 @@ export async function POST(
     values: body.values,
     honeypot: body.honeypot,
     source: body.source,
-    captcha: body.captcha,
+    recaptchaToken: body.recaptchaToken,
   });
 
   if (!result.ok) {

@@ -30,11 +30,15 @@ const messages: Record<
     variant: "error",
   },
   rate_limit: {
-    text: "Too many attempts from this network. Please wait about 30 minutes, or try again from another connection.",
+    text: "Too many attempts from this network. Please wait and try again later.",
     variant: "error",
   },
   captcha: {
-    text: "Please complete the security check and try again.",
+    text: "The security check failed. Complete it and try again — we can’t create an account without it.",
+    variant: "error",
+  },
+  disposable_email: {
+    text: "Use a permanent work or personal email. Temporary inboxes can’t be used to create an account.",
     variant: "error",
   },
   blocked: {

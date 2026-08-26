@@ -8,7 +8,7 @@ import { AdminActivityView } from "@/components/admin/admin-activity-view";
 export default async function AdminActivityPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; action?: string }>;
+  searchParams: Promise<{ q?: string; action?: string; page?: string }>;
 }) {
   const session = await getSession();
   if (!session || !isAdminRole(session.role)) redirect("/dashboard");
@@ -28,8 +28,8 @@ export default async function AdminActivityPage({
 
   if (!canView) redirect("/admin?error=activity_forbidden");
 
-  const { q, action } = await searchParams;
-  const dashboard = await getAdminActivityDashboard({ q, action });
+  const { q, action, page } = await searchParams;
+  const dashboard = await getAdminActivityDashboard({ q, action, page });
 
   return <AdminActivityView dashboard={dashboard} query={q} actionFilter={action} />;
 }

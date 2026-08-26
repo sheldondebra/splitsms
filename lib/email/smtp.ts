@@ -12,6 +12,13 @@ export type SendSmtpEmailParams = {
   subject: string;
   text: string;
   html?: string;
+  attachments?: {
+    filename: string;
+    content: Buffer | Uint8Array | string;
+    contentType?: string;
+    contentId?: string;
+    inline?: boolean;
+  }[];
 };
 
 export type SendSmtpResult =
@@ -54,6 +61,13 @@ export async function sendSmtpEmail(params: SendSmtpEmailParams): Promise<SendSm
       subject: params.subject,
       text: params.text,
       html: params.html ?? params.text.replace(/\n/g, "<br>"),
+      attachments: params.attachments?.map((a) => ({
+        filename: a.filename,
+        content: Buffer.isBuffer(a.content) ? a.content : Buffer.from(a.content as Uint8Array),
+        contentType: a.contentType,
+        cid: a.contentId,
+        contentDisposition: a.inline ? "inline" : "attachment",
+      })),
     });
 
     return { ok: true, messageId: info.messageId };

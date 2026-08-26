@@ -60,7 +60,6 @@ export async function enqueueSmsJob(
     }
   }
 
-  await resetStaleProcessingMessages();
   await processMessageJob(messageId, countryCode, { skipStaleReset: true });
 }
 

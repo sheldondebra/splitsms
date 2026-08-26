@@ -19,7 +19,9 @@ npm run sync:site-config
 | `GOOGLE_SITE_VERIFICATION` | For Search Console | Meta-tag token from Google Search Console (public HTML) |
 | `REDIS_URL` | Optional | BullMQ queue storage. Without workers, sends run inline on the web app. |
 | `SMS_WORKERS_ENABLED` | Optional | Set to `true` only when `npm run worker:sms` runs on a separate host (Railway, Render, VPS). |
-| `CRON_SECRET` | Recommended on Vercel | Protects `/api/cron/process-sms` (Vercel Cron sends `Authorization: Bearer …`). |
+| `CRON_SECRET` | **Required in production** | Cron routes return 403 without `Authorization: Bearer <CRON_SECRET>`. Vercel Cron sends this automatically when the env var is set. |
+| `RECAPTCHA_SECRET_KEY` / `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | Required in production (or Turnstile) | Signup fails closed if neither reCAPTCHA nor Turnstile is fully configured. |
+| `TURNSTILE_SECRET_KEY` / `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Alternative to reCAPTCHA | Use if you prefer Cloudflare Turnstile on signup. |
 | `MAILJET_*` | For email OTP | See `.env.example` |
 
 Optional: `NEXT_PUBLIC_API_BASE_URL` if the API is served from a different host (defaults to `{NEXT_PUBLIC_APP_URL}/api/v1`).

@@ -19,6 +19,7 @@ function revalidateBalancePaths() {
   revalidatePath("/admin/balances");
   revalidatePath("/admin/routes");
   revalidatePath("/admin/providers");
+  revalidatePath("/admin/credit-cover");
   revalidatePath("/admin/mnotify");
 }
 

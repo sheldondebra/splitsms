@@ -50,6 +50,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         "operations-attention": badges["operations-attention"],
         "pending-reseller-payouts": badges["pending-reseller-payouts"],
       }}
+      badgePreviews={badges.previews}
       banner={
         impersonation?.kind === "staff" && impersonation.targetName
           ? <AdminStaffImpersonationBanner staffName={impersonation.targetName} />

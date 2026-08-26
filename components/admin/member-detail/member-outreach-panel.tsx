@@ -8,14 +8,36 @@ import {
   renderMemberOutreachTemplate,
   type MemberOutreachVars,
 } from "@/lib/admin/member-outreach-templates";
-import { AdminAlert, AdminCard } from "@/components/admin/admin-page-shell";
+import { AdminCard } from "@/components/admin/admin-page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Loader2, Mail, MessageSquare, Send } from "lucide-react";
+import {
+  BadgeCheck,
+  Check,
+  ClipboardList,
+  Hand,
+  LifeBuoy,
+  Loader2,
+  Mail,
+  MessageSquare,
+  PenLine,
+  Send,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
+
+const TEMPLATE_ICONS: Record<string, LucideIcon> = {
+  incomplete_registration: ClipboardList,
+  register_sender_id: BadgeCheck,
+  top_up_wallet: Wallet,
+  welcome_check_in: Hand,
+  support_follow_up: LifeBuoy,
+  custom: PenLine,
+};
 
 type MemberOutreachPanelProps = {
   userId: string;
@@ -23,7 +45,6 @@ type MemberOutreachPanelProps = {
   email: string | null;
   needsOnboarding: boolean;
   vars: MemberOutreachVars;
-  flash?: { saved?: string; error?: string };
 };
 
 function defaultTemplateId(needsOnboarding: boolean) {
@@ -55,7 +76,6 @@ export function MemberOutreachPanel({
   email,
   needsOnboarding,
   vars,
-  flash,
 }: MemberOutreachPanelProps) {
   const [templateId, setTemplateId] = useState(() => defaultTemplateId(needsOnboarding));
   const [sendSms, setSendSms] = useState(true);
@@ -89,21 +109,6 @@ export function MemberOutreachPanel({
 
   return (
     <div className="space-y-3">
-      {flash?.error === "outreach_channel" && (
-        <AdminAlert variant="warning">Select at least SMS or email.</AdminAlert>
-      )}
-      {flash?.error === "outreach_no_phone" && (
-        <AdminAlert variant="warning">Member has no phone number on file.</AdminAlert>
-      )}
-      {flash?.error === "outreach_no_email" && (
-        <AdminAlert variant="warning">Member has no email on file.</AdminAlert>
-      )}
-      {(flash?.error === "outreach_sms_failed" || flash?.error === "outreach_email_failed") && (
-        <AdminAlert variant="warning">
-          Could not send — check mNotify (SMS) or Mailjet (email) in Admin → Providers / General.
-        </AdminAlert>
-      )}
-
       <AdminCard
         title="Send SMS & email"
         description="Reach this member with seeded templates or a custom message"
@@ -136,29 +141,63 @@ export function MemberOutreachPanel({
 
           <div className="space-y-2">
             <Label className="text-xs">Message template</Label>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {MEMBER_OUTREACH_TEMPLATES.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => applyTemplate(t.id)}
-                  className={cn(
-                    "rounded-lg border px-3 py-2 text-left transition-colors",
-                    templateId === t.id
-                      ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                      : "border-border/60 hover:bg-muted/30",
-                    t.id === "incomplete_registration" &&
-                      needsOnboarding &&
-                      templateId !== t.id &&
-                      "border-amber-500/30",
-                  )}
-                >
-                  <p className="text-xs font-semibold">{t.label}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug">
-                    {t.description}
-                  </p>
-                </button>
-              ))}
+            <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 divide-x divide-y divide-border/40">
+                {MEMBER_OUTREACH_TEMPLATES.map((t) => {
+                  const selected = templateId === t.id;
+                  const Icon = TEMPLATE_ICONS[t.id] ?? PenLine;
+                  const highlightOnboarding =
+                    t.id === "incomplete_registration" && needsOnboarding && !selected;
+
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => applyTemplate(t.id)}
+                      aria-pressed={selected}
+                      className={cn(
+                        "group relative flex items-start gap-2.5 px-3.5 py-3 text-left transition-colors",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40",
+                        selected
+                          ? "bg-primary/[0.06]"
+                          : "bg-transparent hover:bg-background/70",
+                        highlightOnboarding && "bg-amber-500/[0.04]",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
+                          selected
+                            ? "bg-primary/12 text-primary"
+                            : highlightOnboarding
+                              ? "bg-amber-500/12 text-amber-700 dark:text-amber-300"
+                              : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-1.5">
+                          <span
+                            className={cn(
+                              "text-xs font-semibold leading-tight",
+                              selected && "text-primary",
+                            )}
+                          >
+                            {t.label}
+                          </span>
+                          {selected && (
+                            <Check className="h-3 w-3 shrink-0 text-primary" aria-hidden />
+                          )}
+                        </span>
+                        <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
+                          {t.description}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

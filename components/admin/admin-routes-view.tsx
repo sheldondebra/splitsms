@@ -10,7 +10,6 @@ import {
 import type { getAdminRoutesDashboard } from "@/lib/admin/routes-dashboard";
 import {
   createRouteForCountryAction,
-  saveRoutingPolicyAction,
   testSmsRouteAction,
   toggleProviderActiveAction,
   toggleRouteActiveAction,
@@ -19,10 +18,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ProviderBalancesPanel } from "@/components/admin/provider-balances-panel";
+import { ProviderSwitchLogTable } from "@/components/admin/provider-switch-log-table";
+import { RoutingPolicyForm } from "@/components/admin/routing-policy-form";
 import {
   Route,
   Radio,
@@ -158,185 +158,40 @@ export function AdminRoutesView({
 
       <AdminCard
         title="Routing policy"
-        description="Auto-pick provider from recipient country (e.g. US → Twilio, GH → mNotify) and control sender ID registration"
+        description="Country chains for SMS, switch logging, and where Sender IDs register."
       >
-        <form action={saveRoutingPolicyAction} className="space-y-5">
-          <div className="flex flex-wrap gap-6">
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                name="autoRouteByRecipient"
-                defaultChecked={policy.autoRouteByRecipient}
-                className="h-4 w-4 rounded accent-primary"
-              />
-              Auto-route by recipient number
-            </label>
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                name="routingLogEnabled"
-                defaultChecked={policy.routingLogEnabled}
-                className="h-4 w-4 rounded accent-primary"
-              />
-              Log provider switches
-            </label>
-            <label
-              className={cn(
-                "flex items-center gap-2 text-sm cursor-pointer",
-                policy.autoRouteByRecipient && "opacity-50",
-              )}
-              title={
-                policy.autoRouteByRecipient
-                  ? "Disabled while auto-route by recipient is on"
-                  : undefined
-              }
-            >
-              <input
-                type="checkbox"
-                name="mnotifyFirst"
-                defaultChecked={policy.mnotifyFirst}
-                disabled={policy.autoRouteByRecipient}
-                className="h-4 w-4 rounded accent-primary"
-              />
-              mNotify first (legacy mode)
-            </label>
-            <label
-              className={cn(
-                "flex items-center gap-2 text-sm cursor-pointer",
-                policy.autoRouteByRecipient && "opacity-50",
-              )}
-            >
-              <input
-                type="checkbox"
-                name="allowFailover"
-                defaultChecked={policy.allowFailover}
-                disabled={policy.autoRouteByRecipient}
-                className="h-4 w-4 rounded accent-primary"
-              />
-              Allow failover (legacy mode)
-            </label>
-          </div>
-
-          <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
-            <p className="text-sm font-medium">Sender ID registration (member / admin)</p>
-            <div className="flex flex-wrap gap-4 text-sm">
-              {(
-                [
-                  ["ALL", "All providers"],
-                  ["BY_COUNTRY", "By sender country route"],
-                  ["SELECTED", "Selected providers only"],
-                ] as const
-              ).map(([value, label]) => (
-                <label key={value} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="senderRegistrationMode"
-                    value={value}
-                    defaultChecked={policy.senderRegistrationMode === value}
-                    className="accent-primary"
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-4 text-sm">
-              {PROVIDER_OPTIONS.map((p) => (
-                <label key={p} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name={`reg_${p}`}
-                    defaultChecked={policy.senderRegistrationProviders.includes(p)}
-                    className="h-4 w-4 rounded accent-primary"
-                  />
-                  {p}
-                </label>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              <strong>By country</strong> registers with the same failover chain as SMS for that
-              country. <strong>All</strong> hits mNotify, Twilio, and Infobip every time.
-            </p>
-          </div>
-
-          <Button type="submit" size="sm">
-            Save routing policy
-          </Button>
-        </form>
-        <p className="text-xs text-muted-foreground mt-3">
-          mNotify:{" "}
-          {data.mnotifyStatus.configured ? (
-            <span className="text-emerald-600 font-medium">configured</span>
-          ) : (
-            <Link href="/admin/providers" className="text-primary hover:underline">
-              configure providers →
-            </Link>
-          )}
-          {policy.autoRouteByRecipient && (
-            <span>
-              {" "}
-              · Auto-route uses per-country chains below (US → global providers, GH → mNotify).
-            </span>
-          )}
-        </p>
+        <RoutingPolicyForm
+          policy={policy}
+          mnotifyConfigured={data.mnotifyStatus.configured}
+        />
       </AdminCard>
 
       <AdminCard
         title="Provider switch log"
         description={
           policy.routingLogEnabled
-            ? "Recent routing decisions per message"
+            ? "Latest routing decisions"
             : "Enable “Log provider switches” to record decisions"
         }
       >
         {routingLogs.length === 0 ? (
           <AdminEmpty>No routing logs yet. Send a test SMS to populate.</AdminEmpty>
         ) : (
-          <div className="overflow-x-auto -mx-1">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-xs text-muted-foreground">
-                  <th className="py-2 pr-3">Time</th>
-                  <th className="py-2 pr-3">Recipient</th>
-                  <th className="py-2 pr-3">Route</th>
-                  <th className="py-2 pr-3">Provider</th>
-                  <th className="py-2 pr-3">Chain</th>
-                  <th className="py-2">Reason</th>
-                </tr>
-              </thead>
-              <tbody>
-                {routingLogs.map((log) => {
-                  const order = Array.isArray(log.providerOrder)
-                    ? (log.providerOrder as string[]).join(" → ")
-                    : "—";
-                  return (
-                    <tr key={log.id} className="border-b border-border/50">
-                      <td className="py-2 pr-3 text-xs whitespace-nowrap">
-                        {new Date(log.createdAt).toLocaleString()}
-                      </td>
-                      <td className="py-2 pr-3 font-mono text-xs">
-                        {log.recipient ?? "—"}
-                        {log.autoRouted && (
-                          <Badge variant="outline" className="ml-1 text-[9px]">
-                            auto
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="py-2 pr-3 text-xs">
-                        {log.recipientCountry && log.recipientCountry !== log.routeCountry
-                          ? `${log.recipientCountry} → ${log.routeCountry}`
-                          : log.routeCountry}
-                      </td>
-                      <td className="py-2 pr-3 font-medium">{log.selectedProvider ?? "—"}</td>
-                      <td className="py-2 pr-3 text-xs text-muted-foreground max-w-[140px] truncate">
-                        {order}
-                      </td>
-                      <td className="py-2 text-xs text-muted-foreground">{log.reason}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <ProviderSwitchLogTable
+            logs={routingLogs.map((log) => ({
+              id: log.id,
+              createdAt: log.createdAt.toISOString(),
+              recipient: log.recipient,
+              recipientCountry: log.recipientCountry,
+              routeCountry: log.routeCountry,
+              selectedProvider: log.selectedProvider,
+              providerOrder: Array.isArray(log.providerOrder)
+                ? (log.providerOrder as string[])
+                : [],
+              reason: log.reason,
+              autoRouted: log.autoRouted,
+            }))}
+          />
         )}
       </AdminCard>
 

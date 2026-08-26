@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { TemplatesManager } from "@/components/templates/templates-manager";
 import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
-import { AppPage, PageHeader, AppCard, AppCardBody } from "@/components/dashboard/page-shell";
+import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 import { FileText } from "lucide-react";
 
 export default async function TemplatesPage({
@@ -20,29 +20,25 @@ export default async function TemplatesPage({
   });
 
   return (
-    <AppPage>
+    <AppPage wide>
       <PageHeader
         title="SMS templates"
-        description="Reusable messages with personalization — preview, edit, and use when sending."
+        description="Save messages you reuse, with {firstName} and other placeholders."
         icon={FileText}
-        mobileDescription="Create templates with {firstName}, {phoneNumber}, and more."
+        mobileDescription="Reusable SMS with personalization placeholders."
       />
 
       <FriendlyAlert error={params.error} />
 
-      <AppCard>
-        <AppCardBody>
-          <TemplatesManager
-            templates={templates.map((t) => ({
-              id: t.id,
-              name: t.name,
-              content: t.content,
-              isFavorite: t.isFavorite,
-              updatedAt: t.updatedAt.toISOString(),
-            }))}
-          />
-        </AppCardBody>
-      </AppCard>
+      <TemplatesManager
+        templates={templates.map((t) => ({
+          id: t.id,
+          name: t.name,
+          content: t.content,
+          isFavorite: t.isFavorite,
+          updatedAt: t.updatedAt.toISOString(),
+        }))}
+      />
     </AppPage>
   );
 }

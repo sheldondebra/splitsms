@@ -1,22 +1,35 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { deleteSmartFormAction } from "@/lib/actions/smart-forms";
-import { DuplicateSmartFormButton } from "@/components/smart-forms/duplicate-smart-form-button";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { deleteSmartFormAction, duplicateSmartFormAction } from "@/lib/actions/smart-forms";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { AppCard, AppCardBody } from "@/components/dashboard/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLinkItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   BarChart3,
+  Check,
   ClipboardList,
   Copy,
   ExternalLink,
+  FileBarChart2,
   FileText,
+  Loader2,
   MessageSquare,
+  MoreHorizontal,
   Pencil,
   QrCode,
   Search,
@@ -65,9 +78,165 @@ function formatDate(iso: string | null) {
   });
 }
 
-function copyShortLink(shortCode: string, siteUrl: string) {
-  const url = `${siteUrl}/f/${shortCode}`;
-  void navigator.clipboard.writeText(url);
+function SmartFormCard({ form, siteUrl }: { form: SmartFormRow; siteUrl: string }) {
+  const router = useRouter();
+  const deleteFormRef = useRef<HTMLFormElement>(null);
+  const [copied, setCopied] = useState(false);
+  const [duplicating, startDuplicate] = useTransition();
+  const status = STATUS_META[form.status] ?? STATUS_META.DRAFT;
+  const publicUrl = `${siteUrl}/f/${form.shortCode}`;
+
+  const stats = [
+    { label: "Views", value: form.views },
+    { label: "Submissions", value: form.submissions },
+    { label: "Conversion", value: `${form.conversionRate}%` },
+    { label: "QR scans", value: form.qrScans },
+  ];
+
+  function copyShortLink() {
+    void navigator.clipboard.writeText(publicUrl).then(
+      () => {
+        setCopied(true);
+        toast.success("Link copied");
+        window.setTimeout(() => setCopied(false), 1600);
+      },
+      () => toast.error("Couldn’t copy the link"),
+    );
+  }
+
+  function duplicateForm() {
+    startDuplicate(async () => {
+      const result = await duplicateSmartFormAction(form.id);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Form duplicated");
+      router.push(`/dashboard/forms/${result.newFormId}/builder`);
+    });
+  }
+
+  function confirmDelete() {
+    if (!window.confirm(`Delete “${form.name}”? This cannot be undone.`)) return;
+    deleteFormRef.current?.requestSubmit();
+  }
+
+  return (
+    <AppCard className="overflow-hidden">
+      <div className="flex h-full flex-col p-5">
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="truncate text-base font-semibold leading-tight">{form.name}</h3>
+              <Badge variant="secondary" className={cn("shrink-0", status.className)}>
+                {status.label}
+              </Badge>
+            </div>
+            {form.description ? (
+              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{form.description}</p>
+            ) : null}
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label={`More actions for ${form.name}`}
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-48">
+              {form.status === "PUBLISHED" ? (
+                <DropdownMenuLinkItem href={publicUrl} render={<a href={publicUrl} target="_blank" rel="noopener noreferrer" />}>
+                  <ExternalLink className="h-4 w-4" />
+                  Open live form
+                </DropdownMenuLinkItem>
+              ) : null}
+              <DropdownMenuLinkItem
+                href={`/dashboard/forms/${form.id}/responses`}
+                render={<Link href={`/dashboard/forms/${form.id}/responses`} />}
+              >
+                <ClipboardList className="h-4 w-4" />
+                Responses
+              </DropdownMenuLinkItem>
+              <DropdownMenuLinkItem
+                href={`/dashboard/forms/${form.id}/analytics`}
+                render={<Link href={`/dashboard/forms/${form.id}/analytics`} />}
+              >
+                <BarChart3 className="h-4 w-4" />
+                Analytics
+              </DropdownMenuLinkItem>
+              <DropdownMenuLinkItem
+                href={`/dashboard/forms/${form.id}/report`}
+                render={<Link href={`/dashboard/forms/${form.id}/report`} />}
+              >
+                <FileBarChart2 className="h-4 w-4" />
+                Report
+              </DropdownMenuLinkItem>
+              <DropdownMenuLinkItem
+                href={`/dashboard/forms/${form.id}/builder?tab=sms`}
+                render={<Link href={`/dashboard/forms/${form.id}/builder?tab=sms`} />}
+              >
+                <MessageSquare className="h-4 w-4" />
+                SMS
+              </DropdownMenuLinkItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled={duplicating} onClick={duplicateForm}>
+                {duplicating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
+                Duplicate
+              </DropdownMenuItem>
+              <DropdownMenuItem variant="destructive" onClick={confirmDelete}>
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-xl border border-border/60 bg-muted/30 sm:grid-cols-4">
+          {stats.map((stat, index) => (
+            <div
+              key={stat.label}
+              className={cn(
+                "px-3 py-2.5",
+                index % 2 === 0 && "border-r border-border/60",
+                index < 2 && "border-b border-border/60 sm:border-b-0",
+                "sm:border-r sm:last:border-r-0",
+              )}
+            >
+              <p className="text-[11px] leading-none text-muted-foreground">{stat.label}</p>
+              <p className="mt-1.5 text-sm font-semibold tabular-nums">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-3 text-xs text-muted-foreground">
+          {form.fieldCount} fields
+          {form.contactGroupName ? ` · ${form.contactGroupName}` : ""}
+          {" · "}Last {formatDate(form.lastSubmissionAt)}
+          {" · "}Created {formatDate(form.createdAt)}
+        </p>
+
+        <div className="mt-auto flex flex-wrap items-center gap-2 pt-4">
+          <Button size="lg" render={<Link href={`/dashboard/forms/${form.id}/builder`} />}>
+            <Pencil />
+            Edit
+          </Button>
+          <Button size="lg" variant="outline" render={<Link href={`/dashboard/forms/${form.id}/share`} />}>
+            <QrCode />
+            Share
+          </Button>
+          <Button type="button" size="lg" variant="outline" onClick={copyShortLink}>
+            {copied ? <Check /> : <Copy />}
+            {copied ? "Copied" : "Copy link"}
+          </Button>
+        </div>
+
+        <form ref={deleteFormRef} action={deleteSmartFormAction} className="hidden">
+          <input type="hidden" name="id" value={form.id} />
+        </form>
+      </div>
+    </AppCard>
+  );
 }
 
 export function SmartFormsDashboard({
@@ -83,6 +252,16 @@ export function SmartFormsDashboard({
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<(typeof FILTER_OPTIONS)[number]["value"]>("all");
+
+  const counts = useMemo(
+    () => ({
+      all: forms.length,
+      DRAFT: forms.filter((form) => form.status === "DRAFT").length,
+      PUBLISHED: forms.filter((form) => form.status === "PUBLISHED").length,
+      CLOSED: forms.filter((form) => form.status === "CLOSED").length,
+    }),
+    [forms],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -129,7 +308,7 @@ export function SmartFormsDashboard({
           { label: "Submissions", value: summary.submissions },
         ].map((stat) => (
           <AppCard key={stat.label}>
-            <AppCardBody className="p-4">
+            <AppCardBody className="p-4 sm:p-4 lg:p-4">
               <p className="text-sm text-muted-foreground">{stat.label}</p>
               <p className="mt-1 text-2xl font-bold tabular-nums">{stat.value}</p>
             </AppCardBody>
@@ -137,162 +316,53 @@ export function SmartFormsDashboard({
         ))}
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card px-3 py-3 sm:flex-row sm:items-center sm:px-4">
+        <div className="relative min-w-0 flex-1 sm:max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search forms…"
-            className="pl-9 h-11"
+            className="h-10 bg-background pl-9"
           />
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div
+          role="tablist"
+          aria-label="Filter forms by status"
+          className="inline-flex h-10 w-full items-center rounded-xl bg-muted p-1 sm:w-auto"
+        >
           {FILTER_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               type="button"
+              role="tab"
+              aria-selected={filter === opt.value}
               onClick={() => setFilter(opt.value)}
               className={cn(
-                "h-9 rounded-lg px-3 text-sm font-medium transition-colors",
+                "inline-flex h-full flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium whitespace-nowrap transition-colors sm:flex-none",
                 filter === opt.value
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:text-foreground",
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               {opt.label}
+              <span className="tabular-nums text-xs opacity-70">{counts[opt.value]}</span>
             </button>
           ))}
         </div>
+        <p className="hidden text-xs text-muted-foreground lg:ml-auto lg:block">
+          {filtered.length} of {forms.length}
+        </p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {filtered.map((form) => {
-          const status = STATUS_META[form.status] ?? STATUS_META.DRAFT;
-          const publicUrl = `${siteUrl}/f/${form.shortCode}`;
-
-          return (
-            <AppCard key={form.id}>
-              <AppCardBody className="p-5 space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold truncate">{form.name}</h3>
-                      <Badge variant="secondary" className={cn("shrink-0", status.className)}>
-                        {status.label}
-                      </Badge>
-                    </div>
-                    {form.description ? (
-                      <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-                        {form.description}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-                  <div>
-                    <p className="text-muted-foreground">Views</p>
-                    <p className="font-semibold tabular-nums">{form.views}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Submissions</p>
-                    <p className="font-semibold tabular-nums">{form.submissions}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Conversion</p>
-                    <p className="font-semibold tabular-nums">{form.conversionRate}%</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">QR scans</p>
-                    <p className="font-semibold tabular-nums">{form.qrScans}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                  <span>{form.fieldCount} fields</span>
-                  {form.contactGroupName ? <span>Group: {form.contactGroupName}</span> : null}
-                  <span>Last submission: {formatDate(form.lastSubmissionAt)}</span>
-                  <span>Created {formatDate(form.createdAt)}</span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 pt-1 border-t">
-                  <Link
-                    href={`/dashboard/forms/${form.id}/builder`}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-primary hover:bg-primary/10"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                    Edit
-                  </Link>
-                  {form.status === "PUBLISHED" ? (
-                    <a
-                      href={publicUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-primary hover:bg-primary/10"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      View
-                    </a>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => copyShortLink(form.shortCode, siteUrl)}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-primary hover:bg-primary/10"
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                    Copy link
-                  </button>
-                  <Link
-                    href={`/dashboard/forms/${form.id}/responses`}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-muted-foreground hover:bg-muted"
-                  >
-                    <ClipboardList className="h-3.5 w-3.5" />
-                    Responses
-                  </Link>
-                  <Link
-                    href={`/dashboard/forms/${form.id}/analytics`}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-muted-foreground hover:bg-muted"
-                  >
-                    <BarChart3 className="h-3.5 w-3.5" />
-                    Analytics
-                  </Link>
-                  <Link
-                    href={`/dashboard/forms/${form.id}/automation`}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-muted-foreground hover:bg-muted"
-                  >
-                    <MessageSquare className="h-3.5 w-3.5" />
-                    SMS
-                  </Link>
-                  <Link
-                    href={`/dashboard/forms/${form.id}/share`}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-muted-foreground hover:bg-muted"
-                  >
-                    <QrCode className="h-3.5 w-3.5" />
-                    Share
-                  </Link>
-                  <DuplicateSmartFormButton formId={form.id} />
-                  <form action={deleteSmartFormAction} className="ml-auto">
-                    <input type="hidden" name="id" value={form.id} />
-                    <Button
-                      type="submit"
-                      size="sm"
-                      variant="ghost"
-                      className="h-9 gap-1.5 text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
-                    </Button>
-                  </form>
-                </div>
-              </AppCardBody>
-            </AppCard>
-          );
-        })}
+        {filtered.map((form) => (
+          <SmartFormCard key={form.id} form={form} siteUrl={siteUrl} />
+        ))}
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-center text-sm text-muted-foreground py-8">No forms match your filters.</p>
+        <p className="py-8 text-center text-sm text-muted-foreground">No forms match your filters.</p>
       ) : null}
     </div>
   );

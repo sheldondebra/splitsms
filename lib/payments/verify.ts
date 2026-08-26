@@ -3,6 +3,7 @@ import { verifyPaystackPayment } from "@/lib/payments/paystack-verify";
 import { verifyFlutterwavePayment } from "@/lib/payments/flutterwave-verify";
 import { verifyStripeCheckoutSession } from "@/lib/payments/stripe-verify";
 import { creditWalletFromPayment } from "@/lib/payments/wallet";
+import { convertTopUpToCredits, readTopUpCreditMeta } from "@/lib/payments/topup-credits";
 import { firstSearchParam } from "@/lib/payments/return-path";
 import type { PaymentMethod } from "@/lib/generated/prisma/client";
 
@@ -34,7 +35,13 @@ export async function verifyAndCreditPaymentForUser(params: {
 
   if (!payment) return { ok: false as const, error: "Payment not found" };
   if (payment.status === "COMPLETED") {
-    return { ok: true as const, paymentId: payment.id, status: "completed" as const };
+    const converted = await convertTopUpToCredits(payment.id);
+    return {
+      ok: true as const,
+      paymentId: payment.id,
+      status: "completed" as const,
+      convertedCredits: converted?.credits ?? readTopUpCreditMeta(payment.metadata).creditsConverted ?? 0,
+    };
   }
 
   if (payment.method === ("PAYSTACK" satisfies PaymentMethod)) {
@@ -50,5 +57,11 @@ export async function verifyAndCreditPaymentForUser(params: {
   }
 
   await creditWalletFromPayment(payment.id);
-  return { ok: true as const, paymentId: payment.id, status: "completed" as const };
+  const converted = await convertTopUpToCredits(payment.id);
+  return {
+    ok: true as const,
+    paymentId: payment.id,
+    status: "completed" as const,
+    convertedCredits: converted?.credits ?? 0,
+  };
 }

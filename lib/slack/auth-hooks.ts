@@ -10,6 +10,16 @@ export async function dispatchSlackAuthEvent(
   metadata: Record<string, unknown>,
   actorId?: string,
 ) {
+  // Password reset request/complete must never ping Slack.
+  if (
+    action === "PASSWORD_RESET_REQUESTED" ||
+    action === "PASSWORD_RESET_OTP_VERIFIED" ||
+    action === "PASSWORD_RESET_COMPLETED" ||
+    action === "PASSWORD_RESET_LINK_SENT"
+  ) {
+    return;
+  }
+
   if (action === "LOGIN_FAILED") {
     await notifySlackAuthFailure({
       identifier: String(metadata.identifier ?? metadata.phone ?? "unknown"),

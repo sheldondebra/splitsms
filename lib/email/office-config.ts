@@ -179,6 +179,37 @@ export function isResendOfficeReady(stored: EmailOfficeStored) {
   return Boolean(stored.resendApiKey);
 }
 
+/** Safe to send to the admin UI — never includes raw API keys or SMTP password. */
+export type EmailOfficePublic = Omit<
+  EmailOfficeStored,
+  "apiKey" | "apiSecret" | "resendApiKey" | "smtpPassword"
+> & {
+  hasApiKey: boolean;
+  hasApiSecret: boolean;
+  hasResendApiKey: boolean;
+  hasSmtpPassword: boolean;
+};
+
+export function toPublicEmailOffice(stored: EmailOfficeStored): EmailOfficePublic {
+  return {
+    provider: stored.provider,
+    fromEmail: stored.fromEmail,
+    fromName: stored.fromName,
+    sandbox: stored.sandbox,
+    smtpHost: stored.smtpHost,
+    smtpPort: stored.smtpPort,
+    smtpSecure: stored.smtpSecure,
+    smtpUser: stored.smtpUser,
+    headerImageUrl: stored.headerImageUrl,
+    headerImagePosition: stored.headerImagePosition,
+    updatedAt: stored.updatedAt,
+    hasApiKey: Boolean(stored.apiKey),
+    hasApiSecret: Boolean(stored.apiSecret),
+    hasResendApiKey: Boolean(stored.resendApiKey),
+    hasSmtpPassword: Boolean(stored.smtpPassword),
+  };
+}
+
 export async function loadActiveEmailProvider(): Promise<EmailProvider | null> {
   const stored = await loadEmailOfficeStored();
 
@@ -242,7 +273,16 @@ export async function saveEmailOfficeConfig(
   const current = await loadEmailOfficeStored();
   const fromEmailInput = input.fromEmail?.trim();
   const fromNameInput = input.fromName?.trim();
-  const smtpPortInput = input.smtpPort;
+  const smtpPort =
+    typeof input.smtpPort === "number" && input.smtpPort > 0
+      ? input.smtpPort
+      : current.smtpPort;
+  const smtpSecure =
+    smtpPort === 465
+      ? true
+      : smtpPort === 587
+        ? false
+        : (input.smtpSecure ?? current.smtpSecure);
 
   const next: EmailOfficeStored = {
     provider: parseProvider(input.provider, current.provider),
@@ -263,11 +303,8 @@ export async function saveEmailOfficeConfig(
     sandbox: input.sandbox ?? current.sandbox,
     smtpHost:
       input.smtpHost !== undefined ? input.smtpHost.trim() : current.smtpHost,
-    smtpPort:
-      typeof smtpPortInput === "number" && smtpPortInput > 0
-        ? smtpPortInput
-        : current.smtpPort,
-    smtpSecure: input.smtpSecure ?? current.smtpSecure,
+    smtpPort,
+    smtpSecure,
     smtpUser:
       input.smtpUser !== undefined ? input.smtpUser.trim() : current.smtpUser,
     smtpPassword:

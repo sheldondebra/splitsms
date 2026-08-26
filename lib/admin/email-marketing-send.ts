@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/db";
 import { marketingEmailContent } from "@/lib/admin/email-marketing-render";
 import type { MarketingRecipient } from "@/lib/admin/email-marketing-audience";
-import type { EmailMarketingAudienceType } from "@/lib/admin/email-marketing-shared";
+import {
+  resolveMarketingCtaHref,
+  type EmailMarketingAudienceType,
+} from "@/lib/admin/email-marketing-shared";
+import { setMarketingImage } from "@/lib/admin/email-marketing-images";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 export type SendMarketingCampaignInput = {
@@ -15,6 +19,7 @@ export type SendMarketingCampaignInput = {
   ctaLabel?: string;
   ctaHref?: string;
   footerNote?: string;
+  imageUrl?: string;
   audienceType: EmailMarketingAudienceType;
   audienceMeta?: Prisma.InputJsonValue;
   recipients: MarketingRecipient[];
@@ -42,6 +47,22 @@ export async function sendMarketingCampaign(input: SendMarketingCampaignInput) {
     },
   });
 
+  await setMarketingImage("campaign", campaign.id, input.imageUrl?.trim() || null);
+
+  const { resolveEmailHeaderImage, resolveEmailBodyImages } = await import(
+    "@/lib/email/inline-image"
+  );
+  const headerImage = await resolveEmailHeaderImage(input.imageUrl);
+  const headerImageUrl =
+    headerImage.htmlSrc ??
+    (input.imageUrl?.trim() ? resolveMarketingCtaHref(input.imageUrl) : undefined);
+
+  const resolvedBody = await resolveEmailBodyImages(input.bodyText);
+  const attachments = [
+    ...(headerImage.attachment ? [headerImage.attachment] : []),
+    ...resolvedBody.attachments,
+  ];
+
   let sent = 0;
   let failed = 0;
 
@@ -51,10 +72,11 @@ export async function sendMarketingCampaign(input: SendMarketingCampaignInput) {
       subject: input.subject,
       preheader: input.preheader,
       headline: input.headline,
-      bodyText: input.bodyText,
+      bodyText: resolvedBody.html,
       ctaLabel: input.ctaLabel,
       ctaHref: input.ctaHref,
       footerNote: input.footerNote,
+      headerImageUrl,
     });
 
     try {
@@ -63,6 +85,7 @@ export async function sendMarketingCampaign(input: SendMarketingCampaignInput) {
         subject: content.subject,
         text: content.text,
         html: content.html,
+        attachments: attachments.length ? attachments : undefined,
       });
       const ok = Boolean(result && typeof result === "object" && "ok" in result && result.ok);
 

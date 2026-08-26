@@ -59,12 +59,18 @@ export async function saveRoutingPolicyAction(formData: FormData) {
     if (formData.get(`reg_${p}`) === "on") selected.push(p);
   }
 
+  const autoRoute = formData.get("autoRouteByRecipient") === "on";
+
   await saveSmsRoutingPolicy(
     {
-      autoRouteByRecipient: formData.get("autoRouteByRecipient") === "on",
+      autoRouteByRecipient: autoRoute,
       routingLogEnabled: formData.get("routingLogEnabled") === "on",
-      mnotifyFirst: formData.get("mnotifyFirst") === "on",
-      allowFailover: formData.get("allowFailover") === "on",
+      ...(autoRoute
+        ? {}
+        : {
+            mnotifyFirst: formData.get("mnotifyFirst") === "on",
+            allowFailover: formData.get("allowFailover") === "on",
+          }),
       senderRegistrationMode: ["ALL", "BY_COUNTRY", "SELECTED"].includes(mode)
         ? mode
         : "BY_COUNTRY",

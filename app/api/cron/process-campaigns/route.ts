@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
 import { processDueScheduledCampaigns } from "@/lib/campaigns/scheduler";
+import { isCronAuthorized } from "@/lib/security/cron-auth";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 function authorized(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return process.env.NODE_ENV !== "production";
-
-  const auth = request.headers.get("authorization");
-  return auth === `Bearer ${secret}`;
+  return isCronAuthorized(request);
 }
 
 export async function GET(request: Request) {

@@ -27,6 +27,10 @@ import {
   Banknote,
   Mail,
   Radio,
+  Phone,
+  FileBarChart2,
+  Scale,
+  Globe2,
 } from "lucide-react";
 
 import type { AdminPermission } from "@/lib/auth/admin-permissions";
@@ -67,6 +71,7 @@ export const adminNavSections: AdminNavSection[] = [
     label: "Users",
     items: [
       { href: "/admin/members", label: "Members", icon: Users, permission: "members.read" },
+      { href: "/admin/numbers", label: "Numbers", icon: Phone, permission: "members.read" },
       { href: "/admin/staff", label: "Staff & roles", icon: UserCog, permission: ["staff.read", "staff.write"] },
       { href: "/admin/activity", label: "Activity logs", icon: History, permission: "activity.read" },
       { href: "/admin/outreach", label: "Bulk messages", icon: MessagesSquare, permission: "members.write" },
@@ -101,6 +106,7 @@ export const adminNavSections: AdminNavSection[] = [
       { href: "/admin/messages", label: "SMS logs", icon: Send, permission: "operations.read" },
       { href: "/admin/routes", label: "Routes", icon: Route, permission: "routes.write" },
       { href: "/admin/providers", label: "Providers", icon: Layers3, permission: "providers.write" },
+      { href: "/admin/credit-cover", label: "Credit cover", icon: Scale, permission: "providers.write" },
       { href: "/admin/balances", label: "Balance history", icon: History, permission: "providers.write" },
     ],
   },
@@ -117,8 +123,10 @@ export const adminNavSections: AdminNavSection[] = [
     id: "insights",
     label: "Insights",
     items: [
+      { href: "/admin/reports", label: "Reports", icon: FileBarChart2, permission: "activity.read" },
       { href: "/admin/api-logs", label: "API logs", icon: ScrollText, permission: "activity.read" },
       { href: "/admin/analytics", label: "Analytics", icon: BarChart3, permission: "activity.read" },
+      { href: "/admin/site-traffic", label: "Website Traffic", icon: Globe2, permission: "activity.read" },
       { href: "/admin/fraud", label: "Fraud", icon: ShieldAlert, permission: "activity.read" },
     ],
   },
@@ -131,6 +139,15 @@ export function getAdminPageTitle(pathname: string): string {
   if (pathname === "/admin/payments/transactions") return "Provider transactions";
   if (pathname === "/admin/payments/settings") return "Payment settings";
   if (pathname === "/admin/reseller-payouts") return "Reseller payouts";
+  if (pathname === "/admin/numbers") return "Numbers";
+  if (pathname.startsWith("/admin/reports")) {
+    if (pathname.includes("/delivery")) return "Delivery report";
+    if (pathname.includes("/transactions")) return "Transactions report";
+    if (pathname.includes("/logins")) return "Logins report";
+    if (pathname.includes("/members")) return "Members report";
+    if (pathname.includes("/send")) return "Send report";
+    return "Reports";
+  }
   if (/^\/admin\/members\/[^/]+$/.test(pathname)) return "Member detail";
   if (/^\/admin\/resellers\/[^/]+$/.test(pathname)) return "Reseller detail";
   for (const section of adminNavSections) {

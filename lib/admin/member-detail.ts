@@ -4,6 +4,10 @@ import { getAdminMemberProducts } from "@/lib/admin/platform-dashboard";
 import { resolveMemberSource } from "@/lib/admin/members-dashboard";
 import { getCountryByCode } from "@/lib/countries-data";
 import { buildMemberOutreachVars } from "@/lib/admin/member-outreach-templates";
+import {
+  ensureUserAccountNumber,
+  formatAccountNumber,
+} from "@/lib/auth/account-number";
 import { parseUserAgent } from "@/lib/user-agent";
 import { notFound } from "next/navigation";
 
@@ -93,6 +97,7 @@ export async function getAdminMemberDetail(userId: string) {
 
   if (!user) notFound();
 
+  const accountNumber = await ensureUserAccountNumber(userId);
   const account = await getOrCreateMemberAccount(userId);
   const since30 = daysAgo(30);
 
@@ -120,7 +125,7 @@ export async function getAdminMemberDetail(userId: string) {
     prisma.transaction.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
-      take: 30,
+      take: 50,
     }),
     prisma.auditLog.findMany({
       where: {
@@ -258,9 +263,16 @@ export async function getAdminMemberDetail(userId: string) {
   const country = getCountryByCode(user.countryCode);
   const walletBalance = user.wallet?.balance.toNumber() ?? 0;
 
+  const { getWalletPricingOptions } = await import("@/lib/billing/wallet-pricing");
+  const pricingOptions = await getWalletPricingOptions(userId);
+  const memberPricing =
+    pricingOptions.find((p) => p.countryCode === user.countryCode) ?? pricingOptions[0] ?? null;
+
   return {
     user: {
       id: user.id,
+      accountNumber,
+      accountId: formatAccountNumber(accountNumber),
       fullName: user.fullName,
       phone: user.phone,
       email: user.email,
@@ -276,6 +288,17 @@ export async function getAdminMemberDetail(userId: string) {
     wallet: user.wallet,
     walletBalance,
     walletCurrency: user.wallet?.currency ?? "GHS",
+    billingPricing: memberPricing
+      ? {
+          pricePerCredit: memberPricing.pricePerCredit,
+          currency: memberPricing.currency,
+          countryCode: memberPricing.countryCode,
+        }
+      : {
+          pricePerCredit: 0.03,
+          currency: "GHS",
+          countryCode: user.countryCode,
+        },
     smsCredit: user.smsCredit,
     account,
     senderIds: user.senderIds,

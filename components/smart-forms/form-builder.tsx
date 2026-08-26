@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -19,6 +19,8 @@ import {
 import { FormFieldsLayout } from "@/components/smart-forms/form-fields-layout";
 import { FormHeaderBanner } from "@/components/smart-forms/form-header-banner";
 import { HeaderBannerEditor } from "@/components/smart-forms/header-banner-editor";
+import { BuilderSmsPanel, type BuilderSmsState } from "@/components/smart-forms/builder-sms-panel";
+import { BuilderEmailPanel, type BuilderEmailState } from "@/components/smart-forms/builder-email-panel";
 import {
   DEFAULT_BANNER_POSITION,
   type BannerPosition,
@@ -48,7 +50,6 @@ import {
   Save,
   Trash2,
   Upload,
-  MessageSquare,
 } from "lucide-react";
 import type { SmartFormFieldType } from "@/lib/generated/prisma/client";
 
@@ -66,14 +67,82 @@ const FORM_DYNAMIC_VALUES = [
   { key: "submission_time", label: "Submission time", tag: "{{submission_time}}" },
 ] as const;
 
+function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="overflow-hidden rounded-2xl border">
+      <h3 className="border-b bg-muted/20 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        {title}
+      </h3>
+      <div className="space-y-3.5 p-4">{children}</div>
+    </section>
+  );
+}
+
+function CheckRow({
+  checked,
+  onChange,
+  children,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="flex w-full cursor-pointer items-start gap-3 rounded-xl border bg-background px-3.5 py-3 text-left text-sm leading-snug"
+    >
+      <span className="min-w-0 flex-1">{children}</span>
+      <span
+        className={cn(
+          "relative mt-0.5 h-6 w-10 shrink-0 rounded-full transition-colors",
+          checked ? "bg-primary" : "bg-muted-foreground/25",
+        )}
+        aria-hidden
+      >
+        <span
+          className={cn(
+            "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
+            checked && "translate-x-4",
+          )}
+        />
+      </span>
+    </button>
+  );
+}
+
+type SettingsTab = "field" | "form" | "sms" | "email";
+
+const inspectorTabClass =
+  "px-1 text-xs sm:text-[13px] hover:bg-primary/15 hover:text-primary data-active:bg-primary data-active:text-primary-foreground data-active:shadow-sm dark:hover:bg-primary/20 dark:hover:text-primary dark:data-active:bg-primary dark:data-active:text-primary-foreground";
+
 export function SmartFormBuilder({
   form: initial,
   siteUrl,
   contactGroups,
+  senders,
+  ownerPhone,
+  ownerEmail,
+  smsCredits,
+  smsAutomation,
+  emailAutomation,
+  initialTab = "form",
+  recaptchaConfigured = false,
 }: {
   form: SerializedSmartForm;
   siteUrl: string;
   contactGroups: { id: string; name: string }[];
+  senders: { value: string; label: string; isDefault: boolean }[];
+  ownerPhone: string;
+  ownerEmail: string;
+  smsCredits: number;
+  smsAutomation: BuilderSmsState;
+  emailAutomation: BuilderEmailState;
+  initialTab?: SettingsTab;
+  recaptchaConfigured?: boolean;
 }) {
   const [name, setName] = useState(initial.name);
   const [description, setDescription] = useState(initial.description ?? "");
@@ -89,8 +158,10 @@ export function SmartFormBuilder({
   const [preventDuplicateEmail, setPreventDuplicateEmail] = useState(initial.preventDuplicateEmail);
   const [captchaEnabled, setCaptchaEnabled] = useState(initial.captchaEnabled);
   const [status, setStatus] = useState(initial.status);
-  const [mobilePanel, setMobilePanel] = useState<"add" | "preview" | "settings">("preview");
-  const [settingsTab, setSettingsTab] = useState<"field" | "form">("form");
+  const [mobilePanel, setMobilePanel] = useState<"add" | "preview" | "settings">(
+    initialTab === "sms" || initialTab === "email" ? "settings" : "preview",
+  );
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>(initialTab);
   const [isPending, startTransition] = useTransition();
   const [manualFieldKeys, setManualFieldKeys] = useState<Set<string>>(() => new Set());
 
@@ -409,13 +480,6 @@ export function SmartFormBuilder({
             Save draft
           </Button>
           <Link
-            href={`/dashboard/forms/${initial.id}/automation`}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium hover:bg-muted"
-          >
-            <MessageSquare className="h-3.5 w-3.5" />
-            SMS automation
-          </Link>
-          <Link
             href={previewUrl}
             target="_blank"
             className="inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium hover:bg-muted"
@@ -499,21 +563,21 @@ export function SmartFormBuilder({
         ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)_320px]">
+      <div className="grid gap-4 xl:grid-cols-[17rem_minmax(0,1fr)_minmax(26rem,30rem)] 2xl:grid-cols-[19.5rem_minmax(0,1fr)_minmax(34rem,38rem)]">
         <aside
           className={cn(
-            "overflow-hidden rounded-2xl border bg-card shadow-sm xl:sticky xl:top-20 xl:max-h-[calc(100dvh-6rem)]",
-            mobilePanel !== "add" && "hidden xl:block",
+            "flex min-h-0 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm xl:sticky xl:top-20 xl:h-[calc(100dvh-6rem)]",
+            mobilePanel !== "add" && "hidden xl:flex",
           )}
         >
-          <div className="border-b bg-muted/30 px-4 py-4">
+          <div className="shrink-0 border-b bg-muted/20 px-5 py-4">
             <p className="text-sm font-semibold">Build your form</p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               Add steps, questions, and layout blocks to the preview.
             </p>
           </div>
 
-          <div className="max-h-[calc(100dvh-13rem)] space-y-4 overflow-y-auto p-4">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
             <button
               type="button"
               onClick={addStep}
@@ -552,13 +616,13 @@ export function SmartFormBuilder({
                         key={item.type}
                         type="button"
                         onClick={() => addField(item.type)}
-                        className="group flex items-start gap-3 rounded-xl border bg-background px-3 py-2.5 text-left text-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted/40 hover:shadow-sm"
+                        className="group flex items-start gap-3 rounded-xl border bg-background px-3.5 py-3 text-left text-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted/40 hover:shadow-sm"
                       >
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                           <Icon className="h-4 w-4" />
                         </span>
                         <span className="min-w-0">
-                          <span className="block truncate font-medium">{item.label}</span>
+                          <span className="block font-medium">{item.label}</span>
                           <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
                             {item.description}
                           </span>
@@ -662,26 +726,36 @@ export function SmartFormBuilder({
 
         <aside
           className={cn(
-            "rounded-xl border bg-card p-4 h-fit",
-            mobilePanel !== "settings" && "hidden xl:block",
+            "flex min-h-0 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm xl:sticky xl:top-20 xl:h-[calc(100dvh-6rem)]",
+            mobilePanel !== "settings" && "hidden xl:flex",
           )}
         >
           <Tabs
             value={settingsTab}
-            onValueChange={(v) => setSettingsTab(v as "field" | "form")}
+            onValueChange={(v) => setSettingsTab(v as SettingsTab)}
+            className="flex min-h-0 flex-1 flex-col gap-0"
           >
-            <TabsList className="w-full">
-              <TabsTrigger value="field" className="flex-1" disabled={!selected}>
-                Field
-              </TabsTrigger>
-              <TabsTrigger value="form" className="flex-1">
-                Form
-              </TabsTrigger>
-            </TabsList>
+            <div className="shrink-0 border-b bg-muted/20 px-4 py-3">
+              <TabsList className="grid h-11 w-full grid-cols-4">
+                <TabsTrigger value="field" className={inspectorTabClass} disabled={!selected}>
+                  Fields
+                </TabsTrigger>
+                <TabsTrigger value="form" className={inspectorTabClass}>
+                  Form
+                </TabsTrigger>
+                <TabsTrigger value="sms" className={inspectorTabClass}>
+                  SMS
+                </TabsTrigger>
+                <TabsTrigger value="email" className={inspectorTabClass}>
+                  Email
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-            <TabsContent value="field" className="mt-4 space-y-4">
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">
+            <TabsContent value="field" className="mt-0 space-y-4">
               {!selected ? (
-                <p className="text-sm text-muted-foreground">Select a field to edit.</p>
+                <p className="text-sm text-muted-foreground">Select a field in the preview to edit it.</p>
               ) : (
                 <>
                   <div className="space-y-2">
@@ -698,7 +772,7 @@ export function SmartFormBuilder({
                       onChange={(e) => handleFieldKeyChange(e.target.value)}
                       className="font-mono text-sm"
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[11px] leading-relaxed text-muted-foreground">
                       {fieldKeyIsAuto
                         ? "Generated from the label. Edit to set a custom key."
                         : "Custom key — label changes will no longer update this."}
@@ -706,23 +780,20 @@ export function SmartFormBuilder({
                   </div>
                   {getFieldTypeMeta(selected.fieldType).isInput ? (
                     <>
-                      <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
+                      <div className="space-y-2 rounded-xl border bg-muted/20 p-3">
                         <Label>Dynamic value</Label>
                         <select
                           value={selected.dynamicValue ?? ""}
                           onChange={(e) => handleDynamicValueChange(e.target.value)}
-                          className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                          className="flex h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
                         >
-                          <option value="">No basic dynamic value</option>
+                          <option value="">None</option>
                           {selectedDynamicValueOptions.map((item) => (
                             <option key={item.key} value={item.key}>
                               {item.label} ({item.tag})
                             </option>
                           ))}
                         </select>
-                        <p className="text-xs text-muted-foreground">
-                          Use this field as a basic merge value in success messages and SMS templates.
-                        </p>
                       </div>
                       <div className="space-y-2">
                         <Label>Placeholder</Label>
@@ -738,14 +809,12 @@ export function SmartFormBuilder({
                           onChange={(e) => updateSelected({ helperText: e.target.value })}
                         />
                       </div>
-                      <label className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={selected.isRequired}
-                          onChange={(e) => updateSelected({ isRequired: e.target.checked })}
-                        />
+                      <CheckRow
+                        checked={selected.isRequired}
+                        onChange={(checked) => updateSelected({ isRequired: checked })}
+                      >
                         Required field
-                      </label>
+                      </CheckRow>
                     </>
                   ) : null}
                   {getFieldTypeMeta(selected.fieldType).hasOptions ? (
@@ -764,21 +833,16 @@ export function SmartFormBuilder({
                   ) : null}
 
                   {selected.fieldType === "SECTION" ? (
-                    <div className="space-y-4 rounded-lg border bg-muted/20 p-3">
-                      <label className="flex items-start gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={selected.startsStep === true}
-                          onChange={(e) => updateSelected({ startsStep: e.target.checked })}
-                          className="mt-1"
-                        />
-                        <span>
-                          <span className="block font-medium">Start a new step here</span>
-                          <span className="block text-xs text-muted-foreground">
-                            Visitors will see fields below this section on a separate page.
-                          </span>
+                    <div className="space-y-3 rounded-xl border bg-muted/20 p-3">
+                      <CheckRow
+                        checked={selected.startsStep === true}
+                        onChange={(checked) => updateSelected({ startsStep: checked })}
+                      >
+                        <span className="block font-medium">Start a new step here</span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">
+                          Fields below this section appear on the next page.
                         </span>
-                      </label>
+                      </CheckRow>
 
                       <div className="space-y-2">
                         <Label>Section layout</Label>
@@ -789,14 +853,11 @@ export function SmartFormBuilder({
                               sectionColumns: Number(e.target.value) === 2 ? 2 : 1,
                             })
                           }
-                          className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                          className="flex h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
                         >
                           <option value={1}>Single column</option>
-                          <option value={2}>Two columns (side by side)</option>
+                          <option value={2}>Two columns</option>
                         </select>
-                        <p className="text-xs text-muted-foreground">
-                          Set fields below to half width to place 2 per row.
-                        </p>
                       </div>
                     </div>
                   ) : null}
@@ -811,19 +872,19 @@ export function SmartFormBuilder({
                             width: e.target.value === "half" ? "half" : "full",
                           })
                         }
-                        className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                        className="flex h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
                       >
                         <option value="full">Full width</option>
-                        <option value="half">Half width (2 per row)</option>
+                        <option value="half">Half width</option>
                       </select>
                     </div>
                   ) : fieldCanBeHalfWidth(selected) ? (
-                    <p className="text-xs text-muted-foreground rounded-lg border bg-muted/30 px-3 py-2">
+                    <p className="rounded-xl border bg-muted/30 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
                       Set the section above to two columns to place fields side by side.
                     </p>
                   ) : null}
 
-                  <div className="flex flex-wrap gap-2 pt-2 border-t">
+                  <div className="flex flex-wrap gap-2 border-t pt-3">
                     <Button
                       type="button"
                       size="sm"
@@ -866,138 +927,132 @@ export function SmartFormBuilder({
               )}
             </TabsContent>
 
-            <TabsContent value="form" className="mt-4 space-y-4">
-              <HeaderBannerEditor
-                bannerUrl={bannerUrl}
-                position={bannerPosition}
-                onBannerUrlChange={setBannerUrl}
-                onPositionChange={(pos) =>
-                  setLayoutSettings((prev) => ({ ...prev, bannerPosition: pos }))
-                }
-              />
-              <div className="space-y-2">
-                <Label>Message for visitors</Label>
-                <Textarea
-                  rows={3}
-                  value={layoutSettings.welcomeMessage ?? ""}
-                  onChange={(e) =>
-                    setLayoutSettings((prev) => ({
-                      ...prev,
-                      welcomeMessage: e.target.value,
-                    }))
+            <TabsContent value="form" className="mt-0 space-y-6">
+              <SettingsSection title="Look">
+                <HeaderBannerEditor
+                  bannerUrl={bannerUrl}
+                  position={bannerPosition}
+                  onBannerUrlChange={setBannerUrl}
+                  onPositionChange={(pos) =>
+                    setLayoutSettings((prev) => ({ ...prev, bannerPosition: pos }))
                   }
-                  placeholder="Welcome! Please fill out this form and we'll get back to you shortly."
                 />
-                <p className="text-xs text-muted-foreground">
-                  A friendly note shown below the title on the live form.
-                </p>
-              </div>
+                <div className="space-y-2">
+                  <Label>Welcome note</Label>
+                  <Textarea
+                    rows={2}
+                    value={layoutSettings.welcomeMessage ?? ""}
+                    onChange={(e) =>
+                      setLayoutSettings((prev) => ({
+                        ...prev,
+                        welcomeMessage: e.target.value,
+                      }))
+                    }
+                    placeholder="Shown below the title on the live form"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Theme</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="color"
+                        value={themeSettings.primaryColor ?? "#0f172a"}
+                        onChange={(e) =>
+                          setThemeSettings((prev) => ({ ...prev, primaryColor: e.target.value }))
+                        }
+                        className="h-9 w-9 shrink-0 cursor-pointer p-1"
+                      />
+                      <span className="truncate font-mono text-[11px] text-muted-foreground">
+                        {themeSettings.primaryColor ?? "#0f172a"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Background</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="color"
+                        value={themeSettings.backgroundColor ?? DEFAULT_FORM_BACKGROUND}
+                        onChange={(e) =>
+                          setThemeSettings((prev) => ({ ...prev, backgroundColor: e.target.value }))
+                        }
+                        className="h-9 w-9 shrink-0 cursor-pointer p-1"
+                      />
+                      <span className="truncate font-mono text-[11px] text-muted-foreground">
+                        {themeSettings.backgroundColor ?? DEFAULT_FORM_BACKGROUND}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Button text</Label>
+                  <Input
+                    value={themeSettings.buttonText ?? "Submit"}
+                    onChange={(e) =>
+                      setThemeSettings((prev) => ({ ...prev, buttonText: e.target.value }))
+                    }
+                  />
+                </div>
+              </SettingsSection>
 
-              <div className="space-y-2">
-                <Label>Theme color</Label>
-                <Input
-                  type="color"
-                  value={themeSettings.primaryColor ?? "#0f172a"}
-                  onChange={(e) =>
-                    setThemeSettings((prev) => ({ ...prev, primaryColor: e.target.value }))
-                  }
-                  className="h-11 p-1"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Background</Label>
-                <Input
-                  type="color"
-                  value={themeSettings.backgroundColor ?? DEFAULT_FORM_BACKGROUND}
-                  onChange={(e) =>
-                    setThemeSettings((prev) => ({ ...prev, backgroundColor: e.target.value }))
-                  }
-                  className="h-11 p-1"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Page background behind your form card on the live form and preview.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label>Button text</Label>
-                <Input
-                  value={themeSettings.buttonText ?? "Submit"}
-                  onChange={(e) =>
-                    setThemeSettings((prev) => ({ ...prev, buttonText: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Success title</Label>
-                <Input
-                  value={successSettings.title ?? ""}
-                  onChange={(e) =>
-                    setSuccessSettings((prev) => ({ ...prev, title: e.target.value }))
-                  }
-                  placeholder="Thank you"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Success message</Label>
-                <Textarea
-                  rows={3}
-                  value={successSettings.message ?? ""}
-                  onChange={(e) =>
-                    setSuccessSettings((prev) => ({ ...prev, message: e.target.value }))
-                  }
-                  placeholder="Your submission has been received."
-                />
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <p className="text-xs font-medium text-foreground">Insert submitted value</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Click a dynamic value to personalize the thank-you message.
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
+              <SettingsSection title="After submit">
+                <div className="space-y-2">
+                  <Label>Success title</Label>
+                  <Input
+                    value={successSettings.title ?? ""}
+                    onChange={(e) =>
+                      setSuccessSettings((prev) => ({ ...prev, title: e.target.value }))
+                    }
+                    placeholder="Thank you"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Success message</Label>
+                  <Textarea
+                    rows={3}
+                    value={successSettings.message ?? ""}
+                    onChange={(e) =>
+                      setSuccessSettings((prev) => ({ ...prev, message: e.target.value }))
+                    }
+                    placeholder="Your submission has been received."
+                  />
+                  <div className="flex flex-wrap gap-1">
                     {successMessageTags.map((item) => (
                       <button
                         key={item.tag}
                         type="button"
                         onClick={() => insertSuccessMessageTag(item.tag)}
-                        className="rounded-lg border bg-background px-2.5 py-1.5 text-left text-[11px] transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                        className="rounded-md border bg-background px-2 py-1 text-[11px] font-medium hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
                         title={item.tag}
                       >
-                        <span className="block font-medium">{item.label}</span>
-                        <span className="block font-mono text-[10px] text-muted-foreground">
-                          {item.tag}
-                        </span>
+                        {item.label}
                       </button>
                     ))}
                   </div>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Redirect URL (optional)</Label>
-                <Input
-                  value={successSettings.redirectUrl ?? ""}
-                  onChange={(e) =>
-                    setSuccessSettings((prev) => ({ ...prev, redirectUrl: e.target.value }))
-                  }
-                  placeholder="https://yoursite.com/thanks"
-                />
-              </div>
-
-              <div className="pt-4 border-t space-y-4">
-                <h3 className="text-sm font-semibold">Contacts</h3>
-                <label className="flex items-start gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={saveToContacts}
-                    onChange={(e) => setSaveToContacts(e.target.checked)}
-                    className="mt-1"
+                <div className="space-y-2">
+                  <Label>Redirect URL</Label>
+                  <Input
+                    value={successSettings.redirectUrl ?? ""}
+                    onChange={(e) =>
+                      setSuccessSettings((prev) => ({ ...prev, redirectUrl: e.target.value }))
+                    }
+                    placeholder="https://yoursite.com/thanks"
                   />
-                  <span>Save respondents as contacts on submission</span>
-                </label>
+                </div>
+              </SettingsSection>
+
+              <SettingsSection title="Contacts">
+                <CheckRow checked={saveToContacts} onChange={setSaveToContacts}>
+                  Save respondents as contacts
+                </CheckRow>
                 <div className="space-y-2">
                   <Label>Contact group</Label>
                   <select
                     value={contactGroupId}
                     onChange={(e) => setContactGroupId(e.target.value)}
-                    className="flex h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    className="flex h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
                   >
                     <option value="">No group</option>
                     {contactGroups.map((g) => (
@@ -1007,41 +1062,49 @@ export function SmartFormBuilder({
                     ))}
                   </select>
                 </div>
-                <label className="flex items-start gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={preventDuplicatePhone}
-                    onChange={(e) => setPreventDuplicatePhone(e.target.checked)}
-                    className="mt-1"
-                  />
-                  <span>Block duplicate phone numbers on this form</span>
-                </label>
-                <label className="flex items-start gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={preventDuplicateEmail}
-                    onChange={(e) => setPreventDuplicateEmail(e.target.checked)}
-                    className="mt-1"
-                  />
-                  <span>Block duplicate emails on this form</span>
-                </label>
-              </div>
+                <CheckRow checked={preventDuplicatePhone} onChange={setPreventDuplicatePhone}>
+                  Block duplicate phone numbers
+                </CheckRow>
+                <CheckRow checked={preventDuplicateEmail} onChange={setPreventDuplicateEmail}>
+                  Block duplicate emails
+                </CheckRow>
+              </SettingsSection>
 
-              <div className="pt-4 border-t space-y-4">
-                <h3 className="text-sm font-semibold">Security</h3>
-                <label className="flex items-start gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={captchaEnabled}
-                    onChange={(e) => setCaptchaEnabled(e.target.checked)}
-                    className="mt-1"
-                  />
-                  <span>
-                    Require a simple math check before submit (works with honeypot and rate limiting)
+              <SettingsSection title="Security">
+                <CheckRow checked={captchaEnabled} onChange={setCaptchaEnabled}>
+                  <span className="block font-medium">Block bots with Google reCAPTCHA</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Hidden check — visitors won’t see a puzzle. Google scores the submit in the background.
                   </span>
-                </label>
-              </div>
+                </CheckRow>
+                {captchaEnabled && !recaptchaConfigured ? (
+                  <p className="text-xs leading-relaxed text-destructive">
+                    reCAPTCHA keys are not configured on this server, so bots won’t be blocked yet.
+                  </p>
+                ) : null}
+              </SettingsSection>
             </TabsContent>
+
+            <TabsContent value="sms" className="mt-0 min-h-full">
+              <BuilderSmsPanel
+                formId={initial.id}
+                fields={fields.map((field) => ({ fieldKey: field.fieldKey, label: field.label }))}
+                initial={smsAutomation}
+                senders={senders}
+                ownerPhone={ownerPhone}
+                smsCredits={smsCredits}
+              />
+            </TabsContent>
+
+            <TabsContent value="email" className="mt-0 min-h-full">
+              <BuilderEmailPanel
+                formId={initial.id}
+                fields={fields.map((field) => ({ fieldKey: field.fieldKey, label: field.label }))}
+                initial={emailAutomation}
+                ownerEmail={ownerEmail}
+              />
+            </TabsContent>
+            </div>
           </Tabs>
         </aside>
       </div>

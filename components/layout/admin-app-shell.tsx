@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { AdminMobileHeader } from "@/components/layout/admin-mobile-header";
@@ -9,10 +8,13 @@ import { AdminNavDrawer } from "@/components/layout/admin-nav-drawer";
 import { HeaderAccountMenu } from "@/components/layout/header-account-menu";
 import { AdminSystemSyncButton } from "@/components/admin/admin-system-sync-button";
 import { AdminTopbarSearch } from "@/components/admin/admin-topbar-search";
+import { AdminTopbarQueuePill } from "@/components/admin/admin-topbar-queue-pill";
+import { AdminTopbarClock } from "@/components/admin/admin-topbar-clock";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { HeaderAccountProfile } from "@/lib/user/header-account-types";
 import type { AdminActor } from "@/lib/auth/admin-route-access";
 import { getAdminPageTitle } from "@/lib/navigation/admin-nav";
+import type { AdminNavBadgePreviews } from "@/lib/analytics/admin-dashboard";
 import { Shield } from "lucide-react";
 import type { AdminNavItem } from "@/lib/navigation/admin-nav";
 
@@ -23,6 +25,7 @@ type AdminAppShellProps = {
   staffAccess?: AdminActor;
   banner?: React.ReactNode;
   badges?: Partial<Record<NonNullable<AdminNavItem["badge"]>, number>>;
+  badgePreviews?: AdminNavBadgePreviews;
 };
 
 export function AdminAppShell({
@@ -32,6 +35,7 @@ export function AdminAppShell({
   staffAccess,
   banner,
   badges,
+  badgePreviews,
 }: AdminAppShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -40,6 +44,12 @@ export function AdminAppShell({
   const pendingSender = badges?.["pending-sender-ids"] ?? 0;
   const openSupport = badges?.["open-support-tickets"] ?? 0;
   const attention = badges?.["operations-attention"] ?? pendingPayments + pendingSender + openSupport;
+  const previews = badgePreviews ?? {
+    operations: [],
+    payments: [],
+    senderIds: [],
+    support: [],
+  };
 
   return (
     <div className="flex min-h-[100dvh] bg-background">
@@ -70,37 +80,35 @@ export function AdminAppShell({
           <AdminTopbarSearch className="mx-2 flex-1" />
 
           <div className="flex items-center gap-3 shrink-0">
+            <AdminTopbarClock />
             {attention > 0 && (
               <div className="hidden xl:flex items-center gap-2">
-                <Link
+                <AdminTopbarQueuePill
                   href="/admin/operations"
-                  className="rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary hover:bg-primary/25 transition-colors"
-                >
-                  Operations · {attention}
-                </Link>
+                  label={`Operations · ${attention}`}
+                  items={previews.operations}
+                  tone="primary"
+                />
                 {pendingPayments > 0 && (
-                  <Link
+                  <AdminTopbarQueuePill
                     href="/admin/payments"
-                    className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-800 dark:text-amber-200 hover:bg-amber-500/25 transition-colors"
-                  >
-                    {pendingPayments} payment{pendingPayments !== 1 ? "s" : ""}
-                  </Link>
+                    label={`${pendingPayments} payment${pendingPayments !== 1 ? "s" : ""}`}
+                    items={previews.payments}
+                  />
                 )}
                 {pendingSender > 0 && (
-                  <Link
+                  <AdminTopbarQueuePill
                     href="/admin/sender-ids"
-                    className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-800 dark:text-amber-200 hover:bg-amber-500/25 transition-colors"
-                  >
-                    {pendingSender} sender ID{pendingSender !== 1 ? "s" : ""}
-                  </Link>
+                    label={`${pendingSender} sender ID${pendingSender !== 1 ? "s" : ""}`}
+                    items={previews.senderIds}
+                  />
                 )}
                 {openSupport > 0 && (
-                  <Link
+                  <AdminTopbarQueuePill
                     href="/admin/support"
-                    className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-800 dark:text-amber-200 hover:bg-amber-500/25 transition-colors"
-                  >
-                    {openSupport} support
-                  </Link>
+                    label={`${openSupport} support`}
+                    items={previews.support}
+                  />
                 )}
               </div>
             )}

@@ -34,6 +34,8 @@ import { generateUniqueAccountNumber } from "@/lib/auth/account-number";
 import { getSession } from "@/lib/auth/session";
 import { isEmailConfiguredAsync } from "@/lib/email/config";
 import { sendEmail } from "@/lib/email";
+import { loadEmailAutomationSettings } from "@/lib/email/automation-settings";
+import { maybeSendFailedLoginHelpEmail } from "@/lib/email/automation-run";
 import {
   accountWelcomeEmailContent,
   passwordResetSuccessEmailContent,
@@ -67,6 +69,7 @@ import {
   readSignupGuardFields,
   type AuthGuardError,
 } from "@/lib/auth/signup-guard";
+import { signupIdentityBlockReason } from "@/lib/auth/signup-spam";
 import {
   isResellerLinkedUser,
   linkSignupUserToReseller,
@@ -100,6 +103,15 @@ function guardErrorParams(
   extra?: Record<string, string>,
 ): Record<string, string> {
   return { error, ...extra };
+}
+
+function rejectBadSignupIdentity(
+  input: { phone: string; countryCode?: string | null; email?: string | null },
+  redirectPath: string,
+  extra?: Record<string, string>,
+) {
+  const reason = signupIdentityBlockReason(input);
+  if (reason) authRedirect(redirectPath, { error: reason, ...extra });
 }
 
 /** Safe post-login redirect for Slack admin links and admin pages only. */
@@ -209,10 +221,13 @@ async function sendWelcomeEmailIfAvailable(user: {
 }) {
   const email = user.email?.trim().toLowerCase();
   if (!email) return;
+  const settings = await loadEmailAutomationSettings();
+  if (!settings.welcomeOnSignup) return;
   if (!(await isEmailConfiguredAsync())) return;
 
   const { subject, text, html } = await accountWelcomeEmailContent({
     memberName: user.fullName,
+    email,
   });
   await sendEmail({
     to: email,
@@ -286,6 +301,10 @@ export async function requestPhoneAuthAction(formData: FormData) {
 
   if (phone.length < 10) {
     authRedirect(returnPath, { error: "invalid_phone", ...inviteParams });
+  }
+
+  if (intent === "signup") {
+    rejectBadSignupIdentity({ phone, countryCode }, returnPath, inviteParams);
   }
 
   const otpIp = await consumeOtpIpSlot();
@@ -408,6 +427,11 @@ export async function completeGooglePhoneAction(formData: FormData) {
   if (phone.length < 10) {
     authRedirect("/complete-phone", { error: "invalid_phone" });
   }
+
+  rejectBadSignupIdentity(
+    { phone, countryCode: parsed.data.countryCode, email: pending.email },
+    "/complete-phone",
+  );
 
   const existingPhone = await prisma.user.findUnique({ where: { phone } });
   if (existingPhone) {
@@ -559,6 +583,12 @@ export async function requestEmailAuthAction(formData: FormData) {
     if (phone.length < 10) {
       authRedirect(returnPath, { error: "invalid_phone", method: "email", ...inviteParams });
     }
+
+    rejectBadSignupIdentity(
+      { phone, countryCode, email },
+      returnPath,
+      { method: "email", ...inviteParams },
+    );
 
     const [existingPhone, existingEmail] = await Promise.all([
       prisma.user.findUnique({ where: { phone } }),
@@ -800,6 +830,12 @@ const otpBot = await assertOtpBotAllowed(guardFields);
       : "email" in parsed.data
         ? parsed.data.email
         : undefined;
+
+  rejectBadSignupIdentity(
+    { phone, countryCode, email },
+    "/signup",
+    { method: signupMethod, ...inviteParams },
+  );
 
   const existingPhone = await prisma.user.findUnique({ where: { phone } });
   if (existingPhone) {
@@ -1055,6 +1091,11 @@ export async function loginPasswordAction(formData: FormData) {
     await prisma.user.update({
       where: { id: user.id },
       data: { failedLoginCount: count, lockedUntil },
+    });
+    void maybeSendFailedLoginHelpEmail({
+      fullName: user.fullName,
+      email: user.email,
+      failedLoginCount: count,
     });
     await logAuthEvent("LOGIN_FAILED", {
       identifier,

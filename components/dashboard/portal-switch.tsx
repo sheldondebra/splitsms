@@ -10,7 +10,13 @@ const modes = [
   { id: "dev", href: "/developers", label: "Developers", icon: Code2 },
 ] as const;
 
-export function PortalSwitch({ className }: { className?: string }) {
+export function PortalSwitch({
+  className,
+  showLabels = false,
+}: {
+  className?: string;
+  showLabels?: boolean;
+}) {
   const pathname = usePathname();
   const inDevelopers = pathname.startsWith("/developers");
 
@@ -30,13 +36,14 @@ export function PortalSwitch({ className }: { className?: string }) {
             href={href}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors",
+              showLabels && "flex-1 justify-center",
               active
                 ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             <Icon className="h-3.5 w-3.5 shrink-0" />
-            <span className="hidden sm:inline">{label}</span>
+            <span className={cn(showLabels ? "inline" : "hidden sm:inline")}>{label}</span>
           </Link>
         );
       })}

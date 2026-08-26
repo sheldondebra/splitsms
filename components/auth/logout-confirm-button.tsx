@@ -13,6 +13,7 @@ type LogoutConfirmButtonProps = {
   /** Sidebar / mobile menu style */
   fullWidth?: boolean;
   showIcon?: boolean;
+  iconOnly?: boolean;
   label?: string;
 };
 
@@ -22,6 +23,7 @@ export function LogoutConfirmButton({
   className,
   fullWidth,
   showIcon = true,
+  iconOnly = false,
   label = "Sign out",
 }: LogoutConfirmButtonProps) {
   const [open, setOpen] = useState(false);
@@ -31,12 +33,14 @@ export function LogoutConfirmButton({
       <Button
         type="button"
         variant={variant}
-        size={size}
+        size={iconOnly ? "icon" : size}
         className={cn(fullWidth && "w-full justify-start gap-3", className)}
         onClick={() => setOpen(true)}
+        aria-label={label}
+        title={iconOnly ? label : undefined}
       >
         {showIcon && <LogOut className="h-4 w-4 shrink-0" />}
-        {label}
+        {iconOnly ? <span className="sr-only">{label}</span> : label}
       </Button>
 
       <LogoutConfirmDialog open={open} onOpenChange={setOpen} />

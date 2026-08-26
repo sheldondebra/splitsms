@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { getAdminMembersDashboard } from "@/lib/admin/members-dashboard";
 import { AdminMembersView } from "@/components/admin/admin-members-view";
+import { MembersListToasts } from "@/components/admin/members-list-toasts";
 
 export default async function AdminMembersPage({
   searchParams,
@@ -22,14 +24,19 @@ export default async function AdminMembersPage({
   const data = await getAdminMembersDashboard(params);
 
   return (
-    <AdminMembersView
-      data={data}
-      flash={{
-        saved: params.saved,
-        error: params.error,
-        count: params.count,
-        failed: params.failed,
-      }}
-    />
+    <>
+      <Suspense fallback={null}>
+        <MembersListToasts />
+      </Suspense>
+      <AdminMembersView
+        data={data}
+        flash={{
+          saved: params.saved,
+          error: params.error,
+          count: params.count,
+          failed: params.failed,
+        }}
+      />
+    </>
   );
 }

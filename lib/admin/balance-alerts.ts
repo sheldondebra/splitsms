@@ -15,7 +15,7 @@ export const MNOTIFY_LOW_CREDITS_THRESHOLD = Number(
 const TWILIO_LOW_BALANCE = Number(process.env.TWILIO_LOW_BALANCE_THRESHOLD ?? 5);
 const INFOBIP_LOW_BALANCE = Number(process.env.INFOBIP_LOW_BALANCE_THRESHOLD ?? 5);
 
-type BalanceAlertKind = "mnotify" | "twilio" | "infobip" | "coverage";
+type BalanceAlertKind = "mnotify" | "twilio" | "infobip" | "coverage" | "credit_cover";
 
 type AlertStateEntry = {
   lastAlertAt: string;
@@ -150,8 +150,8 @@ export async function detectLowBalanceAlerts(
   return alerts;
 }
 
-async function notifyAdminsBalanceAlert(alert: LowBalanceAlert) {
-  const adminUrl = `${getSiteUrl()}/admin/providers`;
+export async function notifyAdminsBalanceAlert(alert: LowBalanceAlert) {
+  const adminUrl = `${getSiteUrl()}${alert.kind === "credit_cover" ? "/admin/credit-cover" : "/admin/providers"}`;
   const smsText = `${siteName}: ${alert.title} — ${alert.display}. ${adminUrl}`;
   const { subject, text, html } = await adminBalanceAlertEmailContent({
     title: alert.title,

@@ -74,8 +74,7 @@ export async function syncMnotifySenderRegistration(
 
     return {
       status: "FAILED",
-      error: status.error ?? "Could not check mNotify status",
-      providerStatus: status.providerStatus,
+      providerStatus: status.providerStatus ?? undefined,
     };
   }
 
@@ -92,6 +91,6 @@ export async function syncMnotifySenderRegistration(
 
   return {
     status: mapped,
-    providerStatus: status.providerStatus,
+    providerStatus: status.providerStatus ?? undefined,
   };
 }

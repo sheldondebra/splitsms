@@ -66,7 +66,7 @@ type HeaderAccountMenuProps = {
   profile: HeaderAccountProfile;
   className?: string;
   /** Toolbar chip inside dashboard/admin clusters */
-  variant?: "compact" | "pill";
+  variant?: "compact" | "pill" | "icon";
   showChevron?: boolean;
 };
 
@@ -93,18 +93,21 @@ export function HeaderAccountMenu({
               "h-8 gap-1 rounded-md px-1 pr-1.5 hover:bg-background/80",
             variant === "pill" &&
               "gap-2 rounded-full border border-border/60 bg-muted/30 py-1 pl-1 pr-2.5 hover:bg-muted/50",
+            variant === "icon" &&
+              "h-9 w-9 justify-center rounded-full p-0 hover:bg-muted/70",
             className,
           )}
           aria-label="Account menu"
         >
           <UserAvatar
             name={displayName}
-            size="sm"
+            size={variant === "icon" ? "md" : "sm"}
             className={cn(
               variant === "pill" && "ring-1 ring-border/50",
+              variant === "icon" && "ring-0",
             )}
           />
-          {showChevron && (
+          {showChevron && variant !== "icon" && (
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:block" />
           )}
         </DropdownMenuTrigger>

@@ -9,6 +9,7 @@ export type GoogleIdentity = {
   googleId: string;
   email: string;
   fullName: string;
+  picture?: string;
 };
 
 export type GoogleOAuthState = {
@@ -196,6 +197,7 @@ export async function fetchGoogleUserInfo(
     email_verified?: boolean;
     name?: string;
     given_name?: string;
+    picture?: string;
   };
 
   const googleId = String(data.sub ?? "").trim();
@@ -205,8 +207,9 @@ export async function fetchGoogleUserInfo(
 
   const fullName =
     String(data.name ?? "").trim() || String(data.given_name ?? "").trim();
+  const picture = String(data.picture ?? "").trim();
 
-  return { googleId, email, fullName };
+  return { googleId, email, fullName, picture: picture || undefined };
 }
 
 export async function setPkceVerifierCookie(verifier: string) {

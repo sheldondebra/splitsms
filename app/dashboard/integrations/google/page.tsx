@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth/session";
-import { getGoogleConnectionPublic } from "@/lib/google/connection";
+import { getGoogleConnectionProfile } from "@/lib/google/connection";
 import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 import { GoogleIntegrationPanel } from "@/components/dashboard/google-integration-panel";
 import { Link2 } from "lucide-react";
@@ -17,7 +17,7 @@ export default async function GoogleIntegrationsPage({
   if (!session) return null;
 
   const params = await searchParams;
-  const connection = await getGoogleConnectionPublic(session.userId);
+  const connection = await getGoogleConnectionProfile(session.userId);
 
   const error = typeof params.error === "string" ? params.error : undefined;
   const connected = params.connected === "1";
@@ -27,9 +27,9 @@ export default async function GoogleIntegrationsPage({
     <AppPage>
       <PageHeader
         title="Google"
-        description="Connect your Google account for Contacts, Sheets, and Forms SMS."
+        description="Send SMS from Google Forms, or import Contacts and Sheets."
         icon={Link2}
-        mobileDescription="Connect Google for Contacts, Sheets, and Forms."
+        mobileDescription="Forms SMS, Contacts, and Sheets."
       />
       <GoogleIntegrationPanel
         connection={connection}

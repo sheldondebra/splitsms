@@ -1,11 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { CreditCard, Loader2, Smartphone, Building2, Banknote } from "lucide-react";
+import {
+  creditsFromAmount,
+  formatWalletMoney,
+} from "@/lib/billing/sms-packages";
+import type { WalletPricingOption } from "@/components/billing/wallet-credits-panel";
+import { CreditCard, Loader2, Smartphone, Building2, Banknote, MessageSquare } from "lucide-react";
 
 export type PaymentMethodOption = {
   value: string;
@@ -40,6 +46,8 @@ export function WalletTopupClient({
   defaultMethod,
   stripeFxPreview,
   returnPath = "/dashboard/wallet",
+  smsPricing,
+  pricingOptions = [],
 }: {
   currency: string;
   paymentMethods: PaymentMethodOption[];
@@ -55,10 +63,16 @@ export function WalletTopupClient({
   stripeFxPreview?: StripeFxPreview;
   /** Where to send the user after checkout (default member wallet). */
   returnPath?: string;
+  smsPricing?: WalletPricingOption;
+  pricingOptions?: WalletPricingOption[];
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [amount, setAmount] = useState("");
+  const [buyCreditsOnFund, setBuyCreditsOnFund] = useState(Boolean(smsPricing));
+  const [countryCode, setCountryCode] = useState(
+    smsPricing?.countryCode ?? pricingOptions[0]?.countryCode ?? "GH",
+  );
   const [method, setMethod] = useState(() => {
     if (defaultMethod && paymentMethods.some((m) => m.value === defaultMethod && m.available)) {
       return defaultMethod;
@@ -76,6 +90,20 @@ export function WalletTopupClient({
 
   const availableMethods = paymentMethods.filter((m) => m.available);
   const numAmount = Number(amount);
+  const selectedPricing = useMemo(() => {
+    return (
+      pricingOptions.find((option) => option.countryCode === countryCode) ??
+      smsPricing ??
+      pricingOptions[0]
+    );
+  }, [countryCode, pricingOptions, smsPricing]);
+  const quote =
+    selectedPricing && numAmount > 0 && Number.isFinite(numAmount)
+      ? creditsFromAmount(numAmount, selectedPricing.pricePerCredit)
+      : null;
+  const canAutoBuyCredits = Boolean(
+    selectedPricing && selectedPricing.currency === currency && selectedPricing.pricePerCredit > 0,
+  );
   const stripeChargePreview =
     method === "STRIPE" &&
     stripeFxPreview &&
@@ -104,6 +132,8 @@ export function WalletTopupClient({
           amount: numAmount,
           method,
           returnPath,
+          buyCreditsOnFund: Boolean(smsPricing && buyCreditsOnFund && canAutoBuyCredits),
+          countryCode: selectedPricing?.countryCode,
           offline: method === "MANUAL" ? offline : undefined,
         }),
       });
@@ -135,23 +165,56 @@ export function WalletTopupClient({
   return (
     <form onSubmit={handleSubmit} className="space-y-7">
       <div className="space-y-3">
-        <Label className="text-sm font-semibold">Amount ({currency})</Label>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <Label className="text-sm font-semibold">Amount ({currency})</Label>
+          {smsPricing && pricingOptions.length > 1 ? (
+            <div className="sm:min-w-[180px]">
+              <Label htmlFor="topup-pricing-country" className="text-xs text-muted-foreground">
+                SMS rate
+              </Label>
+              <select
+                id="topup-pricing-country"
+                value={countryCode}
+                onChange={(e) => setCountryCode(e.target.value)}
+                className="mt-1 flex h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
+              >
+                {pricingOptions.map((option) => (
+                  <option key={option.countryCode} value={option.countryCode}>
+                    {option.countryName} · {formatWalletMoney(option.pricePerCredit, option.currency)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+        </div>
         <div className="flex flex-wrap gap-2.5">
-          {PRESET_AMOUNTS.map((preset) => (
-            <button
-              key={preset}
-              type="button"
-              onClick={() => setAmount(String(preset))}
-              className={cn(
-                "rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors",
-                amount === String(preset)
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border hover:bg-muted/50",
-              )}
-            >
-              {currency} {preset}
-            </button>
-          ))}
+          {PRESET_AMOUNTS.map((preset) => {
+            const presetQuote = selectedPricing
+              ? creditsFromAmount(preset, selectedPricing.pricePerCredit)
+              : null;
+            return (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setAmount(String(preset))}
+                className={cn(
+                  "min-w-[5.5rem] rounded-xl border px-3.5 py-2.5 text-left transition-colors",
+                  Number(amount) === preset
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border hover:bg-muted/50",
+                )}
+              >
+                <span className="block text-sm font-medium">
+                  {currency} {preset}
+                </span>
+                {presetQuote && presetQuote.credits > 0 ? (
+                  <span className="mt-0.5 block text-[11px] font-medium tabular-nums opacity-80">
+                    {presetQuote.credits.toLocaleString()} SMS
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
         <Input
           name="amount"
@@ -164,6 +227,56 @@ export function WalletTopupClient({
           placeholder="Custom amount"
           className="h-12 text-base tabular-nums"
         />
+
+        {smsPricing && selectedPricing ? (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+            {quote && quote.credits > 0 ? (
+              <p className="text-sm font-semibold tabular-nums">
+                ≈ {quote.credits.toLocaleString()} SMS
+                <span className="ml-1 font-medium text-muted-foreground">
+                  at {formatWalletMoney(selectedPricing.pricePerCredit, selectedPricing.currency)} per
+                  credit
+                </span>
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Enter an amount to see how many SMS this buys at{" "}
+                {formatWalletMoney(selectedPricing.pricePerCredit, selectedPricing.currency)} per
+                credit.
+              </p>
+            )}
+            {quote && quote.remainder > 0 ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {formatWalletMoney(quote.remainder, currency)} stays in your wallet as change.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {smsPricing && canAutoBuyCredits ? (
+          <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-4">
+            <Checkbox
+              checked={buyCreditsOnFund}
+              onChange={(e) => setBuyCreditsOnFund(e.currentTarget.checked)}
+              className="mt-0.5"
+              aria-label="Buy SMS credits as soon as I top up"
+            />
+            <button
+              type="button"
+              className="min-w-0 text-left"
+              onClick={() => setBuyCreditsOnFund((on) => !on)}
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <MessageSquare className="h-4 w-4 text-primary" />
+                Buy SMS credits as soon as I top up
+              </span>
+              <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">
+                When payment confirms, convert this top-up into credits at your assigned rate. You
+                can still keep money in the wallet if you turn this off.
+              </span>
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="space-y-3">
@@ -303,21 +416,33 @@ export function WalletTopupClient({
       <Button
         type="submit"
         disabled={loading || availableMethods.length === 0}
-        className="h-12 w-full rounded-xl font-semibold text-base gap-2 mt-2"
+        className="mt-2 flex h-auto min-h-12 w-full flex-col gap-0.5 rounded-xl px-5 py-3 text-base font-semibold leading-tight whitespace-normal"
       >
         {loading ? (
-          <>
+          <span className="inline-flex items-center gap-2">
             <Loader2 className="h-5 w-5 animate-spin" />
             Redirecting to payment…
-          </>
+          </span>
         ) : (
-          <>Continue to payment</>
+          <>
+            <span>
+              {numAmount > 0 && Number.isFinite(numAmount)
+                ? `Pay ${formatWalletMoney(numAmount, currency)}`
+                : "Continue to payment"}
+            </span>
+            {buyCreditsOnFund && quote && quote.credits > 0 ? (
+              <span className="text-xs font-medium text-primary-foreground/80">
+                Get {quote.credits.toLocaleString()} SMS credits
+              </span>
+            ) : null}
+          </>
         )}
       </Button>
 
       <p className="text-sm text-muted-foreground text-center leading-relaxed pt-1">
-        Funds appear in your wallet after payment is confirmed. Then choose an SMS package on the
-        right.
+        {smsPricing && buyCreditsOnFund
+          ? "Payment confirmation adds money, then buys SMS credits at your rate automatically."
+          : "Funds appear in your wallet after payment is confirmed. Then choose an SMS package on the right."}
       </p>
     </form>
   );

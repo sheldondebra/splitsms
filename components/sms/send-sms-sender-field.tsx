@@ -257,6 +257,7 @@ function AdminSenderSearch({
   onRegisterNew: (prefill?: string) => void;
 }) {
   const [query, setQuery] = useState(() => value || "");
+  const [browseOpen, setBrowseOpen] = useState(false);
 
   const approved = useMemo(
     () => registeredSenders.filter((s) => s.status === "APPROVED"),
@@ -277,6 +278,10 @@ function AdminSenderSearch({
   const exactMatch = approved.find((s) => s.value.toUpperCase() === query.trim().toUpperCase());
   const canRegisterQuery =
     normalizeSenderIdValue(query).length >= SENDER_ID_MIN_LENGTH && !exactMatch;
+  const queryTrim = query.trim();
+  const showResults =
+    browseOpen ||
+    (queryTrim.length > 0 && queryTrim.toUpperCase() !== (selected?.value ?? "").toUpperCase());
 
   return (
     <div className="space-y-2">
@@ -288,90 +293,104 @@ function AdminSenderSearch({
           onChange={(e) => {
             const next = e.target.value.toUpperCase().replace(/[^A-Z0-9\s]/g, "");
             setQuery(next);
+            setBrowseOpen(true);
           }}
+          onFocus={() => setBrowseOpen(true)}
           disabled={disabled}
           maxLength={SENDER_ID_MAX_LENGTH + 20}
-          placeholder="Search approved sender IDs…"
+          placeholder="Search sender IDs…"
           className="h-11 pl-9 font-mono uppercase tracking-wide"
           autoComplete="off"
         />
       </div>
 
       {selected ? (
-        <div className="flex items-center justify-between gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs">
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-3 py-2.5 text-xs">
           <div className="min-w-0">
-            <p className="font-mono font-semibold text-emerald-800 dark:text-emerald-200">
+            <p className="font-mono text-sm font-semibold text-emerald-800 dark:text-emerald-200">
               {selected.value}
             </p>
             {selected.ownerName ? (
               <p className="truncate text-muted-foreground">Owner: {selected.ownerName}</p>
             ) : null}
           </div>
-          <span className="shrink-0 font-medium text-emerald-700 dark:text-emerald-300">Selected</span>
+          <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+            Selected
+          </span>
         </div>
       ) : (
         <p className="text-xs text-muted-foreground">
-          {approved.length} approved sender{approved.length === 1 ? "" : "s"} available — pick one below,
-          or register a new ID if it is missing.
+          Search {approved.length} approved sender{approved.length === 1 ? "" : "s"}, or register a new ID.
         </p>
       )}
 
-      <div className="max-h-72 overflow-y-auto rounded-lg border border-border/60 bg-background shadow-sm">
-        {filtered.length === 0 ? (
-          <p className="px-3 py-3 text-xs text-muted-foreground">No matching approved sender IDs.</p>
-        ) : (
-          <ul className="divide-y divide-border/50">
-            {filtered.map((s) => {
-              const active = s.value === value;
-              return (
-                <li key={`${s.value}-${s.ownerName ?? "platform"}`}>
-                  <button
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => {
-                      onChange(s.value);
-                      setQuery(s.value);
-                    }}
-                    className={cn(
-                      "flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/50",
-                      active && "bg-primary/5",
-                    )}
-                  >
-                    <span className="min-w-0">
-                      <span className="block font-mono font-semibold">{s.value}</span>
-                      {s.ownerName ? (
-                        <span className="block truncate text-[11px] text-muted-foreground">
-                          {s.ownerName}
-                        </span>
+      {showResults ? (
+        <div className="max-h-44 overflow-y-auto rounded-xl border border-border/60 bg-background md:max-h-72">
+          {filtered.length === 0 ? (
+            <p className="px-3 py-3 text-xs text-muted-foreground">No matching sender IDs.</p>
+          ) : (
+            <ul className="divide-y divide-border/50">
+              {filtered.map((s) => {
+                const active = s.value === value;
+                return (
+                  <li key={`${s.value}-${s.ownerName ?? "platform"}`}>
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => {
+                        onChange(s.value);
+                        setQuery(s.value);
+                        setBrowseOpen(false);
+                      }}
+                      className={cn(
+                        "flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/50",
+                        active && "bg-primary/5",
+                      )}
+                    >
+                      <span className="min-w-0">
+                        <span className="block font-mono font-semibold">{s.value}</span>
+                        {s.ownerName ? (
+                          <span className="block truncate text-[11px] text-muted-foreground">
+                            {s.ownerName}
+                          </span>
+                        ) : null}
+                      </span>
+                      {active ? (
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
                       ) : null}
-                    </span>
-                    {active ? (
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-                    ) : null}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <div className="border-t border-border/60 p-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="w-full justify-start gap-1.5"
-            disabled={disabled}
-            onClick={() => {
-              onRegisterNew(canRegisterQuery ? normalizeSenderIdValue(query) : "");
-            }}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            {canRegisterQuery
-              ? `Register “${normalizeSenderIdValue(query)}”`
-              : "Register new sender ID…"}
-          </Button>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <div className="border-t border-border/60 p-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-10 w-full justify-center gap-1.5"
+              disabled={disabled}
+              onClick={() => {
+                onRegisterNew(canRegisterQuery ? normalizeSenderIdValue(query) : "");
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {canRegisterQuery
+                ? `Register “${normalizeSenderIdValue(query)}”`
+                : "Register new sender ID"}
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setBrowseOpen(true)}
+          className="h-10 w-full rounded-xl border border-dashed border-border/70 text-xs font-medium text-muted-foreground"
+        >
+          Browse sender IDs
+        </button>
+      )}
     </div>
   );
 }
@@ -437,14 +456,14 @@ export function SendSmsSenderField({
     normalizedDraft.length >= SENDER_ID_MIN_LENGTH && !registeredValues.has(normalizedDraft);
 
   return (
-    <div className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-5 space-y-3">
+    <div className="space-y-3 rounded-xl border border-border/60 bg-card p-3.5 md:bg-muted/20 md:p-5">
       <div className="flex items-center gap-2">
         <BadgeCheck className="h-4 w-4 text-primary shrink-0" />
         <Label className="text-sm font-semibold">Sender name</Label>
       </div>
       <p className="text-xs text-muted-foreground -mt-1">
         {allowPlatformSearch
-          ? "Admin: search approved platform sender IDs, or register a new one."
+          ? "Search approved sender IDs, or register a new one."
           : "What recipients see as the message sender."}
       </p>
 

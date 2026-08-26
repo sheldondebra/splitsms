@@ -203,6 +203,7 @@ export async function duplicateSmartFormAction(
     include: {
       fields: { orderBy: { sortOrder: "asc" } },
       smsAutomation: true,
+      emailAutomation: true,
     },
   });
   if (!source) return { ok: false, error: "Form not found." };
@@ -255,6 +256,23 @@ export async function duplicateSmartFormAction(
                 senderId: source.smsAutomation.senderId,
                 respondentMessageTemplate: source.smsAutomation.respondentMessageTemplate,
                 adminMessageTemplate: source.smsAutomation.adminMessageTemplate,
+              },
+            },
+          }
+        : {}),
+      ...(source.emailAutomation
+        ? {
+            emailAutomation: {
+              create: {
+                sendToRespondent: source.emailAutomation.sendToRespondent,
+                sendToAdmin: source.emailAutomation.sendToAdmin,
+                adminEmail: source.emailAutomation.adminEmail,
+                respondentSubject: source.emailAutomation.respondentSubject,
+                respondentMessageTemplate: source.emailAutomation.respondentMessageTemplate,
+                adminSubject: source.emailAutomation.adminSubject,
+                adminMessageTemplate: source.emailAutomation.adminMessageTemplate,
+                reportFrequency: source.emailAutomation.reportFrequency,
+                reportEmail: source.emailAutomation.reportEmail,
               },
             },
           }

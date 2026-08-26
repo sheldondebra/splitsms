@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { syncUserSenderIdsFromMnotify } from "@/lib/sender-ids/provider-sync";
 import { memberSenderNote } from "@/lib/sms/member-facing";
+import { isMnotifyHoldStatus } from "@/lib/sender-ids/provider-status";
 import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
 import {
   SenderIdsDashboard,
@@ -24,6 +25,9 @@ const ALERT_MESSAGES: Record<string, { success?: string; error?: string }> = {
   },
   default: {
     success: "Default Sender ID updated for new messages.",
+  },
+  docsent: {
+    success: "Verification link emailed to you — check your inbox.",
   },
   invalid: {
     error: "invalid_sender_id",
@@ -55,6 +59,7 @@ export default async function SenderIdsPage({
     requested?: string;
     approved?: string;
     default?: string;
+    docsent?: string;
     error?: string;
   }>;
 }) {
@@ -67,6 +72,7 @@ export default async function SenderIdsPage({
   const senderIds = await prisma.senderId.findMany({
     where: { userId: session.userId },
     orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
+    include: { _count: { select: { verificationDocuments: true } } },
   });
 
   const items: SenderIdItem[] = senderIds.map((s) => ({
@@ -78,6 +84,8 @@ export default async function SenderIdsPage({
     adminNote: memberSenderNote(s.adminNote, s.status),
     providerSubmittedAt: s.providerSubmittedAt?.toISOString() ?? null,
     createdAt: s.createdAt.toISOString(),
+    onHold: isMnotifyHoldStatus(s.providerStatus),
+    hasDocument: s._count.verificationDocuments > 0,
   }));
 
   const approved = items.filter((s) => s.status === "APPROVED");
@@ -90,7 +98,9 @@ export default async function SenderIdsPage({
       ? "requested"
       : params.default
         ? "default"
-        : params.error ?? null;
+        : params.docsent
+          ? "docsent"
+          : params.error ?? null;
   const alert = alertKey ? ALERT_MESSAGES[alertKey] : null;
 
   const dashboardProps: SenderIdsDashboardProps = {

@@ -11,12 +11,13 @@ import {
   seedSampleTemplatesAction,
 } from "@/lib/actions/templates";
 import { SmsPreview } from "@/components/sms/sms-preview";
-import { TEMPLATE_VARIABLES, PERSONALIZATION_HINT } from "@/lib/sms/personalize";
+import { AppCard, AppCardBody } from "@/components/dashboard/page-shell";
+import { TEMPLATE_VARIABLES, PERSONALIZATION_HINT, extractTemplateVariables } from "@/lib/sms/personalize";
+import { getMessagePreview } from "@/lib/sms/message-preview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -28,19 +29,20 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import {
-  FileText,
+  FileStack,
   Loader2,
-  MoreVertical,
+  MoreHorizontal,
   Pencil,
   Plus,
-  LayoutTemplate,
+  Search,
+  Send,
   Star,
   Trash2,
-  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -52,9 +54,22 @@ export type TemplateItem = {
   updatedAt: string;
 };
 
+const FILTERS = [
+  { value: "all", label: "All" },
+  { value: "favorites", label: "Favorites" },
+] as const;
+
 function insertVariable(content: string, key: string) {
   const token = `{${key}}`;
   return content ? `${content}${content.endsWith(" ") ? "" : " "}${token}` : token;
+}
+
+function formatUpdated(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 function TemplateEditor({
@@ -71,7 +86,7 @@ function TemplateEditor({
   onInsertVariable: (key: string) => void;
 }) {
   return (
-    <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
       <div className="space-y-5 min-w-0">
         <div className="space-y-2">
           <Label htmlFor="tpl-name">Template name</Label>
@@ -84,36 +99,34 @@ function TemplateEditor({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="tpl-content">Message content</Label>
+          <Label htmlFor="tpl-content">Message</Label>
           <Textarea
             id="tpl-content"
             value={content}
             onChange={(e) => onContentChange(e.target.value)}
-            rows={6}
+            rows={7}
             placeholder="Hi {firstName}, thanks for joining!"
-            className="min-h-[140px] text-base resize-y"
+            className="min-h-[160px] text-base resize-y"
           />
-          <p className="text-xs text-muted-foreground leading-relaxed">{PERSONALIZATION_HINT}</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">{PERSONALIZATION_HINT}</p>
         </div>
         <div className="space-y-2">
           <p className="text-xs font-medium text-muted-foreground">Insert placeholder</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {TEMPLATE_VARIABLES.map((v) => (
-              <Button
+              <button
                 key={v.key}
                 type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 rounded-lg text-xs font-mono"
                 onClick={() => onInsertVariable(v.key)}
+                className="h-8 rounded-lg border border-border/70 bg-background px-2.5 font-mono text-xs text-muted-foreground hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
               >
                 {`{${v.key}}`}
-              </Button>
+              </button>
             ))}
           </div>
         </div>
       </div>
-      <SmsPreview message={content} showVariableHints />
+      <SmsPreview message={content} compact showVariableHints />
     </div>
   );
 }
@@ -125,15 +138,24 @@ export function TemplatesManager({ templates: initial }: { templates: TemplateIt
   const [editing, setEditing] = useState<TemplateItem | null>(null);
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]["value"]>("all");
 
-  const sorted = useMemo(
-    () =>
-      [...initial].sort((a, b) => {
+  const favorites = initial.filter((t) => t.isFavorite).length;
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return [...initial]
+      .filter((t) => (filter === "favorites" ? t.isFavorite : true))
+      .filter((t) => {
+        if (!q) return true;
+        return t.name.toLowerCase().includes(q) || t.content.toLowerCase().includes(q);
+      })
+      .sort((a, b) => {
         if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
         return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-      }),
-    [initial],
-  );
+      });
+  }, [initial, query, filter]);
 
   function openCreate() {
     setEditing(null);
@@ -169,9 +191,7 @@ export function TemplatesManager({ templates: initial }: { templates: TemplateIt
     if (editing) fd.set("id", editing.id);
 
     startTransition(async () => {
-      const result = editing
-        ? await updateTemplateAction(fd)
-        : await createTemplateAction(fd);
+      const result = editing ? await updateTemplateAction(fd) : await createTemplateAction(fd);
       if (!result.ok) {
         toast.error("Could not save template");
         return;
@@ -183,7 +203,7 @@ export function TemplatesManager({ templates: initial }: { templates: TemplateIt
   }
 
   function handleDelete(t: TemplateItem) {
-    if (!confirm(`Delete template "${t.name}"?`)) return;
+    if (!window.confirm(`Delete “${t.name}”? This cannot be undone.`)) return;
     const fd = new FormData();
     fd.set("id", t.id);
     startTransition(async () => {
@@ -218,82 +238,137 @@ export function TemplatesManager({ templates: initial }: { templates: TemplateIt
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
-          {PERSONALIZATION_HINT}
-        </p>
-        <div className="flex flex-wrap gap-2 shrink-0">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <AppCard>
+          <AppCardBody className="p-4 sm:p-4 lg:p-4">
+            <p className="text-sm text-muted-foreground">Templates</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums">{initial.length}</p>
+          </AppCardBody>
+        </AppCard>
+        <AppCard>
+          <AppCardBody className="p-4 sm:p-4 lg:p-4">
+            <p className="text-sm text-muted-foreground">Favorites</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums">{favorites}</p>
+          </AppCardBody>
+        </AppCard>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card px-3 py-3 sm:flex-row sm:items-center sm:px-4">
+        <div className="relative min-w-0 flex-1 sm:max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search templates…"
+            className="h-10 bg-background pl-9"
+          />
+        </div>
+        <div
+          role="tablist"
+          aria-label="Filter templates"
+          className="inline-flex h-10 w-full items-center rounded-xl bg-muted p-1 sm:w-auto"
+        >
+          {FILTERS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              role="tab"
+              aria-selected={filter === opt.value}
+              onClick={() => setFilter(opt.value)}
+              className={cn(
+                "inline-flex h-full flex-1 items-center justify-center rounded-lg px-3 text-sm font-medium whitespace-nowrap transition-colors sm:flex-none",
+                filter === opt.value
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2 sm:ml-auto">
           <Button
             type="button"
             variant="outline"
-            className="rounded-xl gap-2 h-11"
+            className="h-10 rounded-xl gap-2"
             onClick={handleSeedSamples}
             disabled={pending}
           >
-            {pending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <LayoutTemplate className="h-4 w-4" />
-            )}
-            Add 10 samples
+            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileStack className="h-4 w-4" />}
+            Samples
           </Button>
-          <Button type="button" className="rounded-xl gap-2 h-11" onClick={openCreate}>
+          <Button type="button" className="h-10 rounded-xl gap-2" onClick={openCreate}>
             <Plus className="h-4 w-4" />
             New template
           </Button>
         </div>
       </div>
 
-      {sorted.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border/60 bg-muted/15 px-6 py-14 text-center space-y-4">
-          <FileText className="h-10 w-10 text-muted-foreground mx-auto opacity-60" />
-          <div>
-            <p className="font-semibold">No templates yet</p>
-            <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-              Create your own or load 10 ready-made samples with personalization placeholders.
-            </p>
+      {initial.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border/70 bg-card px-6 py-16 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <FileStack className="h-7 w-7" />
           </div>
-          <div className="flex flex-wrap justify-center gap-2">
-            <Button type="button" variant="outline" className="rounded-xl" onClick={handleSeedSamples}>
-              <LayoutTemplate className="h-4 w-4 mr-2" />
-              Load sample templates
+          <h3 className="mt-4 text-lg font-semibold">No templates yet</h3>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+            Save messages you send often. Add placeholders like {"{firstName}"} so each text feels
+            personal.
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <Button type="button" variant="outline" className="h-11 rounded-xl" onClick={handleSeedSamples}>
+              <FileStack className="h-4 w-4" />
+              Load 10 samples
             </Button>
-            <Button type="button" className="rounded-xl" onClick={openCreate}>
-              <Plus className="h-4 w-4 mr-2" />
+            <Button type="button" className="h-11 rounded-xl" onClick={openCreate}>
+              <Plus className="h-4 w-4" />
               Create template
             </Button>
           </div>
         </div>
+      ) : filtered.length === 0 ? (
+        <p className="py-12 text-center text-sm text-muted-foreground">No templates match your search.</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {sorted.map((t) => (
-            <article
-              key={t.id}
-              className={cn(
-                "rounded-2xl border border-border/60 bg-card shadow-sm flex flex-col overflow-hidden",
-                t.isFavorite && "ring-1 ring-primary/25",
-              )}
-            >
-              <div className="p-5 sm:p-6 flex-1 flex flex-col gap-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h3 className="font-semibold truncate flex items-center gap-1.5">
-                      {t.isFavorite ? (
-                        <Star className="h-4 w-4 fill-primary text-primary shrink-0" />
-                      ) : null}
-                      {t.name}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Updated {new Date(t.updatedAt).toLocaleDateString()}
+          {filtered.map((t) => {
+            const preview = getMessagePreview(t.content);
+            const variables = extractTemplateVariables(t.content);
+
+            return (
+              <article
+                key={t.id}
+                className={cn(
+                  "flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm",
+                  t.isFavorite && "border-primary/30",
+                )}
+              >
+                <div className="flex items-start gap-3 p-5 pb-3">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-sm font-semibold">{t.name}</h3>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Updated {formatUpdated(t.updatedAt)}
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => handleFavorite(t)}
+                    className={cn(
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                      t.isFavorite
+                        ? "text-primary hover:bg-primary/10"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                    aria-label={t.isFavorite ? `Unfavorite ${t.name}` : `Favorite ${t.name}`}
+                  >
+                    <Star className={cn("h-4 w-4", t.isFavorite && "fill-primary")} />
+                  </button>
                   <DropdownMenu>
                     <DropdownMenuTrigger
-                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-muted"
+                      aria-label={`More actions for ${t.name}`}
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
                     >
-                      <MoreVertical className="h-4 w-4" />
+                      <MoreHorizontal className="h-4 w-4" />
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" className="min-w-40">
                       <DropdownMenuItem onClick={() => openEdit(t)}>
                         <Pencil className="h-4 w-4" />
                         Edit
@@ -302,10 +377,8 @@ export function TemplatesManager({ templates: initial }: { templates: TemplateIt
                         <Star className="h-4 w-4" />
                         {t.isFavorite ? "Remove favorite" : "Favorite"}
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        variant="destructive"
-                        onClick={() => handleDelete(t)}
-                      >
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem variant="destructive" onClick={() => handleDelete(t)}>
                         <Trash2 className="h-4 w-4" />
                         Delete
                       </DropdownMenuItem>
@@ -313,32 +386,42 @@ export function TemplatesManager({ templates: initial }: { templates: TemplateIt
                   </DropdownMenu>
                 </div>
 
-                <p className="text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap leading-relaxed flex-1">
-                  {t.content}
-                </p>
+                <div className="mx-5 rounded-xl bg-muted/40 px-3.5 py-3">
+                  <p className="line-clamp-4 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/90">
+                    {t.content}
+                  </p>
+                </div>
 
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="rounded-lg h-9"
-                    onClick={() => openEdit(t)}
-                  >
-                    <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                <div className="flex flex-wrap gap-1.5 px-5 pt-3">
+                  <span className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+                    {preview.characters} chars · {preview.segments} SMS
+                  </span>
+                  {variables.slice(0, 3).map((key) => (
+                    <span
+                      key={key}
+                      className="rounded-md bg-primary/10 px-1.5 py-0.5 font-mono text-[11px] text-primary"
+                    >
+                      {`{${key}}`}
+                    </span>
+                  ))}
+                  {variables.length > 3 ? (
+                    <span className="text-[11px] text-muted-foreground">+{variables.length - 3}</span>
+                  ) : null}
+                </div>
+
+                <div className="mt-auto flex items-center gap-2 p-5 pt-4">
+                  <Button size="lg" render={<Link href={`/dashboard/send?template=${t.id}`} />}>
+                    <Send />
+                    Use
+                  </Button>
+                  <Button type="button" size="lg" variant="outline" onClick={() => openEdit(t)}>
+                    <Pencil />
                     Edit
                   </Button>
-                  <Link
-                    href={`/dashboard/send?template=${t.id}`}
-                    className="inline-flex items-center justify-center rounded-lg h-9 px-3 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5"
-                  >
-                    <Send className="h-3.5 w-3.5" />
-                    Use in Send
-                  </Link>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       )}
 
@@ -353,7 +436,7 @@ export function TemplatesManager({ templates: initial }: { templates: TemplateIt
           <DialogHeader>
             <DialogTitle>{editing ? "Edit template" : "New template"}</DialogTitle>
             <DialogDescription>
-              Write your message with placeholders — preview updates live with sample data.
+              Write with placeholders — the phone preview updates as you type.
             </DialogDescription>
           </DialogHeader>
           <TemplateEditor
@@ -363,19 +446,19 @@ export function TemplatesManager({ templates: initial }: { templates: TemplateIt
             onContentChange={setContent}
             onInsertVariable={handleInsertVariable}
           />
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" className="rounded-xl h-11" onClick={closeDialog}>
+          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" className="h-11 rounded-xl" onClick={closeDialog}>
               Cancel
             </Button>
             <Button
               type="button"
-              className="rounded-xl h-11 min-w-[140px]"
+              className="h-11 min-w-[140px] rounded-xl"
               disabled={pending || !name.trim() || !content.trim()}
               onClick={handleSave}
             >
               {pending ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Saving…
                 </>
               ) : editing ? (

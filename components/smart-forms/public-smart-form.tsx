@@ -4,20 +4,140 @@ import { useEffect, useState, useTransition } from "react";
 import { FormFieldsLayout } from "@/components/smart-forms/form-fields-layout";
 import { FormHeaderBanner } from "@/components/smart-forms/form-header-banner";
 import { DEFAULT_BANNER_POSITION } from "@/lib/smart-forms/banner-image";
-import { resolveFormBackground } from "@/lib/smart-forms/theme";
+import { isDarkFormBackground, resolveFormBackground } from "@/lib/smart-forms/theme";
 import { getFieldTypeMeta } from "@/lib/smart-forms/field-meta";
 import { validateRecipientPhone } from "@/lib/sms/phone-validation";
 import type { BuilderField, PublicSmartForm } from "@/lib/smart-forms/types";
-import type { CaptchaChallenge } from "@/lib/smart-forms/captcha";
+import { executeRecaptchaV3 } from "@/lib/smart-forms/execute-recaptcha";
+import { RECAPTCHA_SMART_FORM_ACTION } from "@/lib/auth/recaptcha";
+import { SmartFormRecaptcha } from "@/components/smart-forms/smart-form-recaptcha";
+import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
+
+function PublicFormSuccess({
+  formName,
+  businessName,
+  title,
+  message,
+  primary,
+  showBranding,
+}: {
+  formName: string;
+  businessName: string;
+  title: string;
+  message: string;
+  primary: string;
+  showBranding: boolean;
+}) {
+  const org = businessName.trim();
+  const showOrg = Boolean(org) && org !== formName.trim();
+  const receivedOn = new Date().toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  return (
+    <div className="animate-in fade-in zoom-in-95 duration-300">
+      <div
+        className="h-1.5 w-full"
+        style={{ backgroundColor: primary }}
+        aria-hidden
+      />
+      <div className="px-7 py-9 sm:px-10 sm:py-11">
+        <div className="flex items-start gap-4">
+          <span
+            className="relative mt-0.5 flex h-[4.25rem] w-[4.25rem] shrink-0 items-center justify-center"
+            aria-hidden
+          >
+            <span className="absolute inset-0 rounded-full border-[1.5px] border-dashed border-emerald-500/70" />
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white shadow-[0_10px_22px_-10px_rgba(5,150,105,0.7)]">
+              <Check className="h-6 w-6" strokeWidth={2.5} />
+            </span>
+          </span>
+          <div className="min-w-0 pt-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+              Received · {receivedOn}
+            </p>
+            <p className="mt-1.5 text-sm font-medium text-zinc-500">
+              {showOrg ? org : formName}
+            </p>
+          </div>
+        </div>
+
+        <h1 className="mt-7 text-pretty text-[2rem] font-semibold leading-[1.15] tracking-[-0.03em] text-zinc-950 sm:text-[2.35rem]">
+          {title}
+        </h1>
+        <p className="mt-4 text-pretty text-[17px] font-normal leading-[1.75] text-zinc-600">
+          {message}
+        </p>
+
+        <div className="mt-8 rounded-2xl bg-[color-mix(in_srgb,var(--form-primary)_8%,white)] px-4 py-3.5">
+          <p className="text-sm leading-6 text-zinc-700">You can close this page now.</p>
+        </div>
+
+        {showBranding ? (
+          <div className="mt-10">
+            <BuiltWithBrand />
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function BuiltWithBrand() {
+  return (
+    <p className="flex items-center justify-center gap-1.5 border-t border-zinc-200/70 pt-4 text-[11px] text-zinc-400">
+      Built with
+      <a
+        href="https://www.splitsms.com"
+        className="inline-flex items-center opacity-80 transition-opacity hover:opacity-100"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="SplitSMS"
+      >
+        <Logo href="" size="xs" />
+      </a>
+    </p>
+  );
+}
+
+function FormIntro({
+  name,
+  description,
+  businessName,
+}: {
+  name: string;
+  description: string | null;
+  businessName: string;
+}) {
+  const showOrg = Boolean(businessName?.trim()) && businessName.trim() !== name.trim();
+  return (
+    <header className="space-y-3 border-b border-zinc-200/80 pb-6">
+      {showOrg ? (
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--form-primary)]">
+          {businessName}
+        </p>
+      ) : null}
+      <h1 className="text-balance text-[1.65rem] font-semibold leading-[1.25] tracking-[-0.018em] text-zinc-950 sm:text-[1.85rem]">
+        {name}
+      </h1>
+      {description ? (
+        <p className="text-pretty text-[16px] leading-[1.7] text-zinc-600">{description}</p>
+      ) : null}
+    </header>
+  );
+}
 
 type PublicSmartFormViewProps = {
   form: PublicSmartForm;
   mode?: "live" | "preview";
   source?: string;
   embedMode?: boolean;
-  captcha?: CaptchaChallenge | null;
+  recaptchaSiteKey?: string | null;
 };
 
 export function PublicSmartFormView({
@@ -25,13 +145,12 @@ export function PublicSmartFormView({
   mode = "live",
   source = "public",
   embedMode = false,
-  captcha = null,
+  recaptchaSiteKey = null,
 }: PublicSmartFormViewProps) {
   const [values, setValues] = useState<Record<string, string | string[]>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [validationStates, setValidationStates] = useState<Record<string, "valid">>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [success, setSuccess] = useState<{ title: string; message: string } | null>(null);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [isPending, startTransition] = useTransition();
@@ -41,6 +160,7 @@ export function PublicSmartFormView({
   const buttonRadius = form.themeSettings.buttonRadius ?? "0.625rem";
   const showBranding = form.themeSettings.showBranding !== false;
   const formBackground = resolveFormBackground(form.themeSettings);
+  const darkPage = isDarkFormBackground(formBackground);
   const hasBanner = Boolean(form.bannerUrl);
   const steps = buildPublicFormSteps(form.fields);
   const hasSteps = steps.length > 1;
@@ -109,13 +229,16 @@ export function PublicSmartFormView({
 
     startTransition(async () => {
       const payload: Record<string, unknown> = { values, honeypot, source };
-      if (form.captchaEnabled && captcha) {
-        payload.captcha = {
-          a: captcha.a,
-          b: captcha.b,
-          answer: Number(captchaAnswer),
-          token: captcha.token,
-        };
+      if (form.captchaEnabled && recaptchaSiteKey) {
+        try {
+          payload.recaptchaToken = await executeRecaptchaV3(
+            recaptchaSiteKey,
+            RECAPTCHA_SMART_FORM_ACTION,
+          );
+        } catch {
+          setFormError("Couldn’t verify this browser. Refresh the page and try again.");
+          return;
+        }
       }
 
       const res = await fetch(`/api/public/forms/${form.shortCode}/submit`, {
@@ -162,10 +285,15 @@ export function PublicSmartFormView({
 
   const shellClass = embedMode
     ? "py-6 px-4 min-h-[100dvh] flex items-center justify-center"
-    : "relative isolate min-h-[100dvh] overflow-hidden flex items-center justify-center px-4 py-10 sm:py-14";
+    : "relative isolate min-h-[100dvh] overflow-hidden flex items-center justify-center px-4 py-10 sm:py-16";
 
-  const cardClass =
-    "relative w-full max-w-[640px] overflow-hidden rounded-[2rem] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.16)] ring-1 ring-black/[0.06]";
+  const cardClass = cn(
+    "relative w-full max-w-[36rem] overflow-hidden rounded-[1.75rem]",
+    "bg-[#fffcf8] ring-1 ring-black/[0.06]",
+    darkPage
+      ? "shadow-[0_40px_90px_-24px_rgba(0,0,0,0.55)]"
+      : "shadow-[0_28px_70px_-20px_rgba(15,23,42,0.22)]",
+  );
 
   function goToNextStep(e: React.MouseEvent<HTMLButtonElement>) {
     const formEl = e.currentTarget.form;
@@ -182,33 +310,16 @@ export function PublicSmartFormView({
   if (success) {
     return (
       <div className={shellClass} style={themeStyle}>
-        {!embedMode ? <PublicFormBackgroundAccents /> : null}
-        <div className={cn(cardClass, "p-8 text-center sm:p-12")}>
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-emerald-50 ring-8 ring-emerald-50/60">
-            <CheckCircle2 className="h-10 w-10 text-emerald-600" strokeWidth={2} />
-          </div>
-          <div className="mx-auto mt-7 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-            Submitted successfully
-          </div>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl">
-            {success.title}
-          </h1>
-          <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-zinc-500">
-            {success.message}
-          </p>
-          {showBranding ? (
-            <p className="mt-8 border-t border-zinc-100 pt-5 text-[11px] text-zinc-400">
-              Built with{" "}
-              <a
-                href="https://www.splitsms.com"
-                className="font-medium text-zinc-500 transition-colors hover:text-zinc-700"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                SplitSMS
-              </a>
-            </p>
-          ) : null}
+        {!embedMode ? <PublicFormBackgroundAccents dark={darkPage} /> : null}
+        <div className={cardClass}>
+          <PublicFormSuccess
+            formName={form.name}
+            businessName={form.businessName}
+            title={success.title}
+            message={success.message}
+            primary={primary}
+            showBranding={showBranding}
+          />
         </div>
       </div>
     );
@@ -216,69 +327,30 @@ export function PublicSmartFormView({
 
   return (
     <div className={shellClass} style={themeStyle}>
-      {!embedMode ? <PublicFormBackgroundAccents /> : null}
+      {!embedMode ? <PublicFormBackgroundAccents dark={darkPage} /> : null}
       <form
         onSubmit={handleSubmit}
         className={cardClass}
         style={{ ["--form-primary" as string]: primary }}
       >
-        <div className="h-1.5 w-full" style={{ backgroundColor: primary }} aria-hidden />
-
         {hasBanner && form.bannerUrl ? (
           <FormHeaderBanner
             src={form.bannerUrl}
             position={form.layoutSettings.bannerPosition ?? DEFAULT_BANNER_POSITION}
-            heightClass="h-44 sm:h-56"
+            heightClass="h-40 sm:h-48"
             alt=""
           />
-        ) : (
-          <header
-            className="relative overflow-hidden px-6 py-7 text-white sm:px-8 sm:py-9"
-            style={{ backgroundColor: primary }}
-          >
-            <div
-              className="absolute -right-16 -top-20 h-44 w-44 rounded-full bg-white/20 blur-2xl"
-              aria-hidden
-            />
-            <div
-              className="absolute -bottom-24 left-8 h-44 w-44 rounded-full bg-black/10 blur-2xl"
-              aria-hidden
-            />
-            <div className="relative">
-              <div className="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/90 ring-1 ring-white/20">
-                {form.businessName}
-              </div>
-              <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
-                {form.name}
-              </h1>
-              {form.description ? (
-                <p className="mt-3 max-w-lg text-sm leading-relaxed text-white/85 sm:text-base">
-                  {form.description}
-                </p>
-              ) : null}
-            </div>
-          </header>
-        )}
+        ) : null}
 
-        <div className="space-y-6 p-6 sm:p-8">
-          {hasBanner ? (
-            <header className="space-y-2 border-b border-zinc-100 pb-6">
-              <div className="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                {form.businessName}
-              </div>
-              <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl">
-                {form.name}
-              </h1>
-              {form.description ? (
-                <p className="text-sm leading-relaxed text-zinc-500 sm:text-base">
-                  {form.description}
-                </p>
-              ) : null}
-            </header>
-          ) : null}
+        <div className="space-y-7 px-6 py-7 sm:px-9 sm:py-9">
+          <FormIntro
+            name={form.name}
+            description={form.description}
+            businessName={form.businessName}
+          />
 
           {form.layoutSettings.welcomeMessage ? (
-            <div className="rounded-2xl border border-[color-mix(in_srgb,var(--form-primary)_18%,transparent)] bg-[color-mix(in_srgb,var(--form-primary)_8%,white)] px-4 py-3.5 text-sm leading-relaxed text-zinc-700">
+            <div className="rounded-2xl bg-[color-mix(in_srgb,var(--form-primary)_8%,white)] px-4 py-3.5 text-sm leading-6 text-zinc-700">
               {form.layoutSettings.welcomeMessage}
             </div>
           ) : null}
@@ -307,14 +379,16 @@ export function PublicSmartFormView({
             aria-hidden
           />
 
-          <div className="space-y-5">
+          <div className="space-y-6">
             {hasSteps ? (
-              <div className="space-y-3 rounded-2xl border border-zinc-200 bg-zinc-50/70 p-3">
-                <div className="flex items-center justify-between gap-3 text-xs font-medium text-zinc-500">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3 text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400">
                   <span>
                     Step {activeStepIndex + 1} of {steps.length}
                   </span>
-                  <span className="truncate text-zinc-700">{activeStep.title}</span>
+                  <span className="truncate normal-case tracking-normal text-zinc-600">
+                    {activeStep.title}
+                  </span>
                 </div>
                 <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
                   {steps.map((step, index) => (
@@ -322,7 +396,7 @@ export function PublicSmartFormView({
                       key={step.id}
                       type="button"
                       className={cn(
-                        "h-1.5 rounded-full transition-colors",
+                        "h-1 rounded-full transition-colors",
                         index <= activeStepIndex ? "bg-[var(--form-primary)]" : "bg-zinc-200",
                       )}
                       aria-label={`Go to step ${index + 1}: ${step.title}`}
@@ -345,34 +419,17 @@ export function PublicSmartFormView({
             />
           </div>
 
-          {form.captchaEnabled && captcha && mode !== "preview" && isFinalStep ? (
-            <div className="flex gap-3 rounded-2xl border border-zinc-200 bg-zinc-50/80 p-4">
-              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-zinc-400" aria-hidden />
-              <div className="min-w-0 flex-1 space-y-2">
-                <label className="text-sm font-medium text-zinc-700" htmlFor="captcha-answer">
-                  Security check: what is {captcha.a} + {captcha.b}?
-                </label>
-                <input
-                  id="captcha-answer"
-                  type="number"
-                  inputMode="numeric"
-                  required
-                  value={captchaAnswer}
-                  onChange={(e) => setCaptchaAnswer(e.target.value)}
-                  className="flex h-11 w-full max-w-[120px] rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/5"
-                  disabled={isPending}
-                />
-              </div>
-            </div>
+          {form.captchaEnabled && recaptchaSiteKey && mode !== "preview" && isFinalStep ? (
+            <SmartFormRecaptcha siteKey={recaptchaSiteKey} />
           ) : null}
 
           {form.fields.some((f) => getFieldTypeMeta(f.fieldType).isInput) ? (
-            <div className={cn("flex gap-3", hasSteps && activeStepIndex > 0 && "sm:grid sm:grid-cols-[0.45fr_1fr]")}>
+            <div className={cn("flex gap-3 pt-1", hasSteps && activeStepIndex > 0 && "sm:grid sm:grid-cols-[0.4fr_1fr]")}>
               {hasSteps && activeStepIndex > 0 ? (
                 <button
                   type="button"
                   disabled={isPending}
-                  className="h-12 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50"
+                  className="h-12 rounded-2xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50"
                   onClick={() => setActiveStepIndex((current) => Math.max(current - 1, 0))}
                 >
                   Back
@@ -383,8 +440,9 @@ export function PublicSmartFormView({
                   type="submit"
                   disabled={mode === "preview" || isPending}
                   className={cn(
-                    "h-12 flex-1 text-sm font-semibold text-white inline-flex items-center justify-center gap-2 shadow-lg shadow-black/10",
-                    "transition-all hover:-translate-y-0.5 hover:opacity-95 active:translate-y-0 active:opacity-95 disabled:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed",
+                    "inline-flex h-12 flex-1 items-center justify-center gap-2 text-[15px] font-semibold text-white",
+                    "shadow-[0_10px_24px_-8px_color-mix(in_srgb,var(--form-primary)_70%,transparent)]",
+                    "transition-opacity hover:opacity-95 active:opacity-90 disabled:cursor-not-allowed disabled:opacity-50",
                   )}
                   style={{ backgroundColor: primary, borderRadius: buttonRadius }}
                 >
@@ -396,8 +454,9 @@ export function PublicSmartFormView({
                   type="button"
                   disabled={isPending}
                   className={cn(
-                    "h-12 flex-1 text-sm font-semibold text-white inline-flex items-center justify-center gap-2 shadow-lg shadow-black/10",
-                    "transition-all hover:-translate-y-0.5 hover:opacity-95 active:translate-y-0 active:opacity-95 disabled:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed",
+                    "inline-flex h-12 flex-1 items-center justify-center gap-2 text-[15px] font-semibold text-white",
+                    "shadow-[0_10px_24px_-8px_color-mix(in_srgb,var(--form-primary)_70%,transparent)]",
+                    "transition-opacity hover:opacity-95 active:opacity-90 disabled:cursor-not-allowed disabled:opacity-50",
                   )}
                   style={{ backgroundColor: primary, borderRadius: buttonRadius }}
                   onClick={goToNextStep}
@@ -408,19 +467,7 @@ export function PublicSmartFormView({
             </div>
           ) : null}
 
-          {showBranding ? (
-            <p className="border-t border-zinc-100 pt-2 text-center text-[11px] text-zinc-400">
-              Built with{" "}
-              <a
-                href="https://www.splitsms.com"
-                className="font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                SplitSMS
-              </a>
-            </p>
-          ) : null}
+          {showBranding ? <BuiltWithBrand /> : null}
         </div>
       </form>
     </div>
@@ -496,19 +543,23 @@ function getLiveContactFieldError(
   return validateRecipientPhone(value).valid ? null : "Enter a valid phone number.";
 }
 
-function PublicFormBackgroundAccents() {
+function PublicFormBackgroundAccents({ dark }: { dark: boolean }) {
   return (
     <>
       <div
-        className="absolute left-1/2 top-0 -z-10 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,var(--form-primary)_0%,transparent_68%)] opacity-15 blur-3xl"
+        className={cn(
+          "pointer-events-none absolute inset-0 -z-10",
+          dark
+            ? "bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--form-primary)_45%,transparent),transparent_58%)]"
+            : "bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--form-primary)_18%,transparent),transparent_62%)]",
+        )}
         aria-hidden
       />
       <div
-        className="absolute -left-32 bottom-[-12rem] -z-10 h-96 w-96 rounded-full bg-zinc-900/10 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="absolute -right-28 top-28 -z-10 h-80 w-80 rounded-full bg-white/70 blur-3xl"
+        className={cn(
+          "pointer-events-none absolute inset-0 -z-10 opacity-[0.22]",
+          dark ? "bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.18)_1px,transparent_0)] bg-[size:22px_22px]" : "hidden",
+        )}
         aria-hidden
       />
     </>

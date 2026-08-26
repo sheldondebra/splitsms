@@ -11,6 +11,7 @@ import {
   createSupportTicket,
 } from "@/lib/support/ticket-reference-server";
 import { loadSupportPresence } from "@/lib/support/presence";
+import { consumeRateLimitSlot, rateLimitKey } from "@/lib/auth/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,15 @@ export async function POST(request: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const ticketLimit = await consumeRateLimitSlot(rateLimitKey("support_ticket", session.userId), {
+    maxAttempts: 8,
+    windowMs: 60 * 60 * 1000,
+    lockoutMs: 60 * 60 * 1000,
+  });
+  if (!ticketLimit.allowed) {
+    return NextResponse.json({ error: "Too many tickets. Try again later." }, { status: 429 });
   }
 
   let body: { message?: string };

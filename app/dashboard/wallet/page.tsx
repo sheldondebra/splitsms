@@ -35,7 +35,7 @@ export default async function WalletPage({
   const submitted = firstSearchParam(params.submitted);
   const error = firstSearchParam(params.error);
 
-  let callbackResult: { ok: boolean; error?: string } | null = null;
+  let callbackResult: { ok: boolean; error?: string; convertedCredits?: number } | null = null;
   if (provider && reference) {
     try {
       const verified = await verifyAndCreditPaymentForUser({
@@ -45,7 +45,7 @@ export default async function WalletPage({
         stripeSessionId: sessionId,
       });
       callbackResult = verified.ok
-        ? { ok: true }
+        ? { ok: true, convertedCredits: verified.convertedCredits }
         : { ok: false, error: verified.error ?? "payment" };
     } catch (err) {
       console.error("[wallet] payment callback failed", err);
@@ -84,10 +84,11 @@ export default async function WalletPage({
   const stripeFxPreview = await getStripeFxPreview(currency, stripeConfig.defaultCurrency || "USD");
 
   const moneyAdded = Boolean(callbackResult?.ok || funded);
+  const convertedCredits = callbackResult?.convertedCredits ?? 0;
 
   return (
     <AppPage wide>
-      <WalletPaymentToasts moneyAdded={moneyAdded} />
+      <WalletPaymentToasts moneyAdded={moneyAdded} convertedCredits={convertedCredits} />
       <PageHeader
         title="Wallet & SMS credits"
         description="Top up your wallet, buy credit packages, and track spending."
@@ -95,7 +96,12 @@ export default async function WalletPage({
         mobileDescription="Add money, buy SMS packages, view activity."
       />
 
-      {moneyAdded ? (
+      {moneyAdded && convertedCredits > 0 ? (
+        <FriendlyAlert
+          success="1"
+          successMessage={`${convertedCredits.toLocaleString()} SMS credits were added from this top-up. You can start sending now.`}
+        />
+      ) : moneyAdded ? (
         <FriendlyAlert
           success="1"
           successMessage="Money added successfully — buy a package or SMS credits next."
@@ -134,7 +140,7 @@ export default async function WalletPage({
             <AppCardTitle
               icon={Plus}
               title="Add money to wallet"
-              description="Pay online or submit offline transfer details — then buy SMS packages"
+              description="See how many SMS this buys, then pay — or convert to credits automatically"
             />
             <WalletTopupClient
               currency={currency}
@@ -142,6 +148,13 @@ export default async function WalletPage({
               offlineBankDetails={offlineBankDetails}
               defaultMethod={defaultMethod ?? undefined}
               stripeFxPreview={stripeFxPreview ?? undefined}
+              smsPricing={{
+                countryCode: activePrice.countryCode,
+                countryName: activePrice.countryName,
+                pricePerCredit: activePrice.sellPrice,
+                currency: activePrice.currency,
+              }}
+              pricingOptions={pricingOptions}
             />
           </AppCardBody>
         </AppCard>

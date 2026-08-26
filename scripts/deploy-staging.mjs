@@ -44,6 +44,11 @@ const OPTIONAL_KEYS = [
   "GOOGLE_CLIENT_SECRET",
   "GOOGLE_TOKEN_ENCRYPTION_KEY",
   "GOOGLE_SITE_VERIFICATION",
+  "NEXT_PUBLIC_RECAPTCHA_SITE_KEY",
+  "RECAPTCHA_SECRET_KEY",
+  "RECAPTCHA_MIN_SCORE",
+  "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
+  "TURNSTILE_SECRET_KEY",
 ];
 
 function fail(message) {
@@ -142,7 +147,7 @@ function loadEnv() {
 
 function resolveStagingUrl(env) {
   if (process.env.STAGING_URL?.trim()) return process.env.STAGING_URL.trim();
-  if (env.NEXT_PUBLIC_APP_URL?.includes("run.app")) return env.NEXT_PUBLIC_APP_URL.trim();
+  if (env.NEXT_PUBLIC_APP_URL?.trim()) return env.NEXT_PUBLIC_APP_URL.trim();
 
   let projectNumber = "";
   try {

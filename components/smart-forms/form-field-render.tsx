@@ -17,10 +17,10 @@ type FormFieldRenderProps = {
 };
 
 const publicInputClass =
-  "h-12 rounded-xl border-zinc-200 bg-zinc-50/80 text-zinc-900 placeholder:text-zinc-400 shadow-none transition-colors focus-visible:border-zinc-300 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-zinc-900/5";
+  "h-12 rounded-2xl border-zinc-200 bg-white text-[15px] text-zinc-900 placeholder:text-zinc-400 shadow-none transition-colors focus-visible:border-[var(--form-primary)] focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--form-primary)_16%,transparent)]";
 
 const publicSelectClass =
-  "flex h-12 w-full rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 text-sm text-zinc-900 shadow-none outline-none transition-colors focus:border-zinc-300 focus:bg-white focus:ring-2 focus:ring-zinc-900/5 disabled:opacity-50";
+  "flex h-12 w-full rounded-2xl border border-zinc-200 bg-white px-3 text-[15px] text-zinc-900 shadow-none outline-none transition-colors focus:border-[var(--form-primary)] focus:ring-4 focus:ring-[color-mix(in_srgb,var(--form-primary)_16%,transparent)] disabled:opacity-50";
 
 export function FormFieldRender({
   field,
@@ -70,7 +70,7 @@ export function FormFieldRender({
       htmlFor={id}
       className={cn(
         "text-sm font-medium",
-        isPublic ? "text-zinc-700" : undefined,
+        isPublic ? "text-[13px] font-medium text-zinc-800" : undefined,
       )}
     >
       {field.label}
@@ -120,7 +120,7 @@ export function FormFieldRender({
         className={cn(
           "min-h-[112px] resize-y",
           isPublic &&
-            "rounded-xl border-zinc-200 bg-zinc-50/80 shadow-none transition-colors focus-visible:bg-white focus-visible:ring-zinc-900/5",
+            "rounded-2xl border-zinc-200 bg-white shadow-none transition-colors focus-visible:border-[var(--form-primary)] focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--form-primary)_16%,transparent)]",
         )}
       />,
     );

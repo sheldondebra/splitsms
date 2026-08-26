@@ -11,6 +11,13 @@ export type SendResendEmailParams = {
   subject: string;
   text: string;
   html?: string;
+  attachments?: {
+    filename: string;
+    content: Buffer | Uint8Array | string;
+    contentType?: string;
+    contentId?: string;
+    inline?: boolean;
+  }[];
 };
 
 export type SendResendResult =
@@ -36,6 +43,20 @@ export async function sendResendEmail(
       ? `${params.toName.trim()} <${params.to}>`
       : params.to;
 
+  const attachments = params.attachments?.map((a) => {
+    const buf = Buffer.isBuffer(a.content)
+      ? a.content
+      : typeof a.content === "string"
+        ? Buffer.from(a.content)
+        : Buffer.from(a.content);
+    return {
+      filename: a.filename,
+      content: buf.toString("base64"),
+      content_type: a.contentType ?? "application/octet-stream",
+      ...(a.contentId ? { content_id: a.contentId } : {}),
+    };
+  });
+
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -48,7 +69,9 @@ export async function sendResendEmail(
       subject: params.subject,
       text: params.text,
       html: params.html ?? params.text.replace(/\n/g, "<br>"),
+      ...(attachments?.length ? { attachments } : {}),
     }),
+    signal: AbortSignal.timeout(25_000),
   });
 
   const data = (await res.json().catch(() => ({}))) as ResendSendResponse;

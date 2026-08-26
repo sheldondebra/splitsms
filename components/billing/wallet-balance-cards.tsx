@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Wallet, MessageSquare, Send, Receipt, TrendingUp } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatWalletMoney } from "@/lib/billing/sms-packages";
 
@@ -89,31 +88,37 @@ export function WalletBalanceCards({
         </Link>
       </div>
 
-      <Link
-        href="/dashboard/send"
-        className={cn(
-          buttonVariants({ variant: "outline" }),
-          "min-h-[5.5rem] py-4 px-5 rounded-2xl flex flex-col items-start justify-center gap-2 border-border/60 hover:border-primary/30 lg:col-span-1",
-        )}
-      >
-        <Send className="h-5 w-5 text-primary" />
-        <span className="font-semibold">Send SMS</span>
-        <span className="text-sm text-muted-foreground font-normal">Use your credits</span>
-      </Link>
+      <div className="grid gap-4 sm:grid-cols-2 lg:col-span-3">
+        <Link
+          href="/dashboard/send"
+          className="group flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition-colors hover:border-primary/30 hover:bg-muted/20"
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Send className="h-5 w-5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold">Send SMS</span>
+            <span className="mt-0.5 block text-sm font-normal leading-relaxed text-muted-foreground">
+              Use your credits
+            </span>
+          </span>
+        </Link>
 
-      <Link
-        href="/dashboard/transactions"
-        className={cn(
-          buttonVariants({ variant: "outline" }),
-          "min-h-[5.5rem] py-4 px-5 rounded-2xl flex flex-col items-start justify-center gap-2 border-border/60 hover:border-primary/30 lg:col-span-2",
-        )}
-      >
-        <Receipt className="h-5 w-5 text-primary" />
-        <span className="font-semibold">Transaction history</span>
-        <span className="text-sm text-muted-foreground font-normal">
-          Wallet top-ups, credit purchases, and SMS debits
-        </span>
-      </Link>
+        <Link
+          href="/dashboard/transactions"
+          className="group flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition-colors hover:border-primary/30 hover:bg-muted/20"
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Receipt className="h-5 w-5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold">Transaction history</span>
+            <span className="mt-0.5 block text-sm font-normal leading-relaxed text-muted-foreground">
+              Wallet top-ups, credit purchases, and SMS debits
+            </span>
+          </span>
+        </Link>
+      </div>
     </div>
   );
 }

@@ -11,8 +11,10 @@ import {
   formatReportWhen,
   buildReportsQuery,
 } from "@/lib/reports/message-meta";
+import { formatCampaignDisplayName } from "@/lib/campaigns/meta";
 import { DashboardChartsPanel } from "@/components/dashboard/dashboard-charts-panel";
 import { EmptyState } from "@/components/dashboard/empty-state";
+import { ExpandableMessage } from "@/components/admin/expandable-message";
 import {
   AppCard,
   AppCardBody,
@@ -64,6 +66,11 @@ export type CampaignOption = {
   status: string;
   memberName?: string | null;
 };
+
+function campaignOptionLabel(c: CampaignOption) {
+  const name = formatCampaignDisplayName(c.name);
+  return c.memberName ? `${name} · ${c.memberName}` : name;
+}
 
 export type CampaignReport = {
   id: string;
@@ -137,7 +144,8 @@ function MessageDetails({ message }: { message: MessageLogRow }) {
         )}
         {message.campaignName && (
           <span>
-            <span className="font-medium text-foreground">Campaign:</span> {message.campaignName}
+            <span className="font-medium text-foreground">Campaign:</span>{" "}
+            {formatCampaignDisplayName(message.campaignName)}
           </span>
         )}
       </div>
@@ -170,32 +178,40 @@ function MessageCard({
 
   return (
     <>
-      <button type="button" onClick={onToggle} className="flex w-full items-start gap-3 text-left">
-        <div
-          className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-            meta.badgeClass,
-          )}
-        >
-          <Icon className="h-4 w-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="font-semibold text-foreground">{message.recipient}</p>
-            <p className={cn("shrink-0 text-sm font-semibold", meta.textClass)}>{meta.label}</p>
+      <div className="flex w-full items-start gap-3">
+        <button type="button" onClick={onToggle} className="flex min-w-0 flex-1 items-start gap-3 text-left">
+          <div
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+              meta.badgeClass,
+            )}
+          >
+            <Icon className="h-4 w-4" />
           </div>
-          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{message.body}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {formatReportWhen(message.createdAt)}
-            {message.countryCode ? ` · ${message.countryCode}` : ""}
-          </p>
-        </div>
-        {expanded ? (
-          <ChevronUp className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
-        ) : (
-          <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
-        )}
-      </button>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <p className="font-semibold text-foreground">{message.recipient}</p>
+              <p className={cn("shrink-0 text-sm font-semibold", meta.textClass)}>{meta.label}</p>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {formatReportWhen(message.createdAt)}
+              {message.countryCode ? ` · ${message.countryCode}` : ""}
+            </p>
+          </div>
+          {expanded ? (
+            <ChevronUp className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+          )}
+        </button>
+      </div>
+      <div className="mt-2 pl-[3.25rem]">
+        <ExpandableMessage
+          body={message.body}
+          className="max-w-none text-xs"
+          collapsedClassName="line-clamp-2"
+        />
+      </div>
       {expanded && (
         <div className="mt-4 border-t border-border/50 pt-4">
           <MessageDetails message={message} />
@@ -333,7 +349,9 @@ export function ReportsDashboard({
                 <p className="text-xs font-semibold uppercase tracking-wider text-primary">
                   Campaign report
                 </p>
-                <h2 className="mt-1 text-xl font-bold">{campaignReport.name}</h2>
+                <h2 className="mt-1 text-xl font-bold">
+                  {formatCampaignDisplayName(campaignReport.name)}
+                </h2>
                 <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                   {campaignReport.message}
                 </p>
@@ -398,7 +416,7 @@ export function ReportsDashboard({
           </div>
 
           <form
-            className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+            className="space-y-3"
             onSubmit={(e) => {
               e.preventDefault();
               goTo({
@@ -408,72 +426,88 @@ export function ReportsDashboard({
               });
             }}
           >
-            {showMemberColumn && (
-              <div className="relative sm:col-span-2 lg:col-span-1">
+            <div
+              className={cn(
+                "grid items-end gap-3",
+                showMemberColumn
+                  ? "sm:grid-cols-2 xl:grid-cols-4"
+                  : "sm:grid-cols-2 lg:grid-cols-3",
+              )}
+            >
+              {showMemberColumn && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="report-member">Member</Label>
+                  <Input
+                    id="report-member"
+                    placeholder="Name, phone, or email…"
+                    value={memberSearch}
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                    className="h-11"
+                  />
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <Label htmlFor="report-search">Search</Label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="report-search"
+                    placeholder="Phone or message…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="h-11 pl-9"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="report-country">Country</Label>
                 <Input
-                  placeholder="Search member name, phone, email…"
-                  value={memberSearch}
-                  onChange={(e) => setMemberSearch(e.target.value)}
-                  className="h-11"
+                  id="report-country"
+                  placeholder="e.g. GH"
+                  defaultValue={filters.country && filters.country !== "all" ? filters.country : ""}
+                  onBlur={(e) =>
+                    goTo({ country: e.target.value.trim().toUpperCase() || null, page: null })
+                  }
+                  className="h-11 uppercase"
                 />
               </div>
-            )}
-            <div className={cn("relative", showMemberColumn ? "sm:col-span-2" : "sm:col-span-2")}>
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search phone or message…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-11 pl-9"
-              />
+              <div className="space-y-1.5">
+                <Label htmlFor="report-campaign">Campaign</Label>
+                <select
+                  id="report-campaign"
+                  value={filters.campaign ?? ""}
+                  onChange={(e) => goTo({ campaign: e.target.value || null, page: null })}
+                  className="h-11 w-full truncate rounded-xl border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">All campaigns</option>
+                  {campaigns.map((c) => (
+                    <option key={c.id} value={c.id} title={campaignOptionLabel(c)}>
+                      {campaignOptionLabel(c)}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="report-country">Country</Label>
-              <Input
-                id="report-country"
-                placeholder="GH"
-                defaultValue={filters.country && filters.country !== "all" ? filters.country : ""}
-                onBlur={(e) =>
-                  goTo({ country: e.target.value.trim().toUpperCase() || null, page: null })
-                }
-                className="h-11 uppercase"
-              />
+
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" className="h-10 px-5">
+                Search
+              </Button>
+              {(filters.q ||
+                filters.country ||
+                filters.campaign ||
+                filters.status ||
+                filters.member ||
+                filters.userId ||
+                filters.period) && (
+                <Link
+                  href={basePath}
+                  className="inline-flex h-10 items-center justify-center rounded-xl border px-4 text-sm font-medium hover:bg-muted/50"
+                >
+                  Clear filters
+                </Link>
+              )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="report-campaign">Campaign</Label>
-              <select
-                id="report-campaign"
-                value={filters.campaign ?? ""}
-                onChange={(e) => goTo({ campaign: e.target.value || null, page: null })}
-                className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-medium"
-              >
-                <option value="">All campaigns</option>
-                {campaigns.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {"memberName" in c && c.memberName
-                      ? `${c.name} · ${c.memberName}`
-                      : c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <Button type="submit" className="h-11 sm:col-span-2 lg:col-span-1">
-              Search
-            </Button>
-            {(filters.q ||
-              filters.country ||
-              filters.campaign ||
-              filters.status ||
-              filters.member ||
-              filters.userId ||
-              filters.period) && (
-              <Link
-                href={basePath}
-                className="inline-flex h-11 items-center justify-center rounded-xl border px-4 text-sm font-medium hover:bg-muted/50 sm:col-span-2 lg:col-span-1"
-              >
-                Clear filters
-              </Link>
-            )}
           </form>
 
           <div className="flex gap-2 overflow-x-auto pb-1 app-scroll-x">
@@ -593,9 +627,11 @@ export function ReportsDashboard({
                             )}
                             <td className="max-w-xs px-5 py-3.5">
                               <p className="font-medium">{m.recipient}</p>
-                              <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
-                                {m.body}
-                              </p>
+                              <ExpandableMessage
+                                body={m.body}
+                                className="mt-0.5 max-w-none text-xs"
+                                collapsedClassName="line-clamp-1"
+                              />
                             </td>
                             <td className="px-5 py-3.5">
                               <Badge variant="outline" className={cn("gap-1", meta.badgeClass)}>
@@ -606,8 +642,10 @@ export function ReportsDashboard({
                             <td className="px-5 py-3.5 text-muted-foreground">
                               {m.countryCode ?? "—"}
                             </td>
-                            <td className="hidden max-w-[120px] truncate px-5 py-3.5 text-muted-foreground lg:table-cell">
-                              {m.campaignName ?? "—"}
+                            <td className="hidden max-w-[140px] truncate px-5 py-3.5 text-muted-foreground lg:table-cell">
+                              {m.campaignName
+                                ? formatCampaignDisplayName(m.campaignName)
+                                : "—"}
                             </td>
                             <td className="whitespace-nowrap px-5 py-3.5 text-right text-xs text-muted-foreground">
                               {formatReportWhen(m.createdAt)}

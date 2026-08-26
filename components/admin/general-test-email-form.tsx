@@ -2,12 +2,10 @@
 
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { sendTestEmailAction } from "@/lib/actions/admin-general";
 import { Loader2, Mail } from "lucide-react";
-
-const inputClassName =
-  "h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 md:text-sm dark:bg-input/30";
 
 function SendTestButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
@@ -33,14 +31,13 @@ export function GeneralTestEmailForm({ configured, fromEmail }: GeneralTestEmail
       <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
         <div className="flex-1 space-y-2 min-w-0 max-w-md">
           <Label htmlFor="testEmail">Recipient email</Label>
-          <input
+          <Input
             id="testEmail"
             name="testEmail"
             type="email"
             placeholder="you@company.com"
             required
             disabled={!configured}
-            className={inputClassName}
           />
         </div>
         <SendTestButton disabled={!configured} />

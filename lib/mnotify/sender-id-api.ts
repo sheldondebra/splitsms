@@ -52,6 +52,11 @@ function extractListFromPayload(data: unknown): MnotifySenderIdRecord[] {
   if (Array.isArray(obj.sender_list)) candidates.push(...obj.sender_list);
   if (Array.isArray(obj.sender_ids)) candidates.push(...obj.sender_ids);
   if (Array.isArray(obj.senderid_list)) candidates.push(...obj.senderid_list);
+  if (Array.isArray(obj.on_hold)) candidates.push(...obj.on_hold);
+  if (Array.isArray(obj.hold)) candidates.push(...obj.hold);
+  if (Array.isArray(obj.hold_list)) candidates.push(...obj.hold_list);
+  if (Array.isArray(obj.pending)) candidates.push(...obj.pending);
+  if (Array.isArray(obj.pending_list)) candidates.push(...obj.pending_list);
   if (Array.isArray(obj.data)) candidates.push(...obj.data);
   if (Array.isArray(obj.summary)) candidates.push(...obj.summary);
   if (obj.summary && typeof obj.summary === "object" && !Array.isArray(obj.summary)) {
