@@ -93,7 +93,7 @@ export default async function GoogleFormsSmsPage({
   );
 
   return (
-    <AppPage narrow>
+    <AppPage medium>
       <PageHeader
         title="Google Forms → SMS"
         description="Paste your sheet. New answers get an SMS."

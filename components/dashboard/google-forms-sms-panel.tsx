@@ -66,11 +66,11 @@ function StatChip({
   value: string;
 }) {
   return (
-    <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/20 px-2.5 py-1.5">
-      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+    <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+      <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
       <div className="min-w-0 leading-none">
         <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-        <p className="mt-0.5 truncate text-xs font-medium">{value}</p>
+        <p className="mt-0.5 truncate text-sm font-medium">{value}</p>
       </div>
     </div>
   );
@@ -80,88 +80,13 @@ function AutomationCard({ a }: { a: AutomationRow }) {
   const [showRespondents, setShowRespondents] = useState(false);
 
   return (
-    <li className="rounded-xl border border-border/60 px-4 py-3.5">
+    <li className="rounded-xl border border-border/60 px-4 py-4 sm:px-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1 space-y-2.5">
-          <div className="flex items-center gap-2">
-            <p className="truncate text-sm font-medium">{a.formTitle ?? "Google Sheet"}</p>
-            <Badge variant={a.isActive ? "default" : "outline"} className="shrink-0">
-              {a.isActive ? "On" : "Off"}
-            </Badge>
-          </div>
-          <p className="line-clamp-1 text-xs text-muted-foreground">{a.messageTemplate}</p>
-
-          <div className="flex flex-wrap gap-2">
-            <StatChip
-              icon={Users}
-              label="Responses"
-              value={a.submissionCount === null ? "—" : a.submissionCount.toLocaleString()}
-            />
-            <StatChip
-              icon={Clock}
-              label="Last response"
-              value={
-                a.lastSubmittedAt
-                  ? formatDistanceToNow(new Date(a.lastSubmittedAt), { addSuffix: true })
-                  : "—"
-              }
-            />
-            <StatChip icon={Send} label="SMS sent" value={a.sendCount.toLocaleString()} />
-            <StatChip
-              icon={CalendarClock}
-              label="Connected"
-              value={formatDistanceToNow(new Date(a.createdAt), { addSuffix: true })}
-            />
-          </div>
-
-          <p className="text-xs text-muted-foreground">
-            Phone column: <span className="font-medium text-foreground">{a.phoneFieldId}</span>
-            {a.lastPolledAt
-              ? ` · Last checked ${formatDistanceToNow(new Date(a.lastPolledAt), { addSuffix: true })}`
-              : " · Not checked yet"}
-          </p>
-          {a.lastError ? <p className="text-xs text-destructive">{a.lastError}</p> : null}
-
-          {a.recentRespondents.length > 0 ? (
-            <div>
-              <button
-                type="button"
-                onClick={() => setShowRespondents((v) => !v)}
-                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-              >
-                <ChevronDown
-                  className={cn("h-3.5 w-3.5 transition-transform", showRespondents && "rotate-180")}
-                />
-                {showRespondents ? "Hide" : "Show"} recent respondents
-              </button>
-              {showRespondents ? (
-                <div className="mt-2 overflow-hidden rounded-lg border border-border/60">
-                  <table className="w-full text-xs">
-                    <thead className="bg-muted/30 text-muted-foreground">
-                      <tr>
-                        <th className="px-2.5 py-1.5 text-left font-medium">Name</th>
-                        <th className="px-2.5 py-1.5 text-left font-medium">Phone</th>
-                        <th className="px-2.5 py-1.5 text-left font-medium">Submitted</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {a.recentRespondents.map((r, i) => (
-                        <tr key={i} className="border-t border-border/40">
-                          <td className="truncate px-2.5 py-1.5">{r.name || "—"}</td>
-                          <td className="truncate px-2.5 py-1.5 font-mono">{r.phone || "—"}</td>
-                          <td className="truncate px-2.5 py-1.5">
-                            {r.submittedAt
-                              ? formatDistanceToNow(new Date(r.submittedAt), { addSuffix: true })
-                              : "—"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="truncate text-sm font-medium">{a.formTitle ?? "Google Sheet"}</p>
+          <Badge variant={a.isActive ? "default" : "outline"} className="shrink-0">
+            {a.isActive ? "On" : "Off"}
+          </Badge>
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -189,6 +114,80 @@ function AutomationCard({ a }: { a: AutomationRow }) {
           </form>
         </div>
       </div>
+
+      <p className="mt-2 line-clamp-1 text-xs text-muted-foreground">{a.messageTemplate}</p>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <StatChip
+          icon={Users}
+          label="Responses"
+          value={a.submissionCount === null ? "—" : a.submissionCount.toLocaleString()}
+        />
+        <StatChip
+          icon={Clock}
+          label="Last response"
+          value={
+            a.lastSubmittedAt
+              ? formatDistanceToNow(new Date(a.lastSubmittedAt), { addSuffix: true })
+              : "—"
+          }
+        />
+        <StatChip icon={Send} label="SMS sent" value={a.sendCount.toLocaleString()} />
+        <StatChip
+          icon={CalendarClock}
+          label="Connected"
+          value={formatDistanceToNow(new Date(a.createdAt), { addSuffix: true })}
+        />
+      </div>
+
+      <p className="mt-3 text-xs text-muted-foreground">
+        Phone column: <span className="font-medium text-foreground">{a.phoneFieldId}</span>
+        {a.lastPolledAt
+          ? ` · Last checked ${formatDistanceToNow(new Date(a.lastPolledAt), { addSuffix: true })}`
+          : " · Not checked yet"}
+      </p>
+      {a.lastError ? <p className="mt-1 text-xs text-destructive">{a.lastError}</p> : null}
+
+      {a.recentRespondents.length > 0 ? (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => setShowRespondents((v) => !v)}
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            <ChevronDown
+              className={cn("h-3.5 w-3.5 transition-transform", showRespondents && "rotate-180")}
+            />
+            {showRespondents ? "Hide" : "Show"} recent respondents
+          </button>
+          {showRespondents ? (
+            <div className="mt-2 overflow-x-auto rounded-lg border border-border/60">
+              <table className="w-full min-w-[420px] text-xs">
+                <thead className="bg-muted/30 text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium">Name</th>
+                    <th className="px-3 py-2 text-left font-medium">Phone</th>
+                    <th className="px-3 py-2 text-left font-medium">Submitted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {a.recentRespondents.map((r, i) => (
+                    <tr key={i} className="border-t border-border/40 odd:bg-muted/10">
+                      <td className="truncate px-3 py-2">{r.name || "—"}</td>
+                      <td className="truncate px-3 py-2 font-mono">{r.phone || "—"}</td>
+                      <td className="truncate px-3 py-2">
+                        {r.submittedAt
+                          ? formatDistanceToNow(new Date(r.submittedAt), { addSuffix: true })
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </li>
   );
 }
@@ -386,14 +385,14 @@ export function GoogleFormsSmsPanel({
                 </div>
 
                 {latestSubmission ? (
-                  <div className="rounded-lg border border-emerald-500/20 bg-background/60 px-3 py-2.5">
+                  <div className="rounded-lg border border-emerald-500/20 bg-background/60 px-3.5 py-3">
                     <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                       Most recent entry
                     </p>
-                    <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+                    <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1.5 text-xs sm:grid-cols-2">
                       {headers.map((h) =>
                         latestSubmission[h] ? (
-                          <div key={h} className="contents">
+                          <div key={h} className="grid grid-cols-[auto_1fr] gap-x-3">
                             <dt className="text-muted-foreground">{h}</dt>
                             <dd className="truncate font-medium">{latestSubmission[h]}</dd>
                           </div>
