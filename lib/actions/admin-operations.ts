@@ -402,6 +402,7 @@ async function runAdminSystemSync(session: { userId: string }) {
   revalidatePath("/admin/routes");
   revalidatePath("/admin/mnotify");
   revalidatePath("/admin/sender-ids");
+  revalidatePath("/admin/system-sync");
 
   return result;
 }

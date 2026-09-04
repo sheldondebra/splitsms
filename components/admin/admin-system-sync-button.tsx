@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   adminSystemSyncStateAction,
@@ -30,6 +30,7 @@ const INITIAL_STATE: AdminSystemSyncState = {
 
 export function AdminSystemSyncButton() {
   const pathname = usePathname();
+  const router = useRouter();
   const [stepIndex, setStepIndex] = useState(0);
   const [state, formAction, pending] = useActionState(
     adminSystemSyncStateAction,
@@ -54,6 +55,13 @@ export function AdminSystemSyncButton() {
 
     toastFn(state.message, {
       duration: 12000,
+      action:
+        pathname === "/admin/system-sync"
+          ? undefined
+          : {
+              label: "View details",
+              onClick: () => router.push("/admin/system-sync"),
+            },
       description: (
         <div className="mt-2 space-y-1.5">
           {state.tasks.map((task) => {
@@ -76,7 +84,7 @@ export function AdminSystemSyncButton() {
         </div>
       ),
     });
-  }, [state]);
+  }, [state, pathname, router]);
 
   return (
     <form action={formAction} className="relative">
