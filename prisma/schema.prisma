@@ -656,16 +656,17 @@ model Contact {
 }
 
 model ContactGroup {
-  id          String               @id @default(cuid())
-  userId      String
-  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String
-  description String?
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-  members     ContactGroupMember[]
-  campaigns   Campaign[]
-  smartForms  SmartForm[]
+  id                    String                    @id @default(cuid())
+  userId                String
+  user                  User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                  String
+  description           String?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  members               ContactGroupMember[]
+  campaigns             Campaign[]
+  smartForms            SmartForm[]
+  googleFormAutomations GoogleFormSmsAutomation[]
 }
 
 model SmsTemplate {
@@ -1492,21 +1493,23 @@ model GoogleConnection {
 }
 
 model GoogleFormSmsAutomation {
-  id              String    @id @default(cuid())
+  id              String        @id @default(cuid())
   userId          String
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   formId          String
   formTitle       String?
   phoneFieldId    String
   questionTitles  Json?
   senderId        String
   messageTemplate String
-  isActive        Boolean   @default(true)
+  isActive        Boolean       @default(true)
   cursor          String?
   lastPolledAt    DateTime?
   lastError       String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  contactGroupId  String?
+  contactGroup    ContactGroup? @relation(fields: [contactGroupId], references: [id], onDelete: SetNull)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   sends           GoogleFormSmsSend[]
 
   @@unique([userId, formId])
@@ -1520,6 +1523,9 @@ model GoogleFormSmsSend {
   automation   GoogleFormSmsAutomation @relation(fields: [automationId], references: [id], onDelete: Cascade)
   responseId   String
   phone        String?
+  name         String?
+  contactId    String?
+  submittedAt  DateTime?
   status       String
   error        String?
   createdAt    DateTime @default(now())

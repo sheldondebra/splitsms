@@ -21,9 +21,19 @@ export async function saveGoogleFormSmsAutomationAction(formData: FormData) {
   const senderIdRaw = String(formData.get("senderId") ?? "").trim();
   const messageTemplate = String(formData.get("messageTemplate") ?? "").trim();
   const formTitle = String(formData.get("formTitle") ?? "").trim() || null;
+  const contactGroupIdRaw = String(formData.get("contactGroupId") ?? "").trim();
 
   if (!formId || !phoneFieldId || !messageTemplate) {
     redirect("/dashboard/integrations/google/forms?error=invalid");
+  }
+
+  let contactGroupId: string | null = null;
+  if (contactGroupIdRaw) {
+    const group = await prisma.contactGroup.findFirst({
+      where: { id: contactGroupIdRaw, userId },
+      select: { id: true },
+    });
+    contactGroupId = group?.id ?? null;
   }
 
   let senderId: string;
@@ -54,6 +64,7 @@ export async function saveGoogleFormSmsAutomationAction(formData: FormData) {
       questionTitles,
       senderId,
       messageTemplate,
+      contactGroupId,
       isActive: true,
       cursor: String(questions.rowCount),
       lastError: null,
@@ -64,6 +75,7 @@ export async function saveGoogleFormSmsAutomationAction(formData: FormData) {
       questionTitles,
       senderId,
       messageTemplate,
+      contactGroupId,
       isActive: true,
       lastError: null,
     },

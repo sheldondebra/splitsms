@@ -157,3 +157,23 @@ export function pickPhoneFromAnswers(
   if (!raw) return null;
   return normalizePhones(raw)[0] ?? null;
 }
+
+/** Best-effort respondent name for a row — full name field, else first+last, else nothing. */
+export function pickNameFromAnswers(answers: Record<string, string>): string | null {
+  const entries = Object.entries(answers);
+  const fullName = entries.find(([k]) => /^(full ?name|your ?name|name)$/i.test(k.trim()));
+  if (fullName?.[1]) return fullName[1].trim();
+
+  const first = entries.find(([k]) => /first ?name/i.test(k))?.[1]?.trim();
+  const last = entries.find(([k]) => /last ?name|surname/i.test(k))?.[1]?.trim();
+  const combined = [first, last].filter(Boolean).join(" ").trim();
+  return combined || null;
+}
+
+/** Best-effort submission timestamp for a row — the sheet's own Timestamp column, if present. */
+export function pickSubmittedAtFromAnswers(answers: Record<string, string>): Date | null {
+  const entry = Object.entries(answers).find(([k]) => /timestamp/i.test(k.trim()));
+  if (!entry?.[1]) return null;
+  const parsed = new Date(entry[1]);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}

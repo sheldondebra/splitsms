@@ -8,6 +8,43 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { FileInput, ArrowLeft } from "lucide-react";
 import { googleFormsServiceAccountEmail } from "@/lib/google/sheet-id";
+import { getGoogleServiceAccountAccessToken } from "@/lib/google/service-account";
+import { readFormResponseSheet, sheetRowToAnswers } from "@/lib/google/forms-sheet";
+import { pickNameFromAnswers, pickPhoneFromAnswers, pickSubmittedAtFromAnswers } from "@/lib/google/forms";
+
+type LiveAutomationData = {
+  submissionCount: number | null;
+  lastSubmittedAt: string | null;
+  recentRespondents: { name: string | null; phone: string | null; submittedAt: string | null }[];
+};
+
+async function loadLiveAutomationData(
+  token: string | null,
+  formId: string,
+  phoneFieldId: string,
+): Promise<LiveAutomationData> {
+  const empty: LiveAutomationData = { submissionCount: null, lastSubmittedAt: null, recentRespondents: [] };
+  if (!token) return empty;
+  try {
+    const sheet = await readFormResponseSheet(token, formId);
+    const recent = sheet.rows.slice(-5).reverse();
+    const recentRespondents = recent.map((row) => {
+      const answers = sheetRowToAnswers(sheet.headers, row);
+      return {
+        name: pickNameFromAnswers(answers),
+        phone: pickPhoneFromAnswers(answers, phoneFieldId),
+        submittedAt: pickSubmittedAtFromAnswers(answers)?.toISOString() ?? null,
+      };
+    });
+    return {
+      submissionCount: sheet.rows.length,
+      lastSubmittedAt: recentRespondents[0]?.submittedAt ?? null,
+      recentRespondents,
+    };
+  } catch {
+    return empty;
+  }
+}
 
 export const metadata = {
   title: "Google Forms SMS",
@@ -22,7 +59,7 @@ export default async function GoogleFormsSmsPage({
   if (!session) return null;
 
   const query = await searchParams;
-  const [automations, senderIds] = await Promise.all([
+  const [automations, senderIds, contactGroups] = await Promise.all([
     prisma.googleFormSmsAutomation.findMany({
       where: { userId: session.userId },
       orderBy: { updatedAt: "desc" },
@@ -32,6 +69,11 @@ export default async function GoogleFormsSmsPage({
       select: { value: true },
       orderBy: { value: "asc" },
     }),
+    prisma.contactGroup.findMany({
+      where: { userId: session.userId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   const sendCounts = await prisma.googleFormSmsSend.groupBy({
@@ -40,6 +82,15 @@ export default async function GoogleFormsSmsPage({
     _count: { _all: true },
   });
   const sendCountByAutomation = new Map(sendCounts.map((s) => [s.automationId, s._count._all]));
+
+  const token = await getGoogleServiceAccountAccessToken().catch(() => null);
+  const liveDataByAutomation = new Map(
+    await Promise.all(
+      automations.map(
+        async (a) => [a.id, await loadLiveAutomationData(token, a.formId, a.phoneFieldId)] as const,
+      ),
+    ),
+  );
 
   return (
     <AppPage narrow>
@@ -81,18 +132,26 @@ export default async function GoogleFormsSmsPage({
       <GoogleFormsSmsPanel
         serviceAccountEmail={googleFormsServiceAccountEmail()}
         senderIds={senderIds.map((s) => s.value)}
-        automations={automations.map((a) => ({
-          id: a.id,
-          formId: a.formId,
-          formTitle: a.formTitle,
-          isActive: a.isActive,
-          lastPolledAt: a.lastPolledAt?.toISOString() ?? null,
-          lastError: a.lastError,
-          messageTemplate: a.messageTemplate,
-          phoneFieldId: a.phoneFieldId,
-          createdAt: a.createdAt.toISOString(),
-          sendCount: sendCountByAutomation.get(a.id) ?? 0,
-        }))}
+        contactGroups={contactGroups}
+        automations={automations.map((a) => {
+          const live = liveDataByAutomation.get(a.id);
+          return {
+            id: a.id,
+            formId: a.formId,
+            formTitle: a.formTitle,
+            isActive: a.isActive,
+            lastPolledAt: a.lastPolledAt?.toISOString() ?? null,
+            lastError: a.lastError,
+            messageTemplate: a.messageTemplate,
+            phoneFieldId: a.phoneFieldId,
+            createdAt: a.createdAt.toISOString(),
+            sendCount: sendCountByAutomation.get(a.id) ?? 0,
+            contactGroupId: a.contactGroupId,
+            submissionCount: live?.submissionCount ?? null,
+            lastSubmittedAt: live?.lastSubmittedAt ?? null,
+            recentRespondents: live?.recentRespondents ?? [],
+          };
+        })}
       />
     </AppPage>
   );

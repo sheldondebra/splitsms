@@ -6,9 +6,15 @@ import { enqueueSmsJob } from "@/lib/queue/enqueue-sms";
 import { resolveApprovedSenderForUser } from "@/lib/sender-ids/validate-send";
 import { countSmsUnits } from "@/lib/sms/units";
 import { validateRecipientPhone } from "@/lib/sms/phone-validation";
-import { pickPhoneFromAnswers, renderTemplate } from "@/lib/google/forms";
+import {
+  pickNameFromAnswers,
+  pickPhoneFromAnswers,
+  pickSubmittedAtFromAnswers,
+  renderTemplate,
+} from "@/lib/google/forms";
 import { readFormResponseSheet, sheetRowToAnswers } from "@/lib/google/forms-sheet";
 import { getGoogleServiceAccountAccessToken } from "@/lib/google/service-account";
+import { saveGoogleFormRespondentAsContact } from "@/lib/google/forms-contact";
 
 async function sendGoogleFormSms(opts: {
   userId: string;
@@ -127,12 +133,17 @@ export async function pollGoogleFormAutomation(automationId: string) {
       continue;
     }
 
+    const name = pickNameFromAnswers(answers);
+    const submittedAt = pickSubmittedAtFromAnswers(answers);
+
     const phone = pickPhoneFromAnswers(answers, automation.phoneFieldId);
     if (!phone) {
       await prisma.googleFormSmsSend.create({
         data: {
           automationId: automation.id,
           responseId,
+          name,
+          submittedAt,
           status: "skipped",
           error: "no_phone",
         },
@@ -149,11 +160,24 @@ export async function pollGoogleFormAutomation(automationId: string) {
       senderIdRaw: automation.senderId,
     });
 
+    let contactId: string | null = null;
+    if (send.ok) {
+      contactId = await saveGoogleFormRespondentAsContact({
+        userId: automation.userId,
+        phone,
+        name,
+        contactGroupId: automation.contactGroupId,
+      }).catch(() => null);
+    }
+
     await prisma.googleFormSmsSend.create({
       data: {
         automationId: automation.id,
         responseId,
         phone,
+        name,
+        submittedAt,
+        contactId,
         status: send.ok ? "queued" : "failed",
         error: send.ok ? null : send.error,
       },

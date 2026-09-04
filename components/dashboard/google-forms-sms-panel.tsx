@@ -11,8 +11,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Loader2, CheckCircle2, FileSpreadsheet, Link2 } from "lucide-react";
+import {
+  Copy,
+  Loader2,
+  CheckCircle2,
+  FileSpreadsheet,
+  Link2,
+  Users,
+  Clock,
+  Send,
+  CalendarClock,
+  ChevronDown,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
+
+type Respondent = { name: string | null; phone: string | null; submittedAt: string | null };
+
+type ContactGroupOption = { id: string; name: string };
 
 type AutomationRow = {
   id: string;
@@ -25,20 +41,154 @@ type AutomationRow = {
   phoneFieldId: string;
   createdAt: string;
   sendCount: number;
+  contactGroupId: string | null;
+  submissionCount: number | null;
+  lastSubmittedAt: string | null;
+  recentRespondents: Respondent[];
 };
 
 function looksLikeGoogleForm(url: string) {
   return /docs\.google\.com\/forms\//i.test(url);
 }
 
+function StatChip({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/20 px-2.5 py-1.5">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <div className="min-w-0 leading-none">
+        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="mt-0.5 truncate text-xs font-medium">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function AutomationCard({ a }: { a: AutomationRow }) {
+  const [showRespondents, setShowRespondents] = useState(false);
+
+  return (
+    <li className="rounded-xl border border-border/60 px-4 py-3.5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1 space-y-2.5">
+          <div className="flex items-center gap-2">
+            <p className="truncate text-sm font-medium">{a.formTitle ?? "Google Sheet"}</p>
+            <Badge variant={a.isActive ? "default" : "outline"} className="shrink-0">
+              {a.isActive ? "On" : "Off"}
+            </Badge>
+          </div>
+          <p className="line-clamp-1 text-xs text-muted-foreground">{a.messageTemplate}</p>
+
+          <div className="flex flex-wrap gap-2">
+            <StatChip
+              icon={Users}
+              label="Responses"
+              value={a.submissionCount === null ? "—" : a.submissionCount.toLocaleString()}
+            />
+            <StatChip
+              icon={Clock}
+              label="Last response"
+              value={
+                a.lastSubmittedAt
+                  ? formatDistanceToNow(new Date(a.lastSubmittedAt), { addSuffix: true })
+                  : "—"
+              }
+            />
+            <StatChip icon={Send} label="SMS sent" value={a.sendCount.toLocaleString()} />
+            <StatChip
+              icon={CalendarClock}
+              label="Connected"
+              value={formatDistanceToNow(new Date(a.createdAt), { addSuffix: true })}
+            />
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Phone column: <span className="font-medium text-foreground">{a.phoneFieldId}</span>
+            {a.lastPolledAt
+              ? ` · Last checked ${formatDistanceToNow(new Date(a.lastPolledAt), { addSuffix: true })}`
+              : " · Not checked yet"}
+          </p>
+          {a.lastError ? <p className="text-xs text-destructive">{a.lastError}</p> : null}
+
+          {a.recentRespondents.length > 0 ? (
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowRespondents((v) => !v)}
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                <ChevronDown
+                  className={cn("h-3.5 w-3.5 transition-transform", showRespondents && "rotate-180")}
+                />
+                {showRespondents ? "Hide" : "Show"} recent respondents
+              </button>
+              {showRespondents ? (
+                <div className="mt-2 overflow-hidden rounded-lg border border-border/60">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/30 text-muted-foreground">
+                      <tr>
+                        <th className="px-2.5 py-1.5 text-left font-medium">Name</th>
+                        <th className="px-2.5 py-1.5 text-left font-medium">Phone</th>
+                        <th className="px-2.5 py-1.5 text-left font-medium">Submitted</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {a.recentRespondents.map((r, i) => (
+                        <tr key={i} className="border-t border-border/40">
+                          <td className="truncate px-2.5 py-1.5">{r.name || "—"}</td>
+                          <td className="truncate px-2.5 py-1.5 font-mono">{r.phone || "—"}</td>
+                          <td className="truncate px-2.5 py-1.5">
+                            {r.submittedAt
+                              ? formatDistanceToNow(new Date(r.submittedAt), { addSuffix: true })
+                              : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <form action={toggleGoogleFormSmsAutomationAction}>
+            <input type="hidden" name="id" value={a.id} />
+            <input type="hidden" name="isActive" value={a.isActive ? "0" : "1"} />
+            <Button type="submit" size="sm" variant="outline">
+              {a.isActive ? "Pause" : "Resume"}
+            </Button>
+          </form>
+          <form action={deleteGoogleFormSmsAutomationAction}>
+            <input type="hidden" name="id" value={a.id} />
+            <Button type="submit" size="sm" variant="ghost">
+              Remove
+            </Button>
+          </form>
+        </div>
+      </div>
+    </li>
+  );
+}
+
 export function GoogleFormsSmsPanel({
   senderIds,
   automations,
   serviceAccountEmail,
+  contactGroups,
 }: {
   senderIds: string[];
   automations: AutomationRow[];
   serviceAccountEmail: string;
+  contactGroups: ContactGroupOption[];
 }) {
   const [sheetUrl, setSheetUrl] = useState("");
   const [headers, setHeaders] = useState<string[]>([]);
@@ -49,6 +199,7 @@ export function GoogleFormsSmsPanel({
   const [formId, setFormId] = useState("");
   const [phoneFieldId, setPhoneFieldId] = useState("");
   const [senderId, setSenderId] = useState(senderIds[0] ?? "");
+  const [contactGroupId, setContactGroupId] = useState("");
   const [messageTemplate, setMessageTemplate] = useState(
     "Thanks for submitting the form.",
   );
@@ -284,6 +435,30 @@ export function GoogleFormsSmsPanel({
                 />
               </div>
 
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium" htmlFor="contactGroupId">
+                  Save respondents to contacts
+                </label>
+                <select
+                  id="contactGroupId"
+                  name="contactGroupId"
+                  className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                  value={contactGroupId}
+                  onChange={(e) => setContactGroupId(e.target.value)}
+                >
+                  <option value="">Save as contact only (no group)</option>
+                  {contactGroups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      Save to group — {g.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Every respondent we successfully text gets saved to your Contacts automatically.
+                  Pick a group here to also add them to it.
+                </p>
+              </div>
+
               <Button
                 type="submit"
                 disabled={pending || !phoneFieldId || senderIds.length === 0}
@@ -309,49 +484,7 @@ export function GoogleFormsSmsPanel({
             </h2>
             <ul className="space-y-3">
               {automations.map((a) => (
-                <li
-                  key={a.id}
-                  className="flex flex-col gap-3 rounded-xl border border-border/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{a.formTitle ?? "Google Sheet"}</p>
-                    <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
-                      {a.messageTemplate}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Phone column: <span className="font-medium text-foreground">{a.phoneFieldId}</span>
-                      {" · "}
-                      Connected {formatDistanceToNow(new Date(a.createdAt), { addSuffix: true })}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {a.sendCount.toLocaleString()} SMS sent
-                      {a.lastPolledAt
-                        ? ` · last checked ${formatDistanceToNow(new Date(a.lastPolledAt), { addSuffix: true })}`
-                        : " · not checked yet"}
-                    </p>
-                    {a.lastError ? (
-                      <p className="mt-1 text-xs text-destructive">{a.lastError}</p>
-                    ) : null}
-                  </div>
-                  <div className="flex shrink-0 flex-wrap items-center gap-2">
-                    <Badge variant={a.isActive ? "default" : "outline"}>
-                      {a.isActive ? "On" : "Off"}
-                    </Badge>
-                    <form action={toggleGoogleFormSmsAutomationAction}>
-                      <input type="hidden" name="id" value={a.id} />
-                      <input type="hidden" name="isActive" value={a.isActive ? "0" : "1"} />
-                      <Button type="submit" size="sm" variant="outline">
-                        {a.isActive ? "Pause" : "Resume"}
-                      </Button>
-                    </form>
-                    <form action={deleteGoogleFormSmsAutomationAction}>
-                      <input type="hidden" name="id" value={a.id} />
-                      <Button type="submit" size="sm" variant="ghost">
-                        Remove
-                      </Button>
-                    </form>
-                  </div>
-                </li>
+                <AutomationCard key={a.id} a={a} />
               ))}
             </ul>
           </AppCardBody>
