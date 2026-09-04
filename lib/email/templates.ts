@@ -901,6 +901,57 @@ ${params.adminUrl}
   return { subject, text, html };
 }
 
+/** Admin forwards an uploaded verification document to themselves via the Server page. */
+export async function senderIdDocumentToAdminEmailContent(params: {
+  senderValue: string;
+  filename: string;
+  uploaderName: string;
+}) {
+  const subject = `Sender ID document — ${params.senderValue}`;
+  const text = `A verification document was forwarded to you from the Server page.
+
+Sender ID: ${params.senderValue}
+File: ${params.filename}
+Uploaded by: ${params.uploaderName}
+
+The document is attached to this email.
+
+— ${siteName}`;
+
+  const html = await renderEmailLayout({
+    headline: "Verification document forwarded",
+    preheader: `${params.senderValue} · ${params.filename}`,
+    bodyHtml: `${textToEmailParagraphs("A verification document was forwarded to you from the Server page. It’s attached to this email.")}${emailDetailTable([
+      { label: "Sender ID", value: params.senderValue, mono: true },
+      { label: "File", value: params.filename },
+      { label: "Uploaded by", value: params.uploaderName },
+    ])}`,
+  });
+
+  return { subject, text, html };
+}
+
+/** Business registration document sent to an SMS provider/carrier for sender ID compliance. */
+export async function senderIdDocumentToProviderEmailContent(params: { senderValue: string }) {
+  const subject = `Business registration documents for ${params.senderValue}`;
+  const text = `Greetings,
+
+Kindly find attached business registration documents for ${params.senderValue} as requested.
+
+Thank you.`;
+
+  const html = await renderEmailLayout({
+    headline: "Business Registration Documents",
+    preheader: `Documents for ${params.senderValue}`,
+    greeting: "Greetings,",
+    bodyHtml: textToEmailParagraphs(
+      `Kindly find attached business registration documents for ${params.senderValue} as requested.\n\nThank you.`,
+    ),
+  });
+
+  return { subject, text, html };
+}
+
 /** A backup job finished building and is ready to download. */
 export async function backupReadyEmailContent(params: {
   categories: string[];

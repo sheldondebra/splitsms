@@ -15,6 +15,7 @@ import { fetchAllSmsProviderBalances } from "@/lib/sms/provider-balances";
 import { maybeNotifyLowBalanceAlerts } from "@/lib/admin/balance-alerts";
 import { maybeNotifySlackStuckSms } from "@/lib/admin/sms-stuck-alert";
 import { syncAllSenderIdsFromProviders } from "@/lib/sender-ids/provider-sync";
+import { PLATFORM_ADMIN_EMAIL } from "@/lib/admin/constants";
 
 async function requireAdmin() {
   const session = await getSession();
@@ -75,9 +76,6 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unexpected error";
 }
 
-/** Fixed recipient for the after-every-sync report, independent of any admin's own account. */
-const SYSTEM_SYNC_REPORT_EMAIL = "kofisheldon@gmail.com";
-
 async function sendSystemSyncReport(
   session: { userId: string },
   result: Awaited<ReturnType<typeof runAdminSystemSync>>,
@@ -122,7 +120,7 @@ async function sendSystemSyncReport(
   });
 
   const { sendEmail } = await import("@/lib/email");
-  const emailResult = await sendEmail({ to: SYSTEM_SYNC_REPORT_EMAIL, subject, text, html }).catch(
+  const emailResult = await sendEmail({ to: PLATFORM_ADMIN_EMAIL, subject, text, html }).catch(
     (error) => ({ ok: false as const, error: errorMessage(error) }),
   );
   if (!emailResult.ok) {

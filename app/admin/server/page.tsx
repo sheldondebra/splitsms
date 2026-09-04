@@ -2,6 +2,7 @@ import Link from "next/link";
 import { format, formatDistanceToNow } from "date-fns";
 import { getSystemStatus } from "@/lib/admin/system-status";
 import { AdminPage, AdminPageHeader, AdminCard, AdminEmpty, AdminStatCard } from "@/components/admin/admin-page-shell";
+import { FileUploadRowActions } from "@/components/admin/file-upload-row-actions";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -280,10 +281,12 @@ export default async function AdminServerPage() {
               <thead>
                 <tr className="border-b border-border/60 text-left text-[11px] uppercase tracking-wide text-muted-foreground">
                   <th className="pb-2 pr-3 font-semibold">File</th>
+                  <th className="pb-2 pr-3 font-semibold">Sender ID</th>
                   <th className="pb-2 pr-3 font-semibold">Type</th>
                   <th className="pb-2 pr-3 font-semibold">Size</th>
                   <th className="pb-2 pr-3 font-semibold">Uploaded by</th>
-                  <th className="pb-2 font-semibold">Date &amp; time</th>
+                  <th className="pb-2 pr-3 font-semibold">Date &amp; time</th>
+                  <th className="pb-2 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
@@ -295,11 +298,19 @@ export default async function AdminServerPage() {
                         <span className="truncate">{file.filename}</span>
                       </span>
                     </td>
+                    <td className="py-3 pr-3 font-mono text-xs text-muted-foreground">{file.senderValue}</td>
                     <td className="py-3 pr-3 font-mono text-xs text-muted-foreground">{file.contentType}</td>
                     <td className="py-3 pr-3 text-xs tabular-nums">{formatBytes(file.sizeBytes)}</td>
                     <td className="py-3 pr-3 text-xs text-muted-foreground">{file.uploaderName}</td>
-                    <td className="py-3 text-xs text-muted-foreground whitespace-nowrap">
+                    <td className="py-3 pr-3 text-xs text-muted-foreground whitespace-nowrap">
                       {format(file.createdAt, "MMM d, yyyy · HH:mm:ss")}
+                    </td>
+                    <td className="py-3">
+                      <FileUploadRowActions
+                        id={file.id}
+                        downloadUrl={`/admin/sender-ids/documents/${file.id}`}
+                        senderValue={file.senderValue}
+                      />
                     </td>
                   </tr>
                 ))}

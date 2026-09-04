@@ -66,6 +66,7 @@ export type FileUpload = {
   contentType: string;
   sizeBytes: number;
   uploaderName: string;
+  senderValue: string;
   createdAt: Date;
   kind: "sender_id_document";
 };
@@ -193,11 +194,13 @@ async function getFileUploads(): Promise<{ recent: FileUpload[]; total: number }
         createdAt: Date;
         uploaderName: string | null;
         uploaderEmail: string | null;
+        senderValue: string;
       }[]
     >`SELECT d.id, d.filename, d."contentType", octet_length(d.content) AS size, d."createdAt",
-        u."fullName" AS "uploaderName", u.email AS "uploaderEmail"
+        u."fullName" AS "uploaderName", u.email AS "uploaderEmail", s.value AS "senderValue"
       FROM "SenderIdVerificationDocument" d
       JOIN "User" u ON u.id = d."userId"
+      JOIN "SenderId" s ON s.id = d."senderId"
       ORDER BY d."createdAt" DESC
       LIMIT 15`,
     prisma.senderIdVerificationDocument.count(),
@@ -210,6 +213,7 @@ async function getFileUploads(): Promise<{ recent: FileUpload[]; total: number }
       contentType: row.contentType,
       sizeBytes: Number(row.size),
       uploaderName: row.uploaderName?.trim() || row.uploaderEmail || "Unknown",
+      senderValue: row.senderValue,
       createdAt: row.createdAt,
       kind: "sender_id_document" as const,
     })),
