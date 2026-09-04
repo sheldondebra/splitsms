@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     ".tmp-plugin-zip/**",
     "wordpress-plugin/**/webpack.config.js",
+    // Vendored Claude Code skill scripts — not part of the deployed app.
+    ".agents/**",
   ]),
 ]);
 

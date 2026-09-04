@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -88,17 +87,17 @@ function SenderIdPaginatedList({
   returnTo: string;
   empty: ReactNode;
 }) {
-  const [page, setPage] = useState(1);
+  const [rawPage, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const listKey = `${items.length}:${items[0]?.id ?? ""}:${items[items.length - 1]?.id ?? ""}`;
 
-  useEffect(() => {
+  const [prevListKey, setPrevListKey] = useState(listKey);
+  if (listKey !== prevListKey) {
+    setPrevListKey(listKey);
     setPage(1);
-  }, [listKey]);
+  }
 
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+  const page = Math.min(rawPage, totalPages);
 
   const pageItems = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
@@ -130,7 +129,7 @@ function SenderIdPaginatedList({
               size="sm"
               className="h-8 gap-1 text-xs"
               disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => setPage(Math.max(1, page - 1))}
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               Prev
@@ -176,7 +175,7 @@ function SenderIdPaginatedList({
               size="sm"
               className="h-8 gap-1 text-xs"
               disabled={page >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
             >
               Next
               <ChevronRight className="h-3.5 w-3.5" />
@@ -339,29 +338,21 @@ export function AdminSenderIdsView({
   detail?: string;
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<TabId>(
-    initialTab === "overview" ||
-      initialTab === "register" ||
-      initialTab === "all" ||
-      initialTab === "pending" ||
-      initialTab === "mnotify" ||
-      initialTab === "banned"
-      ? initialTab
-      : "pending",
-  );
+  const isValidTab = (value: string): value is TabId =>
+    value === "overview" ||
+    value === "register" ||
+    value === "all" ||
+    value === "pending" ||
+    value === "mnotify" ||
+    value === "banned";
 
-  useEffect(() => {
-    if (
-      initialTab === "overview" ||
-      initialTab === "register" ||
-      initialTab === "all" ||
-      initialTab === "pending" ||
-      initialTab === "mnotify" ||
-      initialTab === "banned"
-    ) {
-      setTab(initialTab);
-    }
-  }, [initialTab]);
+  const [tab, setTab] = useState<TabId>(isValidTab(initialTab) ? initialTab : "pending");
+
+  const [prevInitialTab, setPrevInitialTab] = useState(initialTab);
+  if (initialTab !== prevInitialTab) {
+    setPrevInitialTab(initialTab);
+    if (isValidTab(initialTab)) setTab(initialTab);
+  }
 
   function onTabChange(value: string) {
     const next = value as TabId;

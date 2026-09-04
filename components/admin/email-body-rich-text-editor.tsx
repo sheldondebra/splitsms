@@ -120,7 +120,7 @@ export function EmailBodyRichTextEditor({
   defaultValue?: string;
   onChange?: (html: string) => void;
 }) {
-  const initialHtml = useRef(plainTextToEditorHtml(defaultValue)).current;
+  const [initialHtml] = useState(() => plainTextToEditorHtml(defaultValue));
   const [html, setHtml] = useState(initialHtml);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -129,8 +129,21 @@ export function EmailBodyRichTextEditor({
   const savedSelectionRef = useRef<{ from: number; to: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
   const [, setSelectionTick] = useState(0);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
+
+  function handleEditorUpdate(next: string) {
+    setHtml(next);
+    onChangeRef.current?.(next);
+  }
+
+  function handleEditorSelectionUpdate() {
+    // Force a re-render so image-selection-dependent toolbar controls stay in sync.
+    setSelectionTick((n) => n + 1);
+  }
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -156,15 +169,8 @@ export function EmailBodyRichTextEditor({
           "[&_img]:max-w-full [&_img]:rounded-md [&_img]:my-2",
       },
     },
-    onUpdate: ({ editor }) => {
-      const next = editor.getHTML();
-      setHtml(next);
-      onChangeRef.current?.(next);
-    },
-    onSelectionUpdate: () => {
-      // Force a re-render so image-selection-dependent toolbar controls stay in sync.
-      setSelectionTick((n) => n + 1);
-    },
+    onUpdate: ({ editor }) => handleEditorUpdate(editor.getHTML()),
+    onSelectionUpdate: handleEditorSelectionUpdate,
   });
 
   useEffect(() => {

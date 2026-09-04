@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown, Wallet } from "lucide-react";
 import {
   dashboardNavSections,
@@ -37,14 +37,20 @@ export function SidebarNavContent({
   }, [pathname]);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(initialOpen);
 
-  useEffect(() => {
-    for (const section of dashboardNavSections) {
-      if (!section.collapsible) continue;
-      if (section.items.some((item) => isNavActive(pathname, item.href))) {
-        setOpenSections((prev) => (prev[section.id] ? prev : { ...prev, [section.id]: true }));
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    setOpenSections((prev) => {
+      let next = prev;
+      for (const section of dashboardNavSections) {
+        if (!section.collapsible) continue;
+        if (section.items.some((item) => isNavActive(pathname, item.href)) && !next[section.id]) {
+          next = { ...next, [section.id]: true };
+        }
       }
-    }
-  }, [pathname]);
+      return next;
+    });
+  }
 
   const navItemClass = (active: boolean, highlight?: boolean) =>
     cn(

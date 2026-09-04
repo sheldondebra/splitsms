@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Bell, Mail, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,9 +32,11 @@ export function GeneralSettingsTabs({
 }) {
   const [tab, setTab] = useState<GeneralSettingsTab>(initialTab);
 
-  useEffect(() => {
+  const [prevInitialTab, setPrevInitialTab] = useState(initialTab);
+  if (initialTab !== prevInitialTab) {
+    setPrevInitialTab(initialTab);
     setTab(initialTab);
-  }, [initialTab]);
+  }
 
   function onTabChange(value: string) {
     const next = value as GeneralSettingsTab;

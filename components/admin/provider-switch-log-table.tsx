@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ProviderBadge } from "@/components/admin/provider-badge";
@@ -66,17 +66,18 @@ function RouteLabel({
 }
 
 export function ProviderSwitchLogTable({ logs }: { logs: ProviderSwitchLogRow[] }) {
-  const [page, setPage] = useState(1);
+  const [rawPage, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(10);
   const totalPages = Math.max(1, Math.ceil(logs.length / pageSize));
 
-  useEffect(() => {
+  const listKey = `${logs.length}:${pageSize}:${logs[0]?.id ?? ""}`;
+  const [prevListKey, setPrevListKey] = useState(listKey);
+  if (listKey !== prevListKey) {
+    setPrevListKey(listKey);
     setPage(1);
-  }, [logs.length, pageSize, logs[0]?.id]);
+  }
 
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+  const page = Math.min(rawPage, totalPages);
 
   const pageItems = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -207,7 +208,7 @@ export function ProviderSwitchLogTable({ logs }: { logs: ProviderSwitchLogRow[] 
               size="sm"
               className="h-8 gap-1 text-xs"
               disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => setPage(Math.max(1, page - 1))}
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               Prev
@@ -236,7 +237,7 @@ export function ProviderSwitchLogTable({ logs }: { logs: ProviderSwitchLogRow[] 
               size="sm"
               className="h-8 gap-1 text-xs"
               disabled={page >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
             >
               Next
               <ChevronRight className="h-3.5 w-3.5" />

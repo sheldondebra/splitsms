@@ -76,6 +76,9 @@ export function SmartFormsPromoPopup() {
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
+    // sessionStorage/location.search are only available after hydration — reading
+    // them during render would mismatch the server-rendered HTML.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDismissed(readSessionDismissed());
     setScrolled(false);
     setForceOpen(new URLSearchParams(window.location.search).get("promo") === "smart-forms");

@@ -60,13 +60,18 @@ export function SiteHeaderSearch({ onOpen }: { onOpen?: () => void }) {
   const flat = grouped.flatMap((row) => row.items);
 
   useEffect(() => {
+    // navigator/portal target are only available after hydration — setting this
+    // during render would mismatch the server-rendered HTML.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     setIsMac(/Mac|iPhone|iPad/.test(navigator.platform));
   }, []);
 
-  useEffect(() => {
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -80,12 +85,17 @@ export function SiteHeaderSearch({ onOpen }: { onOpen?: () => void }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (!open) {
       setQuery("");
       setActive(0);
-      return;
     }
+  }
+
+  useEffect(() => {
+    if (!open) return;
     onOpen?.();
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -104,9 +114,11 @@ export function SiteHeaderSearch({ onOpen }: { onOpen?: () => void }) {
     };
   }, [open, onOpen]);
 
-  useEffect(() => {
+  const [prevQuery, setPrevQuery] = useState(query);
+  if (query !== prevQuery) {
+    setPrevQuery(query);
     setActive(0);
-  }, [query]);
+  }
 
   function go(item: SiteSearchItem) {
     setOpen(false);

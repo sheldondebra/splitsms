@@ -61,13 +61,18 @@ export function AdminTopbarSearch({ className }: { className?: string }) {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
-  useEffect(() => {
-    const q = query.trim();
-    if (q.length < 2) {
+  const [prevQuery, setPrevQuery] = useState(query);
+  if (query !== prevQuery) {
+    setPrevQuery(query);
+    if (query.trim().length < 2) {
       setHits([]);
       setError(null);
-      return;
     }
+  }
+
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) return;
 
     const id = ++requestId.current;
     const timer = window.setTimeout(() => {

@@ -47,15 +47,25 @@ export function ReportMemberSelect({
     return members.filter((m) => memberHaystack(m).includes(q));
   }, [members, query]);
 
-  useEffect(() => {
+  const [prevQuery, setPrevQuery] = useState(query);
+  if (query !== prevQuery) {
+    setPrevQuery(query);
     setActiveIndex(0);
-  }, [query]);
+  }
+
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setQuery("");
+      setActiveIndex(0);
+    } else {
+      setMenuBox(null);
+    }
+  }
 
   useEffect(() => {
-    if (!open) {
-      setMenuBox(null);
-      return;
-    }
+    if (!open) return;
 
     function syncPosition() {
       const el = rootRef.current;
@@ -89,12 +99,6 @@ export function ReportMemberSelect({
       document.removeEventListener("mousedown", onPointer);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    setQuery("");
-    setActiveIndex(0);
   }, [open]);
 
   useEffect(() => {

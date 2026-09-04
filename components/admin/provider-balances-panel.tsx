@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import type { ProviderSmsBalance } from "@/lib/sms/provider-balances";
@@ -142,9 +142,11 @@ export function ProviderBalancesPanel({
   const [pendingType, setPendingType] = useState<SmsProviderType | "ALL" | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
+  const [prevInitialBalances, setPrevInitialBalances] = useState(initialBalances);
+  if (initialBalances !== prevInitialBalances) {
+    setPrevInitialBalances(initialBalances);
     setBalances(initialBalances);
-  }, [initialBalances]);
+  }
 
   function refreshOne(type: SmsProviderType) {
     setPendingType(type);

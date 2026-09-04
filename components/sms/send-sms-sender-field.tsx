@@ -85,6 +85,8 @@ function CompactRegisterPanel({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // document.body isn't available for createPortal until after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

@@ -9,19 +9,18 @@ export function formatAdminTopbarClock(date: Date) {
 }
 
 export function AdminTopbarClock() {
-  const [now, setNow] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date>(() => new Date());
 
   useEffect(() => {
-    setNow(new Date());
     const id = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(id);
   }, []);
 
-  const label = now ? formatAdminTopbarClock(now) : "—";
+  const label = formatAdminTopbarClock(now);
 
   return (
     <time
-      dateTime={now?.toISOString()}
+      dateTime={now.toISOString()}
       className="hidden lg:inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/20 px-2.5 py-1 text-xs font-medium tabular-nums tracking-tight text-muted-foreground whitespace-nowrap"
       suppressHydrationWarning
     >

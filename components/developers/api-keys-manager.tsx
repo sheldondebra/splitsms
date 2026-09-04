@@ -165,7 +165,10 @@ function ApiKeyCard({ k, defaultRevealed }: { k: ApiKeyRow; defaultRevealed?: bo
   const [secretError, setSecretError] = useState(false);
 
   useEffect(() => {
+    // localStorage is only available after hydration — reading it (and syncing the
+    // result into state) during render would mismatch the server-rendered HTML.
     const saved = readKeyFromBrowser(k.id);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved) setSecret(saved);
     if (defaultRevealed && saved) setRevealed(true);
   }, [defaultRevealed, k.id]);

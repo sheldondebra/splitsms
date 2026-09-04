@@ -52,9 +52,14 @@ export function NumbersMemberDropdown({
     };
   }, [open]);
 
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) setQuery("");
+  }
+
   useEffect(() => {
     if (open) {
-      setQuery("");
       requestAnimationFrame(() => searchRef.current?.focus());
     }
   }, [open]);

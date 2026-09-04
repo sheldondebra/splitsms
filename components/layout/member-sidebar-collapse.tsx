@@ -25,8 +25,11 @@ export function MemberSidebarCollapseProvider({ children }: { children: ReactNod
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
+    // localStorage/matchMedia are only available after hydration — reading them
+    // during render would mismatch the server-rendered HTML.
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (stored === "1") setCollapsed(true);
       else if (stored === "0") setCollapsed(false);
       else if (window.matchMedia("(max-width: 1279px)").matches) setCollapsed(true);

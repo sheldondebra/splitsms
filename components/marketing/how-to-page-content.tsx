@@ -65,9 +65,9 @@ export function HowToPageContent({
 
   const selected = results.find((guide) => guide.id === selectedId) ?? results[0] ?? null;
 
-  useEffect(() => {
-    if (selected && selected.id !== selectedId) setSelectedId(selected.id);
-  }, [selected, selectedId]);
+  if (selected && selected.id !== selectedId) {
+    setSelectedId(selected.id);
+  }
 
   useEffect(() => {
     const fromHash = () => {
