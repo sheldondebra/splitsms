@@ -7,7 +7,7 @@ import {
   toggleGoogleFormSmsAutomationAction,
 } from "@/lib/actions/google-forms";
 import { AppCard, AppCardBody } from "@/components/dashboard/page-shell";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ import {
   Send,
   CalendarClock,
   ChevronDown,
+  ExternalLink,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,10 @@ type AutomationRow = {
 
 function looksLikeGoogleForm(url: string) {
   return /docs\.google\.com\/forms\//i.test(url);
+}
+
+function googleSheetUrl(formId: string) {
+  return `https://docs.google.com/spreadsheets/d/${formId}/edit`;
 }
 
 function StatChip({
@@ -160,6 +165,15 @@ function AutomationCard({ a }: { a: AutomationRow }) {
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <a
+            href={googleSheetUrl(a.formId)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(buttonVariants({ size: "sm", variant: "outline" }), "gap-1.5")}
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            Open sheet
+          </a>
           <form action={toggleGoogleFormSmsAutomationAction}>
             <input type="hidden" name="id" value={a.id} />
             <input type="hidden" name="isActive" value={a.isActive ? "0" : "1"} />
@@ -343,21 +357,32 @@ export function GoogleFormsSmsPanel({
               ) : null}
 
               <div className="space-y-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-3">
-                <div className="flex items-start gap-2.5">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                  <div className="min-w-0 space-y-0.5 text-sm">
-                    <p className="font-medium">
-                      Connected — <span className="text-muted-foreground font-normal">{formTitle || "this sheet"}</span>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formTab ? `Tab "${formTab}" · ` : ""}
-                      {submissionCount === null
-                        ? "Checking submissions…"
-                        : `${submissionCount.toLocaleString()} submission${submissionCount === 1 ? "" : "s"} so far`}
-                      {" · "}
-                      {headers.length} column{headers.length === 1 ? "" : "s"} detected
-                    </p>
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="flex min-w-0 items-start gap-2.5">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                    <div className="min-w-0 space-y-0.5 text-sm">
+                      <p className="font-medium">
+                        Connected — <span className="text-muted-foreground font-normal">{formTitle || "this sheet"}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formTab ? `Tab "${formTab}" · ` : ""}
+                        {submissionCount === null
+                          ? "Checking submissions…"
+                          : `${submissionCount.toLocaleString()} submission${submissionCount === 1 ? "" : "s"} so far`}
+                        {" · "}
+                        {headers.length} column{headers.length === 1 ? "" : "s"} detected
+                      </p>
+                    </div>
                   </div>
+                  <a
+                    href={googleSheetUrl(formId)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Open
+                  </a>
                 </div>
 
                 {latestSubmission ? (
