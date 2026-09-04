@@ -9,6 +9,7 @@ import {
   slackSmsBatchResultBlocks,
   slackSmsFailedBlocks,
   slackStuckSmsBlocks,
+  slackSystemSyncBlocks,
   slackLowBalanceBlocks,
   slackUserLoginBlocks,
   slackUserRegistrationBlocks,
@@ -231,6 +232,34 @@ export async function notifySlackSmsBatchResult(input: {
     {
       text: `SMS batch: ${input.sent} sent, ${input.failed} failed, ${input.remaining} remaining`,
       blocks: slackSmsBatchResultBlocks(input),
+    },
+    config,
+  );
+}
+
+export async function notifySlackSystemSync(input: {
+  ok: boolean;
+  triggeredBy: string;
+  sent: number;
+  failed: number;
+  remaining: number;
+  deliveryRowsUpdated: number;
+  providerBalancesChecked: number;
+  senderIdsChecked: number;
+  senderIdsApproved: number;
+  senderIdsPending: number;
+  cronJobs: { label: string; isPaused: boolean; lastRunOk: boolean | null }[];
+  tasks: { id: string; label: string; ok: boolean; detail: string }[];
+}) {
+  const config = await shouldNotify((c) => c.notifySystemSync);
+  if (!config) return;
+
+  await postSlackMessage(
+    {
+      text: input.ok
+        ? "System sync complete — all checks passed"
+        : "System sync complete — some checks need attention",
+      blocks: slackSystemSyncBlocks(input),
     },
     config,
   );

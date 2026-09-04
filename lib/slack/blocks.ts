@@ -496,6 +496,78 @@ export function slackSmsBatchResultBlocks(input: {
   });
 }
 
+export function slackSystemSyncBlocks(input: {
+  ok: boolean;
+  triggeredBy: string;
+  sent: number;
+  failed: number;
+  remaining: number;
+  deliveryRowsUpdated: number;
+  providerBalancesChecked: number;
+  senderIdsChecked: number;
+  senderIdsApproved: number;
+  senderIdsPending: number;
+  cronJobs: { label: string; isPaused: boolean; lastRunOk: boolean | null }[];
+  tasks: { id: string; label: string; ok: boolean; detail: string }[];
+}): SlackBlock[] {
+  const failedTasks = input.tasks.filter((task) => !task.ok);
+
+  return buildSlackNotification({
+    category: "operations",
+    status: input.ok ? "success" : "warning",
+    title: "System sync report",
+    summary: slackQuote(
+      slackSummary([
+        `${SLACK.member} Triggered by ${input.triggeredBy}`,
+        input.ok
+          ? `${SLACK.success} All checks passed`
+          : `${SLACK.warning} ${failedTasks.length} issue${failedTasks.length === 1 ? "" : "s"} found`,
+      ]),
+    ),
+    metrics: [
+      { label: "SMS sent", value: String(input.sent), tone: "neutral" },
+      { label: "Failed", value: String(input.failed), tone: input.failed > 0 ? "bad" : "good" },
+      { label: "Delivery updated", value: String(input.deliveryRowsUpdated), tone: "neutral" },
+      { label: "Balances checked", value: String(input.providerBalancesChecked), tone: "neutral" },
+      { label: "Sender IDs checked", value: String(input.senderIdsChecked), tone: "neutral" },
+      {
+        label: "Sender IDs approved/pending",
+        value: `${input.senderIdsApproved} / ${input.senderIdsPending}`,
+        tone: "neutral",
+      },
+    ],
+    fields: [
+      ...input.tasks.map((task) =>
+        slackField(task.label, `${task.ok ? SLACK.approve : SLACK.deny} ${task.detail}`),
+      ),
+      ...(input.cronJobs.length > 0
+        ? [
+            slackField(
+              "Cron jobs",
+              input.cronJobs
+                .map((job) => {
+                  const icon = job.isPaused || job.lastRunOk === false ? SLACK.deny : SLACK.approve;
+                  const state = job.isPaused
+                    ? "paused"
+                    : job.lastRunOk === false
+                      ? "last run failed"
+                      : "on schedule";
+                  return `${icon} ${job.label} — ${state}`;
+                })
+                .join("\n"),
+            ),
+          ]
+        : []),
+    ],
+    actions: [
+      slackAction("View sync history", buildSlackGoUrl("/admin/system-sync"), {
+        style: input.ok ? undefined : "primary",
+        icon: SLACK.refresh,
+      }),
+    ],
+  });
+}
+
 export function slackSupportTicketBlocks(input: {
   ticketId: string;
   reference: string | null;

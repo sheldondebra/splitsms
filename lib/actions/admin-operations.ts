@@ -75,6 +75,72 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unexpected error";
 }
 
+/** Fixed recipient for the after-every-sync report, independent of any admin's own account. */
+const SYSTEM_SYNC_REPORT_EMAIL = "kofisheldon@gmail.com";
+
+async function sendSystemSyncReport(
+  session: { userId: string },
+  result: Awaited<ReturnType<typeof runAdminSystemSync>>,
+) {
+  const ok = result.tasks.every((task) => task.ok);
+
+  const [actor, cronJobs] = await Promise.all([
+    prisma.user.findUnique({ where: { id: session.userId }, select: { fullName: true, email: true } }),
+    import("@/lib/queue/qstash-schedule-status").then((m) => m.getQstashScheduleStatuses()),
+  ]);
+  const triggeredBy = actor?.fullName?.trim() || actor?.email || "Unknown";
+
+  const { getSiteUrl } = await import("@/lib/site-config");
+  const historyUrl = `${getSiteUrl()}/admin/system-sync`;
+
+  const summary = {
+    sent: result.sent,
+    failed: result.failed,
+    remaining: result.remaining,
+    deliveryRowsUpdated: result.deliveryRowsUpdated,
+    providerBalancesChecked: result.providerBalancesChecked,
+    senderIdsChecked: result.senderIdsChecked,
+    senderIdsApproved: result.senderIdsApproved,
+    senderIdsPending: result.senderIdsPending,
+  };
+  const cronJobSummaries = cronJobs.map((job) => ({
+    label: job.label,
+    isPaused: job.isPaused,
+    lastRunAt: job.lastRunAt,
+    lastRunOk: job.lastRunOk,
+  }));
+
+  const { systemSyncReportEmailContent } = await import("@/lib/email/templates");
+  const { subject, text, html } = await systemSyncReportEmailContent({
+    ok,
+    triggeredBy,
+    ranAt: new Date(),
+    tasks: result.tasks,
+    summary,
+    cronJobs: cronJobSummaries,
+    historyUrl,
+  });
+
+  const { sendEmail } = await import("@/lib/email");
+  const emailResult = await sendEmail({ to: SYSTEM_SYNC_REPORT_EMAIL, subject, text, html }).catch(
+    (error) => ({ ok: false as const, error: errorMessage(error) }),
+  );
+  if (!emailResult.ok) {
+    console.error("[system-sync] report email failed:", emailResult.error);
+  }
+
+  const { notifySlackSystemSync } = await import("@/lib/slack/notify");
+  await notifySlackSystemSync({
+    ok,
+    triggeredBy,
+    ...summary,
+    cronJobs: cronJobSummaries.map(({ label, isPaused, lastRunOk }) => ({ label, isPaused, lastRunOk })),
+    tasks: result.tasks,
+  }).catch((error) => {
+    console.error("[system-sync] Slack report failed:", errorMessage(error));
+  });
+}
+
 export async function adminProcessPendingSmsAction(formData: FormData) {
   const session = await requireAdmin();
   const limit = Math.min(200, Math.max(1, Number(formData.get("limit") ?? SMS_CRON_BATCH_LIMIT)));
@@ -393,6 +459,8 @@ async function runAdminSystemSync(session: { userId: string }) {
       metadata: result as Parameters<typeof prisma.auditLog.create>[0]["data"]["metadata"],
     },
   });
+
+  await sendSystemSyncReport(session, result).catch(() => undefined);
 
   revalidatePath("/admin");
   revalidatePath("/admin/operations");

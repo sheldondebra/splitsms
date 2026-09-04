@@ -4,6 +4,7 @@ import {
   emailNumberedList,
   emailQuote,
   emailSectionHeading,
+  emailStatGrid,
   emailStatusPill,
   escapeHtml,
   stripSignatureFooter,
@@ -937,6 +938,117 @@ ${params.downloadUrl}
     ctaHref: params.downloadUrl,
     ctaLabel: "Download backup",
   });
+
+  return { subject, text, html };
+}
+
+/** Full report after a system sync run — what worked, what didn't, and cron job status. */
+export async function systemSyncReportEmailContent(params: {
+  ok: boolean;
+  triggeredBy: string;
+  ranAt: Date;
+  tasks: { id: string; label: string; ok: boolean; detail: string }[];
+  summary: {
+    sent: number;
+    failed: number;
+    remaining: number;
+    deliveryRowsUpdated: number;
+    providerBalancesChecked: number;
+    senderIdsChecked: number;
+    senderIdsApproved: number;
+    senderIdsPending: number;
+  };
+  cronJobs: {
+    label: string;
+    isPaused: boolean;
+    lastRunAt: Date | null;
+    lastRunOk: boolean | null;
+  }[];
+  historyUrl: string;
+}) {
+  const dateLabel = params.ranAt.toLocaleString("en-GB", {
+    timeZone: "UTC",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  const failedTasks = params.tasks.filter((t) => !t.ok);
+  const subject = params.ok
+    ? `System sync report — all checks passed (${dateLabel} UTC)`
+    : `System sync report — ${failedTasks.length} issue${failedTasks.length === 1 ? "" : "s"} found (${dateLabel} UTC)`;
+
+  const okSummary = params.ok
+    ? "Every check passed — SMS delivery, campaigns, provider balances, and sender ID carrier status are all healthy."
+    : `${failedTasks.length} check${failedTasks.length === 1 ? "" : "s"} need attention — see the breakdown below.`;
+
+  const cronLine = (job: (typeof params.cronJobs)[number]) => {
+    const lastRun = job.lastRunAt
+      ? job.lastRunAt.toLocaleString("en-GB", { timeZone: "UTC", dateStyle: "medium", timeStyle: "short" })
+      : "never run";
+    const state = job.isPaused ? "Paused" : job.lastRunOk === false ? "Last run failed" : "Running on schedule";
+    return { state, lastRun };
+  };
+
+  const taskRows = params.tasks
+    .map(
+      (task) => `<tr>
+  <td style="padding:10px 8px 10px 0;border-bottom:1px solid #ececec;vertical-align:top;width:24px;font-size:16px;">${task.ok ? "✅" : "⚠️"}</td>
+  <td style="padding:10px 0;border-bottom:1px solid #ececec;vertical-align:top;">
+    <p style="margin:0;font-size:14px;font-weight:600;color:#111111;">${escapeHtml(task.label)}</p>
+    <p style="margin:2px 0 0;font-size:13px;color:#666666;">${escapeHtml(task.detail)}</p>
+  </td>
+</tr>`,
+    )
+    .join("");
+
+  const cronRows =
+    params.cronJobs.length > 0
+      ? params.cronJobs.map((job) => {
+          const { state, lastRun } = cronLine(job);
+          return { label: job.label, value: `${state} · last run ${lastRun} UTC` };
+        })
+      : [];
+
+  const html = await renderEmailLayout({
+    headline: params.ok ? "System sync complete" : "System sync report",
+    preheader: `${dateLabel} UTC · ${okSummary}`,
+    bodyHtml: `${textToEmailParagraphs(`Ran ${dateLabel} UTC · Triggered by ${params.triggeredBy}`)}${textToEmailParagraphs(okSummary)}${emailStatGrid([
+      { label: "SMS sent", value: String(params.summary.sent) },
+      { label: "Failed", value: String(params.summary.failed) },
+      { label: "Delivery updated", value: String(params.summary.deliveryRowsUpdated) },
+      { label: "Balances checked", value: String(params.summary.providerBalancesChecked) },
+      {
+        label: "Sender IDs checked",
+        value: String(params.summary.senderIdsChecked),
+        hint: `${params.summary.senderIdsApproved} approved · ${params.summary.senderIdsPending} pending`,
+      },
+      { label: "Remaining in queue", value: String(params.summary.remaining) },
+    ])}${emailSectionHeading("What worked / what didn't")}<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:8px 0 20px;border-collapse:collapse;">${taskRows}</table>${
+      cronRows.length > 0 ? `${emailSectionHeading("Cron job update")}${emailDetailTable(cronRows)}` : ""
+    }`,
+    ctaHref: params.historyUrl,
+    ctaLabel: "View sync history",
+  });
+
+  const text = `System sync report — ${dateLabel} UTC
+Triggered by: ${params.triggeredBy}
+
+${okSummary}
+
+SMS sent: ${params.summary.sent} · Failed: ${params.summary.failed} · Remaining: ${params.summary.remaining}
+Delivery reports updated: ${params.summary.deliveryRowsUpdated}
+Provider balances checked: ${params.summary.providerBalancesChecked}
+Sender IDs checked: ${params.summary.senderIdsChecked} (${params.summary.senderIdsApproved} approved, ${params.summary.senderIdsPending} pending)
+
+What worked / what didn't:
+${params.tasks.map((t) => `${t.ok ? "[OK]" : "[ISSUE]"} ${t.label} — ${t.detail}`).join("\n")}
+${
+  cronRows.length > 0
+    ? `\nCron job update:\n${params.cronJobs.map((job) => `${job.label}: ${cronLine(job).state} · last run ${cronLine(job).lastRun} UTC`).join("\n")}\n`
+    : ""
+}
+View full history: ${params.historyUrl}
+
+— ${siteName}`;
 
   return { subject, text, html };
 }

@@ -20,6 +20,7 @@ export type SlackOfficeConfig = {
   notifySmsFailures: boolean;
   notifySmsBatchResults: boolean;
   notifyLowBalances: boolean;
+  notifySystemSync: boolean;
   updatedAt?: string;
 };
 
@@ -42,6 +43,7 @@ export function defaultSlackOfficeConfig(): SlackOfficeConfig {
     notifySmsFailures: true,
     notifySmsBatchResults: true,
     notifyLowBalances: true,
+    notifySystemSync: true,
   };
 }
 

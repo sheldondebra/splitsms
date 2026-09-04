@@ -190,6 +190,11 @@ export function GeneralSlackForm({
               label: "Low mNotify / provider balances",
               default: config.notifyLowBalances,
             },
+            {
+              name: "notifySystemSync",
+              label: "System sync reports (what worked, what didn't)",
+              default: config.notifySystemSync,
+            },
           ].map((item) => (
             <label key={item.name} className="flex items-center gap-2 text-sm cursor-pointer">
               <input
