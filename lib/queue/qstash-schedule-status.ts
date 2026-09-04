@@ -1,8 +1,10 @@
 export type QstashScheduleStatus = {
   destination: string;
   label: string;
+  cron: string;
   isPaused: boolean;
   lastRunAt: Date | null;
+  nextRunAt: Date | null;
   lastRunOk: boolean | null;
 };
 
@@ -32,13 +34,16 @@ export async function getQstashScheduleStatuses(): Promise<QstashScheduleStatus[
     const res = await fetch("https://qstash.upstash.io/v2/schedules", {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) return [];
 
     const schedules = (await res.json()) as Array<{
       destination: string;
+      cron: string;
       isPaused: boolean;
       lastScheduleTime?: number;
+      nextScheduleTime?: number;
       lastScheduleStates?: Record<string, string>;
     }>;
 
@@ -47,8 +52,10 @@ export async function getQstashScheduleStatuses(): Promise<QstashScheduleStatus[
       return {
         destination: s.destination,
         label: labelForDestination(s.destination),
+        cron: s.cron,
         isPaused: s.isPaused,
         lastRunAt: s.lastScheduleTime ? new Date(s.lastScheduleTime) : null,
+        nextRunAt: s.nextScheduleTime ? new Date(s.nextScheduleTime) : null,
         lastRunOk: states.length > 0 ? states.every((state) => state === "SUCCESS") : null,
       };
     });
