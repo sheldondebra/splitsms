@@ -326,7 +326,7 @@ async function sendCriticalMemberEmail(params: {
 }) {
   const { sendEmail, getActiveEmailProvider } = await import("@/lib/email");
   let result = await sendEmail(params);
-  let provider = await getActiveEmailProvider();
+  const provider = await getActiveEmailProvider();
 
   if (!result.ok) {
     const { loadMailjetOfficeConfig } = await import("@/lib/email/office-config");

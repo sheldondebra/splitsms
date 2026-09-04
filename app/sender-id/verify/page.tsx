@@ -53,7 +53,7 @@ export default async function SenderIdVerifyPage({
             <h2 className="mt-4 text-lg font-semibold">Already approved</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Sender ID <span className="font-mono font-semibold text-foreground">{context.value}</span>{" "}
-              is already approved — there's nothing more to submit.
+              is already approved — there&apos;s nothing more to submit.
             </p>
             <Link
               href="/dashboard/sender-ids"
