@@ -34,6 +34,13 @@ export default async function GoogleFormsSmsPage({
     }),
   ]);
 
+  const sendCounts = await prisma.googleFormSmsSend.groupBy({
+    by: ["automationId"],
+    where: { automationId: { in: automations.map((a) => a.id) } },
+    _count: { _all: true },
+  });
+  const sendCountByAutomation = new Map(sendCounts.map((s) => [s.automationId, s._count._all]));
+
   return (
     <AppPage narrow>
       <PageHeader
@@ -82,6 +89,9 @@ export default async function GoogleFormsSmsPage({
           lastPolledAt: a.lastPolledAt?.toISOString() ?? null,
           lastError: a.lastError,
           messageTemplate: a.messageTemplate,
+          phoneFieldId: a.phoneFieldId,
+          createdAt: a.createdAt.toISOString(),
+          sendCount: sendCountByAutomation.get(a.id) ?? 0,
         }))}
       />
     </AppPage>

@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Loader2 } from "lucide-react";
+import { Copy, Loader2, CheckCircle2, FileSpreadsheet, Link2 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 type AutomationRow = {
   id: string;
@@ -21,6 +22,9 @@ type AutomationRow = {
   lastPolledAt: string | null;
   lastError: string | null;
   messageTemplate: string;
+  phoneFieldId: string;
+  createdAt: string;
+  sendCount: number;
 };
 
 function looksLikeGoogleForm(url: string) {
@@ -39,6 +43,9 @@ export function GoogleFormsSmsPanel({
   const [sheetUrl, setSheetUrl] = useState("");
   const [headers, setHeaders] = useState<string[]>([]);
   const [formTitle, setFormTitle] = useState("");
+  const [formTab, setFormTab] = useState("");
+  const [submissionCount, setSubmissionCount] = useState<number | null>(null);
+  const [latestSubmission, setLatestSubmission] = useState<Record<string, string> | null>(null);
   const [formId, setFormId] = useState("");
   const [phoneFieldId, setPhoneFieldId] = useState("");
   const [senderId, setSenderId] = useState(senderIds[0] ?? "");
@@ -78,6 +85,9 @@ export function GoogleFormsSmsPanel({
       const cols = (data.headers as string[]) ?? [];
       setFormId(data.id ?? "");
       setFormTitle(data.title ?? "");
+      setFormTab(data.tab ?? "");
+      setSubmissionCount(typeof data.submissionCount === "number" ? data.submissionCount : null);
+      setLatestSubmission((data.latestSubmission as Record<string, string> | null) ?? null);
       setHeaders(cols);
       setPhoneFieldId(cols.find((h) => /phone|mobile|whatsapp|tel/i.test(h)) ?? cols[0] ?? "");
     } catch {
@@ -104,33 +114,44 @@ export function GoogleFormsSmsPanel({
     <div className="space-y-6">
       <AppCard>
         <AppCardBody className="space-y-5">
-          <div>
-            <h2 className="text-base font-semibold tracking-tight">
-              Paste your Google Sheet
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Use the sheet that collects form answers. We’ll text new rows from here on.
-            </p>
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <FileSpreadsheet className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold tracking-tight">
+                Paste your Google Sheet
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Use the sheet that collects form answers. We’ll text new rows from here on.
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Input
-              value={sheetUrl}
-              onChange={(e) => {
-                setSheetUrl(e.target.value);
-                setFormId("");
-                setHeaders([]);
-                setNeedsShare(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  void continueWithSheet();
-                }
-              }}
-              placeholder="Paste Google Sheet link"
-              aria-label="Google Sheet link"
-            />
+            <div className="relative flex-1">
+              <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={sheetUrl}
+                onChange={(e) => {
+                  setSheetUrl(e.target.value);
+                  setFormId("");
+                  setHeaders([]);
+                  setSubmissionCount(null);
+                  setLatestSubmission(null);
+                  setNeedsShare(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void continueWithSheet();
+                  }
+                }}
+                placeholder="https://docs.google.com/spreadsheets/d/…"
+                aria-label="Google Sheet link"
+                className="pl-9"
+              />
+            </div>
             <Button
               type="button"
               onClick={() => void continueWithSheet()}
@@ -170,9 +191,42 @@ export function GoogleFormsSmsPanel({
                 <input type="hidden" name="senderId" value={senderId} />
               ) : null}
 
-              <p className="text-sm">
-                Using <span className="font-medium">{formTitle || "this sheet"}</span>
-              </p>
+              <div className="space-y-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-3">
+                <div className="flex items-start gap-2.5">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <div className="min-w-0 space-y-0.5 text-sm">
+                    <p className="font-medium">
+                      Connected — <span className="text-muted-foreground font-normal">{formTitle || "this sheet"}</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formTab ? `Tab "${formTab}" · ` : ""}
+                      {submissionCount === null
+                        ? "Checking submissions…"
+                        : `${submissionCount.toLocaleString()} submission${submissionCount === 1 ? "" : "s"} so far`}
+                      {" · "}
+                      {headers.length} column{headers.length === 1 ? "" : "s"} detected
+                    </p>
+                  </div>
+                </div>
+
+                {latestSubmission ? (
+                  <div className="rounded-lg border border-emerald-500/20 bg-background/60 px-3 py-2.5">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Most recent entry
+                    </p>
+                    <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+                      {headers.map((h) =>
+                        latestSubmission[h] ? (
+                          <div key={h} className="contents">
+                            <dt className="text-muted-foreground">{h}</dt>
+                            <dd className="truncate font-medium">{latestSubmission[h]}</dd>
+                          </div>
+                        ) : null,
+                      )}
+                    </dl>
+                  </div>
+                ) : null}
+              </div>
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium" htmlFor="phoneFieldId">
@@ -250,7 +304,9 @@ export function GoogleFormsSmsPanel({
       {automations.length > 0 ? (
         <AppCard>
           <AppCardBody className="space-y-4">
-            <h2 className="text-base font-semibold tracking-tight">Your forms</h2>
+            <h2 className="text-base font-semibold tracking-tight">
+              Your forms <span className="font-normal text-muted-foreground">({automations.length})</span>
+            </h2>
             <ul className="space-y-3">
               {automations.map((a) => (
                 <li
@@ -261,6 +317,17 @@ export function GoogleFormsSmsPanel({
                     <p className="truncate text-sm font-medium">{a.formTitle ?? "Google Sheet"}</p>
                     <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
                       {a.messageTemplate}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Phone column: <span className="font-medium text-foreground">{a.phoneFieldId}</span>
+                      {" · "}
+                      Connected {formatDistanceToNow(new Date(a.createdAt), { addSuffix: true })}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {a.sendCount.toLocaleString()} SMS sent
+                      {a.lastPolledAt
+                        ? ` · last checked ${formatDistanceToNow(new Date(a.lastPolledAt), { addSuffix: true })}`
+                        : " · not checked yet"}
                     </p>
                     {a.lastError ? (
                       <p className="mt-1 text-xs text-destructive">{a.lastError}</p>
