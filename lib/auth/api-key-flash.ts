@@ -37,11 +37,21 @@ export async function setApiKeyFlash(flash: ApiKeyFlash): Promise<void> {
   });
 }
 
-/** Read-once: returns the new secret then clears the cookie. */
-export async function consumeApiKeyFlash(): Promise<ApiKeyFlash | null> {
+/**
+ * Read-only peek — safe to call from a Server Component render.
+ * Next.js forbids mutating cookies outside a Server Action/Route Handler,
+ * so clearing the cookie happens separately via `clearApiKeyFlash`.
+ */
+export async function peekApiKeyFlash(): Promise<ApiKeyFlash | null> {
   const store = await cookies();
   const value = store.get(COOKIE_NAME)?.value;
   if (!value) return null;
+  return decodeFlash(value);
+}
+
+/** Clears the flash cookie. Must run inside a Server Action or Route Handler. */
+export async function clearApiKeyFlash(): Promise<void> {
+  const store = await cookies();
   store.set(COOKIE_NAME, "", {
     httpOnly: true,
     secure: cookieSecure(),
@@ -49,5 +59,4 @@ export async function consumeApiKeyFlash(): Promise<ApiKeyFlash | null> {
     path: "/developers/api-keys",
     maxAge: 0,
   });
-  return decodeFlash(value);
 }

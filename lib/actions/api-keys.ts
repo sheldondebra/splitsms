@@ -12,7 +12,7 @@ import {
 } from "@/lib/api/permissions";
 import { RATE_LIMIT_TIERS } from "@/lib/api/rate-limit";
 import { normalizeApiKeyBaseLabel, retiredApiKeyLabel } from "@/lib/api/key-labels";
-import { setApiKeyFlash } from "@/lib/auth/api-key-flash";
+import { setApiKeyFlash, clearApiKeyFlash } from "@/lib/auth/api-key-flash";
 
 function hashKey(raw: string) {
   return createHash("sha256").update(raw).digest("hex");
@@ -207,4 +207,9 @@ export async function listApiKeyRequestsAction(keyId: string) {
       createdAt: l.createdAt.toISOString(),
     })) satisfies ApiKeyRequestRow[],
   };
+}
+
+/** Clears the one-time "new secret" flash cookie once the client has shown it. */
+export async function clearApiKeyFlashAction() {
+  await clearApiKeyFlash();
 }

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
-import { consumeApiKeyFlash } from "@/lib/auth/api-key-flash";
+import { peekApiKeyFlash } from "@/lib/auth/api-key-flash";
 import { redirect } from "next/navigation";
 import { ApiKeysManager } from "@/components/developers/api-keys-manager";
 import { Key, FileCode2 } from "lucide-react";
@@ -20,7 +20,7 @@ export default async function DevelopersApiKeysPage({
   if (created) {
     redirect("/developers/api-keys");
   }
-  const createdFlash = await consumeApiKeyFlash();
+  const createdFlash = await peekApiKeyFlash();
 
   const [keys, wpSites, requestCounts] = await Promise.all([
     prisma.apiKey.findMany({

@@ -218,7 +218,7 @@ function MessageEventRow({
             {formatDistanceToNow(new Date(event.at), { addSuffix: true })}
           </span>
         </div>
-        {event.failureReason ? (
+        {event.status === "FAILED" && event.failureReason ? (
           <p className="rounded-md border border-destructive/20 bg-destructive/5 px-2 py-1.5 text-[11px] text-destructive">
             {event.failureReason}
           </p>

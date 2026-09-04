@@ -62,6 +62,14 @@ export const ADMIN_PERMISSION_GROUPS = [
       { id: "activity.read", label: "View activity logs" },
     ],
   },
+  {
+    id: "backups",
+    label: "Backups",
+    permissions: [
+      { id: "backups.read", label: "View & download backups" },
+      { id: "backups.write", label: "Create backups" },
+    ],
+  },
 ] as const;
 
 export const ADMIN_PERMISSIONS = ADMIN_PERMISSION_GROUPS.flatMap((g) =>

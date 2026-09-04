@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useId, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   previewSenderIdRegistrationAction,
@@ -76,10 +77,16 @@ function CompactRegisterPanel({
   disabled?: boolean;
 }) {
   const router = useRouter();
+  const formId = useId();
   const [state, formAction, pending] = useActionState(requestSenderIdAction, initialRegisterState);
   const [value, setValue] = useState(initialName);
   const [reason, setReason] = useState("");
   const [validation, setValidation] = useState<ValidationState>({ status: "idle" });
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -156,89 +163,96 @@ function CompactRegisterPanel({
 
   return (
     <div className="space-y-3 rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3">
-      <form action={formAction} className="space-y-3">
-        {state.errorCode ? (
-          <p className="text-xs text-destructive">{friendlyError(state.errorCode)}</p>
-        ) : null}
+      {/* Rendered via portal (not nested here) — this panel lives inside the main
+          send-SMS <form>, and HTML forbids nesting <form> elements. Inputs below
+          associate with it via the `form` attribute instead. */}
+      {mounted
+        ? createPortal(<form id={formId} action={formAction} />, document.body)
+        : null}
 
-        <div>
-          <Label htmlFor="send-register-sender" className="text-xs font-semibold">
-            Brand name (Sender ID)
-          </Label>
-          <Input
-            id="send-register-sender"
-            name="value"
-            value={value}
-            onChange={(e) => setValue(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
-            maxLength={SENDER_ID_MAX_LENGTH}
-            minLength={SENDER_ID_MIN_LENGTH}
-            required
-            disabled={disabled || pending}
-            placeholder="MYBRAND"
-            className="mt-1 h-10 font-mono uppercase tracking-wide"
-          />
-          <p className="text-[11px] text-muted-foreground mt-1">
-            {SENDER_ID_MIN_LENGTH}–{SENDER_ID_MAX_LENGTH} characters · letters and numbers only
+      {state.errorCode ? (
+        <p className="text-xs text-destructive">{friendlyError(state.errorCode)}</p>
+      ) : null}
+
+      <div>
+        <Label htmlFor="send-register-sender" className="text-xs font-semibold">
+          Brand name (Sender ID)
+        </Label>
+        <Input
+          id="send-register-sender"
+          name="value"
+          form={formId}
+          value={value}
+          onChange={(e) => setValue(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+          maxLength={SENDER_ID_MAX_LENGTH}
+          minLength={SENDER_ID_MIN_LENGTH}
+          required
+          disabled={disabled || pending}
+          placeholder="MYBRAND"
+          className="mt-1 h-10 font-mono uppercase tracking-wide"
+        />
+        <p className="text-[11px] text-muted-foreground mt-1">
+          {SENDER_ID_MIN_LENGTH}–{SENDER_ID_MAX_LENGTH} characters · letters and numbers only
+        </p>
+        {validation.status === "checking" ? (
+          <p className="text-[11px] text-muted-foreground mt-1">Checking availability…</p>
+        ) : null}
+        {validation.status === "ok" ? (
+          <p className="mt-1 flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400">
+            <CheckCircle2 className="h-3 w-3" />
+            Available — submit for review below
           </p>
-          {validation.status === "checking" ? (
-            <p className="text-[11px] text-muted-foreground mt-1">Checking availability…</p>
-          ) : null}
-          {validation.status === "ok" ? (
-            <p className="mt-1 flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400">
-              <CheckCircle2 className="h-3 w-3" />
-              Available — submit for review below
-            </p>
-          ) : null}
-          {validation.status === "error" ? (
-            <p
-              className={cn(
-                "mt-1 flex items-start gap-1.5 text-[11px]",
-                validation.blocked ? "text-destructive" : "text-amber-700 dark:text-amber-400",
-              )}
-            >
-              <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
-              {validation.message}
-            </p>
-          ) : null}
-        </div>
-
-        {nameOk ? (
-          <div>
-            <Label htmlFor="send-register-reason" className="text-xs font-semibold">
-              Why do you need this name?
-            </Label>
-            <Textarea
-              id="send-register-reason"
-              name="reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              rows={2}
-              required
-              minLength={MIN_REASON_LENGTH}
-              maxLength={MAX_REASON_LENGTH}
-              disabled={disabled || pending}
-              placeholder="e.g. Customers know our business as MYBRAND"
-              className="mt-1 resize-y text-sm"
-            />
-          </div>
         ) : null}
-
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit" size="sm" disabled={!canRegister} className="gap-1.5">
-            {pending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Plus className="h-3.5 w-3.5" />
+        {validation.status === "error" ? (
+          <p
+            className={cn(
+              "mt-1 flex items-start gap-1.5 text-[11px]",
+              validation.blocked ? "text-destructive" : "text-amber-700 dark:text-amber-400",
             )}
-            {pending ? "Submitting…" : `Register ${value || "Sender ID"}`}
-          </Button>
-          {onCancel ? (
-            <Button type="button" size="sm" variant="ghost" onClick={onCancel} disabled={pending}>
-              Cancel
-            </Button>
-          ) : null}
+          >
+            <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+            {validation.message}
+          </p>
+        ) : null}
+      </div>
+
+      {nameOk ? (
+        <div>
+          <Label htmlFor="send-register-reason" className="text-xs font-semibold">
+            Why do you need this name?
+          </Label>
+          <Textarea
+            id="send-register-reason"
+            name="reason"
+            form={formId}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={2}
+            required
+            minLength={MIN_REASON_LENGTH}
+            maxLength={MAX_REASON_LENGTH}
+            disabled={disabled || pending}
+            placeholder="e.g. Customers know our business as MYBRAND"
+            className="mt-1 resize-y text-sm"
+          />
         </div>
-      </form>
+      ) : null}
+
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" form={formId} size="sm" disabled={!canRegister} className="gap-1.5">
+          {pending ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Plus className="h-3.5 w-3.5" />
+          )}
+          {pending ? "Submitting…" : `Register ${value || "Sender ID"}`}
+        </Button>
+        {onCancel ? (
+          <Button type="button" size="sm" variant="ghost" onClick={onCancel} disabled={pending}>
+            Cancel
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }

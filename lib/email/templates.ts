@@ -900,6 +900,47 @@ ${params.adminUrl}
   return { subject, text, html };
 }
 
+/** A backup job finished building and is ready to download. */
+export async function backupReadyEmailContent(params: {
+  categories: string[];
+  sizeBytes: number;
+  downloadUrl: string;
+  attached: boolean;
+}) {
+  const sizeLabel =
+    params.sizeBytes > 1024 * 1024
+      ? `${(params.sizeBytes / (1024 * 1024)).toFixed(1)} MB`
+      : `${Math.max(1, Math.round(params.sizeBytes / 1024))} KB`;
+  const subject = `Your ${siteName} backup is ready`;
+  const attachedLine = params.attached
+    ? "The backup zip is attached to this email. If your email client blocks it, you can also download it with the link below (signed-in admins only)."
+    : "This backup was too large to attach here — download it with the secure link below (signed-in admins only).";
+  const text = `Your backup finished building on ${siteName}.
+
+Categories: ${params.categories.join(", ")}
+Size: ${sizeLabel}
+
+${attachedLine}
+${params.downloadUrl}
+
+— ${siteName}`;
+
+  const rows = [
+    { label: "Categories", value: params.categories.join(", ") },
+    { label: "Size", value: sizeLabel },
+  ];
+
+  const html = await renderEmailLayout({
+    headline: "Your backup is ready",
+    preheader: `${sizeLabel} · ${params.categories.length} categories`,
+    bodyHtml: `${textToEmailParagraphs(attachedLine)}${emailDetailTable(rows)}`,
+    ctaHref: params.downloadUrl,
+    ctaLabel: "Download backup",
+  });
+
+  return { subject, text, html };
+}
+
 /** Admin credited or debited wallet / SMS credits. */
 export async function adminBalanceAdjustmentEmailContent(params: {
   memberName: string;

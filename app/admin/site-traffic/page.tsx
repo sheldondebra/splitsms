@@ -6,6 +6,8 @@ import {
   AdminEmpty,
   AdminStatCard,
 } from "@/components/admin/admin-page-shell";
+import { AdminSiteTrafficChart } from "@/components/admin/admin-site-traffic-chart";
+import { AdminTrafficListCard } from "@/components/admin/admin-traffic-list-card";
 import { Ga4SettingsForm } from "@/components/admin/ga4-settings-form";
 import {
   loadGa4Config,
@@ -13,7 +15,8 @@ import {
   isGa4ServiceAccountConfigured,
 } from "@/lib/analytics/ga4-config";
 import { fetchGa4TrafficSummary } from "@/lib/analytics/ga4-client";
-import { Globe2, MousePointerClick, Radio, Timer, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Globe2, MousePointerClick, Sparkles, Timer, TrendingUp, Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +31,18 @@ function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}m ${s}s`;
+}
+
+function LiveValue({ count }: { count: number }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      {count}
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+      </span>
+    </span>
+  );
 }
 
 export default async function AdminSiteTrafficPage({
@@ -64,15 +79,21 @@ export default async function AdminSiteTrafficPage({
 
       {reportingConfigured && summary ? (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <AdminStatCard
               label="Right now"
-              value={summary.realtimeActiveUsers}
-              icon={Radio}
+              value={<LiveValue count={summary.realtimeActiveUsers} />}
+              icon={Sparkles}
               variant="primary"
-              hint="Active users in the last 30 min"
+              hint="Active in the last 30 min"
             />
             <AdminStatCard label="Users" value={summary.totals.activeUsers} icon={Users} hint={`Last ${days} days`} />
+            <AdminStatCard
+              label="New users"
+              value={summary.totals.newUsers}
+              icon={TrendingUp}
+              hint={`Last ${days} days`}
+            />
             <AdminStatCard
               label="Sessions"
               value={summary.totals.sessions}
@@ -89,7 +110,7 @@ export default async function AdminSiteTrafficPage({
               label="Avg. session"
               value={formatDuration(summary.totals.averageSessionDurationSec)}
               icon={Timer}
-              hint={`Last ${days} days`}
+              hint={`${Math.round(summary.totals.engagementRate * 100)}% engaged`}
             />
           </div>
 
@@ -98,78 +119,46 @@ export default async function AdminSiteTrafficPage({
               <a
                 key={d}
                 href={`/admin/site-traffic?days=${d}`}
-                className={
-                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
-                  (d === days
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  d === days
                     ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border/70 text-muted-foreground hover:bg-muted")
-                }
+                    : "border-border/70 text-muted-foreground hover:bg-muted",
+                )}
               >
                 {d} days
               </a>
             ))}
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <AdminCard title="Top pages" dense>
-              {summary.topPages.length === 0 ? (
-                <AdminEmpty dense>No page views recorded yet.</AdminEmpty>
-              ) : (
-                <ul className="divide-y divide-border/50 text-sm">
-                  {summary.topPages.map((p) => (
-                    <li key={p.path} className="flex items-center justify-between gap-3 py-2">
-                      <span className="truncate font-mono text-xs text-foreground">{p.path}</span>
-                      <span className="shrink-0 tabular-nums text-muted-foreground">{p.views}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </AdminCard>
+          <AdminCard title="Users & sessions" description={`Daily trend — last ${days} days`}>
+            <AdminSiteTrafficChart data={summary.daily} />
+          </AdminCard>
 
-            <AdminCard title="Traffic sources" dense>
-              {summary.channels.length === 0 ? (
-                <AdminEmpty dense>No sessions recorded yet.</AdminEmpty>
-              ) : (
-                <ul className="divide-y divide-border/50 text-sm">
-                  {summary.channels.map((c) => (
-                    <li key={c.channel} className="flex items-center justify-between gap-3 py-2">
-                      <span className="text-foreground">{c.channel || "Unassigned"}</span>
-                      <span className="shrink-0 tabular-nums text-muted-foreground">{c.sessions}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </AdminCard>
-
-            <AdminCard title="Devices" dense>
-              {summary.devices.length === 0 ? (
-                <AdminEmpty dense>No data yet.</AdminEmpty>
-              ) : (
-                <ul className="divide-y divide-border/50 text-sm">
-                  {summary.devices.map((d) => (
-                    <li key={d.device} className="flex items-center justify-between gap-3 py-2">
-                      <span className="capitalize text-foreground">{d.device}</span>
-                      <span className="shrink-0 tabular-nums text-muted-foreground">{d.users}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </AdminCard>
-
-            <AdminCard title="Countries" dense>
-              {summary.countries.length === 0 ? (
-                <AdminEmpty dense>No data yet.</AdminEmpty>
-              ) : (
-                <ul className="divide-y divide-border/50 text-sm">
-                  {summary.countries.map((c) => (
-                    <li key={c.country} className="flex items-center justify-between gap-3 py-2">
-                      <span className="text-foreground">{c.country}</span>
-                      <span className="shrink-0 tabular-nums text-muted-foreground">{c.users}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </AdminCard>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <AdminTrafficListCard
+              title="Top pages"
+              mono
+              rows={summary.topPages.map((p) => ({ label: p.path, value: p.views }))}
+              emptyLabel="No page views recorded yet."
+            />
+            <AdminTrafficListCard
+              title="Traffic sources"
+              rows={summary.channels.map((c) => ({ label: c.channel, value: c.sessions }))}
+              emptyLabel="No sessions recorded yet."
+            />
+            <AdminTrafficListCard
+              title="Browsers"
+              rows={summary.browsers.map((b) => ({ label: b.browser, value: b.users }))}
+            />
+            <AdminTrafficListCard
+              title="Devices"
+              rows={summary.devices.map((d) => ({ label: d.device, value: d.users }))}
+            />
+            <AdminTrafficListCard
+              title="Countries"
+              rows={summary.countries.map((c) => ({ label: c.country, value: c.users }))}
+            />
           </div>
         </>
       ) : reportingConfigured && fetchError ? (
@@ -178,9 +167,7 @@ export default async function AdminSiteTrafficPage({
           Viewer access on the property below.
         </AdminAlert>
       ) : (
-        <AdminEmpty>
-          Connect Google Analytics below to see traffic here.
-        </AdminEmpty>
+        <AdminEmpty>Connect Google Analytics below to see traffic here.</AdminEmpty>
       )}
 
       <Ga4SettingsForm

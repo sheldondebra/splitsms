@@ -31,6 +31,7 @@ import {
   FileBarChart2,
   Scale,
   Globe2,
+  DatabaseBackup,
 } from "lucide-react";
 
 import type { AdminPermission } from "@/lib/auth/admin-permissions";
@@ -64,6 +65,7 @@ export const adminNavSections: AdminNavSection[] = [
       { href: "/admin/live-update", label: "Live update", icon: Radio, permission: "operations.read" },
       { href: "/admin/operations", label: "Operations", icon: Activity, badge: "operations-attention", permission: "operations.read" },
       { href: "/admin/general", label: "Settings", icon: Settings, permission: "settings.read" },
+      { href: "/admin/backups", label: "Backups", icon: DatabaseBackup, permission: "backups.read" },
     ],
   },
   {

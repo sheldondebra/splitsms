@@ -61,19 +61,16 @@ export function escapeHtml(value: string) {
 /** Footer contact email — kept separate from the transactional `supportEmail` config. */
 export const footerContactEmail = "hello@splitsms.com";
 
-function emailIconDataUri(pathData: string, color: string) {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='${color}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>${pathData}</svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
-
-function footerIconRow(iconSvgUri: string, href: string, label: string, color: string) {
-  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:5px 0 0;">
+/** Footer link with a hosted icon (not a data: URI — many clients, Gmail included,
+ * refuse to render those and show a broken box instead). */
+function footerIconLink(iconUrl: string, href: string, label: string, color: string) {
+  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="display:inline-table;vertical-align:middle;">
   <tr>
-    <td width="16" style="padding:0 6px 0 0;vertical-align:middle;">
-      <img src="${iconSvgUri}" width="13" height="13" alt="" style="display:block;" />
+    <td style="padding:0 5px 0 0;vertical-align:middle;">
+      <img src="${escapeHtml(iconUrl)}" width="13" height="13" alt="" style="display:block;" />
     </td>
-    <td style="vertical-align:middle;font-size:12px;line-height:1.5;">
-      <a href="${escapeHtml(href)}" style="color:${color};text-decoration:underline;">${escapeHtml(label)}</a>
+    <td style="vertical-align:middle;">
+      <a href="${escapeHtml(href)}" style="color:${color};text-decoration:none;font-size:12px;">${escapeHtml(label)}</a>
     </td>
   </tr>
 </table>`;
@@ -110,15 +107,6 @@ function headerImageBlock(url: string) {
 export function emailLayout(params: EmailLayoutParams) {
   const siteUrl = getSiteUrl();
   const siteHost = publicSiteHost();
-  const logoUrl = `${siteUrl}/smslogo.png`;
-  const globeIconUri = emailIconDataUri(
-    '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14.5 14.5 0 0 1 0 18 14.5 14.5 0 0 1 0-18"/>',
-    emailTheme.muted,
-  );
-  const mailIconUri = emailIconDataUri(
-    '<rect x="2" y="4.5" width="20" height="15" rx="2"/><path d="m3 6.5 8.4 6.2a1 1 0 0 0 1.2 0L21 6.5"/>',
-    emailTheme.muted,
-  );
   const preheader = params.preheader ?? params.headline;
   const greeting = params.greeting
     ? `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:${emailTheme.ink};">${escapeHtml(params.greeting)}</p>`
@@ -132,8 +120,9 @@ export function emailLayout(params: EmailLayoutParams) {
       ? `<p style="margin:0 0 10px;font-size:12px;line-height:1.5;color:${emailTheme.muted};">${escapeHtml(params.footerNote.trim())}</p>`
       : "";
 
+  const logoUrl = `${siteUrl}/smslogo.png`;
   const headerBrand = `<a href="${escapeHtml(siteUrl)}" style="text-decoration:none;">
-        <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(siteName)}" width="140" style="display:block;width:140px;height:auto;border:0;" />
+        <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(siteName)}" width="140" height="47" style="display:block;width:140px;height:auto;border:0;" />
       </a>`;
 
   const headerImageUrl = params.headerImageUrl?.trim() || "";
@@ -160,7 +149,7 @@ export function emailLayout(params: EmailLayoutParams) {
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${emailTheme.pageBg};">
     <tr>
       <td align="center" style="padding:28px 12px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background:${emailTheme.cardBg};border:1px solid ${emailTheme.cardBorder};">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background:${emailTheme.cardBg};">
           <tr>
             <td style="padding:28px 32px 8px;">
               ${headerBrand}
@@ -183,9 +172,17 @@ export function emailLayout(params: EmailLayoutParams) {
           <tr>
             <td style="padding:20px 32px 28px;border-top:1px solid ${emailTheme.rule};">
               ${extraNote}
-              <p style="margin:0;font-size:13px;line-height:1.5;color:${emailTheme.ink};">${escapeHtml(siteName)}</p>
-              ${footerIconRow(globeIconUri, siteUrl, siteHost, emailTheme.muted)}
-              ${footerIconRow(mailIconUri, `mailto:${footerContactEmail}`, footerContactEmail, emailTheme.muted)}
+              <p style="margin:0 0 8px;font-size:13px;font-weight:600;line-height:1.5;color:${emailTheme.ink};">${escapeHtml(siteName)}</p>
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="padding:0 14px 0 0;">
+                    ${footerIconLink(`${siteUrl}/email-icons/globe.png`, siteUrl, siteHost, emailTheme.muted)}
+                  </td>
+                  <td>
+                    ${footerIconLink(`${siteUrl}/email-icons/mail.png`, `mailto:${footerContactEmail}`, footerContactEmail, emailTheme.muted)}
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
         </table>

@@ -24,9 +24,6 @@ process.chdir(root);
 const PROJECT = process.env.GCP_PROJECT || "splitsms";
 const SERVICE = process.env.CLOUD_RUN_SERVICE || "splitsms-staging";
 const REGION = process.env.CLOUD_RUN_REGION || "us-central1";
-const CLOUD_SQL_CONNECTION =
-  process.env.CLOUD_SQL_CONNECTION_NAME || "splitsms:us-central1:splitsms-db";
-
 const REQUIRED_KEYS = ["DATABASE_URL", "SESSION_SECRET"];
 const OPTIONAL_KEYS = [
   "REDIS_URL",
@@ -107,22 +104,6 @@ function yamlQuote(value) {
   return `"${String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
-/** Prefer Cloud SQL Auth socket URL on Cloud Run when connection name is set. */
-function cloudRunDatabaseUrl(databaseUrl) {
-  if (!CLOUD_SQL_CONNECTION) return databaseUrl;
-  try {
-    const u = new URL(databaseUrl);
-    // postgresql://user:pass@host:5432/db → socket form
-    const user = decodeURIComponent(u.username);
-    const pass = decodeURIComponent(u.password);
-    const db = u.pathname.replace(/^\//, "") || "splitsms";
-    const auth = `${encodeURIComponent(user)}:${encodeURIComponent(pass)}`;
-    return `postgresql://${auth}@/${db}?host=/cloudsql/${CLOUD_SQL_CONNECTION}`;
-  } catch {
-    return databaseUrl;
-  }
-}
-
 function isUsableRedisUrl(url) {
   if (!url?.trim()) return false;
   try {
@@ -195,7 +176,7 @@ function main() {
 
   const stagingUrl = resolveStagingUrl(env);
   const runtimeEnv = {
-    DATABASE_URL: cloudRunDatabaseUrl(env.DATABASE_URL),
+    DATABASE_URL: env.DATABASE_URL,
     SESSION_SECRET: env.SESSION_SECRET,
     NEXT_PUBLIC_APP_URL: stagingUrl,
   };
@@ -210,7 +191,6 @@ function main() {
   const envFile = writeEnvVarsFile(runtimeEnv);
   console.log(`deploy:staging → project=${PROJECT} service=${SERVICE} region=${REGION}`);
   console.log(`deploy:staging → NEXT_PUBLIC_APP_URL=${stagingUrl}`);
-  console.log(`deploy:staging → Cloud SQL=${CLOUD_SQL_CONNECTION}`);
   console.log(`deploy:staging → runtime env keys: ${Object.keys(runtimeEnv).join(", ")}`);
 
   try {
@@ -228,7 +208,6 @@ function main() {
       "--min-instances=0",
       "--max-instances=3",
       "--timeout=300",
-      `--add-cloudsql-instances=${CLOUD_SQL_CONNECTION}`,
       `--set-build-env-vars=NEXT_PUBLIC_APP_URL=${stagingUrl},DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build`,
       `--env-vars-file=${envFile}`,
       "--quiet",

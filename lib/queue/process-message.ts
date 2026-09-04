@@ -103,6 +103,9 @@ export async function processMessageJob(
         providerType: result.provider ?? "MNOTIFY",
         providerRef: result.providerRef,
         sentAt: new Date(),
+        // Clear the auto-resend marker on success — it's an internal retry flag,
+        // not a real failure reason, and shouldn't linger on a delivered message.
+        failureReason: null,
       },
     });
     await dispatchUserWebhooks(message.userId, updated);
@@ -169,12 +172,20 @@ export async function updateMessageFromDlr(
     : await prisma.message.findFirst({ where: { providerRef } });
   if (!message) return;
 
+  const hasResendMarker = message.failureReason?.startsWith("auto-resend:slow-dlr") === true;
+
   const updated = await prisma.message.update({
     where: { id: message.id },
     data: {
       status,
-      ...(status === "DELIVERED" ? { deliveredAt: new Date() } : {}),
-      ...(status === "FAILED" ? { failedAt: new Date() } : {}),
+      ...(status === "DELIVERED" ? { deliveredAt: new Date(), failureReason: null } : {}),
+      ...(status === "FAILED"
+        ? {
+            failedAt: new Date(),
+            // Don't leave the internal resend marker looking like the failure reason.
+            ...(hasResendMarker ? { failureReason: "Delivery failed (carrier report)" } : {}),
+          }
+        : {}),
     },
   });
 

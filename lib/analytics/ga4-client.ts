@@ -96,14 +96,28 @@ function rowsToRecords(report: Ga4ReportResponse): Record<string, string>[] {
 }
 
 export type Ga4TrafficSummary = {
-  totals: { activeUsers: number; sessions: number; screenPageViews: number; averageSessionDurationSec: number };
-  daily: { date: string; activeUsers: number; sessions: number }[];
+  totals: {
+    activeUsers: number;
+    newUsers: number;
+    sessions: number;
+    screenPageViews: number;
+    averageSessionDurationSec: number;
+    engagementRate: number;
+  };
+  daily: { date: string; activeUsers: number; sessions: number; newUsers: number }[];
   topPages: { path: string; views: number }[];
   channels: { channel: string; sessions: number }[];
   devices: { device: string; users: number }[];
+  browsers: { browser: string; users: number }[];
   countries: { country: string; users: number }[];
   realtimeActiveUsers: number;
 };
+
+function parseGa4Date(raw: string) {
+  // GA4 dates come back as YYYYMMDD.
+  if (/^\d{8}$/.test(raw)) return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
+  return raw;
+}
 
 /** Pulls a small, opinionated bundle of GA4 stats for the admin traffic dashboard. */
 export async function fetchGa4TrafficSummary(
@@ -112,67 +126,87 @@ export async function fetchGa4TrafficSummary(
 ): Promise<Ga4TrafficSummary> {
   const dateRange = [{ startDate: `${days}daysAgo`, endDate: "today" }];
 
-  const [totalsReport, dailyReport, pagesReport, channelReport, deviceReport, countryReport, realtime] =
-    await Promise.all([
-      callDataApi(propertyId, "runReport", {
-        dateRanges: dateRange,
-        metrics: [
-          { name: "activeUsers" },
-          { name: "sessions" },
-          { name: "screenPageViews" },
-          { name: "averageSessionDuration" },
-        ],
-      }),
-      callDataApi(propertyId, "runReport", {
-        dateRanges: dateRange,
-        dimensions: [{ name: "date" }],
-        metrics: [{ name: "activeUsers" }, { name: "sessions" }],
-        orderBys: [{ dimension: { dimensionName: "date" } }],
-      }),
-      callDataApi(propertyId, "runReport", {
-        dateRanges: dateRange,
-        dimensions: [{ name: "pagePath" }],
-        metrics: [{ name: "screenPageViews" }],
-        orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
-        limit: "10",
-      }),
-      callDataApi(propertyId, "runReport", {
-        dateRanges: dateRange,
-        dimensions: [{ name: "sessionDefaultChannelGroup" }],
-        metrics: [{ name: "sessions" }],
-        orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
-        limit: "8",
-      }),
-      callDataApi(propertyId, "runReport", {
-        dateRanges: dateRange,
-        dimensions: [{ name: "deviceCategory" }],
-        metrics: [{ name: "activeUsers" }],
-        orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
-      }),
-      callDataApi(propertyId, "runReport", {
-        dateRanges: dateRange,
-        dimensions: [{ name: "country" }],
-        metrics: [{ name: "activeUsers" }],
-        orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
-        limit: "8",
-      }),
-      callDataApi(propertyId, "runRealtimeReport", {
-        metrics: [{ name: "activeUsers" }],
-      }),
-    ]);
+  const [
+    totalsReport,
+    dailyReport,
+    pagesReport,
+    channelReport,
+    deviceReport,
+    browserReport,
+    countryReport,
+    realtime,
+  ] = await Promise.all([
+    callDataApi(propertyId, "runReport", {
+      dateRanges: dateRange,
+      metrics: [
+        { name: "activeUsers" },
+        { name: "newUsers" },
+        { name: "sessions" },
+        { name: "screenPageViews" },
+        { name: "averageSessionDuration" },
+        { name: "engagementRate" },
+      ],
+    }),
+    callDataApi(propertyId, "runReport", {
+      dateRanges: dateRange,
+      dimensions: [{ name: "date" }],
+      metrics: [{ name: "activeUsers" }, { name: "sessions" }, { name: "newUsers" }],
+      orderBys: [{ dimension: { dimensionName: "date" } }],
+    }),
+    callDataApi(propertyId, "runReport", {
+      dateRanges: dateRange,
+      dimensions: [{ name: "pagePath" }],
+      metrics: [{ name: "screenPageViews" }],
+      orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
+      limit: "10",
+    }),
+    callDataApi(propertyId, "runReport", {
+      dateRanges: dateRange,
+      dimensions: [{ name: "sessionDefaultChannelGroup" }],
+      metrics: [{ name: "sessions" }],
+      orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+      limit: "8",
+    }),
+    callDataApi(propertyId, "runReport", {
+      dateRanges: dateRange,
+      dimensions: [{ name: "deviceCategory" }],
+      metrics: [{ name: "activeUsers" }],
+      orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
+    }),
+    callDataApi(propertyId, "runReport", {
+      dateRanges: dateRange,
+      dimensions: [{ name: "browser" }],
+      metrics: [{ name: "activeUsers" }],
+      orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
+      limit: "6",
+    }),
+    callDataApi(propertyId, "runReport", {
+      dateRanges: dateRange,
+      dimensions: [{ name: "country" }],
+      metrics: [{ name: "activeUsers" }],
+      orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
+      limit: "8",
+    }),
+    callDataApi(propertyId, "runRealtimeReport", {
+      metrics: [{ name: "activeUsers" }],
+    }),
+  ]);
 
   const totalsRow = totalsReport.rows?.[0]?.metricValues ?? [];
   const totals = {
     activeUsers: Number(totalsRow[0]?.value ?? 0),
-    sessions: Number(totalsRow[1]?.value ?? 0),
-    screenPageViews: Number(totalsRow[2]?.value ?? 0),
-    averageSessionDurationSec: Math.round(Number(totalsRow[3]?.value ?? 0)),
+    newUsers: Number(totalsRow[1]?.value ?? 0),
+    sessions: Number(totalsRow[2]?.value ?? 0),
+    screenPageViews: Number(totalsRow[3]?.value ?? 0),
+    averageSessionDurationSec: Math.round(Number(totalsRow[4]?.value ?? 0)),
+    engagementRate: Number(totalsRow[5]?.value ?? 0),
   };
 
   const daily = rowsToRecords(dailyReport).map((r) => ({
-    date: r.date,
+    date: parseGa4Date(r.date),
     activeUsers: Number(r.activeUsers ?? 0),
     sessions: Number(r.sessions ?? 0),
+    newUsers: Number(r.newUsers ?? 0),
   }));
 
   const topPages = rowsToRecords(pagesReport).map((r) => ({
@@ -190,6 +224,11 @@ export async function fetchGa4TrafficSummary(
     users: Number(r.activeUsers ?? 0),
   }));
 
+  const browsers = rowsToRecords(browserReport).map((r) => ({
+    browser: r.browser,
+    users: Number(r.activeUsers ?? 0),
+  }));
+
   const countries = rowsToRecords(countryReport).map((r) => ({
     country: r.country,
     users: Number(r.activeUsers ?? 0),
@@ -197,5 +236,5 @@ export async function fetchGa4TrafficSummary(
 
   const realtimeActiveUsers = Number(realtime.rows?.[0]?.metricValues?.[0]?.value ?? 0);
 
-  return { totals, daily, topPages, channels, devices, countries, realtimeActiveUsers };
+  return { totals, daily, topPages, channels, devices, browsers, countries, realtimeActiveUsers };
 }

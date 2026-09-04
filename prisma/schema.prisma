@@ -152,6 +152,17 @@ enum SenderIdDocumentType {
   OTHER_ID
 }
 
+enum BackupStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum BackupChunkKind {
+  RAW_JSON
+  ZIP_BYTES
+}
+
 enum SenderIdProviderType {
   MNOTIFY
   TWILIO
@@ -243,6 +254,7 @@ model User {
   googleConnection          GoogleConnection?
   googleFormSmsAutomations  GoogleFormSmsAutomation[]
   senderIdVerificationDocuments SenderIdVerificationDocument[]
+  backupJobs                    BackupJob[]
 }
 
 model MemberAccount {
@@ -807,6 +819,40 @@ model SenderIdVerificationDocument {
 
   @@index([senderId])
   @@index([userId])
+}
+
+model BackupJob {
+  id             String        @id @default(cuid())
+  status         BackupStatus  @default(RUNNING)
+  categories     Json
+  filters        Json?
+  progress       Json
+  totalSteps     Int           @default(0)
+  completedSteps Int           @default(0)
+  fileSizeBytes  Int?
+  emailTo        String?
+  error          String?
+  createdById    String
+  createdBy      User          @relation(fields: [createdById], references: [id])
+  createdAt      DateTime      @default(now())
+  completedAt    DateTime?
+  chunks         BackupFileChunk[]
+
+  @@index([createdAt])
+}
+
+model BackupFileChunk {
+  id        String          @id @default(cuid())
+  backupId  String
+  backup    BackupJob       @relation(fields: [backupId], references: [id], onDelete: Cascade)
+  kind      BackupChunkKind
+  category  String?
+  index     Int
+  dataJson  Json?
+  dataBytes Bytes?
+  createdAt DateTime        @default(now())
+
+  @@index([backupId, kind, category, index])
 }
 
 model SenderIdProviderRegistration {

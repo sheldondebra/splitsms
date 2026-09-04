@@ -8,6 +8,7 @@ import {
   revokeApiKeyAction,
   rotateApiKeyAction,
   listApiKeyRequestsAction,
+  clearApiKeyFlashAction,
   type ApiKeyRequestRow,
 } from "@/lib/actions/api-keys";
 import { API_PERMISSIONS } from "@/lib/api/permissions";
@@ -498,6 +499,7 @@ export function ApiKeysManager({
       setCreateOpen(false);
       if (createdKeyId) setRevealedKeyId(createdKeyId);
     });
+    void clearApiKeyFlashAction();
   }, [createdSecret, createdKeyId]);
 
   const filtered = useMemo(() => {

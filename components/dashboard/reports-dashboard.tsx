@@ -154,7 +154,7 @@ function MessageDetails({ message }: { message: MessageLogRow }) {
         <span>Delivered: {formatReportWhen(message.deliveredAt)}</span>
         {message.failedAt && <span>Failed: {formatReportWhen(message.failedAt)}</span>}
       </div>
-      {message.failureReason && (
+      {message.status === "FAILED" && message.failureReason && (
         <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-destructive">
           {message.failureReason}
         </p>
