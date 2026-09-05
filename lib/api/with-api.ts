@@ -58,7 +58,7 @@ export function withApi(
       return apiError("FORBIDDEN", `Missing permission: ${permission}`, 403);
     }
 
-    const limit = checkRateLimit(ctx.apiKeyId, ctx.rateLimitPerMinute);
+    const limit = await checkRateLimit(ctx.apiKeyId, ctx.rateLimitPerMinute);
     if (!limit.ok) {
       await logApiRequest({
         userId: ctx.user.id,

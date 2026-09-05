@@ -943,6 +943,19 @@ model PlatformSetting {
   value Json
 }
 
+/** Durable rate-limit counters. In-memory counters don't survive across
+    serverless function instances, so every rate limit (auth, OTP, support
+    chat, API keys) is backed by this table instead. */
+model RateLimitBucket {
+  key          String    @id
+  attempts     Int       @default(0)
+  windowStart  DateTime
+  blockedUntil DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  @@index([updatedAt])
+}
+
 model WebhookEndpoint {
   id        String   @id @default(cuid())
   userId    String
