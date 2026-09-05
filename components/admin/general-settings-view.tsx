@@ -5,12 +5,16 @@ import { GeneralOfficeAlerts } from "@/components/admin/general-office-alerts";
 import { GeneralOfficeNotifyPanel } from "@/components/admin/general-office-notify-panel";
 import { GeneralSettingsTabs } from "@/components/admin/general-settings-tabs";
 import { GeneralSlackPanel } from "@/components/admin/general-slack-panel";
+import { GeneralSmsTestPanel } from "@/components/admin/general-sms-test-panel";
+import { GeneralMaintenancePanel } from "@/components/admin/general-maintenance-panel";
 import type { GeneralSettingsTab } from "@/lib/admin/general-settings-tab";
 import type { EmailOfficePublic } from "@/lib/email/office-config";
 import type { GeneralOfficeConfig } from "@/lib/general-office/config";
 import type { GatewayLastTest } from "@/lib/payments/gateway-settings";
 import type { SlackOfficeConfig } from "@/lib/slack/config-shared";
 import { isSlackConfigured, isSlackSupportThreadsConfigured } from "@/lib/slack/config-shared";
+import type { AdminSmsTestEntry } from "@/lib/admin/sms-test-history";
+import type { MaintenanceConfig } from "@/lib/admin/maintenance";
 
 type Props = {
   initialTab: GeneralSettingsTab;
@@ -35,6 +39,9 @@ type Props = {
   officeConfig: GeneralOfficeConfig;
   slackConfig: SlackOfficeConfig;
   eventsUrl: string;
+  smsTestSenderIds: string[];
+  smsTestHistory: AdminSmsTestEntry[];
+  maintenanceConfig: MaintenanceConfig;
 };
 
 export function GeneralSettingsView(props: Props) {
@@ -59,6 +66,7 @@ export function GeneralSettingsView(props: Props) {
         emailNeedsSetup={!props.configured}
         alertContacts={alertContacts}
         slackOn={slackOn}
+        maintenanceOn={props.maintenanceConfig.enabled}
         email={
           <GeneralEmailPanel
             configured={props.configured}
@@ -86,6 +94,10 @@ export function GeneralSettingsView(props: Props) {
           </>
         }
         slack={<GeneralSlackPanel config={props.slackConfig} eventsUrl={props.eventsUrl} />}
+        smsTest={
+          <GeneralSmsTestPanel senderIds={props.smsTestSenderIds} history={props.smsTestHistory} />
+        }
+        maintenance={<GeneralMaintenancePanel config={props.maintenanceConfig} />}
       />
     </div>
   );

@@ -1,8 +1,9 @@
-import { getSession, clearSession, type SessionPayload } from "@/lib/auth/session";
+import { getSession, clearSession, isAdminRole, type SessionPayload } from "@/lib/auth/session";
 import {
   getMemberAccountForUser,
   isMemberSuspended,
 } from "@/lib/admin/member-account";
+import { isMaintenanceActive } from "@/lib/admin/maintenance";
 import { redirect } from "next/navigation";
 
 /** Use in dashboard/developers layouts (Node runtime). Edge middleware cannot use Prisma. */
@@ -16,6 +17,10 @@ export async function requireActiveMemberSession(): Promise<SessionPayload> {
       await clearSession();
       redirect("/login?error=suspended");
     }
+  }
+
+  if (!isAdminRole(session.role) && (await isMaintenanceActive())) {
+    redirect("/maintenance");
   }
 
   return session;

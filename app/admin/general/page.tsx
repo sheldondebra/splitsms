@@ -20,6 +20,9 @@ import { loadGeneralOfficeConfig } from "@/lib/general-office/config";
 import { loadSlackOfficeConfig } from "@/lib/slack/config";
 import { getSiteUrl } from "@/lib/site-config";
 import { loadGatewayLastTest } from "@/lib/payments/gateway-settings";
+import { getAdminSmsTestHistory } from "@/lib/admin/sms-test-history";
+import { loadMaintenanceConfig } from "@/lib/admin/maintenance";
+import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -36,16 +39,36 @@ export default async function AdminGeneralOfficePage({
   }>;
 }) {
   const params = await searchParams;
-  const [configured, stored, raw, officeConfig, slackConfig, connectionTest, sendTest] =
-    await Promise.all([
-      isEmailConfiguredAsync(),
-      loadEmailOfficeStored(),
-      loadEmailOfficeRaw(),
-      loadGeneralOfficeConfig(),
-      loadSlackOfficeConfig(),
-      loadGatewayLastTest("email_connection_test"),
-      loadGatewayLastTest("email_send_test"),
-    ]);
+  const [
+    configured,
+    stored,
+    raw,
+    officeConfig,
+    slackConfig,
+    connectionTest,
+    sendTest,
+    smsTestSenderIdRows,
+    smsTestHistory,
+    maintenanceConfig,
+  ] = await Promise.all([
+    isEmailConfiguredAsync(),
+    loadEmailOfficeStored(),
+    loadEmailOfficeRaw(),
+    loadGeneralOfficeConfig(),
+    loadSlackOfficeConfig(),
+    loadGatewayLastTest("email_connection_test"),
+    loadGatewayLastTest("email_send_test"),
+    prisma.senderId.findMany({
+      where: { status: "APPROVED" },
+      select: { value: true },
+      distinct: ["value"],
+      orderBy: { value: "asc" },
+      take: 100,
+    }),
+    getAdminSmsTestHistory(25),
+    loadMaintenanceConfig(),
+  ]);
+  const smsTestSenderIds = smsTestSenderIdRows.map((s) => s.value);
   const envMailjetConfigured = isMailjetConfigured();
   const envSmtpConfigured = isSmtpEnvConfigured();
   const envResendConfigured = isResendEnvConfigured();
@@ -79,6 +102,9 @@ export default async function AdminGeneralOfficePage({
         officeConfig={officeConfig}
         slackConfig={slackConfig}
         eventsUrl={`${getSiteUrl()}/api/slack/events`}
+        smsTestSenderIds={smsTestSenderIds}
+        smsTestHistory={smsTestHistory}
+        maintenanceConfig={maintenanceConfig}
       />
     </AdminPage>
   );

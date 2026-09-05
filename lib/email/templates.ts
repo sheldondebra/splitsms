@@ -952,6 +952,21 @@ Thank you.`;
   return { subject, text, html };
 }
 
+/** Member-facing maintenance start/end broadcast — subject/body come from admin-edited settings. */
+export async function maintenanceNoticeEmailContent(params: {
+  subject: string;
+  bodyText: string;
+  headline: string;
+}) {
+  const html = await renderEmailLayout({
+    headline: params.headline,
+    preheader: params.bodyText.split("\n").find((line) => line.trim()) ?? params.headline,
+    bodyHtml: textToEmailParagraphs(params.bodyText),
+  });
+
+  return { subject: params.subject, text: params.bodyText, html };
+}
+
 /** A backup job finished building and is ready to download. */
 export async function backupReadyEmailContent(params: {
   categories: string[];

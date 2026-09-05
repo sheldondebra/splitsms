@@ -1,4 +1,4 @@
-export const GENERAL_SETTINGS_TABS = ["email", "alerts", "slack"] as const;
+export const GENERAL_SETTINGS_TABS = ["email", "alerts", "slack", "sms_test", "maintenance"] as const;
 
 export type GeneralSettingsTab = (typeof GENERAL_SETTINGS_TABS)[number];
 
@@ -21,7 +21,13 @@ const EMAIL_ERRORS = new Set([
 ]);
 
 function isTab(value: string | undefined): value is GeneralSettingsTab {
-  return value === "email" || value === "alerts" || value === "slack";
+  return (
+    value === "email" ||
+    value === "alerts" ||
+    value === "slack" ||
+    value === "sms_test" ||
+    value === "maintenance"
+  );
 }
 
 /** Pick the settings tab from flash/query params so save/test lands on the right panel. */

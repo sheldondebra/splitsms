@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Bell, Mail, MessageSquare } from "lucide-react";
+import { Bell, Mail, MessageSquare, Send, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { GeneralSettingsTab } from "@/lib/admin/general-settings-tab";
@@ -11,6 +11,8 @@ const TABS = [
   { id: "email" as const, label: "Email", icon: Mail },
   { id: "alerts" as const, label: "Alerts", icon: Bell },
   { id: "slack" as const, label: "Slack", icon: MessageSquare },
+  { id: "sms_test" as const, label: "SMS Test", icon: Send },
+  { id: "maintenance" as const, label: "Maintenance", icon: Wrench },
 ];
 
 export function GeneralSettingsTabs({
@@ -18,17 +20,23 @@ export function GeneralSettingsTabs({
   emailNeedsSetup,
   alertContacts,
   slackOn,
+  maintenanceOn,
   email,
   alerts,
   slack,
+  smsTest,
+  maintenance,
 }: {
   initialTab: GeneralSettingsTab;
   emailNeedsSetup: boolean;
   alertContacts: number;
   slackOn: boolean;
+  maintenanceOn: boolean;
   email: ReactNode;
   alerts: ReactNode;
   slack: ReactNode;
+  smsTest: ReactNode;
+  maintenance: ReactNode;
 }) {
   const [tab, setTab] = useState<GeneralSettingsTab>(initialTab);
 
@@ -54,7 +62,7 @@ export function GeneralSettingsTabs({
 
   return (
     <Tabs value={tab} onValueChange={onTabChange} className="gap-5">
-      <TabsList className="grid h-auto w-full min-w-0 grid-cols-3 gap-1 rounded-xl bg-muted/60 p-1">
+      <TabsList className="grid h-auto w-full min-w-0 grid-cols-3 gap-1 rounded-xl bg-muted/60 p-1 sm:grid-cols-5">
         {TABS.map(({ id, label, icon: Icon }) => (
           <TabsTrigger
             key={id}
@@ -88,6 +96,14 @@ export function GeneralSettingsTabs({
                 aria-label="Configured"
               />
             ) : null}
+            {id === "maintenance" && maintenanceOn ? (
+              <Badge
+                variant="secondary"
+                className="hidden h-4 border-transparent bg-amber-500/20 px-1.5 py-0 text-[9px] text-amber-800 sm:inline-flex dark:text-amber-200"
+              >
+                On
+              </Badge>
+            ) : null}
           </TabsTrigger>
         ))}
       </TabsList>
@@ -100,6 +116,12 @@ export function GeneralSettingsTabs({
       </TabsContent>
       <TabsContent value="slack" className="mt-0">
         {slack}
+      </TabsContent>
+      <TabsContent value="sms_test" className="mt-0">
+        {smsTest}
+      </TabsContent>
+      <TabsContent value="maintenance" className="mt-0">
+        {maintenance}
       </TabsContent>
     </Tabs>
   );
