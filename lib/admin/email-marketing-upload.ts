@@ -1,10 +1,16 @@
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { randomBytes } from "crypto";
+import { setMarketingImage } from "@/lib/admin/email-marketing-images";
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 
+/**
+ * Stores the uploaded image as a base64 blob in Postgres and returns a public
+ * URL served by /api/email-marketing/blob/[filename]. Vercel's function
+ * filesystem is read-only (aside from /tmp, which isn't publicly servable
+ * and doesn't persist across invocations), so the database is the only
+ * durable place to keep these — not a fallback for local disk storage.
+ */
 export async function saveEmailMarketingImageUpload(file: File) {
   if (!file || file.size <= 0) {
     throw new Error("No file uploaded");
@@ -25,22 +31,12 @@ export async function saveEmailMarketingImageUpload(file: File) {
           ? "gif"
           : "jpg";
 
-  const dir = path.join(process.cwd(), "public", "uploads", "email-marketing");
-  await mkdir(dir, { recursive: true });
-
   const filename = `${Date.now()}-${randomBytes(4).toString("hex")}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(dir, filename), buffer);
 
-  const publicPath = `/uploads/email-marketing/${filename}`;
-  try {
-    const { setMarketingImage } = await import("@/lib/admin/email-marketing-images");
-    await setMarketingImage("blob", filename, `data:${file.type};base64,${buffer.toString("base64")}`);
-  } catch {
-    // Send still works from disk in local/dev.
-  }
+  await setMarketingImage("blob", filename, `data:${file.type};base64,${buffer.toString("base64")}`);
 
-  return publicPath;
+  return `/api/email-marketing/blob/${filename}`;
 }
 
 /** Prefer an uploaded file; otherwise the pasted/picked imageUrl field. */

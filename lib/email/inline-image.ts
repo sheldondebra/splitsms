@@ -55,7 +55,9 @@ function fromDataUrl(raw: string) {
 function uploadBasename(url: string): string | null {
   try {
     const pathname = url.startsWith("http") ? new URL(url).pathname : url;
-    const match = pathname.match(/\/uploads\/email-marketing\/([^/?#]+)$/);
+    const match =
+      pathname.match(/\/uploads\/email-marketing\/([^/?#]+)$/) ??
+      pathname.match(/\/api\/email-marketing\/blob\/([^/?#]+)$/);
     return match?.[1] ?? null;
   } catch {
     return null;
