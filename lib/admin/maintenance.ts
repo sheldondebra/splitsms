@@ -6,6 +6,8 @@ export type MaintenanceConfig = {
   enabled: boolean;
   message: string;
   startedAt: string | null;
+  /** When set and reached, maintenance auto-clears the next time anyone checks status. */
+  scheduledEndAt: string | null;
   startEmailSubject: string;
   startEmailBody: string;
   startSmsBody: string;
@@ -25,6 +27,7 @@ export function defaultMaintenanceConfig(): MaintenanceConfig {
     enabled: false,
     message: DEFAULT_START_MESSAGE,
     startedAt: null,
+    scheduledEndAt: null,
     startEmailSubject: "SplitSMS is undergoing scheduled maintenance",
     startEmailBody:
       "Hello,\n\nWe're currently performing scheduled maintenance on SplitSMS to improve reliability and add new features. During this time you won't be able to sign in or send messages.\n\nWe expect to be back online shortly and appreciate your patience.\n\nThank you for choosing SplitSMS.",
@@ -52,8 +55,33 @@ export async function saveMaintenanceConfig(config: MaintenanceConfig) {
   });
 }
 
-/** Cheap, cached-per-request check for gating member-facing pages. */
-export async function isMaintenanceActive(): Promise<boolean> {
+export type MaintenanceStatus = {
+  active: boolean;
+  startedAt: string | null;
+  scheduledEndAt: string | null;
+};
+
+/**
+ * Per-request status check, safe to call from any admin surface or the
+ * member-gate. Self-heals a scheduled auto-off: if the scheduled end time has
+ * passed, this clears `enabled` right here — there's no persistent worker to
+ * run a timer against, so every status check doubles as the tick that
+ * expires it.
+ */
+export async function getMaintenanceStatus(): Promise<MaintenanceStatus> {
   const config = await loadMaintenanceConfig();
-  return config.enabled;
+  if (!config.enabled) return { active: false, startedAt: null, scheduledEndAt: null };
+
+  if (config.scheduledEndAt && new Date(config.scheduledEndAt).getTime() <= Date.now()) {
+    await saveMaintenanceConfig({ ...config, enabled: false, scheduledEndAt: null });
+    return { active: false, startedAt: null, scheduledEndAt: null };
+  }
+
+  return { active: true, startedAt: config.startedAt, scheduledEndAt: config.scheduledEndAt };
+}
+
+/** Cheap boolean check for gating member-facing pages. */
+export async function isMaintenanceActive(): Promise<boolean> {
+  const status = await getMaintenanceStatus();
+  return status.active;
 }

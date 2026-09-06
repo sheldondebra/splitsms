@@ -6,12 +6,13 @@ import { getSession, isAdminRole } from "@/lib/auth/session";
 import type { AdminActor } from "@/lib/auth/admin-route-access";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { isMaintenanceActive } from "@/lib/admin/maintenance";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   if (!session || !isAdminRole(session.role)) redirect("/dashboard");
 
-  const [badges, user, impersonation] = await Promise.all([
+  const [badges, user, impersonation, maintenanceOn] = await Promise.all([
     getAdminNavBadges(),
     prisma.user.findUnique({
       where: { id: session.userId },
@@ -24,6 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       },
     }),
     readImpersonationCookie(),
+    isMaintenanceActive(),
   ]);
 
   if (!user) redirect("/login");
@@ -51,6 +53,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         "pending-reseller-payouts": badges["pending-reseller-payouts"],
       }}
       badgePreviews={badges.previews}
+      maintenanceOn={maintenanceOn}
       banner={
         impersonation?.kind === "staff" && impersonation.targetName
           ? <AdminStaffImpersonationBanner staffName={impersonation.targetName} />

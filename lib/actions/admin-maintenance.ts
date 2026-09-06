@@ -45,9 +45,11 @@ export async function toggleMaintenanceModeAction(input: {
     ...current,
     enabled: input.enabled,
     startedAt: input.enabled ? new Date().toISOString() : current.startedAt,
+    scheduledEndAt: null,
   };
   await saveMaintenanceConfig(next);
   revalidatePath("/admin/general");
+  revalidatePath("/admin");
 
   if (!input.notifyEmail && !input.notifySms) {
     return {
@@ -70,5 +72,27 @@ export async function toggleMaintenanceModeAction(input: {
   return {
     ok: true,
     message: `Maintenance mode is ${input.enabled ? "on" : "off"}. Notified ${parts.join(" and ")} (of ${result.audienceSize} members).`,
+  };
+}
+
+export async function setMaintenanceScheduleAction(input: {
+  scheduledEndAt: string | null;
+}): Promise<{ ok: boolean; message: string }> {
+  await requireAdmin();
+  const current = await loadMaintenanceConfig();
+
+  if (input.scheduledEndAt && new Date(input.scheduledEndAt).getTime() <= Date.now()) {
+    return { ok: false, message: "Pick a time in the future." };
+  }
+
+  await saveMaintenanceConfig({ ...current, scheduledEndAt: input.scheduledEndAt });
+  revalidatePath("/admin/general");
+  revalidatePath("/admin");
+
+  return {
+    ok: true,
+    message: input.scheduledEndAt
+      ? `Maintenance will automatically turn off at ${new Date(input.scheduledEndAt).toLocaleString()}.`
+      : "Auto-off schedule cleared.",
   };
 }

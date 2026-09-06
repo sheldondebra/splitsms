@@ -11,11 +11,13 @@ import { AdminTopbarSearch } from "@/components/admin/admin-topbar-search";
 import { AdminTopbarQueuePill } from "@/components/admin/admin-topbar-queue-pill";
 import { AdminTopbarClock } from "@/components/admin/admin-topbar-clock";
 import { ThemeToggle } from "@/components/theme-toggle";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 import type { HeaderAccountProfile } from "@/lib/user/header-account-types";
 import type { AdminActor } from "@/lib/auth/admin-route-access";
 import { getAdminPageTitle } from "@/lib/navigation/admin-nav";
 import type { AdminNavBadgePreviews } from "@/lib/analytics/admin-dashboard";
-import { Shield } from "lucide-react";
+import { Shield, Wrench } from "lucide-react";
 import type { AdminNavItem } from "@/lib/navigation/admin-nav";
 
 type AdminAppShellProps = {
@@ -26,6 +28,7 @@ type AdminAppShellProps = {
   banner?: React.ReactNode;
   badges?: Partial<Record<NonNullable<AdminNavItem["badge"]>, number>>;
   badgePreviews?: AdminNavBadgePreviews;
+  maintenanceOn?: boolean;
 };
 
 export function AdminAppShell({
@@ -36,6 +39,7 @@ export function AdminAppShell({
   banner,
   badges,
   badgePreviews,
+  maintenanceOn,
 }: AdminAppShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -81,6 +85,17 @@ export function AdminAppShell({
 
           <div className="flex items-center gap-3 shrink-0">
             <AdminTopbarClock />
+            {maintenanceOn && (
+              <Link href="/admin/general?tab=maintenance">
+                <Badge
+                  variant="outline"
+                  className="hidden items-center gap-1 border-amber-500/40 bg-amber-500/10 text-amber-800 sm:inline-flex dark:text-amber-200"
+                >
+                  <Wrench className="h-3 w-3" />
+                  Maintenance on
+                </Badge>
+              </Link>
+            )}
             {attention > 0 && (
               <div className="hidden xl:flex items-center gap-2">
                 <AdminTopbarQueuePill

@@ -3,6 +3,8 @@ import { getAdminDashboardOverview } from "@/lib/analytics/admin-dashboard";
 import { getAdminOperationsDashboard } from "@/lib/admin/operations-dashboard";
 import { getAdminReportsOverview } from "@/lib/admin/messages-dashboard";
 import { getCreditCoverSnapshot } from "@/lib/admin/credit-cover-dashboard";
+import { getMaintenanceStatus } from "@/lib/admin/maintenance";
+import { format } from "date-fns";
 import { AdminOperationsPanel } from "@/components/admin/admin-operations-panel";
 import { AdminPlatformOverview } from "@/components/admin/admin-platform-overview";
 import {
@@ -29,6 +31,7 @@ import {
   FileText,
   Megaphone,
   LifeBuoy,
+  Wrench,
 } from "lucide-react";
 
 const quickActions: {
@@ -70,10 +73,11 @@ export default async function AdminDashboardPage({
   }>;
 }) {
   const params = await searchParams;
-  const [stats, operations, sms] = await Promise.all([
+  const [stats, operations, sms, maintenance] = await Promise.all([
     getAdminDashboardOverview(),
     getAdminOperationsDashboard(),
     getAdminReportsOverview(),
+    getMaintenanceStatus(),
   ]);
   const creditCover = await getCreditCoverSnapshot(stats.providerBalances);
 
@@ -110,6 +114,33 @@ export default async function AdminDashboardPage({
           {(parseFlashParam(params.resumed) ?? 0) === 1 ? "" : "s"} resumed, and{" "}
           {parseFlashParam(params.balances) ?? 0} provider balance
           {(parseFlashParam(params.balances) ?? 0) === 1 ? "" : "s"} checked.
+        </AdminAlert>
+      )}
+
+      {maintenance.active && (
+        <AdminAlert variant="warning">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Wrench className="h-4 w-4 shrink-0" />
+              <div>
+                <p className="font-semibold">Maintenance mode is on</p>
+                <p className="text-xs mt-0.5 opacity-90">
+                  {maintenance.startedAt
+                    ? `Since ${format(new Date(maintenance.startedAt), "MMM d, yyyy · HH:mm")}`
+                    : "Members and resellers are seeing the maintenance page."}
+                  {maintenance.scheduledEndAt
+                    ? ` · Auto-off at ${format(new Date(maintenance.scheduledEndAt), "MMM d, HH:mm")}`
+                    : ""}
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/admin/general?tab=maintenance"
+              className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+            >
+              Manage
+            </Link>
+          </div>
         </AdminAlert>
       )}
 

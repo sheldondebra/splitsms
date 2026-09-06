@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Wrench } from "lucide-react";
+import { format } from "date-fns";
+import { Wrench, Clock } from "lucide-react";
 import { AuthLayout, AuthCard } from "@/components/auth/auth-layout";
 import { MaintenancePoller } from "@/components/maintenance/maintenance-poller";
 import { loadMaintenanceConfig } from "@/lib/admin/maintenance";
@@ -32,6 +33,12 @@ export default async function MaintenancePage() {
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
             {config.message}
           </p>
+          {config.scheduledEndAt ? (
+            <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              Expected back {format(new Date(config.scheduledEndAt), "MMM d, yyyy · HH:mm")}
+            </p>
+          ) : null}
           <MaintenancePoller />
         </div>
       </AuthCard>
