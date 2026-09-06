@@ -18,7 +18,8 @@ function parseStatus(value: string | undefined): StatusFilter {
     value === "PENDING" ||
     value === "COMPLETED" ||
     value === "FAILED" ||
-    value === "CANCELLED"
+    value === "CANCELLED" ||
+    value === "REFUNDED"
   ) {
     return value;
   }

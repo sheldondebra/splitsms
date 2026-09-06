@@ -3,6 +3,7 @@ import {
   ArrowUpRight,
   Gift,
   RefreshCw,
+  RotateCcw,
   Settings2,
   ShoppingCart,
   Users,
@@ -24,6 +25,7 @@ export const TX_META: Record<string, TransactionMeta> = {
   ADMIN_ADJUSTMENT: { label: "Balance adjustment", icon: Settings2, credit: true, filter: "in" },
   PROMO_CREDIT: { label: "Promo bonus", icon: Gift, credit: true, filter: "in" },
   RESELLER_SUB_FUND: { label: "Sub-user funding", icon: Users, credit: false, filter: "out" },
+  PAYMENT_REFUND: { label: "Payment refund", icon: RotateCcw, credit: false, filter: "out" },
 };
 
 export type TransactionFilter = "all" | "in" | "out" | "sms" | "topup" | "refund";

@@ -15,6 +15,7 @@ import {
   creditProviderPaymentAction,
   fetchProviderTransactionDetailsAction,
 } from "@/lib/actions/admin-payments";
+import { RefundPaymentDialog } from "@/components/admin/refund-payment-dialog";
 import type { SerializedAdminPayment } from "@/lib/admin/payments-serialize";
 import type { ProviderTransactionDetails } from "@/lib/payments/provider-transaction-details";
 import { methodLabel } from "@/lib/payments/payment-display";
@@ -28,12 +29,13 @@ import {
   CreditCard,
   ExternalLink,
   RefreshCw,
+  RotateCcw,
   Search,
   Wallet,
 } from "lucide-react";
 
 type ProviderFilter = "all" | "paystack" | "stripe";
-type StatusFilter = "all" | "PENDING" | "COMPLETED" | "FAILED" | "CANCELLED";
+type StatusFilter = "all" | "PENDING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED";
 
 type LiveCache = Record<string, ProviderTransactionDetails>;
 
@@ -56,6 +58,7 @@ function statusBadgeClass(status: SerializedAdminPayment["status"]) {
   if (status === "COMPLETED") return "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-transparent";
   if (status === "PENDING") return "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-transparent";
   if (status === "FAILED") return "bg-destructive/15 text-destructive border-transparent";
+  if (status === "REFUNDED") return "bg-violet-500/15 text-violet-800 dark:text-violet-300 border-transparent";
   return "bg-muted text-muted-foreground border-transparent";
 }
 
@@ -96,6 +99,7 @@ export function AdminProviderTransactionsView({ payments, filters, pagination }:
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [actionId, setActionId] = useState<string | null>(null);
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
 
   const selected = useMemo(
     () => payments.find((p) => p.id === selectedId) ?? null,
@@ -201,6 +205,7 @@ export function AdminProviderTransactionsView({ payments, filters, pagination }:
               <option value="COMPLETED">Completed</option>
               <option value="FAILED">Failed</option>
               <option value="CANCELLED">Cancelled</option>
+              <option value="REFUNDED">Refunded</option>
             </select>
           </label>
           <Button type="submit" size="sm" className="h-9">
@@ -530,6 +535,18 @@ export function AdminProviderTransactionsView({ payments, filters, pagination }:
                       Credit wallet
                     </Button>
                   )}
+                  {(selected.status === "COMPLETED" || selected.status === "REFUNDED") && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 border-amber-500/40 text-amber-800 hover:bg-amber-500/10 dark:text-amber-200"
+                      onClick={() => setRefundDialogOpen(true)}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Refund
+                    </Button>
+                  )}
                   <Link
                     href="/admin/payments?tab=pending"
                     className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}
@@ -542,6 +559,19 @@ export function AdminProviderTransactionsView({ payments, filters, pagination }:
           </AdminCard>
         </aside>
       </div>
+
+      {selected && (selected.method === "STRIPE" || selected.method === "PAYSTACK") && (
+        <RefundPaymentDialog
+          payment={{
+            id: selected.id,
+            method: selected.method,
+            currency: selected.currency,
+            userFullName: selected.user.fullName,
+          }}
+          open={refundDialogOpen}
+          onOpenChange={setRefundDialogOpen}
+        />
+      )}
     </AdminPage>
   );
 }

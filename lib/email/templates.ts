@@ -1268,6 +1268,59 @@ View your invoices: ${params.invoicesUrl}
   return { subject, text, html };
 }
 
+export async function paymentRefundIssuedEmailContent(params: {
+  memberName: string;
+  amount: number;
+  currency: string;
+  method: "STRIPE" | "PAYSTACK";
+  reason?: string;
+  walletUrl: string;
+}) {
+  const amountLine = `${params.currency} ${params.amount.toFixed(2)}`;
+  const methodLabel = params.method === "STRIPE" ? "card" : "Paystack";
+  const subject = `${siteName} — refund of ${amountLine} issued`;
+  const timing =
+    params.method === "STRIPE"
+      ? "Card refunds usually appear on your statement within 5–10 business days, depending on your bank."
+      : "Card refunds usually take 5–10 business days to reflect. Mobile money and bank transfer refunds are often faster.";
+
+  const summary = `We've issued a refund of ${amountLine} to the ${methodLabel} you paid with.`;
+
+  const detailRows: { label: string; value: string; mono?: boolean }[] = [
+    { label: "Amount", value: amountLine },
+    { label: "Refunded to", value: params.method === "STRIPE" ? "Original card" : "Original payment method" },
+  ];
+  if (params.reason) {
+    detailRows.push({ label: "Reason", value: params.reason });
+  }
+
+  const text = `Hi ${params.memberName},
+
+${summary}
+
+${detailRows.map((r) => `${r.label}: ${r.value}`).join("\n")}
+
+${timing}
+
+Check your wallet: ${params.walletUrl}
+
+If you have any questions about this refund, just reply to this email.
+
+— ${siteName}`;
+
+  const html = await renderEmailLayout({
+    headline: "Refund issued",
+    preheader: `${amountLine} refunded`,
+    greeting: `Hi ${params.memberName},`,
+    bodyHtml: `${textToEmailParagraphs(summary)}${emailDetailTable(detailRows)}${textToEmailParagraphs(timing)}`,
+    ctaHref: params.walletUrl,
+    ctaLabel: "View wallet",
+    footerNote: `Questions about this refund? Just reply to this email.`,
+  });
+
+  return { subject, text, html };
+}
+
 function supportStatusLabel(status: string): string {
   const upper = status.toUpperCase();
   if (upper === "IN_PROGRESS") return "In progress";

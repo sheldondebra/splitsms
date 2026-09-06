@@ -47,6 +47,7 @@ enum PaymentStatus {
   COMPLETED
   FAILED
   CANCELLED
+  REFUNDED
 }
 
 enum TransactionType {
@@ -58,6 +59,14 @@ enum TransactionType {
   PROMO_CREDIT
   RESELLER_SUB_FUND
   RESELLER_PAYOUT
+  PAYMENT_REFUND
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
 }
 
 enum ResellerStatus {
@@ -199,82 +208,84 @@ enum NotificationType {
 }
 
 model User {
-  id               String          @id @default(cuid())
-  accountNumber    Int?            @unique
-  fullName         String
-  phone            String          @unique
-  countryCode      String
-  passwordHash     String
-  role             UserRole        @default(MEMBER)
-  staffPermissions String[]        @default([])
-  referralCode     String?
-  email            String?         @unique
-  googleId         String?         @unique
-  isVerified       Boolean         @default(false)
-  failedLoginCount Int             @default(0)
-  lockedUntil      DateTime?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  wallet         Wallet?
-  smsCredit      SmsCredit?
-  transactions   Transaction[]
-  payments       Payment[]
-  contacts       Contact[]
-  contactGroups  ContactGroup[]
-  campaigns      Campaign[]
-  messages       Message[]
-  senderIds      SenderId[]
-  apiKeys        ApiKey[]
-  otpSessions    OtpSession[]
-  supportTickets    SupportTicket[]
-  supportReplies    SupportTicketReply[] @relation("SupportReplies")
-  auditLogs         AuditLog[]         @relation("AuditActor")
-  webhookEndpoints  WebhookEndpoint[]
-  apiLogs           ApiLog[]
-  sessions          UserSession[]
-  notifications     Notification[]
-  smsTemplates      SmsTemplate[]
-  automations       AutomationWorkflow[]
-  customPricing     UserSmsPricing[]
-  invoices          Invoice[]
-  promoRedemptions  PromoRedemption[]
-  reseller          Reseller?
-  resellerMembership ResellerUser?
-  enterpriseAccount EnterpriseAccount?
-  wordpressSites   WordPressSite[]
-  wordpressLogs    WordPressLog[]
-  memberAccount    MemberAccount?
-  connectCustomersAsPartner ConnectCustomer[] @relation("ConnectPartner")
-  connectCustomerProfile    ConnectCustomer?  @relation("ConnectCustomer")
-  smartForms                SmartForm[]
-  smartFormResponses        SmartFormResponse[]
-  smartFormAnalyticsEvents  SmartFormAnalyticsEvent[]
-  smartFormExports          SmartFormExport[]
-  emailMarketingCampaigns   EmailMarketingCampaign[] @relation("EmailMarketingCampaignCreator")
-  googleConnection          GoogleConnection?
-  googleFormSmsAutomations  GoogleFormSmsAutomation[]
+  id                            String                         @id @default(cuid())
+  accountNumber                 Int?                           @unique
+  fullName                      String
+  phone                         String                         @unique
+  countryCode                   String
+  passwordHash                  String
+  role                          UserRole                       @default(MEMBER)
+  staffPermissions              String[]                       @default([])
+  referralCode                  String?
+  email                         String?                        @unique
+  googleId                      String?                        @unique
+  isVerified                    Boolean                        @default(false)
+  failedLoginCount              Int                            @default(0)
+  lockedUntil                   DateTime?
+  createdAt                     DateTime                       @default(now())
+  updatedAt                     DateTime                       @updatedAt
+  wallet                        Wallet?
+  smsCredit                     SmsCredit?
+  transactions                  Transaction[]
+  payments                      Payment[]
+  refundsReceived               Refund[]                       @relation("MemberRefunds")
+  refundsIssued                 Refund[]                       @relation("RefundInitiator")
+  contacts                      Contact[]
+  contactGroups                 ContactGroup[]
+  campaigns                     Campaign[]
+  messages                      Message[]
+  senderIds                     SenderId[]
+  apiKeys                       ApiKey[]
+  otpSessions                   OtpSession[]
+  supportTickets                SupportTicket[]
+  supportReplies                SupportTicketReply[]           @relation("SupportReplies")
+  auditLogs                     AuditLog[]                     @relation("AuditActor")
+  webhookEndpoints              WebhookEndpoint[]
+  apiLogs                       ApiLog[]
+  sessions                      UserSession[]
+  notifications                 Notification[]
+  smsTemplates                  SmsTemplate[]
+  automations                   AutomationWorkflow[]
+  customPricing                 UserSmsPricing[]
+  invoices                      Invoice[]
+  promoRedemptions              PromoRedemption[]
+  reseller                      Reseller?
+  resellerMembership            ResellerUser?
+  enterpriseAccount             EnterpriseAccount?
+  wordpressSites                WordPressSite[]
+  wordpressLogs                 WordPressLog[]
+  memberAccount                 MemberAccount?
+  connectCustomersAsPartner     ConnectCustomer[]              @relation("ConnectPartner")
+  connectCustomerProfile        ConnectCustomer?               @relation("ConnectCustomer")
+  smartForms                    SmartForm[]
+  smartFormResponses            SmartFormResponse[]
+  smartFormAnalyticsEvents      SmartFormAnalyticsEvent[]
+  smartFormExports              SmartFormExport[]
+  emailMarketingCampaigns       EmailMarketingCampaign[]       @relation("EmailMarketingCampaignCreator")
+  googleConnection              GoogleConnection?
+  googleFormSmsAutomations      GoogleFormSmsAutomation[]
   senderIdVerificationDocuments SenderIdVerificationDocument[]
   backupJobs                    BackupJob[]
 }
 
 model MemberAccount {
-  userId           String              @id
-  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status           MemberAccountStatus @default(ACTIVE)
-  suspendedReason  String?
-  suspendedAt      DateTime?
-  maxSenderIds     Int                 @default(5)
-  senderIdsBlocked Boolean             @default(false)
-  assignedProvider SmsProviderType?
-  featureApi       Boolean             @default(true)
-  featureCampaigns Boolean             @default(true)
-  featureWebhooks  Boolean             @default(true)
-  featureBulkSms   Boolean             @default(true)
-  featureWordPress Boolean             @default(true)
-  adminNote        String?
+  userId                String              @id
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status                MemberAccountStatus @default(ACTIVE)
+  suspendedReason       String?
+  suspendedAt           DateTime?
+  maxSenderIds          Int                 @default(5)
+  senderIdsBlocked      Boolean             @default(false)
+  assignedProvider      SmsProviderType?
+  featureApi            Boolean             @default(true)
+  featureCampaigns      Boolean             @default(true)
+  featureWebhooks       Boolean             @default(true)
+  featureBulkSms        Boolean             @default(true)
+  featureWordPress      Boolean             @default(true)
+  adminNote             String?
   onboardingCompletedAt DateTime?
-  updatedAt        DateTime            @updatedAt
-  updatedById      String?
+  updatedAt             DateTime            @updatedAt
+  updatedById           String?
 
   @@index([status])
 }
@@ -286,43 +297,43 @@ enum ResellerClientSignupSource {
 }
 
 model Reseller {
-  id             String         @id @default(cuid())
-  userId         String         @unique
-  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  businessName   String
-  brandName      String?
-  domain         String?        @unique
-  inviteCode     String?        @unique
-  inviteShareViews   Int        @default(0)
-  inviteDomainViews  Int        @default(0)
+  id                 String                   @id @default(cuid())
+  userId             String                   @unique
+  user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName       String
+  brandName          String?
+  domain             String?                  @unique
+  inviteCode         String?                  @unique
+  inviteShareViews   Int                      @default(0)
+  inviteDomainViews  Int                      @default(0)
   inviteLastViewedAt DateTime?
-  commissionRate Decimal        @default(10) @db.Decimal(5, 2)
-  status         ResellerStatus @default(PENDING)
-  isActive       Boolean        @default(true)
-  dailySmsLimit  Int?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  subUsers       ResellerUser[]
-  commissions    ResellerCommission[]
-  countryPricing ResellerCountryPricing[]
-  branding       WhiteLabelBrand?
-  paymentSettings ResellerPaymentSettings?
-  payoutRequests ResellerPayoutRequest[]
-  promoCodes     PromoCode[]
+  commissionRate     Decimal                  @default(10) @db.Decimal(5, 2)
+  status             ResellerStatus           @default(PENDING)
+  isActive           Boolean                  @default(true)
+  dailySmsLimit      Int?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  subUsers           ResellerUser[]
+  commissions        ResellerCommission[]
+  countryPricing     ResellerCountryPricing[]
+  branding           WhiteLabelBrand?
+  paymentSettings    ResellerPaymentSettings?
+  payoutRequests     ResellerPayoutRequest[]
+  promoCodes         PromoCode[]
 
   @@index([status])
 }
 
 model ResellerUser {
-  id            String   @id @default(cuid())
+  id            String                     @id @default(cuid())
   resellerId    String
-  reseller      Reseller @relation(fields: [resellerId], references: [id], onDelete: Cascade)
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reseller      Reseller                   @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  userId        String                     @unique
+  user          User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
   signupSource  ResellerClientSignupSource @default(MANUAL)
   dailySmsLimit Int?
-  isSuspended   Boolean  @default(false)
-  createdAt     DateTime @default(now())
+  isSuspended   Boolean                    @default(false)
+  createdAt     DateTime                   @default(now())
 
   @@index([resellerId])
 }
@@ -483,22 +494,23 @@ model SmsCredit {
 }
 
 model Transaction {
-  id             String          @id @default(cuid())
-  userId         String
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type           TransactionType
-  amount         Decimal         @db.Decimal(14, 2)
-  currency       String          @default("GHS")
-  credits        Int?
-  description    String?
-  reference      String?
-  status         String          @default("completed")
-  balanceBefore  Decimal?        @db.Decimal(14, 2)
-  balanceAfter   Decimal?        @db.Decimal(14, 2)
-  metadata       Json?
-  paymentId      String?
-  payment        Payment?        @relation(fields: [paymentId], references: [id])
-  createdAt      DateTime        @default(now())
+  id            String          @id @default(cuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          TransactionType
+  amount        Decimal         @db.Decimal(14, 2)
+  currency      String          @default("GHS")
+  credits       Int?
+  description   String?
+  reference     String?
+  status        String          @default("completed")
+  balanceBefore Decimal?        @db.Decimal(14, 2)
+  balanceAfter  Decimal?        @db.Decimal(14, 2)
+  metadata      Json?
+  paymentId     String?
+  payment       Payment?        @relation(fields: [paymentId], references: [id])
+  createdAt     DateTime        @default(now())
+  refund        Refund?
 
   @@index([userId, createdAt])
   @@index([reference])
@@ -519,9 +531,36 @@ model Payment {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   transactions      Transaction[]
+  refunds           Refund[]
 
   @@index([userId, status])
   @@index([method, status])
+}
+
+model Refund {
+  id               String        @id @default(cuid())
+  paymentId        String
+  payment          Payment       @relation(fields: [paymentId], references: [id])
+  userId           String
+  user             User          @relation("MemberRefunds", fields: [userId], references: [id], onDelete: Cascade)
+  amount           Decimal       @db.Decimal(14, 2)
+  currency         String        @default("GHS")
+  provider         PaymentMethod
+  status           RefundStatus  @default(PENDING)
+  reason           String?
+  providerRefundId String?
+  failureReason    String?
+  walletDebited    Decimal       @default(0) @db.Decimal(14, 2)
+  metadata         Json?
+  initiatedById    String
+  initiatedBy      User          @relation("RefundInitiator", fields: [initiatedById], references: [id])
+  transactionId    String?       @unique
+  transaction      Transaction?  @relation(fields: [transactionId], references: [id])
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([paymentId])
+  @@index([userId, createdAt])
 }
 
 model Country {
@@ -535,11 +574,11 @@ model Country {
 }
 
 model SmsPricing {
-  id            String  @id @default(cuid())
-  countryId     String  @unique
-  country       Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
-  provider      String  @default("mNotify")
-  creditsPerSms Int     @default(1)
+  id            String   @id @default(cuid())
+  countryId     String   @unique
+  country       Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  provider      String   @default("mNotify")
+  creditsPerSms Int      @default(1)
   costPrice     Decimal  @default(0.02) @db.Decimal(10, 4)
   memberPrice   Decimal  @db.Decimal(10, 4)
   resellerPrice Decimal? @db.Decimal(10, 4)
@@ -580,18 +619,18 @@ model Invoice {
 }
 
 model PromoCode {
-  id          String        @id @default(cuid())
-  code        String        @unique
+  id          String            @id @default(cuid())
+  code        String            @unique
   type        PromoCodeType
-  value       Decimal       @db.Decimal(14, 2)
+  value       Decimal           @db.Decimal(14, 2)
   maxUses     Int?
-  usedCount   Int           @default(0)
+  usedCount   Int               @default(0)
   expiresAt   DateTime?
-  isActive    Boolean       @default(true)
+  isActive    Boolean           @default(true)
   userId      String?
   resellerId  String?
-  reseller    Reseller?     @relation(fields: [resellerId], references: [id], onDelete: Cascade)
-  createdAt   DateTime      @default(now())
+  reseller    Reseller?         @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime          @default(now())
   redemptions PromoRedemption[]
 
   @@index([resellerId])
@@ -786,20 +825,20 @@ model SmsRoutingLog {
 }
 
 model SenderId {
-  id                  String         @id @default(cuid())
-  userId              String
-  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  value               String
-  countryCode         String
-  status              SenderIdStatus @default(PENDING)
-  isDefault           Boolean        @default(false)
-  adminNote           String?
-  providerStatus      String?
-  providerSubmittedAt DateTime?
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
-  providerRegistrations  SenderIdProviderRegistration[]
-  verificationDocuments  SenderIdVerificationDocument[]
+  id                    String                         @id @default(cuid())
+  userId                String
+  user                  User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value                 String
+  countryCode           String
+  status                SenderIdStatus                 @default(PENDING)
+  isDefault             Boolean                        @default(false)
+  adminNote             String?
+  providerStatus        String?
+  providerSubmittedAt   DateTime?
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
+  providerRegistrations SenderIdProviderRegistration[]
+  verificationDocuments SenderIdVerificationDocument[]
 
   @@index([userId, status])
 }
@@ -823,19 +862,19 @@ model SenderIdVerificationDocument {
 }
 
 model BackupJob {
-  id             String        @id @default(cuid())
-  status         BackupStatus  @default(RUNNING)
+  id             String            @id @default(cuid())
+  status         BackupStatus      @default(RUNNING)
   categories     Json
   filters        Json?
   progress       Json
-  totalSteps     Int           @default(0)
-  completedSteps Int           @default(0)
+  totalSteps     Int               @default(0)
+  completedSteps Int               @default(0)
   fileSizeBytes  Int?
   emailTo        String?
   error          String?
   createdById    String
-  createdBy      User          @relation(fields: [createdById], references: [id])
-  createdAt      DateTime      @default(now())
+  createdBy      User              @relation(fields: [createdById], references: [id])
+  createdAt      DateTime          @default(now())
   completedAt    DateTime?
   chunks         BackupFileChunk[]
 
@@ -943,9 +982,11 @@ model PlatformSetting {
   value Json
 }
 
-/** Durable rate-limit counters. In-memory counters don't survive across
-    serverless function instances, so every rate limit (auth, OTP, support
-    chat, API keys) is backed by this table instead. */
+/**
+ * Durable rate-limit counters. In-memory counters don't survive across
+ * serverless function instances, so every rate limit (auth, OTP, support
+ * chat, API keys) is backed by this table instead.
+ */
 model RateLimitBucket {
   key          String    @id
   attempts     Int       @default(0)
@@ -957,31 +998,31 @@ model RateLimitBucket {
 }
 
 model WebhookEndpoint {
-  id        String   @id @default(cuid())
+  id        String               @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   url       String
   secret    String?
-  events    String[] @default(["message.delivered", "message.failed"])
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  events    String[]             @default(["message.delivered", "message.failed"])
+  isActive  Boolean              @default(true)
+  createdAt DateTime             @default(now())
   logs      WebhookDeliveryLog[]
 
   @@index([userId])
 }
 
 model WebhookDeliveryLog {
-  id           String          @id @default(cuid())
-  endpointId   String
-  endpoint     WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
-  event        String
-  payload      Json
-  statusCode   Int?
-  success      Boolean         @default(false)
-  retryCount   Int             @default(0)
-  nextRetryAt  DateTime?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  id          String          @id @default(cuid())
+  endpointId  String
+  endpoint    WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  event       String
+  payload     Json
+  statusCode  Int?
+  success     Boolean         @default(false)
+  retryCount  Int             @default(0)
+  nextRetryAt DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   @@index([endpointId, createdAt])
   @@index([success, nextRetryAt])
@@ -1008,14 +1049,14 @@ model ApiLog {
 }
 
 model DedicatedRoute {
-  id               String              @id @default(cuid())
-  name             String
-  countryCode      String
-  lockedProvider   SmsProviderType?
-  description      String?
-  isActive         Boolean             @default(true)
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
+  id                 String              @id @default(cuid())
+  name               String
+  countryCode        String
+  lockedProvider     SmsProviderType?
+  description        String?
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
   enterpriseAccounts EnterpriseAccount[]
 
   @@index([countryCode, isActive])
@@ -1042,30 +1083,30 @@ model EnterpriseAccount {
 }
 
 model EnterpriseCredit {
-  id            String            @id @default(cuid())
-  enterpriseId  String            @unique
-  enterprise    EnterpriseAccount @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
-  creditLimit   Decimal           @db.Decimal(14, 2)
-  usedCredit    Decimal           @default(0) @db.Decimal(14, 2)
-  billingCycle  String            @default("monthly")
-  currency      String            @default("GHS")
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  id           String            @id @default(cuid())
+  enterpriseId String            @unique
+  enterprise   EnterpriseAccount @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
+  creditLimit  Decimal           @db.Decimal(14, 2)
+  usedCredit   Decimal           @default(0) @db.Decimal(14, 2)
+  billingCycle String            @default("monthly")
+  currency     String            @default("GHS")
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 }
 
 model SmppAccount {
-  id            String            @id @default(cuid())
-  enterpriseId  String            @unique
-  enterprise    EnterpriseAccount @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
-  systemId      String            @unique
-  passwordHash  String
-  throughput    Int               @default(10)
-  ipWhitelist   String[]          @default([])
-  isActive      Boolean           @default(true)
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  sessions      SmppSession[]
-  submitLogs    SmppSubmitLog[]
+  id           String            @id @default(cuid())
+  enterpriseId String            @unique
+  enterprise   EnterpriseAccount @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
+  systemId     String            @unique
+  passwordHash String
+  throughput   Int               @default(10)
+  ipWhitelist  String[]          @default([])
+  isActive     Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  sessions     SmppSession[]
+  submitLogs   SmppSubmitLog[]
 
   @@index([systemId])
 }
@@ -1215,32 +1256,32 @@ enum SmartFormExportType {
 }
 
 model SmartForm {
-  id                    String         @id @default(cuid())
+  id                    String                    @id @default(cuid())
   userId                String
-  user                  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   name                  String
   slug                  String
-  shortCode             String         @unique
+  shortCode             String                    @unique
   description           String?
-  status                SmartFormStatus @default(DRAFT)
+  status                SmartFormStatus           @default(DRAFT)
   logoUrl               String?
   bannerUrl             String?
   themeSettings         Json?
   layoutSettings        Json?
   successSettings       Json?
   contactGroupId        String?
-  contactGroup          ContactGroup?  @relation(fields: [contactGroupId], references: [id], onDelete: SetNull)
-  saveToContacts        Boolean        @default(false)
-  preventDuplicatePhone Boolean        @default(false)
-  preventDuplicateEmail Boolean        @default(false)
-  captchaEnabled        Boolean        @default(false)
+  contactGroup          ContactGroup?             @relation(fields: [contactGroupId], references: [id], onDelete: SetNull)
+  saveToContacts        Boolean                   @default(false)
+  preventDuplicatePhone Boolean                   @default(false)
+  preventDuplicateEmail Boolean                   @default(false)
+  captchaEnabled        Boolean                   @default(false)
   startsAt              DateTime?
   endsAt                DateTime?
   submissionLimit       Int?
   publishedAt           DateTime?
   closedAt              DateTime?
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
   fields                SmartFormField[]
   responses             SmartFormResponse[]
   analyticsEvents       SmartFormAnalyticsEvent[]
@@ -1254,21 +1295,21 @@ model SmartForm {
 }
 
 model SmartFormField {
-  id              String             @id @default(cuid())
+  id              String                    @id @default(cuid())
   formId          String
-  form            SmartForm          @relation(fields: [formId], references: [id], onDelete: Cascade)
+  form            SmartForm                 @relation(fields: [formId], references: [id], onDelete: Cascade)
   label           String
   fieldKey        String
   fieldType       SmartFormFieldType
   placeholder     String?
   helperText      String?
   defaultValue    String?
-  isRequired      Boolean            @default(false)
+  isRequired      Boolean                   @default(false)
   options         Json?
   validationRules Json?
-  sortOrder       Int                @default(0)
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  sortOrder       Int                       @default(0)
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
   answers         SmartFormResponseAnswer[]
 
   @@unique([formId, fieldKey])
@@ -1397,11 +1438,11 @@ enum EmailMarketingCampaignStatus {
 }
 
 model EmailMarketingTemplate {
-  id          String   @id @default(cuid())
-  slug        String   @unique
+  id          String                   @id @default(cuid())
+  slug        String                   @unique
   name        String
   description String?
-  category    String   @default("feature")
+  category    String                   @default("feature")
   subject     String
   preheader   String?
   headline    String
@@ -1409,9 +1450,9 @@ model EmailMarketingTemplate {
   ctaLabel    String?
   ctaHref     String?
   footerNote  String?
-  isSystem    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isSystem    Boolean                  @default(false)
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
   campaigns   EmailMarketingCampaign[]
 
   @@index([category])
@@ -1506,23 +1547,23 @@ model GoogleConnection {
 }
 
 model GoogleFormSmsAutomation {
-  id              String        @id @default(cuid())
+  id              String              @id @default(cuid())
   userId          String
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   formId          String
   formTitle       String?
   phoneFieldId    String
   questionTitles  Json?
   senderId        String
   messageTemplate String
-  isActive        Boolean       @default(true)
+  isActive        Boolean             @default(true)
   cursor          String?
   lastPolledAt    DateTime?
   lastError       String?
   contactGroupId  String?
-  contactGroup    ContactGroup? @relation(fields: [contactGroupId], references: [id], onDelete: SetNull)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  contactGroup    ContactGroup?       @relation(fields: [contactGroupId], references: [id], onDelete: SetNull)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
   sends           GoogleFormSmsSend[]
 
   @@unique([userId, formId])
@@ -1531,7 +1572,7 @@ model GoogleFormSmsAutomation {
 }
 
 model GoogleFormSmsSend {
-  id           String   @id @default(cuid())
+  id           String                  @id @default(cuid())
   automationId String
   automation   GoogleFormSmsAutomation @relation(fields: [automationId], references: [id], onDelete: Cascade)
   responseId   String
@@ -1541,7 +1582,7 @@ model GoogleFormSmsSend {
   submittedAt  DateTime?
   status       String
   error        String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime                @default(now())
 
   @@unique([automationId, responseId])
   @@index([automationId, createdAt])
