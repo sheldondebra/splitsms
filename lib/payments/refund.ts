@@ -18,6 +18,13 @@ function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
 
+export type RefundStep = {
+  id: string;
+  label: string;
+  status: "pending" | "running" | "done" | "error" | "skipped";
+  detail?: string;
+};
+
 export type RefundEligibility = {
   paymentId: string;
   method: RefundableMethod;
@@ -34,6 +41,16 @@ export type RefundEligibility = {
     failureReason: string | null;
     createdAt: string;
   }[];
+  provider: {
+    /** Whether we were able to reach the provider at all just now. */
+    checked: boolean;
+    paid: boolean;
+    status: string | null;
+    gatewayResponse: string | null;
+    mismatch: boolean;
+    /** Set whenever refunding would currently fail — surfaced before the admin confirms. */
+    error: string | null;
+  };
 };
 
 export async function getRefundEligibility(
@@ -48,15 +65,36 @@ export async function getRefundEligibility(
     return { ok: false, error: "Only completed payments can be refunded" };
   }
 
-  const refunds = await prisma.refund.findMany({
-    where: { paymentId },
-    orderBy: { createdAt: "desc" },
-  });
+  const [refunds, live] = await Promise.all([
+    prisma.refund.findMany({ where: { paymentId }, orderBy: { createdAt: "desc" } }),
+    fetchProviderTransactionDetails(paymentId),
+  ]);
+
   const refundedAmount = round2(
     refunds.filter((r) => r.status !== "FAILED").reduce((sum, r) => sum + r.amount.toNumber(), 0),
   );
   const totalAmount = payment.amount.toNumber();
   const refundableAmount = Math.max(0, round2(totalAmount - refundedAmount));
+
+  const provider = live.ok
+    ? {
+        checked: true,
+        paid: live.details.providerPaid,
+        status: live.details.providerStatus,
+        gatewayResponse: live.details.gatewayResponse,
+        mismatch: live.details.mismatch,
+        error: live.details.providerPaid
+          ? null
+          : `${payment.method === "STRIPE" ? "Stripe" : "Paystack"} does not currently show this payment as paid (status: ${live.details.providerStatus}).`,
+      }
+    : {
+        checked: false,
+        paid: false,
+        status: null,
+        gatewayResponse: null,
+        mismatch: false,
+        error: `Could not verify this payment with ${payment.method === "STRIPE" ? "Stripe" : "Paystack"}: ${live.error}`,
+      };
 
   return {
     ok: true,
@@ -76,6 +114,7 @@ export async function getRefundEligibility(
         failureReason: r.failureReason,
         createdAt: r.createdAt.toISOString(),
       })),
+      provider,
     },
   };
 }
@@ -210,12 +249,12 @@ async function sendRefundEmail(
   reason: string | undefined,
   fallbackEmail: string | null,
   fallbackName: string | null,
-) {
-  if (!isRefundableMethod(payment.method)) return;
+): Promise<{ ok: true; skipped?: string } | { ok: false; error: string }> {
+  if (!isRefundableMethod(payment.method)) return { ok: false, error: "Unsupported provider" };
 
   const user = await prisma.user.findUnique({ where: { id: payment.userId } });
   const email = user?.email ?? fallbackEmail;
-  if (!email) return;
+  if (!email) return { ok: true, skipped: "Member has no email on file" };
   const memberName = user?.fullName?.trim() || fallbackName || "there";
 
   const { subject, text, html } = await paymentRefundIssuedEmailContent({
@@ -227,7 +266,9 @@ async function sendRefundEmail(
     walletUrl: `${getSiteUrl()}/dashboard/wallet`,
   });
 
-  await sendEmail({ to: email, toName: memberName, subject, text, html });
+  const sent = await sendEmail({ to: email, toName: memberName, subject, text, html });
+  if (!sent.ok) return { ok: false, error: sent.error ?? "Email delivery failed" };
+  return { ok: true };
 }
 
 export async function issueRefund(params: {
@@ -235,23 +276,39 @@ export async function issueRefund(params: {
   amount: number;
   reason?: string;
   adminId: string;
-}): Promise<{ ok: true; refundId: string; status: RefundStatus } | { ok: false; error: string }> {
+}): Promise<
+  | { ok: true; refundId: string; status: RefundStatus; steps: RefundStep[] }
+  | { ok: false; error: string; steps: RefundStep[] }
+> {
   const { paymentId, reason, adminId } = params;
   const amount = round2(params.amount);
+  const steps: RefundStep[] = [];
 
-  if (!(amount > 0)) return { ok: false, error: "Refund amount must be greater than zero" };
+  function addStep(id: string, label: string): RefundStep {
+    const s: RefundStep = { id, label, status: "running" };
+    steps.push(s);
+    return s;
+  }
+  function fail(step: RefundStep, error: string) {
+    step.status = "error";
+    step.detail = error;
+    return { ok: false as const, error, steps };
+  }
+
+  if (!(amount > 0)) return { ok: false, error: "Refund amount must be greater than zero", steps };
 
   const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
-  if (!payment) return { ok: false, error: "Payment not found" };
+  if (!payment) return { ok: false, error: "Payment not found", steps };
   if (!isRefundableMethod(payment.method)) {
-    return { ok: false, error: "Only Stripe and Paystack payments can be refunded here" };
+    return { ok: false, error: "Only Stripe and Paystack payments can be refunded here", steps };
   }
   if (payment.status !== "COMPLETED" && payment.status !== "REFUNDED") {
-    return { ok: false, error: "Only completed payments can be refunded" };
+    return { ok: false, error: "Only completed payments can be refunded", steps };
   }
 
   // Reserve the amount atomically first so two concurrent refund requests can't
   // both pass the "remaining refundable" check before either has posted.
+  const reserveStep = addStep("reserve", "Reserving refund amount");
   let refundId = "";
   try {
     await prisma.$transaction(async (tx) => {
@@ -281,28 +338,45 @@ export async function issueRefund(params: {
       refundId = created.id;
     });
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Could not reserve refund" };
+    return fail(reserveStep, err instanceof Error ? err.message : "Could not reserve refund");
   }
+  reserveStep.status = "done";
+  reserveStep.detail = `${payment.currency} ${amount.toFixed(2)} reserved`;
 
+  const verifyStep = addStep(
+    "verify",
+    `Verifying charge with ${payment.method === "STRIPE" ? "Stripe" : "Paystack"}`,
+  );
   const chargeRef = await resolveProviderChargeReference(payment);
   if (!chargeRef.ok) {
     await prisma.refund.update({
       where: { id: refundId },
       data: { status: "FAILED", failureReason: chargeRef.error },
     });
-    return { ok: false, error: chargeRef.error };
+    return fail(verifyStep, chargeRef.error);
   }
+  verifyStep.status = "done";
+  verifyStep.detail = `Reference ${chargeRef.reference}`;
 
+  const configStep = addStep(
+    "config",
+    `Loading ${payment.method === "STRIPE" ? "Stripe" : "Paystack"} credentials`,
+  );
   const secretKey = await resolveSecretKey(payment);
   if (!secretKey) {
-    const error = `${payment.method} is not configured`;
+    const error = `${payment.method === "STRIPE" ? "Stripe" : "Paystack"} is not configured`;
     await prisma.refund.update({
       where: { id: refundId },
       data: { status: "FAILED", failureReason: error },
     });
-    return { ok: false, error };
+    return fail(configStep, error);
   }
+  configStep.status = "done";
 
+  const submitStep = addStep(
+    "submit",
+    `Submitting refund to ${payment.method === "STRIPE" ? "Stripe" : "Paystack"}`,
+  );
   const providerResult =
     payment.method === "STRIPE"
       ? await callStripeRefund(secretKey, chargeRef.reference, amount, reason)
@@ -313,9 +387,12 @@ export async function issueRefund(params: {
       where: { id: refundId },
       data: { status: "FAILED", failureReason: providerResult.error },
     });
-    return { ok: false, error: providerResult.error };
+    return fail(submitStep, providerResult.error);
   }
+  submitStep.status = "done";
+  submitStep.detail = `${providerResult.providerRefundId ?? "Refund"} — ${providerResult.status.toLowerCase()}`;
 
+  const walletStep = addStep("wallet", "Updating wallet and transaction records");
   let walletDebited = 0;
 
   await prisma.$transaction(async (tx) => {
@@ -374,10 +451,35 @@ export async function issueRefund(params: {
       },
     });
   });
+  walletStep.status = "done";
+  walletStep.detail =
+    walletDebited < amount
+      ? `${payment.currency} ${walletDebited.toFixed(2)} debited (member's wallet balance was lower than the refund)`
+      : `${payment.currency} ${walletDebited.toFixed(2)} debited from wallet`;
 
-  await sendRefundEmail(payment, amount, reason, chargeRef.customerEmail, chargeRef.customerName).catch(
-    (err) => console.error("[refund] notification email failed", paymentId, err),
-  );
+  const notifyStep = addStep("notify", "Emailing the member");
+  try {
+    const emailResult = await sendRefundEmail(
+      payment,
+      amount,
+      reason,
+      chargeRef.customerEmail,
+      chargeRef.customerName,
+    );
+    if (emailResult.ok) {
+      notifyStep.status = "done";
+      if (emailResult.skipped) {
+        notifyStep.detail = emailResult.skipped;
+      }
+    } else {
+      notifyStep.status = "error";
+      notifyStep.detail = `Refund succeeded, but the email failed: ${emailResult.error}`;
+    }
+  } catch (err) {
+    notifyStep.status = "error";
+    notifyStep.detail =
+      err instanceof Error ? err.message : "The refund succeeded but the email failed to send";
+  }
 
-  return { ok: true, refundId, status: providerResult.status };
+  return { ok: true, refundId, status: providerResult.status, steps };
 }

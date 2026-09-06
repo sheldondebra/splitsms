@@ -17,6 +17,7 @@ import {
 } from "@/lib/actions/admin-payments";
 import { RefundPaymentDialog } from "@/components/admin/refund-payment-dialog";
 import type { SerializedAdminPayment } from "@/lib/admin/payments-serialize";
+import type { SerializedAdminRefund } from "@/lib/admin/refunds-serialize";
 import type { ProviderTransactionDetails } from "@/lib/payments/provider-transaction-details";
 import { methodLabel } from "@/lib/payments/payment-display";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,7 @@ type LiveCache = Record<string, ProviderTransactionDetails>;
 
 type Props = {
   payments: SerializedAdminPayment[];
+  refunds: SerializedAdminRefund[];
   filters: {
     provider: ProviderFilter;
     status: StatusFilter;
@@ -53,6 +55,14 @@ type Props = {
     pageSize: number;
   };
 };
+
+function refundStatusBadgeClass(status: SerializedAdminRefund["status"]) {
+  if (status === "SUCCEEDED") return "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-transparent";
+  if (status === "PENDING" || status === "PROCESSING")
+    return "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-transparent";
+  if (status === "FAILED") return "bg-destructive/15 text-destructive border-transparent";
+  return "bg-muted text-muted-foreground border-transparent";
+}
 
 function statusBadgeClass(status: SerializedAdminPayment["status"]) {
   if (status === "COMPLETED") return "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-transparent";
@@ -91,7 +101,7 @@ function buildFilterHref(filters: Props["filters"], overrides: Partial<Props["fi
   return qs ? `/admin/payments/transactions?${qs}` : "/admin/payments/transactions";
 }
 
-export function AdminProviderTransactionsView({ payments, filters, pagination }: Props) {
+export function AdminProviderTransactionsView({ payments, refunds, filters, pagination }: Props) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(payments[0]?.id ?? null);
   const [liveById, setLiveById] = useState<LiveCache>({});
@@ -559,6 +569,103 @@ export function AdminProviderTransactionsView({ payments, filters, pagination }:
           </AdminCard>
         </aside>
       </div>
+
+      <AdminCard
+        dense
+        title="Refunds"
+        description={
+          refunds.length === 0
+            ? "No refunds have been issued yet"
+            : `${refunds.filter((r) => r.status === "PENDING" || r.status === "PROCESSING").length} pending · ${refunds.length} shown`
+        }
+      >
+        {refunds.length === 0 ? (
+          <AdminEmpty dense>No refunds have been issued yet.</AdminEmpty>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] table-fixed text-sm border-separate border-spacing-0">
+              <thead>
+                <tr className="text-left text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <th className="w-[14%] pb-2.5 pr-2 font-semibold">When</th>
+                  <th className="w-[22%] pb-2.5 px-2 font-semibold">Member</th>
+                  <th className="w-[12%] pb-2.5 px-2 font-semibold text-right">Amount</th>
+                  <th className="w-[12%] pb-2.5 px-2 font-semibold">Provider</th>
+                  <th className="w-[12%] pb-2.5 px-2 font-semibold">Status</th>
+                  <th className="w-[18%] pb-2.5 px-2 font-semibold">Reason</th>
+                  <th className="w-[10%] pb-2.5 pl-2 font-semibold">Issued by</th>
+                </tr>
+              </thead>
+              <tbody>
+                {refunds.map((refund) => {
+                  const created = new Date(refund.createdAt);
+                  const inCurrentList = payments.some((p) => p.id === refund.paymentId);
+                  return (
+                    <tr
+                      key={refund.id}
+                      onClick={() => {
+                        if (inCurrentList) {
+                          setSelectedId(refund.paymentId);
+                          setError(null);
+                          setMessage(null);
+                        }
+                      }}
+                      className={cn(
+                        "transition-colors",
+                        inCurrentList ? "cursor-pointer hover:bg-muted/40" : "opacity-90",
+                      )}
+                      title={
+                        refund.failureReason ??
+                        (inCurrentList ? "Click to view this payment" : undefined)
+                      }
+                    >
+                      <td className="border-t border-border/50 py-3 pr-2 align-middle">
+                        <span
+                          className="text-xs font-medium text-foreground/85 truncate"
+                          title={format(created, "MMM d, yyyy · h:mm a")}
+                        >
+                          {formatDistanceToNow(created, { addSuffix: true })}
+                        </span>
+                      </td>
+                      <td className="border-t border-border/50 px-2 py-3 align-middle min-w-0">
+                        <div className="font-medium truncate">{refund.member.fullName}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">
+                          {refund.member.email ?? "—"}
+                        </div>
+                      </td>
+                      <td className="border-t border-border/50 px-2 py-3 align-middle text-right tabular-nums font-semibold">
+                        {formatMoney(refund.amount, refund.currency)}
+                      </td>
+                      <td className="border-t border-border/50 px-2 py-3 align-middle">
+                        <Badge
+                          variant="outline"
+                          className={cn("text-[10px]", methodBadgeClass(refund.provider))}
+                        >
+                          {methodLabel(refund.provider)}
+                        </Badge>
+                      </td>
+                      <td className="border-t border-border/50 px-2 py-3 align-middle">
+                        <Badge className={cn("text-[10px]", refundStatusBadgeClass(refund.status))}>
+                          {refund.status}
+                        </Badge>
+                      </td>
+                      <td className="border-t border-border/50 px-2 py-3 align-middle min-w-0">
+                        <span className="text-xs text-muted-foreground truncate block">
+                          {refund.failureReason ?? refund.reason ?? "—"}
+                        </span>
+                      </td>
+                      <td className="border-t border-border/50 py-3 pl-2 align-middle min-w-0">
+                        <span className="text-[11px] text-muted-foreground truncate block">
+                          {refund.initiatedByName}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </AdminCard>
 
       {selected && (selected.method === "STRIPE" || selected.method === "PAYSTACK") && (
         <RefundPaymentDialog

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { serializeAdminPayment } from "@/lib/admin/payments-serialize";
+import { serializeAdminRefund } from "@/lib/admin/refunds-serialize";
 import { AdminProviderTransactionsView } from "@/components/admin/admin-provider-transactions-view";
 import type { PaymentMethod, PaymentStatus, Prisma } from "@/lib/generated/prisma/client";
 
@@ -66,7 +67,7 @@ export default async function AdminProviderTransactionsPage({
     ];
   }
 
-  const [total, payments] = await Promise.all([
+  const [total, payments, refunds] = await Promise.all([
     prisma.payment.count({ where }),
     prisma.payment.findMany({
       where,
@@ -75,6 +76,11 @@ export default async function AdminProviderTransactionsPage({
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
+    prisma.refund.findMany({
+      include: { user: true, initiatedBy: true },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -82,6 +88,7 @@ export default async function AdminProviderTransactionsPage({
   return (
     <AdminProviderTransactionsView
       payments={payments.map(serializeAdminPayment)}
+      refunds={refunds.map(serializeAdminRefund)}
       filters={{ provider, status, q, page }}
       pagination={{ total, totalPages, pageSize: PAGE_SIZE }}
     />

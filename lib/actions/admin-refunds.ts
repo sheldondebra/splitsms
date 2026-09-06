@@ -21,8 +21,16 @@ export async function fetchRefundEligibilityAction(paymentId: string) {
 
 export async function issueRefundAction(input: { paymentId: string; amount: number; reason?: string }) {
   const session = await requireSuperAdmin();
-  if (!session) return { ok: false as const, error: "Unauthorized — only Super Admins can issue refunds" };
-  if (!input.paymentId) return { ok: false as const, error: "Missing payment id" };
+  if (!session) {
+    return {
+      ok: false as const,
+      error: "Unauthorized — only Super Admins can issue refunds",
+      steps: [],
+    };
+  }
+  if (!input.paymentId) {
+    return { ok: false as const, error: "Missing payment id", steps: [] };
+  }
 
   const result = await issueRefund({
     paymentId: input.paymentId,
