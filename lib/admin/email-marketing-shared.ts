@@ -109,6 +109,78 @@ One plugin. Your existing WordPress workflow.`,
     imageUrl: "/icon.png",
   },
   {
+    slug: "sms-schools",
+    name: "SMS for Schools",
+    description: "Promote attendance alerts and parent updates for schools",
+    category: "feature",
+    subject: "Keep parents informed with SplitSMS for Schools",
+    preheader: "Attendance alerts, fee reminders, and exam updates by SMS",
+    headline: "Reach every parent, instantly",
+    bodyText: `Schools use SplitSMS to send attendance alerts, fee reminders, exam schedules, and emergency notices straight to parents' phones — no app required.
+
+Upload your class or school-wide contact list, personalise each message with the student's name, and track delivery in real time.
+
+From a single class update to a school-wide closure notice, your message reaches every parent in minutes.`,
+    ctaLabel: "Set up school messaging",
+    ctaHref: "/dashboard/campaigns",
+    footerNote: "You are receiving this because you have a SplitSMS account.",
+    imageUrl: "/og.png",
+  },
+  {
+    slug: "sms-churches",
+    name: "Churches",
+    description: "Promote service reminders and congregation updates",
+    category: "feature",
+    subject: "Reach your congregation with SplitSMS",
+    preheader: "Service reminders, event updates, and giving prompts by SMS",
+    headline: "Keep your congregation connected",
+    bodyText: `Churches and ministries use SplitSMS to send service reminders, event invitations, prayer requests, and giving prompts directly to members' phones.
+
+Group contacts by department or unit, schedule messages ahead of a service or program, and see exactly who received your update.
+
+Whether it is a Sunday reminder or an urgent announcement, your congregation hears from you first.`,
+    ctaLabel: "Start messaging your church",
+    ctaHref: "/dashboard/campaigns",
+    footerNote: "You are receiving this because you have a SplitSMS account.",
+    imageUrl: "/logo.png",
+  },
+  {
+    slug: "app-integration",
+    name: "App",
+    description: "Promote the SplitSMS API for developers building apps",
+    category: "feature",
+    subject: "Add SMS to your app with the SplitSMS API",
+    preheader: "OTP, alerts, and notifications from your own codebase",
+    headline: "SMS, wired straight into your app",
+    bodyText: `The SplitSMS API lets your app send OTP codes, transaction alerts, and notifications the moment something happens — no manual sending required.
+
+Generate an API key from your dashboard, follow the docs, and go from first request to delivered SMS in minutes. The same reliable routes that power the SplitSMS dashboard back every call.
+
+Already have a WordPress site instead? The official plugin covers that path too.`,
+    ctaLabel: "View API docs",
+    ctaHref: "/developers",
+    footerNote: "You are receiving this because you have a SplitSMS account.",
+    imageUrl: "/icon.png",
+  },
+  {
+    slug: "google-forms",
+    name: "Google Forms feature",
+    description: "Promote SMS automation triggered by Google Forms responses",
+    category: "feature",
+    subject: "Turn Google Forms responses into instant SMS",
+    preheader: "Connect a form and text respondents automatically",
+    headline: "Every form submission, followed by an SMS",
+    bodyText: `Connect a Google Form to SplitSMS and every new response can trigger an automatic SMS — a confirmation, a reminder, or a next step.
+
+No code needed: link your Google Sheet, map the phone number column, and SplitSMS handles the rest. Responses also appear in your dashboard alongside delivery status.
+
+Perfect for registrations, RSVPs, applications, or support intake forms.`,
+    ctaLabel: "Connect Google Forms",
+    ctaHref: "/dashboard/integrations/google/forms",
+    footerNote: "You are receiving this because you have a SplitSMS account.",
+    imageUrl: "/smslogo-dark.png",
+  },
+  {
     slug: "inactive-reengagement",
     name: "Inactive re-engagement",
     description: "Win back members who have not been active lately",
