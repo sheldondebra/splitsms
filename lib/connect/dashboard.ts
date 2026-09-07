@@ -1,16 +1,16 @@
 import { prisma } from "@/lib/db";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
-import { loadSmsRoutingPolicy } from "@/lib/sms/routing-policy";
 
 export async function getConnectDashboardData(userId: string) {
   const [
     balance,
     apiKeys,
     senderIds,
+    senderIdTotal,
+    senderIdApproved,
     wordpressSites,
     connectCustomers,
-    policy,
-    recentRouting,
+    recentApiLogs,
   ] = await Promise.all([
     getBalanceSnapshot(userId),
     prisma.apiKey.findMany({
@@ -32,19 +32,19 @@ export async function getConnectDashboardData(userId: string) {
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
+    prisma.senderId.count({ where: { userId } }),
+    prisma.senderId.count({ where: { userId, status: "APPROVED" } }),
     prisma.wordPressSite.findMany({
       where: { userId },
       orderBy: { updatedAt: "desc" },
       take: 5,
     }),
     prisma.connectCustomer.count({ where: { partnerUserId: userId } }),
-    loadSmsRoutingPolicy(),
-    prisma.smsRoutingLog.findMany({
+    prisma.apiLog.findMany({
+      where: { userId },
       orderBy: { createdAt: "desc" },
-      take: 8,
-      where: {
-        message: { userId },
-      },
+      take: 6,
+      include: { apiKey: { select: { label: true, keyPrefix: true } } },
     }),
   ]);
 
@@ -52,9 +52,9 @@ export async function getConnectDashboardData(userId: string) {
     balance,
     apiKeys,
     senderIds,
+    senderIdCounts: { total: senderIdTotal, approved: senderIdApproved },
     wordpressSites,
     connectCustomerCount: connectCustomers,
-    policy,
-    recentRouting,
+    recentApiLogs,
   };
 }
