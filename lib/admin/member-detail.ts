@@ -9,6 +9,7 @@ import {
   formatAccountNumber,
 } from "@/lib/auth/account-number";
 import { parseUserAgent } from "@/lib/user-agent";
+import { computeDeliverySpeedStats } from "@/lib/sms/delivery-speed-stats";
 import { notFound } from "next/navigation";
 
 const STATUS_CHART_COLORS: Record<string, string> = {
@@ -46,12 +47,7 @@ function dayLabels(count: number) {
 function avgDeliverySeconds(
   messages: { sentAt: Date | null; deliveredAt: Date | null }[],
 ): number | null {
-  const samples = messages
-    .filter((m) => m.sentAt && m.deliveredAt)
-    .map((m) => (m.deliveredAt!.getTime() - m.sentAt!.getTime()) / 1000)
-    .filter((s) => s >= 0 && s < 86400);
-  if (samples.length === 0) return null;
-  return Math.round(samples.reduce((a, b) => a + b, 0) / samples.length);
+  return computeDeliverySpeedStats(messages)?.avgSec ?? null;
 }
 
 export async function getAdminMemberDetail(userId: string) {

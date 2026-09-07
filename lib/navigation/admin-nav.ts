@@ -18,6 +18,7 @@ import {
   LifeBuoy,
   Activity,
   Send,
+  Gauge,
   MessagesSquare,
   UserCog,
   History,
@@ -110,6 +111,7 @@ export const adminNavSections: AdminNavSection[] = [
     items: [
       { href: "/admin/sender-ids", label: "Sender IDs", icon: BadgeCheck, badge: "pending-sender-ids", permission: "sender_ids.read" },
       { href: "/admin/messages", label: "SMS logs", icon: Send, permission: "operations.read" },
+      { href: "/admin/messages/delivery-speed", label: "Delivery speed", icon: Gauge, permission: "operations.read" },
       { href: "/admin/routes", label: "Routes", icon: Route, permission: "routes.write" },
       { href: "/admin/providers", label: "Providers", icon: Layers3, permission: "providers.write" },
       { href: "/admin/credit-cover", label: "Credit cover", icon: Scale, permission: "providers.write" },
@@ -143,6 +145,7 @@ export function getAdminPageTitle(pathname: string): string {
   if (pathname === "/admin/mnotify" || pathname.startsWith("/admin/mnotify/"))
     return "Providers";
   if (pathname === "/admin/payments/transactions") return "Provider transactions";
+  if (pathname === "/admin/messages/delivery-speed") return "Delivery speed";
   if (pathname === "/admin/payments/settings") return "Payment settings";
   if (pathname === "/admin/reseller-payouts") return "Reseller payouts";
   if (pathname === "/admin/numbers") return "Numbers";

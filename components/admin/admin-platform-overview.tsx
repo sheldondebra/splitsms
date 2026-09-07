@@ -17,6 +17,7 @@ import {
   type CreditCoverMeterTone,
 } from "@/lib/admin/credit-cover";
 import type { CreditCoverSnapshot } from "@/lib/admin/credit-cover-dashboard";
+import type { DeliverySpeedStats } from "@/lib/sms/delivery-speed-stats";
 import {
   ArrowRight,
   CheckCircle2,
@@ -233,11 +234,13 @@ export function AdminPlatformOverview({
   operations,
   sms,
   creditCover,
+  deliverySpeed,
 }: {
   stats: Stats;
   operations: Ops;
   sms: SmsOverview;
   creditCover: CreditCoverSnapshot;
+  deliverySpeed: DeliverySpeedStats | null;
 }) {
   const { health, counts } = operations;
   const delivery = describeSmsDeliveryMode(health);
@@ -499,6 +502,25 @@ export function AdminPlatformOverview({
             label="Active campaigns"
             value={stats.activeCampaigns.toLocaleString()}
             hint="Sending or scheduled"
+          />
+          <MetricLink
+            href="/admin/messages/delivery-speed"
+            label="Delivery speed"
+            value={deliverySpeed ? `${deliverySpeed.avgSec}s avg` : "—"}
+            hint={
+              deliverySpeed
+                ? `range ${deliverySpeed.minSec}s–${deliverySpeed.maxSec}s · last ${deliverySpeed.sampleSize}`
+                : "No recent deliveries"
+            }
+            tone={
+              !deliverySpeed
+                ? "default"
+                : deliverySpeed.avgSec <= 15
+                  ? "ok"
+                  : deliverySpeed.avgSec <= 60
+                    ? "warn"
+                    : "danger"
+            }
           />
           <div className="rounded-xl border border-border/60 bg-card px-3.5 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">

@@ -4,6 +4,7 @@ import { getAdminOperationsDashboard } from "@/lib/admin/operations-dashboard";
 import { getAdminReportsOverview } from "@/lib/admin/messages-dashboard";
 import { getCreditCoverSnapshot } from "@/lib/admin/credit-cover-dashboard";
 import { getMaintenanceStatus } from "@/lib/admin/maintenance";
+import { getRecentDeliverySpeed } from "@/lib/admin/delivery-speed";
 import { format } from "date-fns";
 import { AdminOperationsPanel } from "@/components/admin/admin-operations-panel";
 import { AdminPlatformOverview } from "@/components/admin/admin-platform-overview";
@@ -73,11 +74,12 @@ export default async function AdminDashboardPage({
   }>;
 }) {
   const params = await searchParams;
-  const [stats, operations, sms, maintenance] = await Promise.all([
+  const [stats, operations, sms, maintenance, deliverySpeed] = await Promise.all([
     getAdminDashboardOverview(),
     getAdminOperationsDashboard(),
     getAdminReportsOverview(),
     getMaintenanceStatus(),
+    getRecentDeliverySpeed(),
   ]);
   const creditCover = await getCreditCoverSnapshot(stats.providerBalances);
 
@@ -167,6 +169,7 @@ export default async function AdminDashboardPage({
         operations={operations}
         sms={sms}
         creditCover={creditCover}
+        deliverySpeed={deliverySpeed}
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
