@@ -15,12 +15,28 @@ import {
   Send,
 } from "lucide-react";
 import { MarketingPageShell } from "@/components/marketing/marketing-page-shell";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { siteUrl } from "@/lib/seo/site";
+import { breadcrumbJsonLd, webPageJsonLd } from "@/lib/seo/site";
 import { smartFormsMetadata } from "@/lib/seo/marketing-metadata";
 
 export const metadata: Metadata = smartFormsMetadata;
+
+const smartFormsDescription =
+  "Create custom forms, match your brand, share with short links and QR codes, export responses to Google Sheets, and connect Google Forms for SMS confirmations.";
+
+const smartFormsJsonLd = [
+  webPageJsonLd({
+    name: "SplitSMS Smart Forms",
+    description: smartFormsDescription,
+    path: "/smart-forms",
+  }),
+  breadcrumbJsonLd([
+    { name: "Home", path: "/" },
+    { name: "Smart Forms", path: "/smart-forms" },
+  ]),
+];
 
 const featureCards = [
   {
@@ -135,6 +151,7 @@ const infographicFlow = [
 export default function SmartFormsMarketingPage() {
   return (
     <MarketingPageShell>
+      <JsonLdScript data={smartFormsJsonLd} />
       <section className="w-full py-0">
         <div className="relative w-full overflow-hidden min-h-[460px]">
           <Image
