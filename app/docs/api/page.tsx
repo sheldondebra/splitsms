@@ -61,33 +61,37 @@ export default function DocsApiPage() {
       title="API"
       description="Bearer-authenticated REST API for sending SMS, managing wallets, provisioning Connect customers, and syncing WordPress sites."
     >
-      <h2>Authentication</h2>
-      <p>
-        Create an API key in the{" "}
-        <Link href="/developers/api-keys">developer portal</Link>, then send it as a Bearer
-        token on every request.
-      </p>
-      <CodeLine value={authHeader} tone="accent" />
+      <div className="not-prose rounded-2xl border border-border/60 bg-card/50 p-4 shadow-sm sm:p-6 md:p-8">
+        <div className="prose prose-neutral dark:prose-invert max-w-none prose-headings:mt-0 first:prose-h2:mt-0">
+          <h2>Authentication</h2>
+          <p>
+            Create an API key in the{" "}
+            <Link href="/developers/api-keys">developer portal</Link>, then send it as a Bearer
+            token on every request.
+          </p>
+          <CodeLine value={authHeader} tone="accent" />
 
-      <h2>Base URL</h2>
-      <CodeLine value={apiBase} />
+          <h2>Base URL</h2>
+          <CodeLine value={apiBase} />
 
-      <h2>Core endpoints</h2>
-      <div className="not-prose space-y-3">
-        {featured.map((endpoint) => (
-          <EndpointCard
-            key={`${endpoint.method}-${endpoint.path}`}
-            endpoint={endpoint}
-            baseUrl={baseUrl}
-          />
-        ))}
+          <h2>Core endpoints</h2>
+          <div className="not-prose space-y-3">
+            {featured.map((endpoint) => (
+              <EndpointCard
+                key={`${endpoint.method}-${endpoint.path}`}
+                endpoint={endpoint}
+                baseUrl={baseUrl}
+              />
+            ))}
+          </div>
+
+          <p>
+            Full interactive reference with every endpoint, request/response bodies, and
+            generated code: <Link href="/api-docs">API docs</Link> and{" "}
+            <Link href="/developers/docs">developer portal</Link>.
+          </p>
+        </div>
       </div>
-
-      <p>
-        Full interactive reference with every endpoint, request/response bodies, and generated
-        code: <Link href="/api-docs">API docs</Link> and{" "}
-        <Link href="/developers/docs">developer portal</Link>.
-      </p>
     </DocsSubpage>
   );
 }
