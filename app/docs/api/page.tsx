@@ -1,13 +1,61 @@
 import type { Metadata } from "next";
-import { DocsSubpage } from "@/components/marketing/docs-subpage";
 import Link from "next/link";
+import { DocsSubpage } from "@/components/marketing/docs-subpage";
+import { EndpointCard } from "@/components/developers/endpoint-card";
+import { CopyButton } from "@/components/developers/copy-button";
+import {
+  apiDocSections,
+  type ApiEndpointDoc,
+  type HttpMethod,
+} from "@/lib/developers/api-reference";
 import { getSiteUrl } from "@/lib/site-config";
 import { docsApiMetadata } from "@/lib/seo/marketing-metadata";
 
 export const metadata: Metadata = docsApiMetadata;
 
+const FEATURED_ENDPOINTS: { method: HttpMethod; path: string }[] = [
+  { method: "POST", path: "/api/v1/sms/send" },
+  { method: "GET", path: "/api/v1/balance" },
+  { method: "GET", path: "/api/v1/wallet/transactions" },
+  { method: "POST", path: "/api/v1/connect/customers" },
+  { method: "GET", path: "/api/v1/sender-ids" },
+  { method: "POST", path: "/api/v1/wordpress/connect" },
+];
+
+function findEndpoint(method: HttpMethod, path: string): ApiEndpointDoc | undefined {
+  for (const section of apiDocSections) {
+    const match = section.endpoints.find((e) => e.method === method && e.path === path);
+    if (match) return match;
+  }
+  return undefined;
+}
+
+function CodeLine({ value, tone = "muted" }: { value: string; tone?: "muted" | "accent" }) {
+  return (
+    <div className="not-prose flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-zinc-950 px-4 py-3 shadow-inner">
+      <code
+        className={
+          tone === "accent"
+            ? "overflow-x-auto font-mono text-xs text-emerald-300/90 sm:text-sm"
+            : "overflow-x-auto font-mono text-xs text-zinc-300 sm:text-sm"
+        }
+      >
+        {value}
+      </code>
+      <CopyButton value={value} size="sm" />
+    </div>
+  );
+}
+
 export default function DocsApiPage() {
-  const base = `${getSiteUrl()}/api/v1`;
+  const baseUrl = getSiteUrl();
+  const apiBase = `${baseUrl}/api/v1`;
+  const authHeader = "Authorization: Bearer sk_live_your_api_key";
+
+  const featured = FEATURED_ENDPOINTS.map((f) => findEndpoint(f.method, f.path)).filter(
+    (e): e is ApiEndpointDoc => Boolean(e),
+  );
+
   return (
     <DocsSubpage
       title="API"
@@ -16,37 +64,28 @@ export default function DocsApiPage() {
       <h2>Authentication</h2>
       <p>
         Create an API key in the{" "}
-        <Link href="/developers/api-keys">developer portal</Link>. Send{" "}
-        <code>Authorization: Bearer sk_live_…</code> on every request.
+        <Link href="/developers/api-keys">developer portal</Link>, then send it as a Bearer
+        token on every request.
       </p>
+      <CodeLine value={authHeader} tone="accent" />
+
       <h2>Base URL</h2>
-      <pre>
-        <code>{base}</code>
-      </pre>
+      <CodeLine value={apiBase} />
+
       <h2>Core endpoints</h2>
-      <ul>
-        <li>
-          <code>POST /sms/send</code> — send SMS (approved sender required)
-        </li>
-        <li>
-          <code>GET /balance</code> — wallet + SMS credits
-        </li>
-        <li>
-          <code>GET /wallet/transactions</code> — ledger history
-        </li>
-        <li>
-          <code>POST /connect/customers</code> — provision embedded customers (Connect)
-        </li>
-        <li>
-          <code>GET|POST /sender-ids</code> — list / register sender IDs (all providers)
-        </li>
-        <li>
-          <code>POST /wordpress/connect</code> — link a WordPress site
-        </li>
-      </ul>
+      <div className="not-prose space-y-3">
+        {featured.map((endpoint) => (
+          <EndpointCard
+            key={`${endpoint.method}-${endpoint.path}`}
+            endpoint={endpoint}
+            baseUrl={baseUrl}
+          />
+        ))}
+      </div>
+
       <p>
-        Full interactive reference:{" "}
-        <Link href="/api-docs">API docs</Link> and{" "}
+        Full interactive reference with every endpoint, request/response bodies, and generated
+        code: <Link href="/api-docs">API docs</Link> and{" "}
         <Link href="/developers/docs">developer portal</Link>.
       </p>
     </DocsSubpage>
