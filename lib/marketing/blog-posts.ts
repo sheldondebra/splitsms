@@ -1085,55 +1085,6 @@ export const blogPosts: BlogPost[] = [
     ],
   },
   {
-    slug: "developers-choose-splitsms-over-twilio-alone",
-    title: "Why Developers Connect SplitSMS Instead of Twilio Alone",
-    excerpt:
-      "Build OTP and alerts for Africa-first products with Ghana pricing, local Sender IDs, and the same REST patterns you expect—plus WordPress and Google connect for ops.",
-    category: "Developers",
-    readTime: "8 min read",
-    published: "2026-08-04",
-    updated: "2026-08-04",
-    keywords: [
-      "Twilio alternative Ghana",
-      "SMS API Africa developers",
-      "OTP SMS API Ghana",
-      "SplitSMS vs Twilio",
-      "Africa SMS API",
-    ],
-    sections: [
-      {
-        paragraphs: [
-          "Twilio is excellent globally, but African products often need local Sender ID norms, GHS-friendly credits, and ops tools for non-engineers who still live in Sheets and WordPress.",
-          "SplitSMS gives developers REST SMS, OTP send/verify, webhooks, and SDKs hosted on splitsms.com—while product and growth teams can connect Google and WooCommerce without opening a support ticket every time.",
-        ],
-      },
-      {
-        heading: "API ergonomics",
-        paragraphs: [
-          "Use Bearer API keys, sk_test_ sandboxes, OpenAPI/Postman collections, and SDK tarballs from /sdk. Example-first docs at /api-docs mirror the dashboard permissions model.",
-        ],
-      },
-      {
-        heading: "Africa delivery context",
-        paragraphs: [
-          "Routing across regional and global providers with failover matters when a single MNO blip would otherwise drop OTPs. Watch delivery in the dashboard while you iterate templates.",
-        ],
-      },
-      {
-        heading: "Hybrid teams win",
-        paragraphs: [
-          "Engineers ship the product; marketers import Sheets and run campaigns; support reuses Smart Forms. One wallet keeps cost visibility honest.",
-        ],
-      },
-      {
-        heading: "Try it",
-        paragraphs: [
-          "Create keys under developer settings, send a sandbox SMS, then graduate to live Sender IDs. Compare Infobip/Twilio alternative solutions pages if you are migrating.",
-        ],
-      },
-    ],
-  },
-  {
     slug: "nonprofit-community-event-sms-budget",
     title: "Nonprofit & Community Event SMS on a Budget",
     excerpt:
@@ -2143,7 +2094,7 @@ export const blogPosts: BlogPost[] = [
       {
         heading: "Built for Ghana, ready for the world",
         paragraphs: [
-          "SplitSMS routes through trusted carriers including mNotify for Ghana, with coverage across Nigeria and 190+ countries. Register an approved Sender ID so recipients see your brand name, not a random number.",
+          "SplitSMS routes through trusted carrier networks for Ghana, with coverage across Nigeria and 190+ countries. Register an approved Sender ID so recipients see your brand name, not a random number.",
           "Pay with Paystack, top up your wallet, and send from a dashboard your team can learn in one afternoon — or integrate our REST SMS API if you are building an app.",
         ],
       },
@@ -3374,7 +3325,7 @@ export const blogPosts: BlogPost[] = [
       {
         heading: "What makes the best SMS in Ghana",
         paragraphs: [
-          "The best SMS in Ghana is not the cheapest line on a spreadsheet — it is transparent per-segment pricing, approved Sender IDs, deliverability on MTN and Telecel networks, and a wallet you top up locally via Paystack. SplitSMS publishes Ghana rates before you send (from around GHS 0.029 per segment), registers your brand Sender ID through a clear approval workflow, and routes through carriers including mNotify with failover when one path is congested.",
+          "The best SMS in Ghana is not the cheapest line on a spreadsheet — it is transparent per-segment pricing, approved Sender IDs, deliverability on MTN and Telecel networks, and a wallet you top up locally via Paystack. SplitSMS publishes Ghana rates before you send (from around GHS 0.029 per segment), registers your brand Sender ID through a clear approval workflow, and routes through trusted carrier networks with failover when one path is congested.",
           "You need both a bulk SMS UI for marketing teams and a REST API for OTP, WooCommerce, and custom apps. SplitSMS gives you campaigns, contact groups, scheduling, delivery reports, sandbox keys, and webhooks from one account — no separate enterprise contract to negotiate.",
         ],
       },
@@ -3416,78 +3367,6 @@ export const blogPosts: BlogPost[] = [
     ],
   },
   {
-    slug: "mnotify-alternative-bulk-sms-ghana",
-    title: "mNotify Alternative: Bulk SMS Ghana with Dashboard, API & WooCommerce",
-    excerpt:
-      "Compare mNotify vs SplitSMS — Ghana SMS routing, transparent GHS pricing, OTP API, WordPress plugin, and self-serve signup without sales calls.",
-    category: "Guide",
-    readTime: "6 min read",
-    published: "2026-07-02",
-    updated: "2026-07-12",
-    keywords: [
-      "mNotify alternative",
-      "mnotify",
-      "bulk SMS Ghana",
-      "SMS gateway Ghana",
-      "mNotify vs SplitSMS",
-    ],
-    sections: [
-      {
-        paragraphs: [
-          "Searching mNotify or mnotify usually means you need reliable bulk SMS in Ghana. SplitSMS routes through trusted carriers including mNotify while adding a modern dashboard, REST SMS API, OTP verify endpoints, WooCommerce plugin, and Paystack wallet top-ups — one platform for campaigns and transactional SMS.",
-        ],
-      },
-      {
-        heading: "What SplitSMS adds beyond mNotify-only portals",
-        paragraphs: [
-          "Self-serve signup with 5 free credits. Published Ghana rates from around GHS 0.029 per segment. Sender ID registration workflow. Delivery webhooks. WordPress + Paystack SMS. Smart Forms with SMS confirmations. Reseller white-label for agencies.",
-        ],
-      },
-      {
-        heading: "When to choose SplitSMS",
-        paragraphs: [
-          "Pick SplitSMS if you need bulk SMS plus OTP API, WooCommerce order texts, developer docs, or multi-country sending from one wallet. Test with sandbox keys before migrating live campaigns.",
-        ],
-      },
-    ],
-  },
-  {
-    slug: "infobip-alternative-sms-api-africa",
-    title: "Infobip Alternative: Affordable SMS API for Ghana, Nigeria & Africa",
-    excerpt:
-      "Infobip vs SplitSMS for African teams — pay-as-you-go pricing, OTP API, WooCommerce SMS, and no enterprise contract required.",
-    category: "Guide",
-    readTime: "6 min read",
-    published: "2026-07-02",
-    updated: "2026-07-12",
-    keywords: [
-      "Infobip alternative",
-      "SMS API Africa",
-      "Infobip vs SplitSMS",
-      "cheap SMS API",
-      "CPaaS Africa",
-    ],
-    sections: [
-      {
-        paragraphs: [
-          "Infobip powers global enterprises with complex CPaaS stacks. Many Ghana and West Africa teams want SMS integration without long procurement cycles or opaque pricing. SplitSMS is an Infobip alternative with transparent rates, REST API, OTP, webhooks, and Africa-first billing via Paystack.",
-        ],
-      },
-      {
-        heading: "SplitSMS vs Infobip for developers",
-        paragraphs: [
-          "OpenAPI spec, llms.txt, sandbox keys, and vibe-coder docs. Send your first OTP in under an hour. Same account powers bulk campaigns, Smart Forms, and WordPress WooCommerce SMS.",
-        ],
-      },
-      {
-        heading: "SplitSMS vs Infobip for marketers",
-        paragraphs: [
-          "Bulk SMS dashboard, contact groups, scheduling, delivery reports, and approved Sender IDs for Ghana. No monthly minimum — top up when you need credits.",
-        ],
-      },
-    ],
-  },
-  {
     slug: "sender-id-registration-ghana",
     title: "How to Register a Sender ID in Ghana (Step-by-Step)",
     excerpt:
@@ -3507,7 +3386,7 @@ export const blogPosts: BlogPost[] = [
       {
         paragraphs: [
           "A Sender ID is the name customers see instead of a phone number when your SMS arrives — for example MYBRAND or SCHOOLNAME. In Ghana, carriers typically require approval before you can send with a branded alphanumeric ID. Without it, messages may fail, land as a random short code, or look untrustworthy.",
-          "SplitSMS walks you through Sender ID registration from the dashboard. You submit the brand name, business details, and any supporting docs; we route the request through trusted Ghana carriers (including mNotify paths) and show status until it is approved.",
+          "SplitSMS walks you through Sender ID registration from the dashboard. You submit the brand name, business details, and any supporting docs; we route the request through trusted Ghana carrier networks and show status until it is approved.",
         ],
       },
       {

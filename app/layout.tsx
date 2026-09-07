@@ -56,8 +56,6 @@ export const metadata: Metadata = {
     "WooCommerce SMS",
     "Paystack SMS",
     "SMS integration",
-    "mNotify alternative",
-    "Infobip alternative",
     "SplitSMS",
   ],
   openGraph: {

@@ -374,8 +374,6 @@ export function buildLlmsTxt(siteUrl: string, apiBaseUrl: string): string {
 - Vibe coders landing: ${base}/vibe-coders
 - SMS solutions hub: ${base}/solutions
 - SMS Ghana: ${base}/solutions/sms
-- mNotify alternative: ${base}/solutions/mnotify
-- Infobip alternative: ${base}/solutions/infobip
 - OTP SMS API: ${base}/solutions/otp
 - WooCommerce SMS: ${base}/solutions/woocommerce-sms
 - Paystack SMS: ${base}/solutions/paystack-sms

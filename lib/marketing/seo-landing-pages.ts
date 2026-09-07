@@ -18,7 +18,7 @@ export const seoLandingPages: SeoLandingPage[] = [
     title: "SMS Ghana — Bulk SMS Platform, API & OTP | SplitSMS",
     h1: "SMS for Ghana & 190+ Countries",
     excerpt:
-      "Send bulk SMS, OTP, and transactional texts in Ghana and worldwide. Transparent GHS pricing, mNotify routing, REST API, dashboard, and 5 free credits.",
+      "Send bulk SMS, OTP, and transactional texts in Ghana and worldwide. Transparent GHS pricing, reliable carrier routing, REST API, dashboard, and 5 free credits.",
     keywords: [
       "SMS",
       "SMS Ghana",
@@ -33,7 +33,7 @@ export const seoLandingPages: SeoLandingPage[] = [
       {
         paragraphs: [
           "Whether you need marketing SMS, OTP verification, or order alerts, SplitSMS is an SMS platform built for Ghana and global reach. Top up in GHS via Paystack, register an approved Sender ID, and send from a dashboard or REST API — no enterprise sales cycle.",
-          "Routes include trusted Ghana carriers such as mNotify, with failover and delivery reports so you know what landed on MTN and Telecel networks.",
+          "Routes through trusted Ghana carrier networks with failover and delivery reports so you know what landed on MTN and Telecel networks.",
         ],
       },
       {
@@ -56,9 +56,9 @@ export const seoLandingPages: SeoLandingPage[] = [
           "SplitSMS publishes transparent per-segment Ghana pricing on the pricing page — typically from around GHS 0.029 per SMS segment. Top up your wallet via Paystack and pay only for what you send.",
       },
       {
-        question: "Does SplitSMS work with mNotify in Ghana?",
+        question: "How does SplitSMS ensure reliable delivery in Ghana?",
         answer:
-          "Yes. SplitSMS routes Ghana SMS through trusted carriers including mNotify, with multi-carrier failover for higher deliverability.",
+          "SplitSMS routes Ghana SMS through trusted carrier networks with multi-carrier failover, so messages keep landing on MTN and Telecel even if one route slows down.",
       },
     ],
     relatedLinks: [
@@ -70,120 +70,6 @@ export const seoLandingPages: SeoLandingPage[] = [
     ],
     primaryCta: { href: "/signup", label: "Start free — 5 SMS credits" },
     secondaryCta: { href: "/features", label: "See all features" },
-  },
-  {
-    slug: "mnotify",
-    title: "mNotify Alternative — Bulk SMS Ghana with SplitSMS",
-    h1: "mNotify Alternative for Ghana SMS",
-    excerpt:
-      "Looking for an mNotify alternative? SplitSMS offers Ghana bulk SMS with transparent pricing, dashboard + API, WooCommerce plugin, and mNotify-grade routing.",
-    keywords: [
-      "mNotify",
-      "mnotify",
-      "mNotify alternative",
-      "mNotify SMS Ghana",
-      "bulk SMS Ghana",
-      "SMS gateway Ghana",
-      "SplitSMS",
-    ],
-    sections: [
-      {
-        paragraphs: [
-          "Teams searching for mNotify or mnotify often want reliable Ghana SMS with clear pricing and modern tooling. SplitSMS routes through carriers including mNotify while adding a self-serve dashboard, REST API, OTP verification, WordPress plugin, and delivery webhooks — one wallet for campaigns and transactional SMS.",
-        ],
-      },
-      {
-        heading: "Why switch from mNotify-only workflows",
-        paragraphs: [
-          "Legacy portals focus on bulk blasts. SplitSMS covers bulk SMS, OTP API, WooCommerce order texts, Smart Forms confirmations, reseller white-label, and developer docs — without hiding rates behind a sales call.",
-          "Register your Sender ID, top up via Paystack in GHS, and send the same day. Logs show Sent → Delivered when carriers confirm DLR.",
-        ],
-      },
-      {
-        heading: "Same Ghana networks, broader platform",
-        paragraphs: [
-          "SplitSMS is built for Ghana mobile-first markets: +233 normalization, approved Sender IDs, Paystack wallet top-ups, and local support from Tecunit. Send to Ghana, Nigeria, and 190+ countries from one account.",
-        ],
-      },
-    ],
-    faqs: [
-      {
-        question: "Is SplitSMS an mNotify alternative?",
-        answer:
-          "SplitSMS is a full SMS platform for Ghana that routes through trusted carriers including mNotify. You get bulk SMS, OTP API, integrations, and transparent pricing in one dashboard — not just a reseller portal.",
-      },
-      {
-        question: "Can I use SplitSMS if I already use mNotify?",
-        answer:
-          "Many teams migrate to SplitSMS for the REST API, WordPress plugin, OTP verify endpoints, and unified wallet. Sign up free, test with sandbox keys, and compare delivery on your own numbers before switching campaigns.",
-      },
-    ],
-    relatedLinks: [
-      { href: "/solutions/sms", label: "SMS Ghana overview" },
-      { href: "/integrations/wordpress", label: "WordPress SMS plugin" },
-      { href: "/blog/best-sms-ghana-accra-messaging-reseller-platform", label: "Best SMS in Ghana guide" },
-      { href: "/blog/sender-id-registration-ghana", label: "Sender ID registration guide" },
-      { href: "/blog/bulk-sms-pricing-ghana-explained", label: "Ghana SMS pricing explained" },
-    ],
-    primaryCta: { href: "/signup", label: "Try SplitSMS free" },
-    secondaryCta: { href: "/pricing", label: "Compare Ghana rates" },
-  },
-  {
-    slug: "infobip",
-    title: "Infobip Alternative — SMS API & Bulk SMS for Africa",
-    h1: "Infobip Alternative — Simpler SMS for Ghana & Africa",
-    excerpt:
-      "Infobip alternative for teams who want affordable bulk SMS, OTP API, and WooCommerce SMS without enterprise complexity. Ghana-ready pricing and local support.",
-    keywords: [
-      "Infobip",
-      "Infobip alternative",
-      "Infobip alternative Ghana",
-      "Infobip vs SplitSMS",
-      "SMS API Africa",
-      "bulk SMS Nigeria",
-      "OTP SMS API",
-      "SplitSMS",
-    ],
-    sections: [
-      {
-        paragraphs: [
-          "Infobip powers global enterprises — but many Ghana and West Africa teams need SMS without long contracts, opaque pricing, or a six-month integration project. SplitSMS is an Infobip alternative focused on self-serve signup, transparent per-country rates, and Africa-first workflows.",
-        ],
-      },
-      {
-        heading: "What you get instead of Infobip",
-        paragraphs: [
-          "Bulk SMS dashboard, REST SMS API, OTP send and verify, delivery webhooks, Smart Forms, WordPress + WooCommerce plugin, Paystack billing in GHS, and reseller white-label — from one operator (Tecunit) who understands local Sender ID rules.",
-        ],
-      },
-      {
-        heading: "Developers ship faster",
-        paragraphs: [
-          "OpenAPI spec, llms.txt, sandbox API keys, code generator, and vibe-coder friendly docs. Most teams send their first OTP or bulk campaign in under an hour — not after procurement.",
-        ],
-      },
-    ],
-    faqs: [
-      {
-        question: "Is SplitSMS cheaper than Infobip?",
-        answer:
-          "SplitSMS publishes pay-as-you-go rates per country with no monthly minimum. Ghana SMS from around GHS 0.029 per segment. Compare live pricing on splitsms.com/pricing before you commit.",
-      },
-      {
-        question: "Does SplitSMS support the same countries as Infobip?",
-        answer:
-          "SplitSMS delivers to 190+ countries including Ghana, Nigeria, Kenya, South Africa, the UK, and the US — with multi-carrier routing and failover.",
-      },
-    ],
-    relatedLinks: [
-      { href: "/api-docs", label: "REST SMS API" },
-      { href: "/vibe-coders", label: "SMS for vibe coders" },
-      { href: "/docs/connect", label: "SplitSMS Connect for SaaS" },
-      { href: "/blog/sms-api-getting-started-ghana", label: "SMS API getting started" },
-      { href: "/blog/sms-delivery-webhooks-developer-guide", label: "Delivery webhooks guide" },
-    ],
-    primaryCta: { href: "/signup", label: "Create free account" },
-    secondaryCta: { href: "/api-docs", label: "Read API docs" },
   },
   {
     slug: "otp",

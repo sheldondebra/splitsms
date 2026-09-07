@@ -14,7 +14,7 @@ export const metadata: Metadata = buildPageMetadata({
     "SplitSMS — SMS Ghana, Bulk SMS API, OTP & WooCommerce | 190+ Countries",
   title: "Bulk SMS Platform & SMS API",
   description:
-    "Send SMS in Ghana and 190+ countries — bulk campaigns, OTP API, WooCommerce SMS, Paystack payment texts, mNotify routing, and REST integration. 5 free credits on signup.",
+    "Send SMS in Ghana and 190+ countries — bulk campaigns, OTP API, WooCommerce SMS, Paystack payment texts, reliable carrier routing, and REST integration. 5 free credits on signup.",
   path: "/",
   keywords: [
     "SMS",
@@ -28,8 +28,6 @@ export const metadata: Metadata = buildPageMetadata({
     "WooCommerce SMS",
     "Paystack SMS",
     "SMS integration",
-    "mNotify alternative",
-    "Infobip alternative",
     "affordable bulk SMS",
     "international SMS",
     "SMS marketing platform",
@@ -82,10 +80,10 @@ const homeJsonLd = [
       },
       {
         "@type": "Question",
-        name: "Is SplitSMS an mNotify or Infobip alternative?",
+        name: "How reliable is SMS delivery on SplitSMS?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Yes. SplitSMS routes Ghana SMS through carriers including mNotify and offers a self-serve dashboard, REST API, OTP, WooCommerce plugin, and transparent pricing — a simpler Infobip alternative for Africa-focused teams.",
+          text: "SplitSMS automatically routes messages across multiple carrier networks for reliable delivery, with a self-serve dashboard, REST API, OTP, WooCommerce plugin, and transparent pricing.",
         },
       },
       {

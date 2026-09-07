@@ -54,7 +54,7 @@ export const platformDocsChapters: DocChapter[] = [
               ["REST API v1", "Send SMS, OTP, contacts, campaigns, webhooks, WordPress sync"],
               ["Google", "Contacts, Sheets/Drive Excel, Forms → SMS, Smart Forms → Sheets"],
               ["WordPress plugin", `WooCommerce, CF7, WPForms, Elementor Pro, Crocoblock / JetEngine (v${site.wordpressPlugin.version})`],
-              ["Routing", "Infobip, Twilio, and mNotify with automatic failover"],
+              ["Routing", "Multiple carrier networks with automatic failover"],
               ["Billing", "Prepaid wallet — Paystack, Flutterwave, MoMo, Stripe where enabled"],
             ],
           },

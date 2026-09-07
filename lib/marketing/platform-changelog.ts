@@ -194,11 +194,11 @@ export const changelogReleases: ChangelogRelease[] = [
       },
       {
         type: "added",
-        text: "Admin Providers page — mNotify, Infobip, Twilio usage, balances, and credentials in one place.",
+        text: "Admin Providers page — carrier usage, balances, and credentials in one place.",
       },
       {
         type: "added",
-        text: "Multi-provider sender ID registration (mNotify, Twilio, Infobip) with per-provider status badges.",
+        text: "Multi-carrier sender ID registration with per-carrier status badges.",
       },
       {
         type: "added",

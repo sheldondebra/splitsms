@@ -345,7 +345,7 @@ export const apiDocSections: ApiDocSection[] = [
       "id": "...",
       "value": "MYBRAND",
       "status": "APPROVED",
-      "providers": [{ "provider": "MNOTIFY", "status": "APPROVED" }]
+      "providers": [{ "provider": "CARRIER_A", "status": "APPROVED" }]
     }
   ]
 }`,
@@ -354,7 +354,7 @@ export const apiDocSections: ApiDocSection[] = [
         method: "POST",
         path: "/api/v1/sender-ids",
         title: "Register sender ID",
-        description: "Submit for approval across configured providers (mNotify, Twilio, Infobip).",
+        description: "Submit for approval across your configured carrier routes.",
         permission: "sender_ids.write",
         body: `{
   "value": "MYBRAND",

@@ -239,9 +239,8 @@ export function FeaturesPageContent() {
               Why businesses choose SplitSMS
             </h2>
             <p className="mt-3 text-muted-foreground leading-relaxed">
-              Stop overpaying for cluttered portals. SplitSMS is the simpler alternative to
-              Infobip and Twilio for bulk messaging — with local payment rails and support from
-              Tecunit.
+              Stop overpaying for cluttered portals. SplitSMS is a simpler, more affordable
+              platform for bulk messaging — with local payment rails and support from Tecunit.
             </p>
           </div>
           <div className="mt-10 grid gap-5 sm:grid-cols-2">

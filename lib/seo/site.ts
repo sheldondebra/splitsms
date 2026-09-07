@@ -37,10 +37,6 @@ export const defaultKeywords = [
   "Google Forms SMS",
   "SMS webhooks",
   "SMS delivery reports",
-  "mNotify",
-  "mNotify alternative",
-  "Infobip alternative",
-  "Twilio SMS alternative",
   "vibe coders SMS API",
   "SplitSMS",
   "how to choose SplitSMS",
@@ -107,7 +103,6 @@ export const organizationJsonLd = {
     "Transactional messaging",
     "WooCommerce SMS",
     "Paystack SMS integration",
-    "mNotify routing",
     "SMS integration",
   ],
 };

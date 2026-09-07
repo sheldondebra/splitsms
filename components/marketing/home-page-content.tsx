@@ -168,7 +168,7 @@ const faqs = [
   },
   {
     q: "Can I send to Nigeria and other countries?",
-    a: "Yes. Routing via Infobip, Twilio, and regional gateways with failover.",
+    a: "Yes. SplitSMS automatically routes to the best available carrier per country, with failover.",
   },
 ];
 

@@ -22,6 +22,27 @@ const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
   },
+  async redirects() {
+    return [
+      { source: "/solutions/mnotify", destination: "/solutions/sms", permanent: true },
+      { source: "/solutions/infobip", destination: "/solutions/sms", permanent: true },
+      {
+        source: "/blog/mnotify-alternative-bulk-sms-ghana",
+        destination: "/blog/best-sms-ghana-accra-messaging-reseller-platform",
+        permanent: true,
+      },
+      {
+        source: "/blog/infobip-alternative-sms-api-africa",
+        destination: "/blog/sms-api-getting-started-ghana",
+        permanent: true,
+      },
+      {
+        source: "/blog/developers-choose-splitsms-over-twilio-alone",
+        destination: "/blog/sms-api-getting-started-ghana",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

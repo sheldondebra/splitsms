@@ -328,8 +328,8 @@ export function SolutionsPageContent() {
               Guides if you already know the keyword
             </h2>
             <p className="mt-3 leading-relaxed text-muted-foreground">
-              Ghana SMS, mNotify alternative, WooCommerce, Paystack, OTP, integration walkthroughs.
-              Long versions for people who arrived with a search query, not a job title.
+              Ghana SMS, WooCommerce, Paystack, OTP, integration walkthroughs. Long versions for
+              people who arrived with a search query, not a job title.
             </p>
           </div>
           <ul className="mt-10 grid gap-4 sm:grid-cols-2">
