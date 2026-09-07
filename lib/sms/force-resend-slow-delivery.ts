@@ -10,10 +10,6 @@ export const SLOW_DLR_RESEND_MARKER = "auto-resend:slow-dlr";
 const WATCH_POLL_MS = [2_500, 2_500, 2_500, 3_000] as const;
 const BATCH_MAX_AGE_MS = 5 * 60 * 1000;
 
-function hasSlowResendMarker(reason: string | null | undefined) {
-  return Boolean(reason?.startsWith(SLOW_DLR_RESEND_MARKER));
-}
-
 async function syncDeliveryIfPossible(messageId: string) {
   const message = await prisma.message.findUnique({
     where: { id: messageId },
@@ -39,7 +35,10 @@ async function syncDeliveryIfPossible(messageId: string) {
 
 /**
  * Force-resend a SENT message that still has no delivery confirmation after 10s.
- * Does not re-bill. Runs at most once per message (marker in failureReason).
+ * Does not re-bill. Runs at MOST once per message, ever — gated by the durable
+ * `slowDlrResent` column (not `failureReason`, which gets cleared on every
+ * successful send and previously let this run again and again on messages
+ * whose DLR never arrives, silently burning provider credit on repeat sends).
  */
 export async function forceResendSlowDeliveryMessage(
   messageId: string,
@@ -51,7 +50,7 @@ export async function forceResendSlowDeliveryMessage(
       status: true,
       sentAt: true,
       countryCode: true,
-      failureReason: true,
+      slowDlrResent: true,
       isSandbox: true,
     },
   });
@@ -59,30 +58,23 @@ export async function forceResendSlowDeliveryMessage(
   if (!current || current.isSandbox) return "skipped";
   if (current.status === "DELIVERED") return "delivered";
   if (current.status !== "SENT" || !current.sentAt) return "skipped";
-  if (hasSlowResendMarker(current.failureReason)) return "skipped";
+  if (current.slowDlrResent) return "skipped";
   if (Date.now() - current.sentAt.getTime() < SLOW_DELIVERY_MS) return "skipped";
 
   await syncDeliveryIfPossible(messageId);
 
   const afterSync = await prisma.message.findUnique({
     where: { id: messageId },
-    select: { status: true, failureReason: true, sentAt: true },
+    select: { status: true, slowDlrResent: true, sentAt: true },
   });
   if (!afterSync) return "skipped";
   if (afterSync.status === "DELIVERED") return "delivered";
   if (afterSync.status !== "SENT" || !afterSync.sentAt) return "skipped";
-  if (hasSlowResendMarker(afterSync.failureReason)) return "skipped";
+  if (afterSync.slowDlrResent) return "skipped";
   if (Date.now() - afterSync.sentAt.getTime() < SLOW_DELIVERY_MS) return "skipped";
 
   const claimed = await prisma.message.updateMany({
-    where: {
-      id: messageId,
-      status: "SENT",
-      OR: [
-        { failureReason: null },
-        { failureReason: { not: { startsWith: SLOW_DLR_RESEND_MARKER } } },
-      ],
-    },
+    where: { id: messageId, status: "SENT", slowDlrResent: false },
     data: {
       status: "PENDING",
       sentAt: null,
@@ -90,6 +82,7 @@ export async function forceResendSlowDeliveryMessage(
       failedAt: null,
       providerRef: null,
       providerType: null,
+      slowDlrResent: true,
       failureReason: SLOW_DLR_RESEND_MARKER,
     },
   });
@@ -120,9 +113,9 @@ export async function watchDeliveryAndForceResend(messageId: string) {
     if (status === "SENT") {
       const msg = await prisma.message.findUnique({
         where: { id: messageId },
-        select: { sentAt: true, failureReason: true },
+        select: { sentAt: true, slowDlrResent: true },
       });
-      if (!msg?.sentAt || hasSlowResendMarker(msg.failureReason)) return;
+      if (!msg?.sentAt || msg.slowDlrResent) return;
       if (Date.now() - msg.sentAt.getTime() >= SLOW_DELIVERY_MS) {
         await forceResendSlowDeliveryMessage(messageId);
         return;
@@ -144,10 +137,7 @@ export async function forceResendSlowDeliveries(limit = 25) {
       status: "SENT",
       isSandbox: false,
       sentAt: { lte: olderThan, gte: newerThan },
-      OR: [
-        { failureReason: null },
-        { failureReason: { not: { startsWith: SLOW_DLR_RESEND_MARKER } } },
-      ],
+      slowDlrResent: false,
     },
     orderBy: { sentAt: "asc" },
     take: limit,

@@ -796,6 +796,10 @@ model Message {
   failureReason String?
   priority      MessagePriority  @default(MEDIUM)
   channel       String?
+  /**
+   * Set permanently once this message has been force-resent for slow/missing delivery confirmation — caps it at one resend, ever.
+   */
+  slowDlrResent Boolean          @default(false)
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
   routingLogs   SmsRoutingLog[]

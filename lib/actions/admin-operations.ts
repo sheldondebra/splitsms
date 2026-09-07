@@ -726,3 +726,114 @@ export async function adminRetryFailedSmsAction(formData: FormData) {
 
   redirect(`${returnTo}?${qs.toString()}`);
 }
+
+/** Bulk-delete FAILED messages. Already refunded when they failed, so no billing side effects. */
+export async function adminClearFailedSmsAction(formData: FormData) {
+  const session = await requireAdmin();
+  const campaignId = String(formData.get("campaignId") ?? "").trim() || undefined;
+  const returnTo = String(formData.get("returnTo") ?? "/admin/messages").trim() || "/admin/messages";
+
+  const { count } = await prisma.message.deleteMany({
+    where: {
+      status: "FAILED",
+      ...(campaignId ? { campaignId } : {}),
+    },
+  });
+
+  if (count > 0) {
+    await logAdminSmsAction(session, "SMS_FAILED_CLEARED", {
+      count,
+      campaignId: campaignId ?? null,
+    });
+  }
+
+  revalidatePath("/admin/messages");
+  revalidatePath("/admin/operations");
+
+  redirect(`${returnTo}?cleared=${count}`);
+}
+
+/**
+ * Bulk-cancel PENDING (not-yet-sent) messages. Credits were pre-debited at
+ * enqueue time, so each cancelled message is refunded before it's marked
+ * REJECTED — otherwise the member would lose credits for a message that was
+ * never actually sent.
+ */
+export async function adminCancelPendingSmsAction(formData: FormData) {
+  const session = await requireAdmin();
+  const limit = Math.min(2000, Math.max(1, Number(formData.get("limit") ?? 500)));
+  const campaignId = String(formData.get("campaignId") ?? "").trim() || undefined;
+  const returnTo = String(formData.get("returnTo") ?? "/admin/messages").trim() || "/admin/messages";
+
+  const pending = await prisma.message.findMany({
+    where: {
+      status: "PENDING",
+      ...(campaignId ? { campaignId } : {}),
+    },
+    orderBy: { createdAt: "asc" },
+    take: limit,
+    select: {
+      id: true,
+      userId: true,
+      channel: true,
+      smsUnits: true,
+      countryCode: true,
+      cost: true,
+      recipient: true,
+      campaignId: true,
+    },
+  });
+
+  if (pending.length === 0) {
+    redirect(`${returnTo}?cancelled=0`);
+  }
+
+  const { refundMessageBilling } = await import("@/lib/sms/message-billing");
+  const currencyByUser = new Map<string, string>();
+  let cancelled = 0;
+
+  for (const msg of pending) {
+    let currency = currencyByUser.get(msg.userId);
+    if (!currency) {
+      const wallet = await prisma.wallet.findUnique({
+        where: { userId: msg.userId },
+        select: { currency: true },
+      });
+      currency = wallet?.currency ?? "GHS";
+      currencyByUser.set(msg.userId, currency);
+    }
+
+    try {
+      await refundMessageBilling(msg, currency, `Cancelled by admin: ${msg.recipient}`);
+      await prisma.message.update({
+        where: { id: msg.id },
+        data: {
+          status: "REJECTED",
+          failedAt: new Date(),
+          failureReason: "Cancelled by admin",
+        },
+      });
+      cancelled += 1;
+    } catch (err) {
+      console.error("[adminCancelPendingSmsAction] failed to cancel", msg.id, err);
+    }
+  }
+
+  const campaignIds = [...new Set(pending.map((m) => m.campaignId).filter((id): id is string => !!id))];
+  if (campaignIds.length > 0) {
+    const { syncCampaignStatus } = await import("@/lib/campaigns/sync-status");
+    for (const id of campaignIds) {
+      await syncCampaignStatus(id).catch(() => undefined);
+    }
+  }
+
+  await logAdminSmsAction(session, "SMS_PENDING_CANCELLED", {
+    count: cancelled,
+    campaignId: campaignId ?? null,
+  });
+
+  revalidatePath("/admin/messages");
+  revalidatePath("/admin/operations");
+
+  redirect(`${returnTo}?cancelled=${cancelled}`);
+}

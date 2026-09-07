@@ -103,8 +103,9 @@ export async function processMessageJob(
         providerType: result.provider ?? "MNOTIFY",
         providerRef: result.providerRef,
         sentAt: new Date(),
-        // Clear the auto-resend marker on success — it's an internal retry flag,
-        // not a real failure reason, and shouldn't linger on a delivered message.
+        // Clear the (now purely cosmetic) failureReason text on success — the
+        // real "already force-resent" gate lives in `slowDlrResent`, which is
+        // never cleared, so this can't undo the one-resend cap anymore.
         failureReason: null,
       },
     });
@@ -116,7 +117,7 @@ export async function processMessageJob(
     }
 
     // Already force-resent once — don't start another 10s watcher loop.
-    if (message.failureReason?.startsWith("auto-resend:slow-dlr") !== true) {
+    if (!message.slowDlrResent) {
       const { watchDeliveryAndForceResend } = await import(
         "@/lib/sms/force-resend-slow-delivery"
       );
@@ -172,7 +173,7 @@ export async function updateMessageFromDlr(
     : await prisma.message.findFirst({ where: { providerRef } });
   if (!message) return;
 
-  const hasResendMarker = message.failureReason?.startsWith("auto-resend:slow-dlr") === true;
+  const hasResendMarker = message.slowDlrResent;
 
   const updated = await prisma.message.update({
     where: { id: message.id },

@@ -36,6 +36,8 @@ export default async function AdminMessagesPage({
     credits_messages?: string;
     notified?: string;
     error?: string;
+    cancelled?: string;
+    cleared?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -156,6 +158,19 @@ export default async function AdminMessagesPage({
           Re-queued {params.retried} failed message{Number(params.retried) === 1 ? "" : "s"} for delivery
           {Number(params.retried) > 0 ? " — members notified by email." : "."}
           {overview.pending > 0 ? " Use “Process pending now” to send immediately." : ""}
+        </AdminAlert>
+      )}
+
+      {params.cancelled && (
+        <AdminAlert variant="info">
+          Cancelled {params.cancelled} pending message{Number(params.cancelled) === 1 ? "" : "s"} and
+          refunded the credits charged for {Number(params.cancelled) === 1 ? "it" : "them"}.
+        </AdminAlert>
+      )}
+
+      {params.cleared && (
+        <AdminAlert variant="info">
+          Cleared {params.cleared} failed message{Number(params.cleared) === 1 ? "" : "s"} from the log.
         </AdminAlert>
       )}
 
