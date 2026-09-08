@@ -13,6 +13,16 @@ import { AdminCard, AdminEmpty } from "@/components/admin/admin-page-shell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import {
+  Combobox,
+  ComboboxInputGroup,
+  ComboboxInput,
+  ComboboxPopup,
+  ComboboxList,
+  ComboboxItem,
+  ComboboxEmpty,
+} from "@/components/ui/combobox";
+import { PhoneChipInput, type PhoneChip } from "@/components/admin/phone-chip-input";
 import { Loader2, Send, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AdminSmsTestEntry } from "@/lib/admin/sms-test-history";
@@ -71,7 +81,7 @@ export function GeneralSmsTestPanel({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [refreshing, setRefreshing] = useState(false);
-  const [numbers, setNumbers] = useState("");
+  const [chips, setChips] = useState<PhoneChip[]>([]);
   const [senderId, setSenderId] = useState(senderIds[0] ?? "");
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
   const [tracking, setTracking] = useState<LiveTrackEntry[]>([]);
@@ -115,12 +125,24 @@ export function GeneralSmsTestPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allResolved]);
 
+  const validChips = chips.filter((c) => c.valid);
+  const invalidChipCount = chips.length - validChips.length;
+
   function runSend() {
+    if (validChips.length === 0) return;
     startTransition(async () => {
-      const result = await sendAdminSmsTestAction({ numbers, senderId, message });
+      const result = await sendAdminSmsTestAction({
+        numbers: validChips.map((c) => c.normalized),
+        senderId,
+        message,
+      });
       if (result.ok) {
-        toast.success(result.message);
-        setNumbers("");
+        toast.success(
+          invalidChipCount > 0
+            ? `${result.message} (${invalidChipCount} invalid number${invalidChipCount === 1 ? "" : "s"} skipped)`
+            : result.message,
+        );
+        setChips([]);
       } else {
         toast.error(result.message);
       }
@@ -174,13 +196,15 @@ export function GeneralSmsTestPanel({
             <label className="text-sm font-medium" htmlFor="sms-test-numbers">
               Phone numbers
             </label>
-            <Textarea
-              id="sms-test-numbers"
-              value={numbers}
-              onChange={(e) => setNumbers(e.target.value)}
-              rows={3}
-              placeholder={"233201234567\n233559876543 (one per line, or comma-separated — max 20)"}
-            />
+            <PhoneChipInput id="sms-test-numbers" value={chips} onChange={setChips} disabled={pending} />
+            <p className="text-xs text-muted-foreground">
+              Type a number and press Enter, comma, or paste a list — max 20.
+              {invalidChipCount > 0 && (
+                <span className="ml-1 text-destructive">
+                  {invalidChipCount} invalid number{invalidChipCount === 1 ? "" : "s"} in red won&apos;t be sent.
+                </span>
+              )}
+            </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -189,18 +213,21 @@ export function GeneralSmsTestPanel({
                 Sender ID
               </label>
               {senderIds.length > 0 ? (
-                <select
-                  id="sms-test-sender"
-                  className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                  value={senderId}
-                  onChange={(e) => setSenderId(e.target.value)}
-                >
-                  {senderIds.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
+                <Combobox items={senderIds} value={senderId} onValueChange={(v) => setSenderId(v ?? "")}>
+                  <ComboboxInputGroup>
+                    <ComboboxInput id="sms-test-sender" placeholder="Search sender ID…" />
+                  </ComboboxInputGroup>
+                  <ComboboxPopup>
+                    <ComboboxEmpty>No matching sender ID.</ComboboxEmpty>
+                    <ComboboxList>
+                      {(item: string) => (
+                        <ComboboxItem key={item} value={item}>
+                          {item}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxPopup>
+                </Combobox>
               ) : (
                 <p className="text-sm text-destructive">No approved sender IDs on the platform yet.</p>
               )}
@@ -222,7 +249,7 @@ export function GeneralSmsTestPanel({
           <Button
             type="button"
             onClick={runSend}
-            disabled={pending || senderIds.length === 0 || !numbers.trim()}
+            disabled={pending || senderIds.length === 0 || validChips.length === 0}
             className="gap-1.5"
           >
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

@@ -15,16 +15,13 @@ async function requireAdmin() {
 export type AdminSmsTestSentEntry = { id: string; recipient: string };
 
 export async function sendAdminSmsTestAction(input: {
-  numbers: string;
+  numbers: string[];
   senderId: string;
   message: string;
 }): Promise<{ ok: boolean; message: string; sent: AdminSmsTestSentEntry[] }> {
   const session = await requireAdmin();
 
-  const numbers = input.numbers
-    .split(/[\n,;]+/)
-    .map((n) => n.trim())
-    .filter(Boolean);
+  const numbers = input.numbers.map((n) => n.trim()).filter(Boolean);
   const senderId = input.senderId.trim();
   const body = input.message.trim();
 
