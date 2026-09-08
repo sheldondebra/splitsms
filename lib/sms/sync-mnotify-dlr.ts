@@ -6,6 +6,20 @@ import {
 } from "@/lib/mnotify";
 import { dispatchUserWebhooks } from "@/lib/webhooks/dispatch";
 import { syncCampaignStatus } from "@/lib/campaigns/sync-status";
+import { SMS_BATCH_CONCURRENCY } from "@/lib/queue/sms-dispatch-config";
+
+/** Poll delivery reports for a set of campaign refs, bounded concurrency instead of one-at-a-time. */
+async function syncCampaignsConcurrently(campaignIds: string[]) {
+  let updated = 0;
+  for (let i = 0; i < campaignIds.length; i += SMS_BATCH_CONCURRENCY) {
+    const batch = campaignIds.slice(i, i + SMS_BATCH_CONCURRENCY);
+    const results = await Promise.all(batch.map((id) => syncMnotifyCampaignDelivery(id)));
+    for (const r of results) {
+      if (r.ok) updated += r.updated;
+    }
+  }
+  return updated;
+}
 
 function mapMnotifyStatus(raw: string): "DELIVERED" | "FAILED" | "SENT" {
   const s = raw.toUpperCase().trim();
@@ -115,6 +129,11 @@ function invalidProviderRef(ref: string | null) {
   return !ref || ref === "2000" || ref.startsWith("mnotify-");
 }
 
+/** Collapse whitespace/newline-style and case differences that don't change the message content. */
+function normalizeBodyForCompare(text: string) {
+  return text.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
 function matchesPeriodicRow(message: PendingMnotifyMessage, row: { recipient?: string; sender?: string; message?: string }) {
   if (!row.recipient) return false;
   const variants = phoneVariants(row.recipient);
@@ -123,8 +142,15 @@ function matchesPeriodicRow(message: PendingMnotifyMessage, row: { recipient?: s
   const sender = row.sender?.trim().toLowerCase();
   if (sender && sender !== message.senderId.trim().toLowerCase()) return false;
 
-  const body = row.message?.trim();
-  if (body && body !== message.body.trim()) return false;
+  // mNotify's report can re-wrap or trim long messages, so only compare a
+  // normalized prefix rather than requiring an exact byte-for-byte match —
+  // recipient + sender already narrow the match enough to make this safe.
+  const body = row.message ? normalizeBodyForCompare(row.message) : "";
+  if (body) {
+    const ours = normalizeBodyForCompare(message.body);
+    const prefixLen = Math.min(60, body.length, ours.length);
+    if (prefixLen > 0 && body.slice(0, prefixLen) !== ours.slice(0, prefixLen)) return false;
+  }
 
   return true;
 }
@@ -228,18 +254,19 @@ export async function syncUserPendingMnotifyDeliveries(userId: string, limit = 3
         .filter((ref): ref is string => Boolean(ref) && !invalidProviderRef(ref)),
     ),
   ];
-  let totalUpdated = 0;
-
-  for (const campaignId of campaignIds) {
-    const r = await syncMnotifyCampaignDelivery(campaignId);
-    if (r.ok) totalUpdated += r.updated;
-  }
+  let totalUpdated = await syncCampaignsConcurrently(campaignIds);
   totalUpdated += await syncPeriodicDeliveries(pending);
 
   return { campaigns: campaignIds.length, rowsUpdated: totalUpdated };
 }
 
-/** Sync all recent mNotify SENT messages that have a campaign providerRef */
+/**
+ * Sync mNotify SENT messages that have a campaign providerRef — oldest first.
+ * This is the backlog drain: without oldest-first ordering, any message that
+ * falls outside the most-recently-sent `limit` is never rechecked again and
+ * stays stuck as SENT (never DELIVERED) forever, however long ago it was
+ * actually delivered by the carrier.
+ */
 export async function syncPendingMnotifyDeliveries(limit = 50) {
   const pending = await prisma.message.findMany({
     where: {
@@ -248,7 +275,7 @@ export async function syncPendingMnotifyDeliveries(limit = 50) {
       providerRef: { not: null },
     },
     include: { user: { include: { wallet: true } } },
-    orderBy: { sentAt: "desc" },
+    orderBy: { sentAt: "asc" },
     take: limit,
   });
 
@@ -259,12 +286,7 @@ export async function syncPendingMnotifyDeliveries(limit = 50) {
         .filter((ref): ref is string => Boolean(ref) && !invalidProviderRef(ref)),
     ),
   ];
-  let totalUpdated = 0;
-
-  for (const campaignId of campaignIds) {
-    const r = await syncMnotifyCampaignDelivery(campaignId);
-    if (r.ok) totalUpdated += r.updated;
-  }
+  let totalUpdated = await syncCampaignsConcurrently(campaignIds);
   totalUpdated += await syncPeriodicDeliveries(pending);
 
   return { campaigns: campaignIds.length, rowsUpdated: totalUpdated };

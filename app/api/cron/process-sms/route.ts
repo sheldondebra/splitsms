@@ -99,7 +99,7 @@ export async function GET(request: Request) {
 
   const dlr =
     sms.processed > 0 || !workersEnabled
-      ? await syncPendingMnotifyDeliveries(Math.min(smsLimit, 30)).catch(() => ({
+      ? await syncPendingMnotifyDeliveries(120).catch(() => ({
           campaigns: 0,
           rowsUpdated: 0,
         }))

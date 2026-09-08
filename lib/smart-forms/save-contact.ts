@@ -2,6 +2,7 @@ import type { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { detectCountryCode } from "@/lib/contacts/country-from-phone";
 import { runContactSignupAutomations } from "@/lib/automation/dispatch";
+import { normalizeOnePhone } from "@/lib/sms/units";
 import type { BuilderField } from "@/lib/smart-forms/types";
 import type { SmartFormContactSaveStatus } from "@/lib/generated/prisma/client";
 
@@ -52,7 +53,7 @@ export async function saveRespondentAsContact(
     return { status: "FAILED" };
   }
 
-  const phone = phoneAnswer.startsWith("+") ? phoneAnswer : `+${phoneAnswer.replace(/^0+/, "")}`;
+  const phone = normalizeOnePhone(phoneAnswer);
   const emailField = params.fields.find((f) => f.fieldType === "EMAIL");
   const email = emailField
     ? params.answers.find((a) => a.fieldKey === emailField.fieldKey)?.value

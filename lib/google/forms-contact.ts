@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { detectCountryCode } from "@/lib/contacts/country-from-phone";
 import { runContactSignupAutomations } from "@/lib/automation/dispatch";
+import { normalizeOnePhone } from "@/lib/sms/units";
 
 /** Save (or update) a form respondent as a Contact once their SMS has sent successfully. */
 export async function saveGoogleFormRespondentAsContact(params: {
@@ -9,7 +10,7 @@ export async function saveGoogleFormRespondentAsContact(params: {
   name: string | null;
   contactGroupId: string | null;
 }): Promise<string | null> {
-  const phone = params.phone.startsWith("+") ? params.phone : `+${params.phone.replace(/^0+/, "")}`;
+  const phone = normalizeOnePhone(params.phone);
   const countryCode = detectCountryCode(phone);
 
   const existing = await prisma.contact.findUnique({

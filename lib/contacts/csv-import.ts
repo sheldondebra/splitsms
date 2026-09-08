@@ -45,7 +45,19 @@ function sanitizeCell(value: unknown): string {
 
 function normalizePhone(raw: string): string | null {
   const cleaned = raw.replace(/\s+/g, "");
-  const withPlus = cleaned.startsWith("+") ? cleaned : `+${cleaned.replace(/^0+/, "")}`;
+  let withPlus: string;
+  if (cleaned.startsWith("+")) {
+    withPlus = cleaned;
+  } else if (cleaned.startsWith("00")) {
+    withPlus = `+${cleaned.slice(2)}`;
+  } else if (cleaned.startsWith("0") && cleaned.length >= 10) {
+    // Ghana-local trunk prefix ("0XXXXXXXXX") — the 0 is not part of the
+    // country code and must become +233, not be stripped and discarded
+    // (that silently drops the country code entirely).
+    withPlus = `+233${cleaned.slice(1)}`;
+  } else {
+    withPlus = `+${cleaned.replace(/^0+/, "")}`;
+  }
   try {
     if (!isValidPhoneNumber(withPlus)) return null;
     const p = parsePhoneNumber(withPlus);
