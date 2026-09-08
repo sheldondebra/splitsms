@@ -1,20 +1,30 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { sendAdminSmsTestAction } from "@/lib/actions/admin-sms-test";
+import {
+  pollAdminSmsTestStatusAction,
+  sendAdminSmsTestAction,
+  type AdminSmsTestLiveStatus,
+} from "@/lib/actions/admin-sms-test";
 import { AdminCard, AdminEmpty } from "@/components/admin/admin-page-shell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, RefreshCw } from "lucide-react";
+import { Loader2, Send, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AdminSmsTestEntry } from "@/lib/admin/sms-test-history";
 
 const DEFAULT_MESSAGE =
   "This is a test message from SplitSMS. If you received this, delivery is working correctly.";
+
+const TERMINAL_STATUSES = new Set(["DELIVERED", "FAILED", "REJECTED", "EXPIRED"]);
+const POLL_INTERVAL_MS = 3000;
+const POLL_TIMEOUT_MS = 120_000;
+
+type LiveTrackEntry = AdminSmsTestLiveStatus & { recipient: string };
 
 function deliverySeconds(entry: AdminSmsTestEntry): number | null {
   if (!entry.sentAt || !entry.deliveredAt) return null;
@@ -26,6 +36,13 @@ function deliveryTimeTone(seconds: number) {
   if (seconds <= 15) return "text-emerald-700 dark:text-emerald-300";
   if (seconds <= 60) return "text-amber-800 dark:text-amber-200";
   return "text-destructive";
+}
+
+function liveElapsedSeconds(entry: LiveTrackEntry, nowMs: number): number | null {
+  if (!entry.sentAt) return null;
+  const end = entry.deliveredAt ? new Date(entry.deliveredAt).getTime() : nowMs;
+  const seconds = (end - new Date(entry.sentAt).getTime()) / 1000;
+  return seconds >= 0 ? Math.round(seconds) : null;
 }
 
 function statusBadge(status: string) {
@@ -57,6 +74,46 @@ export function GeneralSmsTestPanel({
   const [numbers, setNumbers] = useState("");
   const [senderId, setSenderId] = useState(senderIds[0] ?? "");
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
+  const [tracking, setTracking] = useState<LiveTrackEntry[]>([]);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const pollStartRef = useRef(0);
+
+  const allResolved = tracking.length > 0 && tracking.every((t) => TERMINAL_STATUSES.has(t.status));
+
+  useEffect(() => {
+    if (tracking.length === 0 || allResolved) return;
+
+    const tick = setInterval(() => setNowMs(Date.now()), 1000);
+
+    const poll = setInterval(async () => {
+      if (Date.now() - pollStartRef.current > POLL_TIMEOUT_MS) {
+        clearInterval(poll);
+        return;
+      }
+      try {
+        const statuses = await pollAdminSmsTestStatusAction(tracking.map((t) => t.id));
+        setTracking((prev) =>
+          prev.map((entry) => {
+            const fresh = statuses.find((s) => s.id === entry.id);
+            return fresh ? { ...entry, ...fresh } : entry;
+          }),
+        );
+      } catch {
+        /* transient — retried on the next tick */
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      clearInterval(tick);
+      clearInterval(poll);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tracking.length, allResolved]);
+
+  useEffect(() => {
+    if (allResolved) router.refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allResolved]);
 
   function runSend() {
     startTransition(async () => {
@@ -66,6 +123,29 @@ export function GeneralSmsTestPanel({
         setNumbers("");
       } else {
         toast.error(result.message);
+      }
+      if (result.sent.length > 0) {
+        pollStartRef.current = Date.now();
+        setTracking(
+          result.sent.map((s) => ({
+            id: s.id,
+            recipient: s.recipient,
+            status: "PENDING",
+            sentAt: null,
+            deliveredAt: null,
+            failureReason: null,
+          })),
+        );
+        // Sends complete inline before the action returns, so poll once
+        // immediately instead of waiting for the first interval tick.
+        const statuses = await pollAdminSmsTestStatusAction(result.sent.map((s) => s.id));
+        setTracking((prev) =>
+          prev.map((entry) => {
+            const fresh = statuses.find((st) => st.id === entry.id);
+            return fresh ? { ...entry, ...fresh } : entry;
+          }),
+        );
+        setNowMs(Date.now());
       }
       router.refresh();
     });
@@ -148,6 +228,50 @@ export function GeneralSmsTestPanel({
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             {pending ? "Sending…" : "Send test"}
           </Button>
+
+          {tracking.length > 0 && (
+            <ul className="space-y-1.5 rounded-lg border border-border/60 bg-muted/20 p-3">
+              {tracking.map((entry) => {
+                const secs = liveElapsedSeconds(entry, nowMs);
+                const failed = entry.status === "FAILED" || entry.status === "REJECTED" || entry.status === "EXPIRED";
+                const delivered = entry.status === "DELIVERED";
+                return (
+                  <li key={entry.id} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-mono text-xs">+{entry.recipient}</span>
+                    <span className="flex items-center gap-1.5 text-xs">
+                      {delivered ? (
+                        <>
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                          <span className={cn("font-semibold", secs != null && deliveryTimeTone(secs))}>
+                            Delivered in {secs ?? "?"}s
+                          </span>
+                        </>
+                      ) : failed ? (
+                        <>
+                          <XCircle className="h-3.5 w-3.5 text-destructive" />
+                          <span className="font-semibold text-destructive">
+                            {entry.failureReason ?? entry.status}
+                          </span>
+                        </>
+                      ) : entry.sentAt ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-600" />
+                          <span className="text-muted-foreground">
+                            Waiting for delivery… {secs ?? 0}s
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                          <span className="text-muted-foreground">Sending…</span>
+                        </>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       </AdminCard>
 

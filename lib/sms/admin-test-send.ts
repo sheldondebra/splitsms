@@ -18,7 +18,10 @@ export async function sendAdminTestSms(opts: {
   recipientRaw: string;
   body: string;
   senderId: string;
-}): Promise<{ ok: true; messageId: string } | { ok: false; recipient: string; error: string }> {
+}): Promise<
+  | { ok: true; messageId: string; recipient: string }
+  | { ok: false; recipient: string; error: string }
+> {
   const phoneCheck = validateRecipientPhone(opts.recipientRaw);
   if (!phoneCheck.valid) {
     return { ok: false, recipient: opts.recipientRaw, error: "Invalid phone number" };
@@ -55,5 +58,5 @@ export async function sendAdminTestSms(opts: {
 
   await enqueueSmsJob(message.id, countryCode, priority);
 
-  return { ok: true, messageId: message.id };
+  return { ok: true, messageId: message.id, recipient: phoneCheck.display };
 }
