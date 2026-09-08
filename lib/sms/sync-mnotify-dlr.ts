@@ -266,13 +266,18 @@ export async function syncUserPendingMnotifyDeliveries(userId: string, limit = 3
  * falls outside the most-recently-sent `limit` is never rechecked again and
  * stays stuck as SENT (never DELIVERED) forever, however long ago it was
  * actually delivered by the carrier.
+ *
+ * Excludes the "2000" placeholder ref (a historical bug, fixed as of
+ * 2026-07-20) — those rows can never resolve via the campaign-report path,
+ * and letting them sit at the front of the oldest-first queue would starve
+ * the cron of ever reaching genuinely resolvable messages behind them.
  */
 export async function syncPendingMnotifyDeliveries(limit = 50) {
   const pending = await prisma.message.findMany({
     where: {
       providerType: "MNOTIFY",
       status: { in: ["SENT", "PENDING"] },
-      providerRef: { not: null },
+      providerRef: { not: null, notIn: ["2000"] },
     },
     include: { user: { include: { wallet: true } } },
     orderBy: { sentAt: "asc" },
