@@ -27,6 +27,15 @@ export async function saveMnotifySettingsAction(formData: FormData) {
     session.userId,
   );
 
+  // Without this, the enabled checkbox (and every page reading provider
+  // config) keeps showing the pre-save state after the redirect below —
+  // Twilio/Infobip's save actions already revalidate these paths, mNotify's
+  // didn't, so disabling mNotify here looked like it silently reverted.
+  revalidatePath("/admin");
+  revalidatePath("/admin/providers");
+  revalidatePath("/admin/mnotify");
+  revalidatePath("/admin/routes");
+
   redirect("/admin/providers?tab=mnotify&saved=1");
 }
 

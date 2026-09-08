@@ -38,9 +38,13 @@ export async function getProviderOrderForCountry(
     },
   });
 
-  const steps = country?.routes?.[0]?.steps ?? [];
-  if (steps.length > 0) {
-    return steps.map((s) => s.provider.type);
+  // Disabled providers (admin toggled off in /admin/providers) must never be
+  // offered here — each adapter also refuses to send when disabled, but
+  // leaving it in the order wastes a doomed attempt on every send and made
+  // "disable this provider" look like it had no effect from the routing side.
+  const activeSteps = (country?.routes?.[0]?.steps ?? []).filter((s) => s.provider.isActive);
+  if (activeSteps.length > 0) {
+    return activeSteps.map((s) => s.provider.type);
   }
 
   if (countryCode !== "GLOBAL") {
@@ -54,9 +58,9 @@ export async function getProviderOrderForCountry(
         },
       },
     });
-    const globalSteps = global?.routes?.[0]?.steps ?? [];
-    if (globalSteps.length > 0) {
-      return globalSteps.map((s) => s.provider.type);
+    const activeGlobalSteps = (global?.routes?.[0]?.steps ?? []).filter((s) => s.provider.isActive);
+    if (activeGlobalSteps.length > 0) {
+      return activeGlobalSteps.map((s) => s.provider.type);
     }
   }
 
