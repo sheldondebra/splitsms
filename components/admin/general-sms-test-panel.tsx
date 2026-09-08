@@ -16,6 +16,18 @@ import type { AdminSmsTestEntry } from "@/lib/admin/sms-test-history";
 const DEFAULT_MESSAGE =
   "This is a test message from SplitSMS. If you received this, delivery is working correctly.";
 
+function deliverySeconds(entry: AdminSmsTestEntry): number | null {
+  if (!entry.sentAt || !entry.deliveredAt) return null;
+  const seconds = (entry.deliveredAt.getTime() - entry.sentAt.getTime()) / 1000;
+  return seconds >= 0 ? Math.round(seconds) : null;
+}
+
+function deliveryTimeTone(seconds: number) {
+  if (seconds <= 15) return "text-emerald-700 dark:text-emerald-300";
+  if (seconds <= 60) return "text-amber-800 dark:text-amber-200";
+  return "text-destructive";
+}
+
 function statusBadge(status: string) {
   const tone =
     status === "DELIVERED"
@@ -154,7 +166,7 @@ export function GeneralSmsTestPanel({
           <AdminEmpty dense>No test messages sent yet.</AdminEmpty>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[880px] text-sm">
+            <table className="w-full min-w-[960px] text-sm">
               <thead>
                 <tr className="border-b border-border/60 text-left text-[11px] uppercase tracking-wide text-muted-foreground">
                   <th className="pb-2 pr-3 font-semibold">Recipient</th>
@@ -163,6 +175,7 @@ export function GeneralSmsTestPanel({
                   <th className="pb-2 pr-3 font-semibold">Status</th>
                   <th className="pb-2 pr-3 font-semibold">Sent</th>
                   <th className="pb-2 pr-3 font-semibold">Delivered</th>
+                  <th className="pb-2 pr-3 font-semibold">Time</th>
                   <th className="pb-2 font-semibold">Details</th>
                 </tr>
               </thead>
@@ -182,6 +195,16 @@ export function GeneralSmsTestPanel({
                     </td>
                     <td className="py-3 pr-3 text-xs text-muted-foreground whitespace-nowrap">
                       {entry.deliveredAt ? format(entry.deliveredAt, "MMM d, HH:mm:ss") : "—"}
+                    </td>
+                    <td className="py-3 pr-3 text-xs font-semibold tabular-nums whitespace-nowrap">
+                      {(() => {
+                        const secs = deliverySeconds(entry);
+                        return secs == null ? (
+                          <span className="text-muted-foreground font-normal">—</span>
+                        ) : (
+                          <span className={deliveryTimeTone(secs)}>{secs}s</span>
+                        );
+                      })()}
                     </td>
                     <td className="py-3 text-xs text-muted-foreground max-w-[220px] truncate" title={entry.failureReason ?? entry.providerRef ?? undefined}>
                       {entry.failureReason ?? entry.providerRef ?? "—"}
