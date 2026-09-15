@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { dispatchDueMarketingCampaigns } from "@/lib/admin/email-marketing-send";
 import { runInactiveMemberEmails } from "@/lib/email/automation-run";
 import { isCronAuthorized } from "@/lib/security/cron-auth";
 
@@ -13,6 +14,9 @@ export async function GET(request: Request) {
     80,
     Math.max(1, Number(new URL(request.url).searchParams.get("limit") ?? 40)),
   );
-  const result = await runInactiveMemberEmails(limit);
-  return NextResponse.json({ ok: true, ...result });
+  const [result, scheduled] = await Promise.all([
+    runInactiveMemberEmails(limit),
+    dispatchDueMarketingCampaigns(),
+  ]);
+  return NextResponse.json({ ok: true, ...result, scheduled });
 }
