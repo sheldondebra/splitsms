@@ -283,8 +283,8 @@ export function isPlatformFeatureId(value: string): value is PlatformFeatureId {
   return value in FEATURE_BY_ID;
 }
 
-export function platformFeatureLabel(id: PlatformFeatureId) {
-  return FEATURE_BY_ID[id]?.label ?? id;
+export function platformFeatureRequires(id: PlatformFeatureId): readonly PlatformFeatureId[] {
+  return FEATURE_BY_ID[id]?.requires ?? [];
 }
 
 export function featureDisabledMessage(id: PlatformFeatureId) {

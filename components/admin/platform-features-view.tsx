@@ -16,6 +16,7 @@ import {
   PLATFORM_FEATURE_GROUPS,
   isFeatureEnabledIn,
   platformFeatureLabel,
+  platformFeatureRequires,
   type PlatformFeatureFlags,
   type PlatformFeatureId,
 } from "@/lib/platform/feature-catalog";
@@ -138,6 +139,7 @@ export function PlatformFeaturesView({
                 const selfOn = local[feature.id] !== false;
                 const effective = isFeatureEnabledIn(local, feature.id);
                 const blockedByParent = selfOn && !effective;
+                const parentId = platformFeatureRequires(feature.id)[0];
                 return (
                   <li
                     key={feature.id}
@@ -159,9 +161,9 @@ export function PlatformFeaturesView({
                         </Badge>
                       </div>
                       <p className="mt-0.5 text-xs text-muted-foreground">{feature.description}</p>
-                      {blockedByParent && feature.requires?.[0] ? (
+                      {blockedByParent && parentId ? (
                         <p className="mt-1 text-[11px] text-amber-800 dark:text-amber-200">
-                          Blocked because {platformFeatureLabel(feature.requires[0])} is off.
+                          Blocked because {platformFeatureLabel(parentId)} is off.
                         </p>
                       ) : null}
                     </div>
