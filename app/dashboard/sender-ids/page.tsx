@@ -15,6 +15,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SenderIdItem } from "@/components/dashboard/sender-id-list";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 const ALERT_MESSAGES: Record<string, { success?: string; error?: string }> = {
   requested: {
@@ -106,6 +107,7 @@ export default async function SenderIdsPage({
   const dashboardProps: SenderIdsDashboardProps = {
     items,
     defaultId,
+    canRegister: await isFeatureEnabled("sender_id_registration"),
   };
 
   return (

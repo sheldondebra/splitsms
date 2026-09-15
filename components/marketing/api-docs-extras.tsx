@@ -41,7 +41,7 @@ export function ApiDocsExtras() {
             </li>
           ))}
         </ul>
-        <Link href="/developers/webhooks" className="inline-block mt-4 text-sm font-medium text-primary hover:underline">
+        <Link href="/docs#webhooks" className="inline-block mt-4 text-sm font-medium text-primary hover:underline">
           Configure in portal →
         </Link>
       </div>

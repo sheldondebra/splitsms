@@ -12,6 +12,7 @@ import { getRequestTenant } from "@/lib/reseller/request-tenant";
 import { recordInviteLinkView } from "@/lib/reseller/invite-analytics";
 import { resolveResellerInvite } from "@/lib/reseller/invite";
 import { authPageMetadata } from "@/lib/seo/marketing-metadata";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 export const metadata: Metadata = authPageMetadata(
   "/signup",
@@ -41,6 +42,8 @@ export default async function SignupPage({
   const countries = await getSignupCountryOptions();
   const defaultMethod = method === "email" ? "email" : "phone";
   const inviteParam = r?.trim() || undefined;
+  const registerEnabled = await isFeatureEnabled("register");
+  const googleSigninEnabled = await isFeatureEnabled("google_signin");
 
   return (
     <AuthLayout
@@ -73,18 +76,28 @@ export default async function SignupPage({
     >
       <AuthCard>
         <AuthAlert code={error} />
-        <GoogleAuthButton resellerInvite={inviteParam} />
-        <GoogleAuthDivider />
-        <AuthEntryTabs
-          countries={countries}
-          intent="signup"
-          defaultMethod={defaultMethod}
-          resellerInvite={inviteParam}
-        />
-        <p className="mt-6 text-center text-xs text-muted-foreground leading-relaxed">
-          By continuing you agree to receive a one-time SMS for verification. Message & data rates
-          may apply.
-        </p>
+        {registerEnabled ? (
+          <>
+            {googleSigninEnabled ? (
+              <>
+                <GoogleAuthButton resellerInvite={inviteParam} />
+                <GoogleAuthDivider />
+              </>
+            ) : null}
+            <AuthEntryTabs
+              countries={countries}
+              intent="signup"
+              defaultMethod={defaultMethod}
+              resellerInvite={inviteParam}
+            />
+            <p className="mt-6 text-center text-xs text-muted-foreground leading-relaxed">
+              By continuing you agree to receive a one-time SMS for verification. Message & data rates
+              may apply.
+            </p>
+          </>
+        ) : (
+          <AuthAlert code="feature_register" />
+        )}
         <p className="mt-4 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
           <Link href="/login?mode=sms" className="text-primary font-medium hover:underline">

@@ -111,6 +111,7 @@ enum SmsProviderType {
   INFOBIP
   TWILIO
   MNOTIFY
+  EASYSENDSMS
 }
 
 enum MessageStatus {
@@ -176,6 +177,7 @@ enum SenderIdProviderType {
   MNOTIFY
   TWILIO
   INFOBIP
+  EASYSENDSMS
 }
 
 enum SenderIdProviderStatus {
@@ -1531,6 +1533,41 @@ model EmailMarketingSubscriber {
 
   @@index([status])
   @@index([createdAt])
+}
+
+/// Sidecar for schedule + engagement counters. Campaign table is not owned by the app role.
+model EmailMarketingCampaignMeta {
+  campaignId       String    @id
+  scheduledAt      DateTime?
+  dispatchedAt     DateTime?
+  uniqueOpenCount  Int       @default(0)
+  uniqueClickCount Int       @default(0)
+  unsubscribeCount Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([scheduledAt])
+}
+
+model EmailMarketingEvent {
+  id         String   @id @default(cuid())
+  campaignId String
+  deliveryId String?
+  email      String
+  kind       String
+  url        String?
+  createdAt  DateTime @default(now())
+
+  @@index([campaignId, kind])
+  @@index([deliveryId, kind])
+  @@index([email, kind])
+}
+
+model EmailMarketingSuppression {
+  email     String   @id
+  reason    String   @default("unsubscribe")
+  source    String   @default("campaign")
+  createdAt DateTime @default(now())
 }
 
 /// OAuth connection for Google product APIs (Contacts/Sheets/Forms) — separate from Google Sign-In.

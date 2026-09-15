@@ -38,4 +38,5 @@ export const POST = withApi(
   },
   "/api/v1/wordpress/connect",
   "sms.send",
+  { feature: "wordpress" },
 );

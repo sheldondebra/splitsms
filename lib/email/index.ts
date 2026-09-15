@@ -84,6 +84,7 @@ export async function sendEmail(params: {
   html?: string;
   toName?: string;
   attachments?: EmailAttachment[];
+  headers?: Record<string, string>;
 }) {
   const provider = await getActiveEmailProvider();
   if (!provider) {

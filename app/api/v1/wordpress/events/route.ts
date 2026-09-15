@@ -28,4 +28,5 @@ export const POST = withApi(
   },
   "/api/v1/wordpress/events",
   "sms.read",
+  { feature: "wordpress" },
 );

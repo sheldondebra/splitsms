@@ -185,7 +185,7 @@ export function DashboardPreview({
           </div>
           <div className="flex-1 flex justify-center">
             <div className="h-5 w-[min(100%,12rem)] rounded-md bg-background/80 border border-border/50 flex items-center justify-center">
-              <span className="text-[9px] text-muted-foreground">app.splitsms.com/dashboard</span>
+              <span className="text-[9px] text-muted-foreground">www.splitsms.com/dashboard</span>
             </div>
           </div>
         </div>

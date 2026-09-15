@@ -24,6 +24,7 @@ export type MarketingEmailContentInput = {
   footerNote?: string | null;
   headerImageUrl?: string;
   headerImagePosition?: EmailHeaderImagePosition;
+  unsubscribeUrl?: string;
 };
 
 export function buildMarketingParts(input: MarketingEmailContentInput): {
@@ -57,6 +58,7 @@ export function buildMarketingParts(input: MarketingEmailContentInput): {
     ctaHref && ctaLabel ? `\n${ctaLabel}: ${ctaHref}` : "",
     "",
     `— ${siteName}`,
+    input.unsubscribeUrl ? `\nUnsubscribe: ${input.unsubscribeUrl}` : "",
   ];
 
   return {
@@ -74,6 +76,7 @@ export function buildMarketingParts(input: MarketingEmailContentInput): {
       footerNote,
       headerImageUrl: input.headerImageUrl,
       headerImagePosition: input.headerImagePosition,
+      unsubscribeUrl: input.unsubscribeUrl,
     },
   };
 }

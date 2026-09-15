@@ -8,6 +8,7 @@ import { getAccessTokenForUser } from "@/lib/google/connection";
 import { createGoogleContact } from "@/lib/google/people";
 import { GOOGLE_CONTACTS_EXPORT_SCOPES } from "@/lib/google/scopes";
 import { googleConnectHref } from "@/lib/google/connect-url";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 async function requireUserId() {
   const session = await getSession();
@@ -17,6 +18,9 @@ async function requireUserId() {
 
 export async function exportContactsToGoogleAction(formData: FormData) {
   const userId = await requireUserId();
+  if (!(await isFeatureEnabled("google_contacts"))) {
+    redirect("/dashboard/contacts?error=feature");
+  }
   const mode = String(formData.get("mode") ?? "selected");
   const rawIds = String(formData.get("contactIds") ?? "");
 

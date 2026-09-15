@@ -3,6 +3,22 @@ import { getSiteUrl, siteName, supportEmail } from "@/lib/site-config";
 export const EMAIL_MARKETING_MAX_RECIPIENTS = 200;
 export const EMAIL_MARKETING_NEWSLETTER_MAX_RECIPIENTS = 5000;
 export const EMAIL_MARKETING_INACTIVE_DAYS_DEFAULT = 30;
+export const EMAIL_MARKETING_LOW_CREDITS_DEFAULT = 5;
+export const EMAIL_MARKETING_NEW_MEMBER_DAYS_DEFAULT = 14;
+
+export const EMAIL_MARKETING_AUDIENCE_TYPES = [
+  "all",
+  "inactive",
+  "role_member",
+  "role_reseller",
+  "role_enterprise",
+  "manual",
+  "newsletter",
+  "low_credits",
+  "new_members",
+] as const;
+
+export type EmailMarketingAudienceType = (typeof EMAIL_MARKETING_AUDIENCE_TYPES)[number];
 
 export const EMAIL_MARKETING_SITE_IMAGES = [
   { href: "/og.png", label: "Homepage banner" },
@@ -10,15 +26,6 @@ export const EMAIL_MARKETING_SITE_IMAGES = [
   { href: "/icon.png", label: "App icon" },
   { href: "/smslogo-dark.png", label: "SMS mark" },
 ] as const;
-
-export type EmailMarketingAudienceType =
-  | "all"
-  | "inactive"
-  | "role_member"
-  | "role_reseller"
-  | "role_enterprise"
-  | "manual"
-  | "newsletter";
 
 export type EmailMarketingTemplateSeed = {
   slug: string;

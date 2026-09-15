@@ -12,6 +12,7 @@ import {
 import { createAndSendOtp } from "@/lib/auth/otp";
 import { checkRateLimit, rateLimitKey } from "@/lib/auth/rate-limit";
 import { logAuthEvent } from "@/lib/auth/audit";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 function settingsRedirect(params?: Record<string, string>): never {
   const q = params ? `?${new URLSearchParams(params).toString()}` : "";
@@ -93,6 +94,9 @@ export async function changePasswordAction(formData: FormData) {
 export async function requestPasswordResetSmsAction() {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (!(await isFeatureEnabled("password_reset"))) {
+    settingsRedirect({ error: "feature" });
+  }
 
   const limit = await checkRateLimit(rateLimitKey("forgot", session.phone));
   if (!limit.allowed) {

@@ -15,6 +15,7 @@ import { deductSmsCredits } from "@/lib/sms/billing";
 import { enqueueSmsJobsInline, shouldAwaitSmsDispatch } from "@/lib/queue/enqueue-sms";
 import { resolveMessagePriority } from "@/lib/enterprise/priority";
 import { resolveApprovedSenderForUser } from "@/lib/sender-ids/validate-send";
+import { isFeatureEnabled } from "@/lib/platform/features";
 import { redirect } from "next/navigation";
 
 export type SendSmsResult =
@@ -74,6 +75,7 @@ async function promoteDraftCampaign(
 export async function saveSendDraftAction(formData: FormData): Promise<SaveSendDraftResult> {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (!(await isFeatureEnabled("sms"))) return { ok: false, error: "feature" };
 
   const draftId = String(formData.get("draftId") ?? "").trim() || undefined;
   const senderIdRaw = String(formData.get("senderId") ?? "");
@@ -153,6 +155,7 @@ export async function saveSendDraftAction(formData: FormData): Promise<SaveSendD
 export async function sendSmsAction(formData: FormData): Promise<SendSmsResult> {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (!(await isFeatureEnabled("sms"))) return { ok: false, error: "feature" };
 
   const account = await getMemberAccountForUser(session.userId);
   if (isMemberSuspended(account) || !memberHasFeature(account, "featureBulkSms")) {

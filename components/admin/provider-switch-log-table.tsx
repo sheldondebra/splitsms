@@ -22,7 +22,7 @@ export type ProviderSwitchLogRow = {
 };
 
 const PAGE_SIZES = [10, 25, 50] as const;
-const PROVIDERS: SmsProviderType[] = ["MNOTIFY", "TWILIO", "INFOBIP"];
+const PROVIDERS: SmsProviderType[] = ["MNOTIFY", "TWILIO", "INFOBIP", "EASYSENDSMS"];
 
 function isProvider(value: string): value is SmsProviderType {
   return PROVIDERS.includes(value as SmsProviderType);

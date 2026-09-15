@@ -79,14 +79,14 @@ export default function ApiDocsPage() {
               </div>
               <div className="flex flex-wrap gap-2 text-sm">
                 <Link
-                  href="/developers"
+                  href="/docs"
                   className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 font-medium hover:bg-muted/50 transition-colors"
                 >
                   <BookOpen className="h-4 w-4 text-primary" />
                   Developer portal
                 </Link>
                 <Link
-                  href="/developers/generate"
+                  href="/vibe-coders"
                   className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 font-medium hover:bg-muted/50 transition-colors"
                 >
                   Generate code
@@ -107,13 +107,14 @@ export default function ApiDocsPage() {
                 >
                   llms.txt
                 </a>
-                <Link
-                  href="/developers/postman"
+                <a
+                  href="/postman/splitsms.collection.json"
                   className="inline-flex items-center gap-1.5 rounded-lg border border-[#FF6C37]/30 bg-[#FF6C37]/5 px-3 py-2 font-medium text-[#FF6C37] hover:bg-[#FF6C37]/10 transition-colors"
+                  download
                 >
                   <Braces className="h-4 w-4" />
                   Postman
-                </Link>
+                </a>
               </div>
             </div>
 

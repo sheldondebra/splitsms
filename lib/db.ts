@@ -1,6 +1,11 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool, type PoolClient } from "pg";
 import { PrismaClient } from "@/lib/generated/prisma/client";
+import {
+  isNeonDatabaseUrl,
+  normalizeDatabaseUrl,
+  resolveDatabaseUrl,
+} from "@/lib/postgres-connection";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient;
@@ -10,51 +15,12 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /** Increment when Prisma schema changes require a fresh client in dev */
-const PRISMA_CLIENT_BUILD_ID = "message-slow-dlr-resent-2026-09-06";
+const PRISMA_CLIENT_BUILD_ID = "easysendsms-provider-2026-09-08";
 
 const NEON_WAKE_DELAYS_MS = [500, 1500, 3000, 5000];
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function isNeonUrl(connectionString: string) {
-  return connectionString.includes("neon.tech");
-}
-
-function isIpv4Host(hostname: string) {
-  return /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname);
-}
-
-/**
- * Neon URLs from the console sometimes include channel_binding, which breaks some Node/pg builds.
- *
- * node-postgres 8.21+ treats sslmode=require as verify-full. Cloud SQL public-IP certs are not
- * in Node's trust store, so verification fails. Opt into libpq semantics for IP hosts so
- * require means encrypt-without-CA-verify (matches DEPLOY.md local Cloud SQL setup).
- */
-function normalizeDatabaseUrl(raw: string): string {
-  try {
-    const url = new URL(raw);
-    url.searchParams.delete("channel_binding");
-    if (!url.searchParams.has("sslmode")) {
-      url.searchParams.set("sslmode", "require");
-    }
-    const sslmode = url.searchParams.get("sslmode");
-    const socketHost = url.searchParams.get("host");
-    const viaCloudSqlSocket = Boolean(socketHost?.startsWith("/cloudsql/"));
-    if (
-      !viaCloudSqlSocket &&
-      isIpv4Host(url.hostname) &&
-      !url.searchParams.has("uselibpqcompat") &&
-      (sslmode === "require" || sslmode === "prefer" || sslmode === "verify-ca")
-    ) {
-      url.searchParams.set("uselibpqcompat", "true");
-    }
-    return url.toString();
-  } catch {
-    return raw;
-  }
 }
 
 function isRetriableDbError(err: unknown): boolean {
@@ -72,7 +38,7 @@ function isRetriableDbError(err: unknown): boolean {
 
 function createPool(connectionString: string): Pool {
   const normalized = normalizeDatabaseUrl(connectionString);
-  const neon = isNeonUrl(normalized);
+  const neon = isNeonDatabaseUrl(normalized);
 
   const pool = new Pool({
     connectionString: normalized,
@@ -131,10 +97,7 @@ function resetPrismaClient() {
 }
 
 function createPrisma() {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error("DATABASE_URL is not set");
-  }
+  const connectionString = resolveDatabaseUrl();
   const pool = globalForPrisma.pool ?? createPool(connectionString);
   if (!globalForPrisma.pool) globalForPrisma.pool = pool;
   const adapter = new PrismaPg(pool);

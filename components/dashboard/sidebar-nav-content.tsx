@@ -5,11 +5,14 @@ import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ChevronDown, Wallet } from "lucide-react";
 import {
-  dashboardNavSections,
   isNavActive,
 } from "@/lib/navigation/dashboard-nav";
 import { LogoutConfirmButton } from "@/components/auth/logout-confirm-button";
 import { useNavIconTip } from "@/components/layout/nav-icon-tip";
+import {
+  useDashboardNavByFeatures,
+  useFeatureEnabled,
+} from "@/components/platform/platform-features-context";
 import { cn } from "@/lib/utils";
 
 type SidebarNavContentProps = {
@@ -25,16 +28,18 @@ export function SidebarNavContent({
 }: SidebarNavContentProps) {
   const pathname = usePathname();
   const tip = useNavIconTip(collapsed);
+  const navSections = useDashboardNavByFeatures();
+  const walletTopupEnabled = useFeatureEnabled("wallet_topup");
 
   const initialOpen = useMemo(() => {
-    const entries = dashboardNavSections
+    const entries = navSections
       .filter((s) => s.collapsible)
       .map((s) => {
         const active = s.items.some((item) => isNavActive(pathname, item.href));
         return [s.id, active || Boolean(s.defaultOpen)] as const;
       });
     return Object.fromEntries(entries) as Record<string, boolean>;
-  }, [pathname]);
+  }, [pathname, navSections]);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(initialOpen);
 
   const [prevPathname, setPrevPathname] = useState(pathname);
@@ -42,7 +47,7 @@ export function SidebarNavContent({
     setPrevPathname(pathname);
     setOpenSections((prev) => {
       let next = prev;
-      for (const section of dashboardNavSections) {
+      for (const section of navSections) {
         if (!section.collapsible) continue;
         if (section.items.some((item) => isNavActive(pathname, item.href)) && !next[section.id]) {
           next = { ...next, [section.id]: true };
@@ -71,7 +76,7 @@ export function SidebarNavContent({
           collapsed ? "px-2" : "px-3 py-4 space-y-4",
         )}
       >
-        {dashboardNavSections.map((section) => {
+        {navSections.map((section) => {
           const isCollapsible = Boolean(section.collapsible);
           const isOpen = collapsed || !isCollapsible || openSections[section.id];
 
@@ -150,6 +155,7 @@ export function SidebarNavContent({
 
       {showFooter && (
         <div className={cn("sidebar-footer safe-bottom", collapsed ? "p-2 space-y-2" : "p-4 space-y-3")}>
+          {walletTopupEnabled ? (
           <Link
             href="/dashboard/wallet"
             onClick={onNavigate}
@@ -184,6 +190,7 @@ export function SidebarNavContent({
               </span>
             )}
           </Link>
+          ) : null}
 
           <span
             className={collapsed ? "flex justify-center" : undefined}

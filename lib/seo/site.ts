@@ -118,6 +118,36 @@ export function faqPageJsonLd(faqs: { question: string; answer: string }[]) {
   };
 }
 
+export function softwareApplicationJsonLd(path = "/") {
+  const url = path === "/" ? siteUrl : `${siteUrl}${path}`;
+  return {
+    "@type": "SoftwareApplication",
+    name: "SplitSMS",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url,
+    offers: {
+      "@type": "Offer",
+      price: "0.029",
+      priceCurrency: "GHS",
+      description: "Per SMS from, country-dependent rates. 5 free credits on signup.",
+    },
+    featureList: [
+      "Bulk SMS campaigns",
+      "Contact CSV import and groups",
+      "Google Contacts, Sheets, and Forms SMS",
+      "SMS OTP send and verify API",
+      "Delivery webhooks",
+      "REST API and Postman collection",
+      "WordPress and WooCommerce plugin",
+      "Sender ID registration",
+      "Real-time delivery reports",
+      "Paystack wallet top-up",
+      "Multi-carrier routing with failover",
+    ],
+  };
+}
+
 export const websiteJsonLd = {
   "@type": "WebSite",
   "@id": `${siteUrl}/#website`,

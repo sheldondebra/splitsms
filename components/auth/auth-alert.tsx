@@ -134,6 +134,26 @@ const messages: Record<
     text: "Google sign-in is not configured yet. Use email/password for now.",
     variant: "error",
   },
+  feature_login: {
+    text: "Member sign-in is paused right now. Staff can still sign in with email and password.",
+    variant: "info",
+  },
+  feature_login_off: {
+    text: "Member sign-in is paused. Staff accounts can still sign in.",
+    variant: "info",
+  },
+  feature_register: {
+    text: "Registration is currently closed.",
+    variant: "info",
+  },
+  feature_google: {
+    text: "Google sign-in is turned off. Use email/password or an SMS code.",
+    variant: "info",
+  },
+  feature_password_reset: {
+    text: "Password reset is turned off right now. Contact support if you need help getting in.",
+    variant: "info",
+  },
   phone_taken: {
     text: "That phone number is already registered. Sign in instead, or use a different number.",
     variant: "error",

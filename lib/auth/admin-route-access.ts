@@ -25,6 +25,7 @@ export const ADMIN_PATH_PERMISSIONS: Record<string, AdminPermission | readonly A
   "/admin/operations": "operations.read",
   "/admin/live-update": "operations.read",
   "/admin/general": "settings.read",
+  "/admin/features": "settings.read",
   "/admin/members": "members.read",
   "/admin/numbers": "members.read",
   "/admin/staff": ["staff.read", "staff.write"],

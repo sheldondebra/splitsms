@@ -9,12 +9,20 @@ import { PaymentMethod } from "@/lib/generated/prisma/client";
 import { redirect } from "next/navigation";
 import { purchaseCredits } from "@/lib/payments/wallet";
 import { resolveSmsPriceForUser } from "@/lib/reseller/pricing";
+import { isFeatureEnabled, paymentMethodFeature } from "@/lib/platform/features";
 
 export async function createTopUpAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (!(await isFeatureEnabled("wallet_topup"))) {
+    redirect("/dashboard/wallet?error=feature");
+  }
 
   const method = formData.get("method") as PaymentMethod;
+  const methodFeature = paymentMethodFeature(method);
+  if (methodFeature && !(await isFeatureEnabled(methodFeature))) {
+    redirect("/dashboard/wallet?error=feature");
+  }
   const amount = Number(formData.get("amount"));
   if (!amount || amount <= 0) redirect("/dashboard/wallet?error=amount");
 

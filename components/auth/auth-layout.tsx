@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { TenantLogo } from "@/components/tenant/tenant-theme";
 import type { TenantBranding } from "@/lib/reseller/tenant";
@@ -80,9 +81,15 @@ export function AuthLayout({
             <p className="text-white/60 text-base leading-relaxed">{sideDescription}</p>
           )}
         </div>
-        <p className="text-xs text-white/40">
-          {tenant ? `© ${tenant.brandName} · Powered by SplitSMS` : "© SplitSMS · Secure login"}
-        </p>
+        <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-6">
+          <p className="text-xs text-white/50">
+            {tenant ? `© ${new Date().getFullYear()} ${tenant.brandName}` : `© ${new Date().getFullYear()} SplitSMS`}
+          </p>
+          <p className="inline-flex items-center gap-1.5 text-xs text-white/50">
+            <ShieldCheck className="h-3.5 w-3.5 text-primary" aria-hidden />
+            {tenant ? "Powered by SplitSMS" : "Encrypted sign-in"}
+          </p>
+        </div>
       </div>
       <div className="flex flex-1 flex-col items-center justify-center p-4 sm:p-8 bg-muted/30">
         <div className="lg:hidden mb-8">

@@ -142,7 +142,7 @@ export async function createDedicatedRouteAction(formData: FormData) {
       name,
       countryCode,
       description,
-      lockedProvider: lockedProvider as "MNOTIFY" | "TWILIO" | "INFOBIP" | null,
+      lockedProvider: lockedProvider as "MNOTIFY" | "TWILIO" | "INFOBIP" | "EASYSENDSMS" | null,
       isActive: true,
     },
   });

@@ -13,6 +13,8 @@ import { MemberSidebarCollapseProvider } from "@/components/layout/member-sideba
 import type { NotificationItem } from "@/components/dashboard/notification-panel";
 import type { BalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
 import type { MemberProfileSummary } from "@/components/dashboard/user-profile-menu";
+import { PlatformFeaturesProvider } from "@/components/platform/platform-features-context";
+import type { PlatformFeatureFlags } from "@/lib/platform/feature-catalog";
 
 type MemberAppShellProps = {
   children: React.ReactNode;
@@ -23,6 +25,7 @@ type MemberAppShellProps = {
   balance: BalanceSnapshot;
   tenant?: TenantBranding | null;
   showResellerPortal?: boolean;
+  featureFlags: PlatformFeatureFlags;
 };
 
 export function MemberAppShell({
@@ -34,6 +37,7 @@ export function MemberAppShell({
   balance,
   tenant,
   showResellerPortal = false,
+  featureFlags,
 }: MemberAppShellProps) {
   const [menuPath, setMenuPath] = useState<string | null>(null);
   const pathname = usePathname();
@@ -41,6 +45,7 @@ export function MemberAppShell({
   const menuOpen = menuPath === pathname;
 
   return (
+    <PlatformFeaturesProvider flags={featureFlags}>
     <MemberSidebarCollapseProvider>
       <div className="flex min-h-[100dvh] bg-background max-md:h-[100dvh] max-md:overflow-hidden">
         {!isDevelopers && <DashboardSidebar />}
@@ -85,5 +90,6 @@ export function MemberAppShell({
         </div>
       </div>
     </MemberSidebarCollapseProvider>
+    </PlatformFeaturesProvider>
   );
 }

@@ -2,7 +2,9 @@ import { prisma } from "@/lib/db";
 import type { Prisma, UserRole } from "@/lib/generated/prisma/client";
 import {
   EMAIL_MARKETING_INACTIVE_DAYS_DEFAULT,
+  EMAIL_MARKETING_LOW_CREDITS_DEFAULT,
   EMAIL_MARKETING_MAX_RECIPIENTS,
+  EMAIL_MARKETING_NEW_MEMBER_DAYS_DEFAULT,
   EMAIL_MARKETING_NEWSLETTER_MAX_RECIPIENTS,
   type EmailMarketingAudienceType,
 } from "@/lib/admin/email-marketing-shared";
@@ -43,10 +45,12 @@ export async function resolveMarketingAudience(input: {
       orderBy: { createdAt: "desc" },
       take: max,
     });
-    return rows.map((row) => ({
-      fullName: row.fullName?.trim() || row.email.split("@")[0] || "there",
-      email: row.email,
-    }));
+    return filterSuppressed(
+      rows.map((row) => ({
+        fullName: row.fullName?.trim() || row.email.split("@")[0] || "there",
+        email: row.email,
+      })),
+    );
   }
 
   if (input.audienceType === "manual") {
@@ -70,14 +74,16 @@ export async function resolveMarketingAudience(input: {
         .map((u) => [u.email!.toLowerCase(), u]),
     );
 
-    return emails.map((email) => {
-      const user = byEmail.get(email);
-      return {
-        userId: user?.id,
-        fullName: user?.fullName ?? email.split("@")[0] ?? "there",
-        email,
-      };
-    });
+    return filterSuppressed(
+      emails.map((email) => {
+        const user = byEmail.get(email);
+        return {
+          userId: user?.id,
+          fullName: user?.fullName ?? email.split("@")[0] ?? "there",
+          email,
+        };
+      }),
+    );
   }
 
   const role = roleFromAudience(input.audienceType);
@@ -106,6 +112,23 @@ export async function resolveMarketingAudience(input: {
     ];
   }
 
+  if (input.audienceType === "low_credits") {
+    where.AND = [
+      {
+        OR: [
+          { smsCredit: null },
+          { smsCredit: { balance: { lte: EMAIL_MARKETING_LOW_CREDITS_DEFAULT } } },
+        ],
+      },
+    ];
+  }
+
+  if (input.audienceType === "new_members") {
+    const days = EMAIL_MARKETING_NEW_MEMBER_DAYS_DEFAULT;
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    where.createdAt = { gte: cutoff };
+  }
+
   const users = await prisma.user.findMany({
     where,
     select: { id: true, fullName: true, email: true },
@@ -113,13 +136,27 @@ export async function resolveMarketingAudience(input: {
     take: max,
   });
 
-  return users
-    .filter((u) => u.email?.trim())
-    .map((u) => ({
-      userId: u.id,
-      fullName: u.fullName,
-      email: u.email!.trim().toLowerCase(),
-    }));
+  return filterSuppressed(
+    users
+      .filter((u) => u.email?.trim())
+      .map((u) => ({
+        userId: u.id,
+        fullName: u.fullName,
+        email: u.email!.trim().toLowerCase(),
+      })),
+  );
+}
+
+async function filterSuppressed(recipients: MarketingRecipient[]) {
+  if (recipients.length === 0) return recipients;
+  const emails = recipients.map((r) => r.email);
+  const blocked = await prisma.emailMarketingSuppression.findMany({
+    where: { email: { in: emails } },
+    select: { email: true },
+  });
+  if (blocked.length === 0) return recipients;
+  const set = new Set(blocked.map((row) => row.email));
+  return recipients.filter((r) => !set.has(r.email));
 }
 
 export async function countMarketingAudience(input: {

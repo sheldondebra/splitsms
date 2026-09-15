@@ -61,8 +61,8 @@ export function DocsSubpage({
       </article>
       <section className="border-t py-10">
         <div className="mx-auto max-w-4xl px-4 flex flex-wrap gap-3">
-          <Link href="/developers/docs" className={cn(buttonVariants(), "gap-2")}>
-            Developer portal
+          <Link href="/docs" className={cn(buttonVariants(), "gap-2")}>
+            Platform docs
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link href="/api-docs" className={cn(buttonVariants({ variant: "outline" }))}>

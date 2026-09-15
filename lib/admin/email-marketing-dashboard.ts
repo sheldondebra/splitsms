@@ -79,7 +79,7 @@ export async function getEmailMarketingDashboard(params: {
     }
   }
 
-  const [allCount, inactiveCount, memberCount, resellerCount, enterpriseCount, newsletterCount] =
+  const [allCount, inactiveCount, memberCount, resellerCount, enterpriseCount, newsletterCount, lowCreditsCount, newMembersCount] =
     await Promise.all([
       countMarketingAudience({ audienceType: "all" }),
       countMarketingAudience({
@@ -90,6 +90,8 @@ export async function getEmailMarketingDashboard(params: {
       countMarketingAudience({ audienceType: "role_reseller" }),
       countMarketingAudience({ audienceType: "role_enterprise" }),
       countMarketingAudience({ audienceType: "newsletter" }),
+      countMarketingAudience({ audienceType: "low_credits" }),
+      countMarketingAudience({ audienceType: "new_members" }),
     ]);
 
   const subscribers = await prisma.emailMarketingSubscriber.findMany({
@@ -97,10 +99,36 @@ export async function getEmailMarketingDashboard(params: {
     take: 200,
   });
 
-  const [templatesWithImages, campaignsWithImages] = await Promise.all([
-    attachTemplateImages(templates),
-    attachCampaignImages(campaigns),
-  ]);
+  const [templatesWithImages, campaignsWithImages, campaignMetas, engagementTotals] =
+    await Promise.all([
+      attachTemplateImages(templates),
+      attachCampaignImages(campaigns),
+      prisma.emailMarketingCampaignMeta.findMany({
+        where: { campaignId: { in: campaigns.map((c) => c.id) } },
+      }),
+      prisma.emailMarketingCampaignMeta.aggregate({
+        _sum: {
+          uniqueOpenCount: true,
+          uniqueClickCount: true,
+          unsubscribeCount: true,
+        },
+      }),
+    ]);
+
+  const metaByCampaign = new Map(campaignMetas.map((row) => [row.campaignId, row]));
+  const campaignsWithStats = campaignsWithImages.map((campaign) => {
+    const meta = metaByCampaign.get(campaign.id);
+    const sent = campaign.sentCount;
+    return {
+      ...campaign,
+      scheduledAt: meta?.scheduledAt ?? null,
+      uniqueOpenCount: meta?.uniqueOpenCount ?? 0,
+      uniqueClickCount: meta?.uniqueClickCount ?? 0,
+      unsubscribeCount: meta?.unsubscribeCount ?? 0,
+      openRate: sent > 0 ? Math.round(((meta?.uniqueOpenCount ?? 0) / sent) * 100) : null,
+      clickRate: sent > 0 ? Math.round(((meta?.uniqueClickCount ?? 0) / sent) * 100) : null,
+    };
+  });
 
   let selectedCampaign = null as
     | (typeof campaigns)[number] & {
@@ -138,11 +166,29 @@ export async function getEmailMarketingDashboard(params: {
     });
   }
 
+  const selectedMeta = selectedCampaign
+    ? await prisma.emailMarketingCampaignMeta.findUnique({
+        where: { campaignId: selectedCampaign.id },
+      })
+    : null;
+
   const selectedWithImage = selectedCampaign
     ? {
         ...selectedCampaign,
         imageUrl:
           (await attachCampaignImages([{ id: selectedCampaign.id }]))[0]?.imageUrl ?? null,
+        scheduledAt: selectedMeta?.scheduledAt ?? null,
+        uniqueOpenCount: selectedMeta?.uniqueOpenCount ?? 0,
+        uniqueClickCount: selectedMeta?.uniqueClickCount ?? 0,
+        unsubscribeCount: selectedMeta?.unsubscribeCount ?? 0,
+        openRate:
+          selectedCampaign.sentCount > 0
+            ? Math.round(((selectedMeta?.uniqueOpenCount ?? 0) / selectedCampaign.sentCount) * 100)
+            : null,
+        clickRate:
+          selectedCampaign.sentCount > 0
+            ? Math.round(((selectedMeta?.uniqueClickCount ?? 0) / selectedCampaign.sentCount) * 100)
+            : null,
       }
     : null;
 
@@ -157,7 +203,7 @@ export async function getEmailMarketingDashboard(params: {
     newsletterMaxRecipients: EMAIL_MARKETING_NEWSLETTER_MAX_RECIPIENTS,
     inactiveDaysDefault: EMAIL_MARKETING_INACTIVE_DAYS_DEFAULT,
     templates: templatesWithImages,
-    campaigns: campaignsWithImages,
+    campaigns: campaignsWithStats,
     selectedCampaign: selectedWithImage,
     subscribers,
     subscriberCount: newsletterCount,
@@ -167,6 +213,9 @@ export async function getEmailMarketingDashboard(params: {
       emailsFailed: totals._sum.failedCount ?? 0,
       deliverySent,
       deliveryFailed,
+      uniqueOpens: engagementTotals._sum.uniqueOpenCount ?? 0,
+      uniqueClicks: engagementTotals._sum.uniqueClickCount ?? 0,
+      unsubscribes: engagementTotals._sum.unsubscribeCount ?? 0,
       successRate:
         deliverySent + deliveryFailed === 0
           ? null
@@ -180,6 +229,8 @@ export async function getEmailMarketingDashboard(params: {
       role_reseller: resellerCount,
       role_enterprise: enterpriseCount,
       newsletter: newsletterCount,
+      low_credits: lowCreditsCount,
+      new_members: newMembersCount,
     },
   };
 }

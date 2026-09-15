@@ -19,6 +19,16 @@ describe("email layout", () => {
     assert.doesNotMatch(html, /receiving this because/i);
   });
 
+  it("renders a campaign unsubscribe link when provided", () => {
+    const html = emailLayout({
+      headline: "News",
+      bodyHtml: "<p>Hello</p>",
+      unsubscribeUrl: "https://www.splitsms.com/em/u/token",
+    });
+    assert.match(html, /Unsubscribe from marketing emails/);
+    assert.match(html, /\/em\/u\/token/);
+  });
+
   it("keeps a custom footer note above the brand line", () => {
     const html = emailLayout({
       headline: "Invoice",

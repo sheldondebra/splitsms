@@ -139,4 +139,5 @@ export const POST = withApi(
   },
   "/api/v1/connect/customers",
   "connect.customers",
+  { feature: "connect" },
 );

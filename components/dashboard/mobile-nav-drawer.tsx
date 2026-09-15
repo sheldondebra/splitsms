@@ -12,10 +12,9 @@ import { UserAvatar } from "@/components/user/user-avatar";
 import { getMemberDisplayName } from "@/lib/user/display";
 import { getRoleLabel } from "@/lib/user/header-account-types";
 import {
-  dashboardNavSections,
   isNavActive,
-  mobileNavItems,
 } from "@/lib/navigation/dashboard-nav";
+import { useDashboardNavByFeatures } from "@/components/platform/platform-features-context";
 import {
   developersNavItems,
   isDevelopersNavActive,
@@ -32,7 +31,12 @@ type MobileNavDrawerProps = {
   showResellerPortal?: boolean;
 };
 
-const TAB_HREFS = new Set(mobileNavItems.map((item) => item.href));
+const TAB_HREFS = new Set([
+  "/dashboard",
+  "/dashboard/forms",
+  "/dashboard/send",
+  "/dashboard/wallet",
+]);
 
 const MORE_GROUPS = [
   {
@@ -79,6 +83,7 @@ export function MobileNavDrawer({
   showResellerPortal = false,
 }: MobileNavDrawerProps) {
   const pathname = usePathname();
+  const navSections = useDashboardNavByFeatures();
   const isDevelopers = pathname.startsWith("/developers");
   const displayName = profile ? getMemberDisplayName(profile.fullName) : "";
   const roleLabel = profile?.role ? getRoleLabel(profile.role) : null;
@@ -92,7 +97,7 @@ export function MobileNavDrawer({
     };
   }, [open]);
 
-  const allItems = dashboardNavSections.flatMap((section) => section.items);
+  const allItems = navSections.flatMap((section) => section.items);
 
   return (
     <>

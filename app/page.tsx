@@ -6,6 +6,7 @@ import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import {
   smsServiceJsonLd,
+  softwareApplicationJsonLd,
   webPageJsonLd,
 } from "@/lib/seo/site";
 
@@ -37,10 +38,11 @@ export const metadata: Metadata = buildPageMetadata({
 
 const homeJsonLd = [
   smsServiceJsonLd,
+  softwareApplicationJsonLd("/"),
   webPageJsonLd({
     name: "SplitSMS — Bulk SMS Platform & SMS API",
     description:
-      "Send bulk SMS, OTP, and marketing campaigns. Affordable SMS gateway for Ghana, Nigeria, and 190+ countries.",
+      "Send bulk SMS, OTP, and marketing campaigns. Affordable SMS gateway for Ghana, Nigeria, and 190+ countries. Start free with 5 SMS credits.",
     path: "/",
   }),
   {

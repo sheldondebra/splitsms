@@ -10,9 +10,13 @@ import {
   setPkceVerifierCookie,
   signOAuthState,
 } from "@/lib/auth/google";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 export async function GET(request: NextRequest) {
   const origin = resolveGoogleOAuthOrigin(request);
+  if (!(await isFeatureEnabled("google_signin"))) {
+    return NextResponse.redirect(new URL("/login?error=feature_google", origin));
+  }
   const credentials = getGoogleClientCredentials();
   if (!credentials) {
     return NextResponse.redirect(new URL("/login?error=google_config", origin));

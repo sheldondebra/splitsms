@@ -17,6 +17,7 @@ import {
   Radio,
   Cloud,
   Globe,
+  Send,
   CheckCircle2,
   XCircle,
   AlertTriangle,
@@ -30,6 +31,7 @@ const PROVIDER_ICONS = {
   MNOTIFY: Radio,
   TWILIO: Cloud,
   INFOBIP: Globe,
+  EASYSENDSMS: Send,
 } as const;
 
 function BalanceStatusIcon({ status }: { status: ProviderSmsBalance["status"] }) {

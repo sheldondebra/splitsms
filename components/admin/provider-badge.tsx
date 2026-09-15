@@ -6,12 +6,14 @@ const styles: Record<SmsProviderType, string> = {
   MNOTIFY: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30",
   TWILIO: "bg-red-500/15 text-red-800 dark:text-red-300 border-red-500/30",
   INFOBIP: "bg-sky-500/15 text-sky-800 dark:text-sky-300 border-sky-500/30",
+  EASYSENDSMS: "bg-violet-500/15 text-violet-800 dark:text-violet-300 border-violet-500/30",
 };
 
 const labels: Record<SmsProviderType, string> = {
   MNOTIFY: "mNotify",
   TWILIO: "Twilio",
   INFOBIP: "Infobip",
+  EASYSENDSMS: "EasySendSMS",
 };
 
 export function ProviderBadge({

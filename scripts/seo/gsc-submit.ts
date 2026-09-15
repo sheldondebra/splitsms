@@ -21,6 +21,8 @@ const INSPECT_PATHS = [
   "/",
   "/pricing",
   "/products",
+  "/products/bulk-sms",
+  "/reseller-platform",
   "/features",
   "/solutions",
   "/blog",

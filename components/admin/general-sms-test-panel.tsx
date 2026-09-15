@@ -22,6 +22,7 @@ import {
   ComboboxItem,
   ComboboxEmpty,
 } from "@/components/ui/combobox";
+import { GeneralProviderProbePanel } from "@/components/admin/general-provider-probe-panel";
 import { PhoneChipInput, type PhoneChip } from "@/components/admin/phone-chip-input";
 import { Loader2, Send, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -187,6 +188,8 @@ export function GeneralSmsTestPanel({
 
   return (
     <div className="space-y-6">
+      <GeneralProviderProbePanel />
+
       <AdminCard
         title="Send a test SMS"
         description="Sends a real message through the live provider pipeline — no wallet credit is deducted."

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 
 export const TWILIO_SETTINGS_KEY = "twilio_config";
 export const INFOBIP_SETTINGS_KEY = "infobip_config";
+export const EASYSENDSMS_SETTINGS_KEY = "easysendsms_config";
 
 export type TwilioSettings = {
   enabled: boolean;
@@ -16,6 +17,13 @@ export type InfobipSettings = {
   enabled: boolean;
   apiKey: string;
   baseUrl: string;
+  senderId: string;
+  updatedAt?: string;
+};
+
+export type EasySendSmsSettings = {
+  enabled: boolean;
+  apiKey: string;
   senderId: string;
   updatedAt?: string;
 };
@@ -59,6 +67,72 @@ export async function loadInfobipSettings(): Promise<InfobipSettings> {
     senderId: (stored?.senderId || process.env.INFOBIP_SENDER_ID || "SplitSMS").trim(),
     updatedAt: stored?.updatedAt,
   };
+}
+
+export async function loadEasySendSmsSettings(): Promise<EasySendSmsSettings> {
+  const row = await prisma.platformSetting.findUnique({
+    where: { key: EASYSENDSMS_SETTINGS_KEY },
+  });
+  const stored = row?.value as Partial<EasySendSmsSettings> | null;
+  return {
+    enabled: stored?.enabled ?? true,
+    apiKey: (stored?.apiKey || process.env.EASYSENDSMS_API_KEY || "").trim(),
+    senderId: (stored?.senderId || process.env.EASYSENDSMS_SENDER_ID || "SplitSMS").trim(),
+    updatedAt: stored?.updatedAt,
+  };
+}
+
+export async function saveEasySendSmsSettings(
+  input: Partial<EasySendSmsSettings> & { apiKey?: string },
+  actorId?: string,
+) {
+  const current = await loadEasySendSmsSettings();
+  const next: EasySendSmsSettings = {
+    enabled: input.enabled ?? current.enabled,
+    apiKey:
+      input.apiKey !== undefined && input.apiKey.trim() !== ""
+        ? input.apiKey.trim()
+        : current.apiKey,
+    senderId: (input.senderId ?? current.senderId).trim(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  await prisma.platformSetting.upsert({
+    where: { key: EASYSENDSMS_SETTINGS_KEY },
+    update: { value: next },
+    create: { key: EASYSENDSMS_SETTINGS_KEY, value: next },
+  });
+
+  // upsert (not updateMany) so this self-bootstraps its SmsProvider row on
+  // first save — the other providers rely on prisma/seed.ts having created
+  // theirs already, but a newly-added provider type won't have one yet.
+  await prisma.smsProvider.upsert({
+    where: { type: "EASYSENDSMS" },
+    update: { isActive: next.enabled && Boolean(next.apiKey) },
+    create: {
+      type: "EASYSENDSMS",
+      name: "EasySendSMS",
+      isActive: next.enabled && Boolean(next.apiKey),
+    },
+  });
+
+  if (actorId) {
+    await prisma.auditLog.create({
+      data: {
+        actorId,
+        action: "EASYSENDSMS_SETTINGS_UPDATED",
+        entityType: "PlatformSetting",
+        entityId: EASYSENDSMS_SETTINGS_KEY,
+        metadata: { enabled: next.enabled, hasApiKey: Boolean(next.apiKey) },
+      },
+    });
+  }
+
+  return next;
+}
+
+export function isEasySendSmsConfigured(settings: EasySendSmsSettings) {
+  return settings.enabled && Boolean(settings.apiKey);
 }
 
 export async function saveTwilioSettings(

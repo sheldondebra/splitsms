@@ -190,7 +190,7 @@ export const integrationsCatalog: IntegrationDef[] = [
     ],
     relatedSlugs: ["wordpress", "woocommerce"],
     primaryCta: { label: "WordPress plugin setup", href: "/integrations/wordpress" },
-    secondaryCta: { label: "Developer docs", href: "/developers/docs" },
+    secondaryCta: { label: "Developer docs", href: "/docs" },
   },
   {
     slug: "paystack",

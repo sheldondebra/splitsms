@@ -37,9 +37,10 @@ const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
 export type SenderIdsDashboardProps = {
   items: SenderIdItem[];
   defaultId: SenderIdItem | null;
+  canRegister?: boolean;
 };
 
-export function SenderIdsDashboard({ items, defaultId }: SenderIdsDashboardProps) {
+export function SenderIdsDashboard({ items, defaultId, canRegister = true }: SenderIdsDashboardProps) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
@@ -235,7 +236,13 @@ export function SenderIdsDashboard({ items, defaultId }: SenderIdsDashboardProps
                 </div>
               </div>
 
-              <SenderIdRequestForm onRegistered={() => setStatusFilter("PENDING")} />
+              {canRegister ? (
+                <SenderIdRequestForm onRegistered={() => setStatusFilter("PENDING")} />
+              ) : (
+                <p className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+                  Sender ID registration is turned off right now.
+                </p>
+              )}
             </AppCardBody>
           </AppCard>
 

@@ -66,7 +66,7 @@ export default function DocsApiPage() {
           <h2>Authentication</h2>
           <p>
             Create an API key in the{" "}
-            <Link href="/developers/api-keys">developer portal</Link>, then send it as a Bearer
+            <Link href="/signup">dashboard</Link>, then send it as a Bearer
             token on every request.
           </p>
           <CodeLine value={authHeader} tone="accent" />
@@ -88,7 +88,7 @@ export default function DocsApiPage() {
           <p>
             Full interactive reference with every endpoint, request/response bodies, and
             generated code: <Link href="/api-docs">API docs</Link> and{" "}
-            <Link href="/developers/docs">developer portal</Link>.
+            <Link href="/docs">platform docs</Link>.
           </p>
         </div>
       </div>

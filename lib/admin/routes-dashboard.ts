@@ -2,8 +2,10 @@ import { prisma } from "@/lib/db";
 import { loadMnotifySettings } from "@/lib/mnotify-settings";
 import { isMnotifyConfigured, getMnotifyStatus } from "@/lib/mnotify";
 import {
+  isEasySendSmsConfigured,
   isInfobipConfigured,
   isTwilioConfigured,
+  loadEasySendSmsSettings,
   loadInfobipSettings,
   loadTwilioSettings,
 } from "@/lib/sms/provider-credentials";
@@ -49,7 +51,7 @@ function daysAgo(n: number) {
 
 function providerConfigured(
   type: SmsProviderType,
-  flags: { mnotifyOk: boolean; twilioOk: boolean; infobipOk: boolean },
+  flags: { mnotifyOk: boolean; twilioOk: boolean; infobipOk: boolean; easySendSmsOk: boolean },
 ): { ok: boolean; hint: string } {
   if (type === "MNOTIFY") {
     return flags.mnotifyOk
@@ -60,6 +62,11 @@ function providerConfigured(
     return flags.twilioOk
       ? { ok: true, hint: "Twilio credentials in Providers" }
       : { ok: false, hint: "Add Twilio SID, token & from number in Providers" };
+  }
+  if (type === "EASYSENDSMS") {
+    return flags.easySendSmsOk
+      ? { ok: true, hint: "EasySendSMS API key in Providers" }
+      : { ok: false, hint: "Add EasySendSMS API key in Providers" };
   }
   return flags.infobipOk
     ? { ok: true, hint: "Infobip API key in Providers" }
@@ -72,6 +79,7 @@ export async function getAdminRoutesDashboard() {
     mnotifyOk,
     twilioSettings,
     infobipSettings,
+    easySendSmsSettings,
     routingPolicy,
     mnotifyStatus,
     providerBalances,
@@ -84,6 +92,7 @@ export async function getAdminRoutesDashboard() {
       isMnotifyConfigured(),
       loadTwilioSettings(),
       loadInfobipSettings(),
+      loadEasySendSmsSettings(),
       loadSmsRoutingPolicy(),
       getMnotifyStatus(),
       fetchAllSmsProviderBalances(),
@@ -133,6 +142,7 @@ export async function getAdminRoutesDashboard() {
     mnotifyOk,
     twilioOk: isTwilioConfigured(twilioSettings),
     infobipOk: isInfobipConfigured(infobipSettings),
+    easySendSmsOk: isEasySendSmsConfigured(easySendSmsSettings),
   };
 
   const providerHealth: ProviderHealth[] = providers.map((p) => {

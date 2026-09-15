@@ -6,10 +6,10 @@ import {
 import { getProvidersAdminDashboard } from "@/lib/admin/providers-dashboard";
 import { Layers3 } from "lucide-react";
 
-type TabId = "mnotify" | "infobip" | "twilio";
+type TabId = "mnotify" | "infobip" | "twilio" | "easysendsms";
 
 function parseTab(tab: string | undefined): TabId {
-  if (tab === "infobip" || tab === "twilio") return tab;
+  if (tab === "infobip" || tab === "twilio" || tab === "easysendsms") return tab;
   return "mnotify";
 }
 

@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
 import { sendAdminTestSms } from "@/lib/sms/admin-test-send";
+import {
+  probeAllSmsProviders,
+  type ProviderProbeResult,
+} from "@/lib/sms/provider-probe";
 import { syncUserPendingMnotifyDeliveries } from "@/lib/sms/sync-mnotify-dlr";
 
 async function requireAdmin() {
@@ -89,4 +93,16 @@ export async function pollAdminSmsTestStatusAction(
     deliveredAt: r.deliveredAt ? r.deliveredAt.toISOString() : null,
     failureReason: r.failureReason,
   }));
+}
+
+export type { ProviderProbeResult };
+
+/** Pings each provider’s live API. No phone number, no SMS send, no wallet debit. */
+export async function probeSmsProvidersAction(): Promise<{
+  checkedAt: string;
+  results: ProviderProbeResult[];
+}> {
+  await requireAdmin();
+  const results = await probeAllSmsProviders();
+  return { checkedAt: new Date().toISOString(), results };
 }

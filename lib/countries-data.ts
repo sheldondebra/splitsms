@@ -9,7 +9,7 @@ export type CountryData = {
   defaultProvider: SmsProviderType;
 };
 
-/** Primary markets: Ghana → mNotify; US/UK → Twilio; most others → Infobip with Twilio failover in seed */
+/** Primary markets: Ghana/Africa → mNotify; US/UK/Americas/Oceania → EasySendSMS; most other international → Infobip */
 export const COUNTRIES_DATA: CountryData[] = [
   { code: "GH", name: "Ghana", dialCode: "+233", region: "Africa", defaultProvider: "MNOTIFY" },
   { code: "NG", name: "Nigeria", dialCode: "+234", region: "Africa", defaultProvider: "MNOTIFY" },
@@ -43,16 +43,16 @@ export const COUNTRIES_DATA: CountryData[] = [
   { code: "MA", name: "Morocco", dialCode: "+212", region: "Africa", defaultProvider: "INFOBIP" },
   { code: "TN", name: "Tunisia", dialCode: "+216", region: "Africa", defaultProvider: "INFOBIP" },
   { code: "DZ", name: "Algeria", dialCode: "+213", region: "Africa", defaultProvider: "INFOBIP" },
-  { code: "US", name: "United States", dialCode: "+1", region: "Americas", defaultProvider: "TWILIO" },
-  { code: "CA", name: "Canada", dialCode: "+1", region: "Americas", defaultProvider: "TWILIO" },
-  { code: "MX", name: "Mexico", dialCode: "+52", region: "Americas", defaultProvider: "TWILIO" },
-  { code: "BR", name: "Brazil", dialCode: "+55", region: "Americas", defaultProvider: "TWILIO" },
-  { code: "AR", name: "Argentina", dialCode: "+54", region: "Americas", defaultProvider: "TWILIO" },
-  { code: "CO", name: "Colombia", dialCode: "+57", region: "Americas", defaultProvider: "TWILIO" },
-  { code: "CL", name: "Chile", dialCode: "+56", region: "Americas", defaultProvider: "TWILIO" },
-  { code: "PE", name: "Peru", dialCode: "+51", region: "Americas", defaultProvider: "TWILIO" },
-  { code: "GB", name: "United Kingdom", dialCode: "+44", region: "Europe", defaultProvider: "TWILIO" },
-  { code: "IE", name: "Ireland", dialCode: "+353", region: "Europe", defaultProvider: "TWILIO" },
+  { code: "US", name: "United States", dialCode: "+1", region: "Americas", defaultProvider: "EASYSENDSMS" },
+  { code: "CA", name: "Canada", dialCode: "+1", region: "Americas", defaultProvider: "EASYSENDSMS" },
+  { code: "MX", name: "Mexico", dialCode: "+52", region: "Americas", defaultProvider: "EASYSENDSMS" },
+  { code: "BR", name: "Brazil", dialCode: "+55", region: "Americas", defaultProvider: "EASYSENDSMS" },
+  { code: "AR", name: "Argentina", dialCode: "+54", region: "Americas", defaultProvider: "EASYSENDSMS" },
+  { code: "CO", name: "Colombia", dialCode: "+57", region: "Americas", defaultProvider: "EASYSENDSMS" },
+  { code: "CL", name: "Chile", dialCode: "+56", region: "Americas", defaultProvider: "EASYSENDSMS" },
+  { code: "PE", name: "Peru", dialCode: "+51", region: "Americas", defaultProvider: "EASYSENDSMS" },
+  { code: "GB", name: "United Kingdom", dialCode: "+44", region: "Europe", defaultProvider: "EASYSENDSMS" },
+  { code: "IE", name: "Ireland", dialCode: "+353", region: "Europe", defaultProvider: "EASYSENDSMS" },
   { code: "DE", name: "Germany", dialCode: "+49", region: "Europe", defaultProvider: "INFOBIP" },
   { code: "FR", name: "France", dialCode: "+33", region: "Europe", defaultProvider: "INFOBIP" },
   { code: "ES", name: "Spain", dialCode: "+34", region: "Europe", defaultProvider: "INFOBIP" },
@@ -88,8 +88,8 @@ export const COUNTRIES_DATA: CountryData[] = [
   { code: "IL", name: "Israel", dialCode: "+972", region: "Middle East", defaultProvider: "INFOBIP" },
   { code: "QA", name: "Qatar", dialCode: "+974", region: "Middle East", defaultProvider: "INFOBIP" },
   { code: "KW", name: "Kuwait", dialCode: "+965", region: "Middle East", defaultProvider: "INFOBIP" },
-  { code: "AU", name: "Australia", dialCode: "+61", region: "Oceania", defaultProvider: "TWILIO" },
-  { code: "NZ", name: "New Zealand", dialCode: "+64", region: "Oceania", defaultProvider: "TWILIO" },
+  { code: "AU", name: "Australia", dialCode: "+61", region: "Oceania", defaultProvider: "EASYSENDSMS" },
+  { code: "NZ", name: "New Zealand", dialCode: "+64", region: "Oceania", defaultProvider: "EASYSENDSMS" },
   { code: "GLOBAL", name: "Other / International", dialCode: "+", region: "Global", defaultProvider: "INFOBIP" },
 ];
 
@@ -105,6 +105,8 @@ export function providerDisplayName(type: SmsProviderType): string {
       return "Twilio";
     case "INFOBIP":
       return "Infobip";
+    case "EASYSENDSMS":
+      return "EasySendSMS";
     default:
       return type;
   }

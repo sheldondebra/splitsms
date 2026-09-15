@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import { loadFormQuestionsForUser } from "@/lib/google/forms-sms";
 import { parseGoogleSpreadsheetId } from "@/lib/google/sheet-id";
 import { resolveApprovedSenderForUser } from "@/lib/sender-ids/validate-send";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 async function requireUserId() {
   const session = await getSession();
@@ -16,6 +17,9 @@ async function requireUserId() {
 
 export async function saveGoogleFormSmsAutomationAction(formData: FormData) {
   const userId = await requireUserId();
+  if (!(await isFeatureEnabled("google_forms"))) {
+    redirect("/dashboard/integrations/google?error=feature");
+  }
   const formId = parseGoogleSpreadsheetId(String(formData.get("formId") ?? "")) ?? "";
   const phoneFieldId = String(formData.get("phoneFieldId") ?? "").trim();
   const senderIdRaw = String(formData.get("senderId") ?? "").trim();
@@ -87,6 +91,9 @@ export async function saveGoogleFormSmsAutomationAction(formData: FormData) {
 
 export async function toggleGoogleFormSmsAutomationAction(formData: FormData) {
   const userId = await requireUserId();
+  if (!(await isFeatureEnabled("google_forms"))) {
+    redirect("/dashboard/integrations/google?error=feature");
+  }
   const id = String(formData.get("id") ?? "").trim();
   const next = String(formData.get("isActive") ?? "") === "1";
   await prisma.googleFormSmsAutomation.updateMany({
@@ -99,6 +106,9 @@ export async function toggleGoogleFormSmsAutomationAction(formData: FormData) {
 
 export async function deleteGoogleFormSmsAutomationAction(formData: FormData) {
   const userId = await requireUserId();
+  if (!(await isFeatureEnabled("google_forms"))) {
+    redirect("/dashboard/integrations/google?error=feature");
+  }
   const id = String(formData.get("id") ?? "").trim();
   await prisma.googleFormSmsAutomation.deleteMany({ where: { id, userId } });
   revalidatePath("/dashboard/integrations/google/forms");

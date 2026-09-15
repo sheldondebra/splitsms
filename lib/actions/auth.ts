@@ -62,6 +62,10 @@ import { getMemberAccountForUser, isMemberSuspended } from "@/lib/admin/member-a
 import { userNeedsOnboarding } from "@/lib/onboarding";
 import { assertTenantLoginAllowed } from "@/lib/auth/tenant-login";
 import {
+  isFeatureEnabled,
+  staffBypassesPlatformFeatures,
+} from "@/lib/platform/features";
+import {
   assertOtpBotAllowed,
   assertSignupBotAllowed,
   consumeOtpIpSlot,
@@ -173,6 +177,13 @@ async function finishLogin(
 ) {
   await assertTenantLoginAllowed(user.id, user.role);
 
+  if (
+    !staffBypassesPlatformFeatures(user.role) &&
+    !(await isFeatureEnabled("login"))
+  ) {
+    redirect("/login?error=feature_login");
+  }
+
   await prisma.user.update({
     where: { id: user.id },
     data: { failedLoginCount: 0, lockedUntil: null },
@@ -253,6 +264,13 @@ export async function requestPhoneAuthAction(formData: FormData) {
   const returnPath = intent === "signup" ? "/signup" : "/login";
   const inviteParams = intent === "signup" ? inviteRedirectParams(formData) : {};
   const guardFields = readSignupGuardFields(formData);
+
+  if (intent === "signup" && !(await isFeatureEnabled("register"))) {
+    authRedirect(returnPath, { error: "feature_register", ...inviteParams });
+  }
+  if (intent === "login" && !(await isFeatureEnabled("login"))) {
+    authRedirect(returnPath, { error: "feature_login" });
+  }
 
   const otpBot = await assertOtpBotAllowed(guardFields);
   if (!otpBot.ok) {
@@ -391,6 +409,10 @@ export async function requestPhoneAuthAction(formData: FormData) {
 
 /** Finish Google signup — collect phone, create user, send SMS OTP */
 export async function completeGooglePhoneAction(formData: FormData) {
+  if (!(await isFeatureEnabled("register"))) {
+    authRedirect("/signup", { error: "feature_register" });
+  }
+
   const pending = await getGooglePendingCookie();
   if (!pending) {
     authRedirect("/login", { error: "google_session" });
@@ -536,6 +558,13 @@ export async function completeGooglePhoneAction(formData: FormData) {
 export async function requestEmailAuthAction(formData: FormData) {
   const intent = String(formData.get("intent") ?? "login");
   const returnPath = intent === "signup" ? "/signup" : "/login";
+
+  if (intent === "signup" && !(await isFeatureEnabled("register"))) {
+    authRedirect(returnPath, { error: "feature_register", method: "email" });
+  }
+  if (intent === "login" && !(await isFeatureEnabled("login"))) {
+    authRedirect(returnPath, { error: "feature_login" });
+  }
 
   if (intent === "signup") {
     const inviteParams = inviteRedirectParams(formData);
@@ -1005,6 +1034,13 @@ export async function verifyOtpAction(formData: FormData) {
   await logAuthEvent("PHONE_VERIFIED", { phone }, user!.id);
 
   if (userNeedsProfileCompletion(user!.fullName)) {
+    if (
+      otpPurpose !== "SIGNUP_VERIFY" &&
+      !staffBypassesPlatformFeatures(user!.role) &&
+      !(await isFeatureEnabled("login"))
+    ) {
+      redirect("/login?error=feature_login");
+    }
     await assertTenantLoginAllowed(user!.id, user!.role);
     await createSession({
       userId: user!.id,
@@ -1230,6 +1266,9 @@ export async function loginOtpRequestAction(formData: FormData) {
 }
 
 export async function forgotPasswordAction(formData: FormData) {
+  if (!(await isFeatureEnabled("password_reset"))) {
+    authRedirect("/forgot-password", { error: "feature_password_reset" });
+  }
   const identifier = String(formData.get("identifier") ?? "").trim();
   if (!identifier) authRedirect("/forgot-password", { error: "required" });
 
@@ -1282,6 +1321,9 @@ export async function forgotPasswordAction(formData: FormData) {
 }
 
 export async function resetPasswordAction(formData: FormData) {
+  if (!(await isFeatureEnabled("password_reset"))) {
+    redirect("/forgot-password?error=feature_password_reset");
+  }
   const reset = await getPasswordResetSession();
   if (!reset) redirect("/forgot-password?error=session");
 

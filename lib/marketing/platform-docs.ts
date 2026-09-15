@@ -1055,7 +1055,7 @@ export const docsQuickLinks = [
   { href: "/docs/api", label: "REST API", desc: "Authentication, SMS, wallet, webhooks" },
   { href: "/docs/connect", label: "Connect", desc: "Embedded customers & partner APIs" },
   { href: "/api-docs", label: "API reference", desc: "Interactive endpoints & cURL" },
-  { href: "/docs/sdk", label: "SDKs", desc: "JavaScript, PHP, Flutter" },
+  { href: "/sdk", label: "SDKs", desc: "JavaScript, PHP, Flutter" },
   { href: "/docs/mobile", label: "Mobile", desc: "Flutter app integration" },
   { href: "/integrations/google", label: "Google", desc: "Contacts, Sheets, Forms → SMS" },
   { href: "/integrations/wordpress", label: "WordPress", desc: "Plugin setup & WooCommerce" },

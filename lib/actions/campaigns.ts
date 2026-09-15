@@ -7,12 +7,16 @@ import { estimateCampaignCost } from "@/lib/sms/message-preview";
 import { dispatchCampaign } from "@/lib/campaigns/dispatch";
 import type { CampaignRecurrence } from "@/lib/generated/prisma/client";
 import { resolveApprovedSenderForUser } from "@/lib/sender-ids/validate-send";
+import { isFeatureEnabled } from "@/lib/platform/features";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 export async function createCampaignAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (!(await isFeatureEnabled("bulk_sms"))) {
+    redirect("/dashboard/campaigns?error=feature");
+  }
 
   const name = String(formData.get("name") ?? "Campaign");
   const senderIdRaw = String(formData.get("senderId") ?? "");

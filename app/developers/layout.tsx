@@ -11,6 +11,7 @@ import {
 import { ensureRegisterSenderIdNotification } from "@/lib/sender-ids/notifications";
 import { prisma } from "@/lib/db";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
+import { loadPlatformFeatureFlags } from "@/lib/platform/features";
 import { after } from "next/server";
 import type { Metadata, Viewport } from "next";
 
@@ -46,13 +47,14 @@ export default async function DevelopersLayout({
   const memberTenant =
     hostTenant ?? (await resolveTenantForMemberUser(session.userId));
 
-  const [user, balance, { notifications, unreadCount }] = await Promise.all([
+  const [user, balance, { notifications, unreadCount }, featureFlags] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.userId },
       select: { fullName: true, email: true, phone: true },
     }),
     getBalanceSnapshot(session.userId),
     getNotificationsSummary(session.userId, 15),
+    loadPlatformFeatureFlags(),
   ]);
 
   after(async () => {
@@ -78,6 +80,7 @@ export default async function DevelopersLayout({
         unreadCount={unreadCount}
         balance={balance}
         tenant={memberTenant}
+        featureFlags={featureFlags}
       >
         {children}
       </MemberAppShell>

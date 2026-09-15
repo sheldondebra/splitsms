@@ -92,6 +92,8 @@ export type EmailLayoutParams = {
   headerImageUrl?: string;
   /** Place header image above or below the headline. */
   headerImagePosition?: EmailHeaderImagePosition;
+  /** Campaign unsubscribe URL (CAN-SPAM / one-click). */
+  unsubscribeUrl?: string;
 };
 
 function headerImageBlock(url: string) {
@@ -172,6 +174,11 @@ export function emailLayout(params: EmailLayoutParams) {
           <tr>
             <td style="padding:20px 32px 28px;border-top:1px solid ${emailTheme.rule};">
               ${extraNote}
+              ${
+                params.unsubscribeUrl
+                  ? `<p style="margin:0 0 10px;font-size:12px;line-height:1.5;color:${emailTheme.muted};"><a href="${escapeHtml(params.unsubscribeUrl)}" style="color:${emailTheme.muted};text-decoration:underline;">Unsubscribe from marketing emails</a></p>`
+                  : ""
+              }
               <p style="margin:0 0 8px;font-size:13px;font-weight:600;line-height:1.5;color:${emailTheme.ink};">${escapeHtml(siteName)}</p>
               <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                 <tr>

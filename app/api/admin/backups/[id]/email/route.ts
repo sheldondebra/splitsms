@@ -5,6 +5,7 @@ import { sendEmail } from "@/lib/email";
 import { backupReadyEmailContent } from "@/lib/email/templates";
 import { readZipBuffer } from "@/lib/backups/chunks";
 import { MAX_BACKUP_EMAIL_ATTACHMENT_BYTES, type BackupCategoryId } from "@/lib/backups/types";
+import { getSiteUrl } from "@/lib/site-config";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Backup not ready" }, { status: 404 });
   }
 
-  const downloadUrl = `${process.env.APP_URL ?? "https://splitsms.com"}/api/admin/backups/${job.id}/download`;
+  const downloadUrl = `${getSiteUrl()}/api/admin/backups/${job.id}/download`;
   const attach = job.fileSizeBytes <= MAX_BACKUP_EMAIL_ATTACHMENT_BYTES;
   const zipBuffer = attach ? await readZipBuffer(job.id) : null;
   const content = await backupReadyEmailContent({

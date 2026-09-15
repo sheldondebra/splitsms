@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth/session";
 import { retryRespondentSms } from "@/lib/smart-forms/sms-automation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 const automationSchema = z.object({
   sendToRespondent: z.boolean(),
@@ -21,6 +22,9 @@ export async function saveSmartFormAutomationAction(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Not signed in." };
+  if (!(await isFeatureEnabled("smart_forms_automation"))) {
+    return { ok: false, error: "Form automation is turned off right now." };
+  }
 
   let payload: z.infer<typeof automationSchema>;
   try {
@@ -83,6 +87,9 @@ export async function saveSmartFormEmailAutomationAction(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Not signed in." };
+  if (!(await isFeatureEnabled("smart_forms_automation"))) {
+    return { ok: false, error: "Form automation is turned off right now." };
+  }
 
   let payload: z.infer<typeof emailAutomationSchema>;
   try {

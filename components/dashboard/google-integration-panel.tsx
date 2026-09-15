@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { GOOGLE_CONNECT_ERROR_COPY } from "@/lib/google/connect-errors";
 import type { GoogleConnectionPublic } from "@/lib/google/connection";
 import { googleConnectHref } from "@/lib/google/connect-url";
+import { useFeatureEnabled } from "@/components/platform/platform-features-context";
 import {
   ArrowRight,
   Calendar,
@@ -156,6 +157,9 @@ export function GoogleIntegrationPanel({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [disconnectError, setDisconnectError] = useState<string | null>(null);
   const accessLabels = connection ? grantedAccessLabels(connection.scopes) : [];
+  const formsOn = useFeatureEnabled("google_forms");
+  const contactsOn = useFeatureEnabled("google_contacts");
+  const sheetsOn = useFeatureEnabled("google_sheets");
 
   function disconnect() {
     setDisconnectError(null);
@@ -197,6 +201,7 @@ export function GoogleIntegrationPanel({
         <p className="text-sm text-destructive">{disconnectError}</p>
       ) : null}
 
+      {formsOn ? (
       <Link
         href="/dashboard/integrations/google/forms"
         className="group flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition-colors hover:border-primary/30 hover:bg-muted/15 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6"
@@ -239,8 +244,11 @@ export function GoogleIntegrationPanel({
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </span>
       </Link>
+      ) : null}
 
+      {(contactsOn || sheetsOn) ? (
       <div className="grid gap-4 lg:grid-cols-2">
+        {contactsOn ? (
         <DestinationCard
           href="/dashboard/contacts"
           icon={Users}
@@ -249,6 +257,8 @@ export function GoogleIntegrationPanel({
           actions={["Import", "Export"]}
           connected={Boolean(connection)}
         />
+        ) : null}
+        {sheetsOn ? (
         <DestinationCard
           href="/dashboard/contacts"
           icon={FileSpreadsheet}
@@ -257,7 +267,9 @@ export function GoogleIntegrationPanel({
           actions={["Import to SMS", "Export responses"]}
           connected={Boolean(connection)}
         />
+        ) : null}
       </div>
+      ) : null}
 
       <AppCard>
         <AppCardBody>

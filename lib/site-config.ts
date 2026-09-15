@@ -1,4 +1,5 @@
 import raw from "@/config/site.json";
+import { shouldUseEnvSiteUrl } from "@/lib/reseller/tenant-host";
 
 export type SiteConfig = typeof raw;
 
@@ -7,19 +8,10 @@ const config: SiteConfig = raw;
 /** Production default from config/site.json (no env). */
 export const defaultSiteUrl = config.siteUrl.replace(/\/$/, "");
 
-/** Canonical public site URL. Never returns localhost in production builds. */
+/** Canonical public site URL. Production never uses localhost, Cloud Run, or Vercel aliases. */
 export function getSiteUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
-  if (
-    fromEnv &&
-    !(
-      process.env.NODE_ENV === "production" &&
-      (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(fromEnv) ||
-        fromEnv.includes("localhost"))
-    )
-  ) {
-    return fromEnv;
-  }
+  if (fromEnv && shouldUseEnvSiteUrl(fromEnv)) return fromEnv;
   return defaultSiteUrl;
 }
 

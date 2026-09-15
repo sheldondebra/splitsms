@@ -13,7 +13,7 @@ const staticAssetCache = [
 ];
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  ...(process.env.VERCEL ? {} : { output: "standalone" }),
   poweredByHeader: false,
   serverExternalPackages: ["pg", "@prisma/client", "@prisma/adapter-pg"],
   turbopack: {
@@ -41,6 +41,8 @@ const nextConfig: NextConfig = {
         destination: "/blog/sms-api-getting-started-ghana",
         permanent: true,
       },
+      { source: "/openapi.yaml", destination: "/openapi.json", permanent: true },
+      { source: "/openapi.yml", destination: "/openapi.json", permanent: true },
     ];
   },
   async headers() {

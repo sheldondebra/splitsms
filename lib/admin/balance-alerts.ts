@@ -14,8 +14,9 @@ export const MNOTIFY_LOW_CREDITS_THRESHOLD = Number(
 );
 const TWILIO_LOW_BALANCE = Number(process.env.TWILIO_LOW_BALANCE_THRESHOLD ?? 5);
 const INFOBIP_LOW_BALANCE = Number(process.env.INFOBIP_LOW_BALANCE_THRESHOLD ?? 5);
+const EASYSENDSMS_LOW_BALANCE = Number(process.env.EASYSENDSMS_LOW_BALANCE_THRESHOLD ?? 5);
 
-type BalanceAlertKind = "mnotify" | "twilio" | "infobip" | "coverage" | "credit_cover";
+type BalanceAlertKind = "mnotify" | "twilio" | "infobip" | "easysendsms" | "coverage" | "credit_cover";
 
 type AlertStateEntry = {
   lastAlertAt: string;
@@ -103,6 +104,19 @@ function isProviderLow(balance: ProviderSmsBalance): LowBalanceAlert | null {
       amount: balance.amount,
       threshold: INFOBIP_LOW_BALANCE,
       action: "Top up Infobip before international routes fail.",
+    };
+  }
+
+  if (balance.type === "EASYSENDSMS" && balance.amount < EASYSENDSMS_LOW_BALANCE) {
+    return {
+      kind: "easysendsms",
+      title: "EasySendSMS balance low",
+      summary: `EasySendSMS prepaid balance is ${balance.display}.`,
+      provider: "EasySendSMS",
+      display: balance.display,
+      amount: balance.amount,
+      threshold: EASYSENDSMS_LOW_BALANCE,
+      action: "Top up EasySendSMS before international routes fail.",
     };
   }
 

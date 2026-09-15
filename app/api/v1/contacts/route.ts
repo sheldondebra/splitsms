@@ -81,4 +81,5 @@ export const POST = withApi(
   },
   "/api/v1/contacts",
   "contacts.write",
+  { feature: "contacts" },
 );

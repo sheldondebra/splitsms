@@ -29,8 +29,10 @@ const blogLastModified = new Map(
 const STATIC_ROUTES: { path: string; priority: number; changeFrequency?: SitemapEntry["changeFrequency"] }[] = [
   { path: "", priority: 1, changeFrequency: "weekly" },
   { path: "/products", priority: 0.95, changeFrequency: "weekly" },
+  { path: "/products/bulk-sms", priority: 0.92, changeFrequency: "weekly" },
   { path: "/features", priority: 0.95, changeFrequency: "weekly" },
   { path: "/pricing", priority: 0.95, changeFrequency: "weekly" },
+  { path: "/reseller-platform", priority: 0.88, changeFrequency: "weekly" },
   { path: "/smart-forms", priority: 0.85, changeFrequency: "monthly" },
   { path: "/google", priority: 0.92, changeFrequency: "weekly" },
   { path: "/integrations", priority: 0.85, changeFrequency: "weekly" },
@@ -39,6 +41,7 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency?: Sitemap
   { path: "/docs/api", priority: 0.85, changeFrequency: "monthly" },
   { path: "/docs/connect", priority: 0.8, changeFrequency: "monthly" },
   { path: "/docs/mobile", priority: 0.75, changeFrequency: "monthly" },
+  { path: "/docs/wordpress", priority: 0.8, changeFrequency: "monthly" },
   { path: "/sdk", priority: 0.8, changeFrequency: "monthly" },
   { path: "/vibe-coders", priority: 0.85, changeFrequency: "monthly" },
   { path: "/solutions", priority: 0.92, changeFrequency: "weekly" },
@@ -58,6 +61,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const freshPaths = new Set([
     "",
     "/products",
+    "/products/bulk-sms",
+    "/reseller-platform",
     "/solutions",
     "/features",
     "/pricing",

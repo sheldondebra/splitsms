@@ -368,9 +368,7 @@ export function buildLlmsTxt(siteUrl: string, apiBaseUrl: string): string {
 
 - OpenAPI: ${base}/openapi.json
 - API reference: ${base}/api-docs
-- Developer portal: ${base}/developers
-- Integration generator: ${base}/developers/generate
-- AI prompt library: ${base}/developers/prompts
+- Platform docs: ${base}/docs
 - Vibe coders landing: ${base}/vibe-coders
 - SMS solutions hub: ${base}/solutions
 - SMS Ghana: ${base}/solutions/sms
@@ -386,14 +384,14 @@ export function buildLlmsTxt(siteUrl: string, apiBaseUrl: string): string {
 - SplitSMS for websites: ${base}/blog/splitsms-for-your-website
 - Event SMS playbook: ${base}/blog/event-sms-playbook-ghana
 - SDK install: ${base}/sdk
-- Postman: ${base}/developers/postman
+- Postman: ${base}/postman/splitsms.collection.json
 
 ## Authentication
 
 All API requests: \`Authorization: Bearer YOUR_API_KEY\`
 Base URL: ${apiBaseUrl}
 
-Create keys at ${base}/developers/api-keys
+Create keys at ${base}/signup
 Use sandbox keys (sk_test_) for safe development — no live SMS, no credit charges.
 OTP sandbox verify code: 123456
 

@@ -8,6 +8,7 @@ import { notifyAdminsNewSenderId, notifyUserSenderIdDocumentsRequested } from "@
 import { getOrCreateMemberAccount } from "@/lib/admin/member-account";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 const MIN_REASON_LENGTH = 10;
 const MAX_REASON_LENGTH = 500;
@@ -48,6 +49,9 @@ export async function requestSenderIdAction(
 ): Promise<RequestSenderIdState> {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (!(await isFeatureEnabled("sender_id_registration"))) {
+    return { errorCode: "feature" };
+  }
 
   const value = normalizeSenderIdValue(String(formData.get("value") ?? ""));
   const reason = String(formData.get("reason") ?? "").trim();

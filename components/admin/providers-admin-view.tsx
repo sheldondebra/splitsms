@@ -7,6 +7,7 @@ import {
   testMnotifyFromAdminAction,
 } from "@/lib/actions/admin-mnotify";
 import {
+  saveEasySendSmsSettingsAction,
   saveInfobipSettingsAction,
   saveTwilioSettingsAction,
 } from "@/lib/actions/admin-providers";
@@ -31,14 +32,16 @@ import {
   Globe,
   Radio,
   Route,
+  Send,
 } from "lucide-react";
 
-type TabId = "mnotify" | "infobip" | "twilio";
+type TabId = "mnotify" | "infobip" | "twilio" | "easysendsms";
 
 const TAB_ICONS = {
   mnotify: Radio,
   infobip: Globe,
   twilio: Cloud,
+  easysendsms: Send,
 } as const;
 
 export function ProvidersAdminView({
@@ -63,7 +66,9 @@ export function ProvidersAdminView({
   }
 
   const activeTab =
-    initialTab === "infobip" || initialTab === "twilio" ? initialTab : "mnotify";
+    initialTab === "infobip" || initialTab === "twilio" || initialTab === "easysendsms"
+      ? initialTab
+      : "mnotify";
 
   return (
     <div className="space-y-6">
@@ -78,7 +83,16 @@ export function ProvidersAdminView({
 
       <div className="grid gap-3 sm:grid-cols-3">
         {data.summaries.map((p) => {
-          const Icon = TAB_ICONS[p.type === "MNOTIFY" ? "mnotify" : p.type === "TWILIO" ? "twilio" : "infobip"];
+          const Icon =
+            TAB_ICONS[
+              p.type === "MNOTIFY"
+                ? "mnotify"
+                : p.type === "TWILIO"
+                  ? "twilio"
+                  : p.type === "INFOBIP"
+                    ? "infobip"
+                    : "easysendsms"
+            ];
           return (
             <Card
               key={p.type}
@@ -151,6 +165,7 @@ export function ProvidersAdminView({
                 { id: "mnotify" as const, label: "mNotify", icon: Radio },
                 { id: "infobip" as const, label: "Infobip", icon: Globe },
                 { id: "twilio" as const, label: "Twilio", icon: Cloud },
+                { id: "easysendsms" as const, label: "EasySendSMS", icon: Send },
               ] as const
             ).map((tab) => (
               <TabsTrigger
@@ -179,6 +194,9 @@ export function ProvidersAdminView({
         </TabsContent>
         <TabsContent value="twilio" className="mt-0">
           <TwilioTab data={data} />
+        </TabsContent>
+        <TabsContent value="easysendsms" className="mt-0">
+          <EasySendSmsTab data={data} />
         </TabsContent>
       </Tabs>
     </div>
@@ -491,6 +509,75 @@ function InfobipTab({ data }: { data: ProvidersAdminDashboard }) {
             </div>
           </div>
           <Button type="submit">Save Infobip</Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EasySendSmsTab({ data }: { data: ProvidersAdminDashboard }) {
+  const { settings, maskedApiKey, configured } = data.easysendsms;
+  const balance = data.summaries.find((s) => s.type === "EASYSENDSMS");
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>EasySendSMS</CardTitle>
+        <CardDescription>
+          International SMS — US, UK, Australia, and 200+ other countries.{" "}
+          <a
+            href="https://www.easysendsms.com/developers"
+            className="text-primary hover:underline"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Docs
+          </a>
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="flex flex-wrap gap-3 text-sm">
+          <Badge variant={configured ? "default" : "secondary"}>
+            {configured ? "Configured" : "Not configured"}
+          </Badge>
+          <span className="text-muted-foreground">
+            Balance: {balance?.balanceDisplay ?? "—"}
+          </span>
+        </div>
+        <form action={saveEasySendSmsSettingsAction} className="space-y-4 max-w-lg">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              name="enabled"
+              defaultChecked={settings.enabled}
+              className="h-4 w-4 rounded accent-primary"
+            />
+            <span className="text-sm font-medium">Enable EasySendSMS provider</span>
+          </label>
+          <div className="space-y-2">
+            <Label htmlFor="easysendsmsApiKey">API key</Label>
+            {maskedApiKey && (
+              <p className="text-xs text-muted-foreground">Current: {maskedApiKey}</p>
+            )}
+            <Input
+              id="easysendsmsApiKey"
+              name="apiKey"
+              type="password"
+              placeholder="Leave empty to keep current key"
+              autoComplete="off"
+            />
+            <p className="text-xs text-muted-foreground">
+              Find this in the EasySendSMS Customer Dashboard under API settings.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="easysendsmsSenderId">Default sender ID</Label>
+            <Input id="easysendsmsSenderId" name="senderId" defaultValue={settings.senderId} />
+            <p className="text-xs text-muted-foreground">
+              Max 11 characters for an alphanumeric sender, 15 if numeric.
+            </p>
+          </div>
+          <Button type="submit">Save EasySendSMS</Button>
         </form>
       </CardContent>
     </Card>

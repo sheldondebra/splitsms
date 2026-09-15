@@ -6,6 +6,7 @@ import { appendRawChunk, readRawChunks, readRawObject, deleteRawChunks, writeZip
 import { BACKUP_TASKS, tasksForCategories, type BackupTaskId } from "@/lib/backups/tasks";
 import { BATCH_SIZE, MAX_BACKUP_EMAIL_ATTACHMENT_BYTES } from "@/lib/backups/types";
 import type { BackupCategoryId, BackupFilters, CategoryProgress } from "@/lib/backups/types";
+import { getSiteUrl } from "@/lib/site-config";
 
 function emptyProgress(): CategoryProgress {
   return { done: false, exported: 0, total: 0, cursor: null, chunkIndex: 0 };
@@ -145,7 +146,7 @@ export async function stepBackupJob(id: string) {
   });
 
   if (job.emailTo) {
-    const downloadUrl = `${process.env.APP_URL ?? "https://splitsms.com"}/api/admin/backups/${job.id}/download`;
+    const downloadUrl = `${getSiteUrl()}/api/admin/backups/${job.id}/download`;
     const attach = buffer.length <= MAX_BACKUP_EMAIL_ATTACHMENT_BYTES;
     const content = await backupReadyEmailContent({
       categories: categories.map((c) => c),

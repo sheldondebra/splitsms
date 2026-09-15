@@ -27,6 +27,7 @@ export const UX_ERRORS: Record<string, string> = {
     "Please explain why you need this Sender ID (at least 10 characters).",
   duplicate_sender_id: "You already registered this Sender ID.",
   blocked: "Your account cannot register new Sender IDs right now. Contact support.",
+  feature: "This feature is turned off right now.",
   limit: "You have reached the maximum number of Sender IDs on your account.",
   sender_not_found: "Sender ID not found or not approved yet.",
   sender_provider_failed:

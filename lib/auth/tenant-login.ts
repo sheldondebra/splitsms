@@ -1,13 +1,11 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getRequestTenant } from "@/lib/reseller/request-tenant";
 import { userBelongsToTenant } from "@/lib/reseller/tenant";
+import { getSiteUrl } from "@/lib/site-config";
 
 function platformResellerUrl() {
-  const base = process.env.NEXT_PUBLIC_APP_URL;
-  if (!base) return null;
   try {
-    return new URL("/reseller", base).toString();
+    return new URL("/reseller", getSiteUrl()).toString();
   } catch {
     return null;
   }

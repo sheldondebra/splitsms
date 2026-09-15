@@ -37,7 +37,7 @@ import {
 
 type RoutesData = Awaited<ReturnType<typeof getAdminRoutesDashboard>>;
 
-const PROVIDER_OPTIONS = ["MNOTIFY", "TWILIO", "INFOBIP"] as const;
+const PROVIDER_OPTIONS = ["MNOTIFY", "TWILIO", "INFOBIP", "EASYSENDSMS"] as const;
 
 function LiveBadge({ live, reason }: { live: boolean; reason: string }) {
   return (

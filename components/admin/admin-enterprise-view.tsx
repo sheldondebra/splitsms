@@ -278,6 +278,7 @@ export function AdminEnterpriseView({
                   <option value="MNOTIFY">mNotify only</option>
                   <option value="TWILIO">Twilio only</option>
                   <option value="INFOBIP">Infobip only</option>
+                  <option value="EASYSENDSMS">EasySendSMS only</option>
                 </select>
               </div>
             </div>

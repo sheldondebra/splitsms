@@ -18,6 +18,7 @@ import { logAuthEvent } from "@/lib/auth/audit";
 import { createAndSendOtp } from "@/lib/auth/otp";
 import { handleGoogleConnectCallback } from "@/lib/google/complete-connect";
 import { verifyConnectState } from "@/lib/google/oauth-connect";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 function loginError(origin: string, code: string) {
   return NextResponse.redirect(new URL(`/login?error=${code}`, origin));
@@ -79,6 +80,10 @@ export async function GET(request: NextRequest) {
 
   const resolved = await resolveGoogleSignIn(identity);
 
+  if (!(await isFeatureEnabled("google_signin"))) {
+    return loginError(origin, "feature_google");
+  }
+
   if (resolved.status === "suspended") {
     return loginError(origin, "suspended");
   }
@@ -103,6 +108,10 @@ export async function GET(request: NextRequest) {
 
     const dest = await establishGoogleSession(resolved.user, state.returnTo);
     return NextResponse.redirect(new URL(dest, origin));
+  }
+
+  if (!(await isFeatureEnabled("register"))) {
+    return loginError(origin, "feature_register");
   }
 
   await setGooglePendingCookie({

@@ -6,8 +6,9 @@ import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { withReturnParams } from "@/lib/admin/return-url";
 import { resolveMarketingAudience } from "@/lib/admin/email-marketing-audience";
-import { sendMarketingCampaign } from "@/lib/admin/email-marketing-send";
+import { sendMarketingCampaign, sendMarketingTestEmail } from "@/lib/admin/email-marketing-send";
 import {
+  EMAIL_MARKETING_AUDIENCE_TYPES,
   EMAIL_MARKETING_INACTIVE_DAYS_DEFAULT,
   EMAIL_MARKETING_MAX_RECIPIENTS,
   EMAIL_MARKETING_NEWSLETTER_MAX_RECIPIENTS,
@@ -25,16 +26,7 @@ async function requireAdmin() {
 }
 
 function parseAudienceType(raw: string): EmailMarketingAudienceType {
-  const allowed: EmailMarketingAudienceType[] = [
-    "all",
-    "inactive",
-    "role_member",
-    "role_reseller",
-    "role_enterprise",
-    "manual",
-    "newsletter",
-  ];
-  return (allowed.includes(raw as EmailMarketingAudienceType)
+  return (EMAIL_MARKETING_AUDIENCE_TYPES.includes(raw as EmailMarketingAudienceType)
     ? raw
     : "all") as EmailMarketingAudienceType;
 }
@@ -102,6 +94,10 @@ export async function adminSendEmailMarketingAction(formData: FormData) {
     redirect(withReturnParams(returnTo, { error: "marketing_fields", tab: "compose" }));
   }
 
+  const scheduledRaw = String(formData.get("scheduledAt") ?? "").trim();
+  const scheduledAt = scheduledRaw ? new Date(scheduledRaw) : null;
+  const scheduleValid = scheduledAt && !Number.isNaN(scheduledAt.getTime()) && scheduledAt.getTime() > Date.now() + 15_000;
+
   const recipients = await resolveMarketingAudience({
     audienceType,
     inactiveDays,
@@ -112,7 +108,7 @@ export async function adminSendEmailMarketingAction(formData: FormData) {
         : EMAIL_MARKETING_MAX_RECIPIENTS,
   });
 
-  if (recipients.length === 0) {
+  if (recipients.length === 0 && (audienceType === "manual" || !scheduleValid)) {
     redirect(withReturnParams(returnTo, { error: "marketing_audience", tab: "compose" }));
   }
 
@@ -132,18 +128,68 @@ export async function adminSendEmailMarketingAction(formData: FormData) {
     audienceMeta: {
       inactiveDays: audienceType === "inactive" ? inactiveDays : undefined,
       manualCount: audienceType === "manual" ? manualEmails.length : undefined,
+      manualEmails: audienceType === "manual" ? manualEmails : undefined,
     },
     recipients,
+    scheduledAt: scheduleValid ? scheduledAt : null,
   });
 
   revalidatePath("/admin/email-marketing");
   redirect(
     withReturnParams("/admin/email-marketing", {
       tab: "history",
-      saved: "sent",
+      saved: result.scheduled ? "scheduled" : "sent",
       count: String(result.sent),
       failed: String(result.failed),
       campaignId: result.campaignId,
+    }),
+  );
+}
+
+export async function adminTestEmailMarketingAction(formData: FormData) {
+  const session = await requireAdmin();
+  const returnTo = safeReturn(formData);
+
+  const subject = String(formData.get("subject") ?? "").trim();
+  const preheader = String(formData.get("preheader") ?? "").trim();
+  const headline = String(formData.get("headline") ?? "").trim();
+  const bodyText = String(formData.get("bodyText") ?? "").trim();
+  const ctaLabel = String(formData.get("ctaLabel") ?? "").trim();
+  const ctaHref = String(formData.get("ctaHref") ?? "").trim();
+  const footerNote = String(formData.get("footerNote") ?? "").trim();
+  const imageUrl = await resolveImageUrl(formData, returnTo, "compose");
+
+  if (!subject || !headline || !bodyText) {
+    redirect(withReturnParams(returnTo, { error: "marketing_fields", tab: "compose" }));
+  }
+
+  const admin = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { email: true, fullName: true },
+  });
+  if (!admin?.email) {
+    redirect(withReturnParams(returnTo, { error: "marketing_test_email", tab: "compose" }));
+  }
+
+  const result = await sendMarketingTestEmail({
+    to: admin.email,
+    toName: admin.fullName,
+    subject,
+    preheader,
+    headline,
+    bodyText,
+    ctaLabel,
+    ctaHref,
+    footerNote,
+    imageUrl,
+  });
+
+  revalidatePath("/admin/email-marketing");
+  redirect(
+    withReturnParams("/admin/email-marketing", {
+      tab: "compose",
+      saved: result.ok ? "test" : undefined,
+      error: result.ok ? undefined : "marketing_test_failed",
     }),
   );
 }

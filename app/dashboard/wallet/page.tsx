@@ -17,6 +17,8 @@ import { loadStripeSettings } from "@/lib/payments/gateway-settings";
 import { getStripeFxPreview } from "@/lib/payments/fx-rates";
 import { firstSearchParam } from "@/lib/payments/return-path";
 import { WalletPaymentToasts } from "@/components/billing/wallet-payment-toasts";
+import { FeatureInlineNotice } from "@/components/platform/feature-unavailable";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 export default async function WalletPage({
   searchParams,
@@ -55,7 +57,7 @@ export default async function WalletPage({
     await reconcilePendingStripePaymentsForUser(session.userId).catch(() => undefined);
   }
 
-  const [wallet, credit, transactions, paymentMethods, offlineBankDetails, user, pricingOptions, defaultMethod] =
+  const [wallet, credit, transactions, paymentMethods, offlineBankDetails, user, pricingOptions, defaultMethod, topupEnabled] =
     await Promise.all([
       prisma.wallet.findUnique({ where: { userId: session.userId } }),
       prisma.smsCredit.findUnique({ where: { userId: session.userId } }),
@@ -72,6 +74,7 @@ export default async function WalletPage({
       }),
       getWalletPricingOptions(session.userId),
       getDefaultPaymentMethodForUser(session.userId),
+      isFeatureEnabled("wallet_topup"),
     ]);
 
   const currency = wallet?.currency ?? "GHS";
@@ -142,20 +145,27 @@ export default async function WalletPage({
               title="Add money to wallet"
               description="See how many SMS this buys, then pay — or convert to credits automatically"
             />
-            <WalletTopupClient
-              currency={currency}
-              paymentMethods={paymentMethods}
-              offlineBankDetails={offlineBankDetails}
-              defaultMethod={defaultMethod ?? undefined}
-              stripeFxPreview={stripeFxPreview ?? undefined}
-              smsPricing={{
-                countryCode: activePrice.countryCode,
-                countryName: activePrice.countryName,
-                pricePerCredit: activePrice.sellPrice,
-                currency: activePrice.currency,
-              }}
-              pricingOptions={pricingOptions}
-            />
+            {topupEnabled ? (
+              <WalletTopupClient
+                currency={currency}
+                paymentMethods={paymentMethods}
+                offlineBankDetails={offlineBankDetails}
+                defaultMethod={defaultMethod ?? undefined}
+                stripeFxPreview={stripeFxPreview ?? undefined}
+                smsPricing={{
+                  countryCode: activePrice.countryCode,
+                  countryName: activePrice.countryName,
+                  pricePerCredit: activePrice.sellPrice,
+                  currency: activePrice.currency,
+                }}
+                pricingOptions={pricingOptions}
+              />
+            ) : (
+              <FeatureInlineNotice
+                title="Wallet top-up is off"
+                description="Adding money is turned off right now. You can still use existing balance."
+              />
+            )}
           </AppCardBody>
         </AppCard>
 

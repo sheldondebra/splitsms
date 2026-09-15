@@ -18,6 +18,7 @@ export type SendMailjetEmailParams = {
     contentId?: string;
     inline?: boolean;
   }[];
+  headers?: Record<string, string>;
 };
 
 export type SendMailjetResult =
@@ -104,6 +105,7 @@ export async function sendMailjetEmail(
         Subject: params.subject,
         TextPart: params.text,
         HTMLPart: params.html ?? params.text.replace(/\n/g, "<br>"),
+        ...(params.headers ? { Headers: params.headers } : {}),
         ...(attachments?.length ? { Attachments: attachments } : {}),
         ...(inlined?.length ? { InlinedAttachments: inlined } : {}),
       },

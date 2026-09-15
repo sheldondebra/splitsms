@@ -8,10 +8,12 @@ import { detectCountryCode } from "@/lib/contacts/country-from-phone";
 import { runContactSignupAutomations } from "@/lib/automation/dispatch";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 async function requireUserId() {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (!(await isFeatureEnabled("contacts"))) redirect("/dashboard");
   return session.userId;
 }
 

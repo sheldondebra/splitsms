@@ -278,7 +278,7 @@ export const marketingNavItems: MarketingNavItem[] = [
               icon: ScrollText,
             },
             {
-              href: "/developers",
+              href: "/docs",
               label: "Developer portal",
               description: "Keys, logs, Postman, and webhooks.",
               icon: KeyRound,

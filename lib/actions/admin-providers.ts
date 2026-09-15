@@ -2,6 +2,7 @@
 
 import { getRealSession as getSession, isAdminRole } from "@/lib/auth/session";
 import {
+  saveEasySendSmsSettings,
   saveInfobipSettings,
   saveTwilioSettings,
 } from "@/lib/sms/provider-credentials";
@@ -50,4 +51,21 @@ export async function saveInfobipSettingsAction(formData: FormData) {
 
   revalidateProviders();
   redirect("/admin/providers?tab=infobip&saved=1");
+}
+
+export async function saveEasySendSmsSettingsAction(formData: FormData) {
+  const session = await getSession();
+  if (!session || !isAdminRole(session.role)) redirect("/admin");
+
+  await saveEasySendSmsSettings(
+    {
+      enabled: formData.get("enabled") === "on",
+      apiKey: String(formData.get("apiKey") ?? ""),
+      senderId: String(formData.get("senderId") ?? "SplitSMS"),
+    },
+    session.userId,
+  );
+
+  revalidateProviders();
+  redirect("/admin/providers?tab=easysendsms&saved=1");
 }

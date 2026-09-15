@@ -4,6 +4,10 @@ import { recordDeviceSession } from "@/lib/auth/device-session";
 import { logAuthEvent } from "@/lib/auth/audit";
 import { getMemberAccountForUser, isMemberSuspended } from "@/lib/admin/member-account";
 import { assertTenantLoginAllowed } from "@/lib/auth/tenant-login";
+import {
+  isFeatureEnabled,
+  staffBypassesPlatformFeatures,
+} from "@/lib/platform/features";
 import { userNeedsOnboarding } from "@/lib/onboarding";
 import { userNeedsProfileCompletion } from "@/lib/auth/phone-auth";
 import {
@@ -49,6 +53,13 @@ export async function establishGoogleSession(user: {
   fullName: string;
 }, returnTo?: string | null): Promise<string> {
   await assertTenantLoginAllowed(user.id, user.role);
+
+  if (
+    !staffBypassesPlatformFeatures(user.role) &&
+    !(await isFeatureEnabled("login"))
+  ) {
+    return "/login?error=feature_login";
+  }
 
   await prisma.user.update({
     where: { id: user.id },

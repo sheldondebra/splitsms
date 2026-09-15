@@ -269,21 +269,95 @@ async function fetchInfobipBalance(): Promise<ProviderSmsBalance> {
   }
 }
 
+async function fetchEasySendSmsBalance(): Promise<ProviderSmsBalance> {
+  const name = "EasySendSMS";
+  const { loadEasySendSmsSettings } = await import("@/lib/sms/provider-credentials");
+  const cfg = await loadEasySendSmsSettings();
+  if (!cfg.enabled || !cfg.apiKey) {
+    return {
+      type: "EASYSENDSMS",
+      name,
+      status: "unconfigured",
+      display: "Not configured",
+      amount: null,
+      currency: null,
+      bonus: null,
+      hint: "Add API key under Admin → Providers → EasySendSMS",
+    };
+  }
+
+  try {
+    const res = await fetch("https://restapi.easysendsms.app/v1/rest/sms/balance", {
+      method: "POST",
+      headers: {
+        apikey: cfg.apiKey,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      balance?: number;
+      error?: number;
+      description?: string;
+    };
+
+    if (!res.ok || data.balance == null) {
+      return {
+        type: "EASYSENDSMS",
+        name,
+        status: "error",
+        display: "Unable to fetch",
+        amount: null,
+        currency: null,
+        bonus: null,
+        error: data.description ?? `HTTP ${res.status}`,
+      };
+    }
+
+    const amount = parseNumber(data.balance);
+    return {
+      type: "EASYSENDSMS",
+      name,
+      status: "ok",
+      display: formatSmsCredits(amount),
+      amount,
+      currency: null,
+      bonus: null,
+      hint: "Account SMS credit balance from EasySendSMS",
+    };
+  } catch (e) {
+    return {
+      type: "EASYSENDSMS",
+      name,
+      status: "error",
+      display: "Unable to fetch",
+      amount: null,
+      currency: null,
+      bonus: null,
+      error: e instanceof Error ? e.message : "Request failed",
+    };
+  }
+}
+
 /** Live balances from each upstream SMS provider (admin only). */
 export async function fetchSmsProviderBalance(
   type: SmsProviderType,
 ): Promise<ProviderSmsBalance> {
   if (type === "MNOTIFY") return fetchMnotifyBalance();
   if (type === "TWILIO") return fetchTwilioBalance();
-  return fetchInfobipBalance();
+  if (type === "INFOBIP") return fetchInfobipBalance();
+  return fetchEasySendSmsBalance();
 }
 
 /** Live balances from each upstream SMS provider (admin only). */
 export async function fetchAllSmsProviderBalances(): Promise<ProviderSmsBalance[]> {
-  const [mnotify, twilio, infobip] = await Promise.all([
+  const [mnotify, twilio, infobip, easysendsms] = await Promise.all([
     fetchMnotifyBalance(),
     fetchTwilioBalance(),
     fetchInfobipBalance(),
+    fetchEasySendSmsBalance(),
   ]);
-  return [mnotify, twilio, infobip];
+  return [mnotify, twilio, infobip, easysendsms];
 }

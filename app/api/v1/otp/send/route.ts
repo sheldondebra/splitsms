@@ -39,4 +39,5 @@ export const POST = withApi(
   },
   "/api/v1/otp/send",
   "sms.send",
+  { feature: "otp_api" },
 );

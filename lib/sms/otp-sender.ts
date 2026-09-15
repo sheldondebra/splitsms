@@ -4,11 +4,14 @@ import { sendMnotifyOtp, isMnotifyConfigured } from "@/lib/mnotify";
 import { detectCountryCode } from "@/lib/contacts/country-from-phone";
 import { getProviderOrderForCountry } from "@/lib/sms/country-provider";
 import {
+  isEasySendSmsConfigured,
   isInfobipConfigured,
   isTwilioConfigured,
+  loadEasySendSmsSettings,
   loadInfobipSettings,
   loadTwilioSettings,
 } from "@/lib/sms/provider-credentials";
+import { sendViaEasySendSms } from "@/lib/sms/providers/easysendsms";
 import { sendViaInfobip } from "@/lib/sms/providers/infobip";
 import { sendViaTwilio } from "@/lib/sms/providers/twilio";
 import type { SmsProviderType } from "@/lib/generated/prisma/client";
@@ -97,6 +100,20 @@ async function sendViaProvider(
     });
     if (result.success) return { ok: true };
     return { ok: false, error: result.error ?? "Infobip send failed" };
+  }
+
+  if (type === "EASYSENDSMS") {
+    const cfg = await loadEasySendSmsSettings();
+    if (!isEasySendSmsConfigured(cfg)) {
+      return { ok: false, error: "EasySendSMS not configured or disabled" };
+    }
+    const result = await sendViaEasySendSms({
+      to: e164,
+      from: cfg.senderId,
+      body: message,
+    });
+    if (result.success) return { ok: true };
+    return { ok: false, error: result.error ?? "EasySendSMS send failed" };
   }
 
   return { ok: false, error: `Unknown provider ${type}` };

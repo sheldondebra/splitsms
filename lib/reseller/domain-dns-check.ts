@@ -1,5 +1,11 @@
 import dns from "node:dns/promises";
-import { normalizeHost, normalizeResellerDomain } from "@/lib/reseller/tenant-host";
+import {
+  isCloudRunStagingHost,
+  isVercelProjectHost,
+  normalizeHost,
+  normalizeResellerDomain,
+  PLATFORM_DNS_TARGET_HOST,
+} from "@/lib/reseller/tenant-host";
 
 export type DomainDnsCheckResult = {
   ok: boolean;
@@ -14,16 +20,26 @@ export function platformDnsTargetHost() {
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL;
   if (fromEnv) {
     try {
-      return normalizeHost(new URL(fromEnv).hostname);
+      const host = new URL(fromEnv).hostname;
+      if (
+        host &&
+        !isCloudRunStagingHost(host) &&
+        !isVercelProjectHost(host) &&
+        normalizeHost(host) !== "localhost"
+      ) {
+        return host.toLowerCase().replace(/^www\./, "") === "splitsms.com"
+          ? PLATFORM_DNS_TARGET_HOST
+          : host.toLowerCase();
+      }
     } catch {
       /* ignore */
     }
   }
   const extras = (process.env.TENANT_PLATFORM_HOSTS ?? "")
     .split(",")
-    .map((x) => normalizeHost(x.trim()))
+    .map((x) => x.trim())
     .filter(Boolean);
-  return extras[0] || "app.splitsms.com";
+  return extras[0] || PLATFORM_DNS_TARGET_HOST;
 }
 
 function stripTrailingDot(host: string) {

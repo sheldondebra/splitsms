@@ -60,7 +60,7 @@ export function SdkPageContent() {
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href="/developers/api-keys"
+              href="/signup"
               className={cn(buttonVariants({ size: "lg" }), "gap-2 font-semibold")}
             >
               <Key className="h-4 w-4" />

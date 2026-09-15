@@ -7,16 +7,19 @@ import { sendSmsWithFailover } from "@/lib/sms/orchestrator";
 import { mnotifyAdapter } from "@/lib/sms/providers/mnotify";
 import { twilioAdapter } from "@/lib/sms/providers/twilio";
 import { infobipAdapter } from "@/lib/sms/providers/infobip";
+import { easySendSmsAdapter } from "@/lib/sms/providers/easysendsms";
 import type { SmsProviderType } from "@/lib/generated/prisma/client";
+import type { SmsProviderAdapter } from "@/lib/sms/providers/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-const PROVIDERS: SmsProviderType[] = ["MNOTIFY", "TWILIO", "INFOBIP"];
+const PROVIDERS: SmsProviderType[] = ["MNOTIFY", "TWILIO", "INFOBIP", "EASYSENDSMS"];
 
-const adapters = {
+const adapters: Record<SmsProviderType, SmsProviderAdapter> = {
   MNOTIFY: mnotifyAdapter,
   TWILIO: twilioAdapter,
   INFOBIP: infobipAdapter,
+  EASYSENDSMS: easySendSmsAdapter,
 };
 
 async function requireAdmin() {

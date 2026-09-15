@@ -19,6 +19,7 @@ export type SendSmtpEmailParams = {
     contentId?: string;
     inline?: boolean;
   }[];
+  headers?: Record<string, string>;
 };
 
 export type SendSmtpResult =
@@ -61,6 +62,7 @@ export async function sendSmtpEmail(params: SendSmtpEmailParams): Promise<SendSm
       subject: params.subject,
       text: params.text,
       html: params.html ?? params.text.replace(/\n/g, "<br>"),
+      headers: params.headers,
       attachments: params.attachments?.map((a) => ({
         filename: a.filename,
         content: Buffer.isBuffer(a.content) ? a.content : Buffer.from(a.content as Uint8Array),

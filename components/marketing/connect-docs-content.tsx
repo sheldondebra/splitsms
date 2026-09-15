@@ -151,12 +151,12 @@ Authorization: Bearer CUSTOMER_OR_PARTNER_KEY
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/developers/api-keys" className={cn(buttonVariants({ size: "lg" }), "gap-2 font-semibold")}>
+            <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "gap-2 font-semibold")}>
               <Key className="h-4 w-4" />
               Create partner API key
             </Link>
             <Link
-              href="/developers/docs#connect"
+              href="/docs/connect"
               className={cn(buttonVariants({ size: "lg", variant: "outline" }), "gap-2")}
             >
               <BookOpen className="h-4 w-4" />
@@ -283,7 +283,7 @@ Authorization: Bearer CUSTOMER_OR_PARTNER_KEY
               <ol className="list-decimal pl-5 space-y-2.5 text-[15px] text-muted-foreground leading-relaxed marker:font-semibold marker:text-primary/80">
                 <li className="pl-1">
                   Sign in to SplitSMS and open{" "}
-                  <Link href="/developers/api-keys" className="font-medium text-primary hover:underline">
+                  <Link href="/dashboard/api-keys" className="font-medium text-primary hover:underline">
                     App connections → API keys
                   </Link>
                   .
@@ -503,7 +503,7 @@ Authorization: Bearer CUSTOMER_OR_PARTNER_KEY
                   Create account
                 </Link>
                 <Link
-                  href="/developers/docs#connect"
+                  href="/docs/connect"
                   className={cn(buttonVariants({ variant: "outline" }), "rounded-xl gap-2")}
                 >
                   Developer portal

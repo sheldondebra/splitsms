@@ -12,7 +12,12 @@ import type { SmsProviderType } from "@/lib/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-const PROVIDER_TYPES = new Set<SmsProviderType>(["MNOTIFY", "TWILIO", "INFOBIP"]);
+const PROVIDER_TYPES = new Set<SmsProviderType>([
+  "MNOTIFY",
+  "TWILIO",
+  "INFOBIP",
+  "EASYSENDSMS",
+]);
 
 function revalidateBalancePaths() {
   revalidatePath("/admin");

@@ -11,6 +11,11 @@ import {
   isResellerOwnCheckoutAvailable,
   resolveResellerCheckoutContext,
 } from "@/lib/payments/reseller-checkout";
+import {
+  isFeatureEnabledIn,
+  loadPlatformFeatureFlags,
+  paymentMethodFeature,
+} from "@/lib/platform/features";
 
 export type PaymentMethodOption = {
   value: PaymentMethod;
@@ -123,11 +128,16 @@ export async function getPaymentMethodOptionsForUser(
   const availability = await Promise.all(
     methods.map((m) => isMethodAvailableForUser(m.value, userId)),
   );
+  const flags = await loadPlatformFeatureFlags();
 
-  return methods.map((m, i) => ({
-    ...m,
-    available: availability[i],
-  }));
+  return methods.map((m, i) => {
+    const feature = paymentMethodFeature(m.value);
+    const featureOn = !feature || isFeatureEnabledIn(flags, feature);
+    return {
+      ...m,
+      available: availability[i] && featureOn,
+    };
+  });
 }
 
 export async function getPaymentMethodOptions(): Promise<PaymentMethodOption[]> {
@@ -146,11 +156,16 @@ export async function getPaymentMethodOptions(): Promise<PaymentMethodOption[]> 
     (m) => enabled.includes(m.value) && !HIDDEN_METHODS.has(m.value),
   );
   const availability = await Promise.all(methods.map((m) => isMethodAvailable(m.value)));
+  const flags = await loadPlatformFeatureFlags();
 
-  return methods.map((m, i) => ({
-    ...m,
-    available: availability[i],
-  }));
+  return methods.map((m, i) => {
+    const feature = paymentMethodFeature(m.value);
+    const featureOn = !feature || isFeatureEnabledIn(flags, feature);
+    return {
+      ...m,
+      available: availability[i] && featureOn,
+    };
+  });
 }
 
 export async function getDefaultPaymentMethodForUser(userId?: string): Promise<PaymentMethod | null> {

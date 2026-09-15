@@ -13,6 +13,7 @@ import {
 } from "@/components/auth/google-auth-button";
 import { getSignupCountryOptions } from "@/lib/signup-countries";
 import { authPageMetadata } from "@/lib/seo/marketing-metadata";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 export const metadata: Metadata = authPageMetadata(
   "/login",
@@ -39,6 +40,9 @@ export default async function LoginPage({
   const params = await searchParams;
   const { error, reset, mode, method, phone, email, returnTo, hint } = params;
   const tenant = await getRequestTenant();
+  const loginEnabled = await isFeatureEnabled("login");
+  const registerEnabled = await isFeatureEnabled("register");
+  const googleSigninEnabled = await isFeatureEnabled("google_signin");
   const smsMode = mode === "sms";
   const countries = smsMode ? await getSignupCountryOptions() : [];
   const phonePasswordMode = mode === "password" && phone === "1";
@@ -63,9 +67,14 @@ export default async function LoginPage({
       <AuthCard>
         <AuthAlert code={reset === "success" ? "reset" : error} />
         {hint === "slack" ? <AuthAlert code="slack_signin" /> : null}
+        {!loginEnabled ? <AuthAlert code="feature_login_off" /> : null}
 
-        <GoogleAuthButton returnTo={returnTo} />
-        <GoogleAuthDivider />
+        {googleSigninEnabled ? (
+          <>
+            <GoogleAuthButton returnTo={returnTo} />
+            <GoogleAuthDivider />
+          </>
+        ) : null}
 
         {!smsMode ? (
           <LoginMethodLinks
@@ -103,9 +112,13 @@ export default async function LoginPage({
 
           <p className="text-muted-foreground">
             New here?{" "}
-            <Link href="/signup" className="text-primary font-medium hover:underline">
-              {tenant ? "Create an account" : "Create free account"}
-            </Link>
+            {registerEnabled ? (
+              <Link href="/signup" className="text-primary font-medium hover:underline">
+                {tenant ? "Create an account" : "Create free account"}
+              </Link>
+            ) : (
+              <span>Registration is closed.</span>
+            )}
           </p>
 
           {tenant?.supportEmail && (

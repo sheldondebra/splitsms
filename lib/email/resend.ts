@@ -18,6 +18,7 @@ export type SendResendEmailParams = {
     contentId?: string;
     inline?: boolean;
   }[];
+  headers?: Record<string, string>;
 };
 
 export type SendResendResult =
@@ -69,6 +70,7 @@ export async function sendResendEmail(
       subject: params.subject,
       text: params.text,
       html: params.html ?? params.text.replace(/\n/g, "<br>"),
+      ...(params.headers ? { headers: params.headers } : {}),
       ...(attachments?.length ? { attachments } : {}),
     }),
     signal: AbortSignal.timeout(25_000),

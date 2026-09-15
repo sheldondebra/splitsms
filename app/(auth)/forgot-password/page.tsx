@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { KeyRound } from "lucide-react";
 import { authPageMetadata } from "@/lib/seo/marketing-metadata";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 export const metadata: Metadata = authPageMetadata(
   "/forgot-password",
@@ -23,6 +24,7 @@ export default async function ForgotPasswordPage({
 }) {
   const { error, sent, cooldown } = await searchParams;
   const tenant = await getRequestTenant();
+  const resetEnabled = await isFeatureEnabled("password_reset");
 
   return (
     <AuthLayout
@@ -51,6 +53,7 @@ export default async function ForgotPasswordPage({
           />
         )}
 
+        {resetEnabled ? (
         <form action={forgotPasswordAction} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="identifier">Phone or email</Label>
@@ -70,6 +73,9 @@ export default async function ForgotPasswordPage({
             Send reset code
           </Button>
         </form>
+        ) : (
+          <AuthAlert code="feature_password_reset" />
+        )}
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Remember your password?{" "}

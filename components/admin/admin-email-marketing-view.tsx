@@ -11,6 +11,9 @@ import {
   History,
   Users,
   ChevronRight,
+  Clock,
+  Eye,
+  MousePointerClick,
   Zap,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -35,6 +38,7 @@ import {
   adminCreateEmailMarketingTemplateAction,
   adminDeleteEmailMarketingTemplateAction,
   adminSendEmailMarketingAction,
+  adminTestEmailMarketingAction,
   adminUpdateEmailMarketingTemplateAction,
 } from "@/lib/actions/admin-email-marketing";
 import type { EmailMarketingAudienceType } from "@/lib/admin/email-marketing-shared";
@@ -64,6 +68,12 @@ function flashMessage(flash: {
       tone: "ok" as const,
       text: `Campaign sent: ${flash.count ?? 0} delivered${flash.failed && flash.failed !== "0" ? `, ${flash.failed} failed` : ""}.`,
     };
+  }
+  if (flash.saved === "scheduled") {
+    return { tone: "ok" as const, text: "Campaign scheduled. It will send at the time you chose." };
+  }
+  if (flash.saved === "test") {
+    return { tone: "ok" as const, text: "Test email sent to your admin address." };
   }
   if (flash.saved === "template") {
     return { tone: "ok" as const, text: "Template saved." };
@@ -104,6 +114,12 @@ function flashMessage(flash: {
   if (flash.error === "marketing_image") {
     return { tone: "err" as const, text: "Image upload failed. Use PNG, JPG, WEBP, or GIF under 2 MB." };
   }
+  if (flash.error === "marketing_test_email") {
+    return { tone: "err" as const, text: "Add an email to your admin account to send a test." };
+  }
+  if (flash.error === "marketing_test_failed") {
+    return { tone: "err" as const, text: "Test email could not be sent. Check email office settings." };
+  }
   return null;
 }
 
@@ -127,6 +143,7 @@ function statusLabel(status: string) {
     FAILED: "Failed",
     SENDING: "Sending",
     DRAFT: "Draft",
+    scheduled: "Scheduled",
     sent: "Sent",
     failed: "Failed",
   };
@@ -142,6 +159,8 @@ function audienceLabel(type: string) {
     role_enterprise: "Enterprise",
     newsletter: "Newsletter",
     manual: "Custom emails",
+    low_credits: "Low credits",
+    new_members: "New members",
   };
   return map[type] ?? type;
 }
@@ -212,14 +231,21 @@ function CampaignsTable({
                   </td>
                 ) : null}
                 <td className="px-3 py-3">
-                  <span
-                    className={cn(
-                      "inline-flex h-5 items-center rounded-full px-2 text-[11px] font-semibold",
-                      statusBadge(campaign.status),
-                    )}
-                  >
-                    {statusLabel(campaign.status)}
-                  </span>
+                  {(() => {
+                    const scheduled =
+                      campaign.status === "DRAFT" && campaign.scheduledAt;
+                    const status = scheduled ? "scheduled" : campaign.status;
+                    return (
+                      <span
+                        className={cn(
+                          "inline-flex h-5 items-center rounded-full px-2 text-[11px] font-semibold",
+                          statusBadge(status === "scheduled" ? "SENDING" : campaign.status),
+                        )}
+                      >
+                        {statusLabel(status)}
+                      </span>
+                    );
+                  })()}
                 </td>
                 <td className="px-3 py-3">
                   <p className="tabular-nums font-medium">{campaign.sentCount} sent</p>
@@ -229,10 +255,15 @@ function CampaignsTable({
                       campaign.failedCount > 0 ? "text-destructive" : "text-muted-foreground",
                     )}
                   >
-                    {campaign.failedCount} failed
-                    {campaign.recipientCount > 0
-                      ? ` · ${campaign.recipientCount} total`
-                      : ""}
+                    {campaign.openRate != null
+                      ? `${campaign.openRate}% open · ${campaign.clickRate ?? 0}% click`
+                      : campaign.scheduledAt && campaign.status === "DRAFT"
+                        ? `Sends ${format(new Date(campaign.scheduledAt), "MMM d, h:mm a")}`
+                        : `${campaign.failedCount} failed${
+                            campaign.recipientCount > 0
+                              ? ` · ${campaign.recipientCount} total`
+                              : ""
+                          }`}
                   </p>
                 </td>
                 {showSender ? (
@@ -468,6 +499,8 @@ function ComposePanel({
                 ["role_reseller", "Resellers"],
                 ["role_enterprise", "Enterprise"],
                 ["newsletter", "Newsletter list"],
+                ["low_credits", "Low SMS credits"],
+                ["new_members", "New members (14 days)"],
                 ["manual", "Manual emails"],
               ] as const
             ).map(([value, label]) => (
@@ -525,13 +558,42 @@ function ComposePanel({
           {audienceType !== "inactive" && (
             <input type="hidden" name="inactiveDays" value={String(data.inactiveDaysDefault)} />
           )}
+          {audienceType === "low_credits" && (
+            <p className="text-xs text-muted-foreground">
+              Members with 5 or fewer SMS credits, including those who have not topped up.
+            </p>
+          )}
+          {audienceType === "new_members" && (
+            <p className="text-xs text-muted-foreground">
+              Accounts created in the last 14 days.
+            </p>
+          )}
           <p className="text-xs text-muted-foreground">{audienceHint}</p>
         </div>
 
-        <Button type="submit" className="w-full sm:w-auto">
-          <Send className="h-4 w-4" />
-          Send campaign
-        </Button>
+        <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-primary" />
+            <p className="text-sm font-semibold">Send options</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="scheduledAt">Schedule (optional)</Label>
+            <Input id="scheduledAt" name="scheduledAt" type="datetime-local" />
+            <p className="text-[11px] text-muted-foreground">
+              Leave empty to send now. Scheduled campaigns use a live audience at send time.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit">
+            <Send className="h-4 w-4" />
+            Send campaign
+          </Button>
+          <Button type="submit" formAction={adminTestEmailMarketingAction} variant="outline">
+            Send test to me
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -829,6 +891,16 @@ export function AdminEmailMarketingView({
               }
               hint="Based on recorded deliveries"
             />
+            <AdminStatCard
+              label="Unique opens"
+              value={data.stats.uniqueOpens}
+              icon={Eye}
+            />
+            <AdminStatCard
+              label="Unique clicks"
+              value={data.stats.uniqueClicks}
+              icon={MousePointerClick}
+            />
           </div>
 
           <AdminCard title="Sends (14 days)">
@@ -845,6 +917,8 @@ export function AdminEmailMarketingView({
                   ["Resellers", data.audienceCounts.role_reseller],
                   ["Enterprise", data.audienceCounts.role_enterprise],
                   ["Newsletter", data.audienceCounts.newsletter],
+                  ["Low credits", data.audienceCounts.low_credits],
+                  ["New members", data.audienceCounts.new_members],
                 ] as const
               ).map(([label, value]) => (
                 <div
@@ -933,7 +1007,11 @@ export function AdminEmailMarketingView({
           {data.selectedCampaign && (
             <AdminCard
               title="Deliveries"
-              description={data.selectedCampaign.subject}
+              description={`${data.selectedCampaign.subject}${
+                data.selectedCampaign.openRate != null
+                  ? ` · ${data.selectedCampaign.openRate}% open · ${data.selectedCampaign.clickRate ?? 0}% click · ${data.selectedCampaign.unsubscribeCount} unsub`
+                  : ""
+              }`}
             >
               {data.selectedCampaign.deliveries.length === 0 ? (
                 <AdminEmpty dense>No delivery rows for this campaign.</AdminEmpty>

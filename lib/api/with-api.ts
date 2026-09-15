@@ -5,6 +5,11 @@ import { logApiRequest } from "@/lib/api/log";
 import { apiError } from "@/lib/api/errors";
 import { hasPermission, type ApiPermission } from "@/lib/api/permissions";
 import type { ApiContext } from "@/lib/api/context";
+import {
+  featureDisabledMessage,
+  isFeatureEnabled,
+  type PlatformFeatureId,
+} from "@/lib/platform/features";
 
 type ApiHandler = (request: Request, ctx: ApiContext) => Promise<NextResponse>;
 
@@ -12,6 +17,7 @@ export function withApi(
   handler: ApiHandler,
   path: string,
   permission?: ApiPermission,
+  options?: { feature?: PlatformFeatureId },
 ) {
   return async (request: Request) => {
     const start = Date.now();
@@ -56,6 +62,21 @@ export function withApi(
         errorCode: "FORBIDDEN",
       });
       return apiError("FORBIDDEN", `Missing permission: ${permission}`, 403);
+    }
+
+    if (options?.feature && !(await isFeatureEnabled(options.feature))) {
+      await logApiRequest({
+        userId: ctx.user.id,
+        apiKeyId: ctx.apiKeyId,
+        method: request.method,
+        path,
+        statusCode: 403,
+        durationMs: Date.now() - start,
+        ip,
+        requestBytes,
+        errorCode: "FORBIDDEN",
+      });
+      return apiError("FORBIDDEN", featureDisabledMessage(options.feature), 403);
     }
 
     const limit = await checkRateLimit(ctx.apiKeyId, ctx.rateLimitPerMinute);

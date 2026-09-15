@@ -11,6 +11,7 @@ import type { SaveBuilderPayload, BuilderField } from "@/lib/smart-forms/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 const fieldSchema = z.object({
   id: z.string(),
@@ -101,6 +102,9 @@ async function requireOwnedForm(userId: string, formId: string) {
 export async function createSmartFormAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (!(await isFeatureEnabled("smart_forms_builder"))) {
+    redirect("/dashboard/forms?error=feature");
+  }
 
   const canCreate = await assertCanCreateSmartForm(session.userId, session.role as import("@/lib/generated/prisma/client").UserRole);
   if (!canCreate.ok) redirect(`/dashboard/forms/create?error=limit`);
@@ -150,6 +154,9 @@ export async function createSmartFormAction(formData: FormData) {
 export async function createSmartFormFromTemplateAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (!(await isFeatureEnabled("smart_forms_templates"))) {
+    redirect("/dashboard/forms?error=feature");
+  }
 
   const canCreate = await assertCanCreateSmartForm(session.userId, session.role as import("@/lib/generated/prisma/client").UserRole);
   if (!canCreate.ok) redirect("/dashboard/forms/templates?error=limit");
@@ -290,6 +297,9 @@ export async function saveSmartFormBuilderAction(
 ): Promise<{ ok: true; fields: BuilderField[] } | { ok: false; error: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Not signed in." };
+  if (!(await isFeatureEnabled("smart_forms_builder"))) {
+    return { ok: false, error: "Form builder is turned off right now." };
+  }
 
   let payload: SaveBuilderPayload;
   try {

@@ -48,7 +48,7 @@ export function ApiDocsHero({ baseUrl }: ApiDocsHeroProps) {
                 Get API keys
               </Link>
               <Link
-                href="/developers/generate"
+                href="/vibe-coders"
                 className={cn(buttonVariants({ size: "lg", variant: "outline" }), "gap-2")}
               >
                 <FileCode2 className="h-4 w-4" />
@@ -64,8 +64,10 @@ export function ApiDocsHero({ baseUrl }: ApiDocsHeroProps) {
                 OpenAPI
               </Link>
               <Link
-                href="/developers/postman"
+                href="/postman/splitsms.collection.json"
                 className={cn(buttonVariants({ size: "lg", variant: "outline" }), "gap-2")}
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 <Braces className="h-4 w-4 text-[#FF6C37]" />
                 Postman collection

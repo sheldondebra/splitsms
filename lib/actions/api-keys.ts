@@ -13,6 +13,7 @@ import {
 import { RATE_LIMIT_TIERS } from "@/lib/api/rate-limit";
 import { normalizeApiKeyBaseLabel, retiredApiKeyLabel } from "@/lib/api/key-labels";
 import { setApiKeyFlash, clearApiKeyFlash } from "@/lib/auth/api-key-flash";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 function hashKey(raw: string) {
   return createHash("sha256").update(raw).digest("hex");
@@ -21,6 +22,7 @@ function hashKey(raw: string) {
 export async function createApiKeyAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (!(await isFeatureEnabled("api_keys"))) redirect("/dashboard");
 
   const label = String(formData.get("label") ?? "Default").trim();
   const mode = String(formData.get("mode") ?? "live");

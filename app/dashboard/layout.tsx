@@ -15,6 +15,7 @@ import { userNeedsProfileCompletion } from "@/lib/auth/phone-auth";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
+import { loadPlatformFeatureFlags } from "@/lib/platform/features";
 import type { Metadata, Viewport } from "next";
 
 export const viewport: Viewport = {
@@ -49,7 +50,7 @@ export default async function DashboardLayout({
   const memberTenant =
     hostTenant ?? (await resolveTenantForMemberUser(session.userId));
 
-  const [user, balance, { notifications, unreadCount }, reseller] = await Promise.all([
+  const [user, balance, { notifications, unreadCount }, reseller, featureFlags] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.userId },
       select: { fullName: true, email: true, phone: true },
@@ -57,6 +58,7 @@ export default async function DashboardLayout({
     getBalanceSnapshot(session.userId),
     getNotificationsSummary(session.userId, 15),
     getResellerByUserId(session.userId),
+    loadPlatformFeatureFlags(),
   ]);
 
   after(async () => {
@@ -90,6 +92,7 @@ export default async function DashboardLayout({
         balance={balance}
         tenant={memberTenant}
         showResellerPortal={showResellerPortal}
+        featureFlags={featureFlags}
       >
         {children}
       </MemberAppShell>

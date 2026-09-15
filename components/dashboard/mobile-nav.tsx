@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FileText, Home, LayoutGrid, Send, Wallet, type LucideIcon } from "lucide-react";
 import { isNavActive } from "@/lib/navigation/dashboard-nav";
+import { useFeatureEnabled } from "@/components/platform/platform-features-context";
 import { cn } from "@/lib/utils";
 
 type MobileNavProps = {
@@ -12,18 +13,32 @@ type MobileNavProps = {
   menuOpen?: boolean;
 };
 
-const TABS: { href: string; label: string; icon: LucideIcon; action?: boolean }[] = [
+const TABS: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  action?: boolean;
+  feature?: "sms" | "smart_forms";
+}[] = [
   { href: "/dashboard", label: "Home", icon: Home },
-  { href: "/dashboard/forms", label: "Forms", icon: FileText },
-  { href: "/dashboard/send", label: "Send", icon: Send, action: true },
+  { href: "/dashboard/forms", label: "Forms", icon: FileText, feature: "smart_forms" },
+  { href: "/dashboard/send", label: "Send", icon: Send, action: true, feature: "sms" },
   { href: "/dashboard/wallet", label: "Wallet", icon: Wallet },
 ];
 
 export function MobileNav({ onMenuOpen, onTabNavigate, menuOpen = false }: MobileNavProps) {
   const pathname = usePathname();
+  const smsOn = useFeatureEnabled("sms");
+  const formsOn = useFeatureEnabled("smart_forms");
+  const tabs = TABS.filter((tab) => {
+    if (tab.feature === "sms") return smsOn;
+    if (tab.feature === "smart_forms") return formsOn;
+    return true;
+  });
   const moreActive =
     menuOpen ||
-    !TABS.some((tab) => isNavActive(pathname, tab.href));
+    !tabs.some((tab) => isNavActive(pathname, tab.href));
+  const cols = tabs.length + 1;
 
   return (
     <nav
@@ -31,8 +46,11 @@ export function MobileNav({ onMenuOpen, onTabNavigate, menuOpen = false }: Mobil
       style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))" }}
     >
       <div className="pointer-events-auto mx-3">
-        <div className="grid h-[3.75rem] grid-cols-5 items-stretch overflow-visible rounded-[1.35rem] border border-border/50 bg-background/85 px-0.5 shadow-[0_12px_40px_-16px_rgba(0,0,0,0.32)] ring-1 ring-black/[0.04] backdrop-blur-2xl dark:ring-white/[0.06]">
-          {TABS.map((tab) => {
+        <div
+          className="grid h-[3.75rem] items-stretch overflow-visible rounded-[1.35rem] border border-border/50 bg-background/85 px-0.5 shadow-[0_12px_40px_-16px_rgba(0,0,0,0.32)] ring-1 ring-black/[0.04] backdrop-blur-2xl dark:ring-white/[0.06]"
+          style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        >
+          {tabs.map((tab) => {
             const active = !menuOpen && isNavActive(pathname, tab.href);
             const Icon = tab.icon;
 

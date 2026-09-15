@@ -102,7 +102,7 @@ export const QUICK_TOPICS: { id: string; label: string; draft: string }[] = [
 ];
 
 export const HELP_LINKS = [
-  { href: "/developers/docs", label: "API documentation" },
+  { href: "/docs", label: "API documentation" },
   { href: "/dashboard/sender-ids", label: "Sender IDs" },
   { href: "/dashboard/wallet", label: "Wallet & top-up" },
   { href: "/dashboard/reports", label: "Delivery reports" },

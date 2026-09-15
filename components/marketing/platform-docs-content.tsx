@@ -59,7 +59,7 @@ export function PlatformDocsContent() {
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/developers/docs"
+              href="/docs"
               className={cn(buttonVariants({ size: "lg", variant: "outline" }), "gap-2")}
             >
               <FileText className="h-4 w-4" />

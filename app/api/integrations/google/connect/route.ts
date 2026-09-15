@@ -16,6 +16,7 @@ import {
   safeConnectReturnTo,
   signConnectState,
 } from "@/lib/google/oauth-connect";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 export async function GET(request: NextRequest) {
   const origin = resolveGoogleOAuthOrigin(request);
@@ -25,6 +26,12 @@ export async function GET(request: NextRequest) {
     const login = new URL("/login", origin);
     login.searchParams.set("returnTo", returnTo);
     return NextResponse.redirect(login);
+  }
+
+  if (!(await isFeatureEnabled("google"))) {
+    return NextResponse.redirect(
+      googleConnectResultUrl(origin, returnTo, { error: "google_config" }),
+    );
   }
 
   const credentials = getGoogleClientCredentials();

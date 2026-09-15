@@ -35,8 +35,8 @@ import { wordpressIntegrationFeatureGroups } from "@/lib/marketing/wordpress-int
 
 const startSteps = [
   {
-    title: "Create account",
-    desc: "Sign up free — 5 SMS credits included.",
+    title: "Get 5 free SMS",
+    desc: "Sign up free — 5 SMS credits included. No card required.",
     icon: UserPlus,
   },
   {
@@ -227,7 +227,7 @@ export function HomePageContent() {
                 href="/signup"
                 className={cn(buttonVariants({ size: "lg" }), marketingCtaClass, "font-semibold pl-5 pr-1.5")}
               >
-                Create account
+                Start free — 5 SMS credits
                 <MarketingCtaArrow />
               </Link>
               <Link
@@ -460,7 +460,7 @@ export function HomePageContent() {
               href="/signup"
               className={cn(buttonVariants({ size: "lg" }), marketingCtaClass, "font-semibold pl-5 pr-1.5")}
             >
-              Get started free
+              Start free — 5 SMS credits
               <MarketingCtaArrow />
             </Link>
             <Link
@@ -520,7 +520,7 @@ export function HomePageContent() {
               href="/signup"
               className={cn(buttonVariants({ size: "lg" }), marketingCtaClass, "font-semibold pl-5 pr-1.5")}
             >
-              Start step 1 — Create account
+              Start free — 5 SMS credits
               <MarketingCtaArrow />
             </Link>
             <Link
@@ -759,7 +759,7 @@ export function HomePageContent() {
                     <MarketingCtaArrow size="sm" />
                   </Link>
                   <Link
-                    href="/developers"
+                    href="/docs"
                     className={cn(
                       buttonVariants({ size: "sm", variant: "outline" }),
                       marketingCtaClass,
@@ -830,7 +830,7 @@ export function HomePageContent() {
                   <MarketingCtaArrow />
                 </Link>
                 <Link
-                  href="/developers"
+                  href="/docs"
                   className={cn(
                     buttonVariants({ size: "lg", variant: "outline" }),
                     marketingCtaClass,
@@ -841,12 +841,14 @@ export function HomePageContent() {
                   <MarketingCtaArrow />
                 </Link>
                 <Link
-                  href="/developers/postman"
+                  href="/postman/splitsms.collection.json"
                   className={cn(
                     buttonVariants({ size: "lg", variant: "ghost" }),
                     marketingCtaClass,
                     "pl-5 pr-1.5 text-muted-foreground",
                   )}
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   Postman
                   <MarketingCtaArrow />
@@ -948,7 +950,7 @@ export function HomePageContent() {
                 "font-semibold pl-6 pr-1.5",
               )}
             >
-              Sign up
+              Start free — 5 SMS credits
               <MarketingCtaArrow />
             </Link>
             <Link

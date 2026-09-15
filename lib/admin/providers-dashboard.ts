@@ -2,8 +2,10 @@ import { prisma } from "@/lib/db";
 import { getMnotifyStatus } from "@/lib/mnotify";
 import { loadMnotifySettings, maskApiKey } from "@/lib/mnotify-settings";
 import {
+  isEasySendSmsConfigured,
   isInfobipConfigured,
   isTwilioConfigured,
+  loadEasySendSmsSettings,
   loadInfobipSettings,
   loadTwilioSettings,
   maskProviderSecret,
@@ -24,6 +26,7 @@ const PROVIDER_META: Record<
   MNOTIFY: { label: "mNotify", color: "text-emerald-600", chartFill: "#10b981" },
   TWILIO: { label: "Twilio", color: "text-sky-600", chartFill: "#0ea5e9" },
   INFOBIP: { label: "Infobip", color: "text-orange-600", chartFill: "#f97316" },
+  EASYSENDSMS: { label: "EasySendSMS", color: "text-violet-600", chartFill: "#8b5cf6" },
 };
 
 export type ProviderUsageSlice = {
@@ -41,6 +44,7 @@ export async function getProvidersAdminDashboard() {
     settings,
     twilioSettings,
     infobipSettings,
+    easySendSmsSettings,
     status,
     lastTest,
     providerBalances,
@@ -50,6 +54,7 @@ export async function getProvidersAdminDashboard() {
     loadMnotifySettings(),
     loadTwilioSettings(),
     loadInfobipSettings(),
+    loadEasySendSmsSettings(),
     getMnotifyStatus(),
     prisma.platformSetting.findUnique({ where: { key: "mnotify_last_test" } }),
     fetchAllSmsProviderBalances(),
@@ -94,8 +99,9 @@ export async function getProvidersAdminDashboard() {
 
   const twilioOk = isTwilioConfigured(twilioSettings);
   const infobipOk = isInfobipConfigured(infobipSettings);
+  const easySendSmsOk = isEasySendSmsConfigured(easySendSmsSettings);
 
-  const summaries = (["MNOTIFY", "TWILIO", "INFOBIP"] as const).map((type) => {
+  const summaries = (["MNOTIFY", "TWILIO", "INFOBIP", "EASYSENDSMS"] as const).map((type) => {
     const meta = PROVIDER_META[type];
     const balance = providerBalances.find((b) => b.type === type);
     const configured =
@@ -103,7 +109,9 @@ export async function getProvidersAdminDashboard() {
         ? status.configured
         : type === "TWILIO"
           ? twilioOk
-          : infobipOk;
+          : type === "INFOBIP"
+            ? infobipOk
+            : easySendSmsOk;
     return {
       type,
       label: meta.label,
@@ -137,6 +145,11 @@ export async function getProvidersAdminDashboard() {
       settings: infobipSettings,
       maskedApiKey: maskProviderSecret(infobipSettings.apiKey),
       configured: infobipOk,
+    },
+    easysendsms: {
+      settings: easySendSmsSettings,
+      maskedApiKey: maskProviderSecret(easySendSmsSettings.apiKey),
+      configured: easySendSmsOk,
     },
     providerBalances,
   };

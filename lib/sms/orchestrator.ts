@@ -7,6 +7,7 @@ import {
 } from "@/lib/sms/routing-policy";
 import { writeSmsRoutingLog, type RoutingAttempt } from "@/lib/sms/routing-log";
 import { SmsProviderType } from "@/lib/generated/prisma/client";
+import { easySendSmsAdapter } from "./providers/easysendsms";
 import { infobipAdapter } from "./providers/infobip";
 import { mnotifyAdapter } from "./providers/mnotify";
 import { twilioAdapter } from "./providers/twilio";
@@ -16,6 +17,7 @@ const adapters: Record<SmsProviderType, SmsProviderAdapter> = {
   MNOTIFY: mnotifyAdapter,
   TWILIO: twilioAdapter,
   INFOBIP: infobipAdapter,
+  EASYSENDSMS: easySendSmsAdapter,
 };
 
 export type SendSmsOptions = {

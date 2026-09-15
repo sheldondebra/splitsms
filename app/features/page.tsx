@@ -4,7 +4,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { FeaturesPageContent } from "@/components/marketing/features-page-content";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { featuresPageMetadata } from "@/lib/seo/marketing-metadata";
-import { breadcrumbJsonLd, siteUrl, webPageJsonLd } from "@/lib/seo/site";
+import { breadcrumbJsonLd, softwareApplicationJsonLd, webPageJsonLd } from "@/lib/seo/site";
 
 export const metadata: Metadata = featuresPageMetadata;
 
@@ -19,32 +19,7 @@ const featuresJsonLd = [
     { name: "Home", path: "/" },
     { name: "Features", path: "/features" },
   ]),
-  {
-    "@type": "SoftwareApplication",
-    name: "SplitSMS",
-    applicationCategory: "BusinessApplication",
-    operatingSystem: "Web",
-    url: `${siteUrl}/features`,
-    offers: {
-      "@type": "Offer",
-      price: "0.029",
-      priceCurrency: "GHS",
-      description: "Per SMS from, country-dependent rates",
-    },
-    featureList: [
-      "Bulk SMS campaigns",
-      "Contact CSV import and groups",
-      "Google Contacts, Sheets, and Forms SMS",
-      "SMS OTP send and verify API",
-      "Delivery webhooks",
-      "REST API and Postman collection",
-      "WordPress and WooCommerce plugin",
-      "Sender ID registration",
-      "Real-time delivery reports",
-      "Paystack wallet top-up",
-      "Multi-carrier routing with failover",
-    ],
-  },
+  softwareApplicationJsonLd("/features"),
   {
     "@type": "FAQPage",
     mainEntity: [

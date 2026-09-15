@@ -6,12 +6,14 @@ import type { AutomationTrigger } from "@/lib/generated/prisma/client";
 import { CLIENT_AUTOMATION_TRIGGERS } from "@/lib/automation/catalog";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 const VALID_TRIGGERS = new Set(CLIENT_AUTOMATION_TRIGGERS.map((t) => t.value));
 
 async function requireUserId() {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (!(await isFeatureEnabled("automation"))) redirect("/dashboard");
   return session.userId;
 }
 

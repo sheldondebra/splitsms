@@ -6,12 +6,14 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { SAMPLE_SMS_TEMPLATES } from "@/lib/sms/template-samples";
 import { seedSampleTemplatesForUser } from "@/lib/sms/seed-templates";
+import { isFeatureEnabled } from "@/lib/platform/features";
 
 export { seedSampleTemplatesForUser };
 
 async function requireUserId() {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (!(await isFeatureEnabled("templates"))) redirect("/dashboard");
   return session.userId;
 }
 

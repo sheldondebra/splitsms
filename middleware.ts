@@ -8,6 +8,8 @@ import {
 import { verifyImpersonationToken } from "@/lib/auth/impersonation";
 import { isPlatformHost, normalizeHost } from "@/lib/reseller/tenant-host";
 import { shouldBlockAuthBot } from "@/lib/auth/bot-guard";
+import { publicDeveloperFallback } from "@/lib/navigation/public-developer-links";
+import { getSiteUrl } from "@/lib/site-config";
 
 const COOKIE_NAME = "splitsms_session";
 const RESET_COOKIE = "splitsms_reset";
@@ -58,22 +60,24 @@ function externalResellerPortal(session: { userId: string; role: string }, tenan
   if (!tenant || session.role !== "RESELLER" || session.userId !== tenant.ownerUserId) {
     return null;
   }
-  const base = process.env.NEXT_PUBLIC_APP_URL;
-  if (!base) return null;
   try {
-    return new URL("/reseller", base).toString();
+    return new URL("/reseller", getSiteUrl()).toString();
   } catch {
     return null;
   }
+}
+
+function passthrough(request: NextRequest, extraHeaders?: Headers) {
+  const requestHeaders = extraHeaders ?? new Headers(request.headers);
+  requestHeaders.set("x-splitsms-pathname", request.nextUrl.pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname === "/go" || pathname.startsWith("/go/")) {
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-splitsms-pathname", pathname);
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    return passthrough(request);
   }
 
   if (
@@ -121,6 +125,10 @@ export async function middleware(request: NextRequest) {
   }
 
   if ((isMember || isReseller || isEnterprise || isAdmin) && !session) {
+    const publicDev = publicDeveloperFallback(pathname);
+    if (publicDev) {
+      return NextResponse.redirect(new URL(publicDev, request.url));
+    }
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -155,10 +163,9 @@ export async function middleware(request: NextRequest) {
   }
   if (isCompleteProfile && session) {
     if (tenant) {
-      const requestHeaders = attachTenantHeaders(request, tenant);
-      return NextResponse.next({ request: { headers: requestHeaders } });
+      return passthrough(request, attachTenantHeaders(request, tenant));
     }
-    return NextResponse.next();
+    return passthrough(request);
   }
 
   const isCompletePhone = pathname.startsWith("/complete-phone");
@@ -167,10 +174,9 @@ export async function middleware(request: NextRequest) {
   }
   if (isCompletePhone) {
     if (tenant) {
-      const requestHeaders = attachTenantHeaders(request, tenant);
-      return NextResponse.next({ request: { headers: requestHeaders } });
+      return passthrough(request, attachTenantHeaders(request, tenant));
     }
-    return NextResponse.next();
+    return passthrough(request);
   }
 
   if (isAuth && session) {
@@ -193,11 +199,10 @@ export async function middleware(request: NextRequest) {
   }
 
   if (tenant) {
-    const requestHeaders = attachTenantHeaders(request, tenant);
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    return passthrough(request, attachTenantHeaders(request, tenant));
   }
 
-  return NextResponse.next();
+  return passthrough(request);
 }
 
 export const config = {

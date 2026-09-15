@@ -19,7 +19,7 @@ export type CountryProviderInfo = {
 function fallbackOrder(countryCode: string): SmsProviderType[] {
   const staticCountry = getCountryByCode(countryCode);
   const primary = staticCountry?.defaultProvider ?? "INFOBIP";
-  const all: SmsProviderType[] = ["MNOTIFY", "TWILIO", "INFOBIP"];
+  const all: SmsProviderType[] = ["MNOTIFY", "EASYSENDSMS", "TWILIO", "INFOBIP"];
   return [primary, ...all.filter((p) => p !== primary)];
 }
 

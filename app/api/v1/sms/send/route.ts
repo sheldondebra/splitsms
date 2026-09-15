@@ -35,4 +35,5 @@ export const POST = withApi(
   },
   "/api/v1/sms/send",
   "sms.send",
+  { feature: "sms" },
 );

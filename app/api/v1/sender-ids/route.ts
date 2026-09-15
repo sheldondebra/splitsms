@@ -54,4 +54,5 @@ export const POST = withApi(
   },
   "/api/v1/sender-ids",
   "sender_ids.write",
+  { feature: "sender_id_registration" },
 );

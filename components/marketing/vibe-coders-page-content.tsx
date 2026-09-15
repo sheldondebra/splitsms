@@ -34,7 +34,7 @@ const features = [
     title: "Code generator",
     description:
       "Pick Next.js, Express, SDK, or cURL — copy .env and starter files in one click. No boilerplate hunting.",
-    href: "/developers/generate",
+    href: "/vibe-coders",
     cta: "Generate code",
   },
   {
@@ -42,7 +42,7 @@ const features = [
     title: "AI prompt library",
     description:
       "Ready-made prompts for OTP login, webhooks, WooCommerce, Connect, and debugging — paste into your AI editor.",
-    href: "/developers/prompts",
+    href: "/vibe-coders",
     cta: "Browse prompts",
   },
   {
@@ -282,8 +282,8 @@ export function VibeCodersPageContent() {
               <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Copy-paste examples</h2>
               <p className="mt-3 text-muted-foreground leading-relaxed">
                 Drop these into your repo or AI chat. Sign in for more stacks in the{" "}
-                <Link href="/developers/generate" className="text-primary hover:underline">
-                  code generator
+                <Link href="/signup" className="text-primary hover:underline">
+                  dashboard
                 </Link>
                 .
               </p>
@@ -295,7 +295,7 @@ export function VibeCodersPageContent() {
                   {samplePrompt}
                 </pre>
                 <Link
-                  href="/developers/prompts"
+                  href="/signup"
                   className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
                 >
                   10+ more prompts →

@@ -17,9 +17,32 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DollarSign, ArrowRight } from "lucide-react";
 import { pricingPageMetadata } from "@/lib/seo/marketing-metadata";
-import { breadcrumbJsonLd, pricingPageJsonLd } from "@/lib/seo/site";
+import { breadcrumbJsonLd, faqPageJsonLd, pricingPageJsonLd } from "@/lib/seo/site";
 
 export const metadata: Metadata = pricingPageMetadata;
+
+const pricingFaqs = [
+  {
+    question: "How much does bulk SMS cost on SplitSMS?",
+    answer:
+      "Rates are per SMS segment by destination country. Ghana starts around GHS 0.029. Pay as you go — no monthly minimum.",
+  },
+  {
+    question: "Do I get free credits to try SplitSMS?",
+    answer:
+      "Yes. New accounts start with 5 SMS credits so you can send a test before topping up your wallet.",
+  },
+  {
+    question: "Is there a contract or monthly fee?",
+    answer:
+      "No. SplitSMS is pay-as-you-go. Top up when you need to send; unused wallet credit stays on the account.",
+  },
+  {
+    question: "Can I send SMS in Ghana, Nigeria, and other countries?",
+    answer:
+      "Yes. SplitSMS covers 190+ countries with dashboard, REST API, OTP, and WordPress sending on the same wallet.",
+  },
+];
 
 export default async function PricingPage({
   searchParams,
@@ -43,6 +66,7 @@ export default async function PricingPage({
       <JsonLdScript
         data={[
           pricingPageJsonLd(),
+          faqPageJsonLd(pricingFaqs),
           breadcrumbJsonLd([
             { name: "Home", path: "/" },
             { name: "Pricing", path: "/pricing" },
@@ -117,6 +141,22 @@ export default async function PricingPage({
               See all features
             </Link>
           </div>
+
+          <section className="mt-14 max-w-2xl mx-auto" aria-labelledby="pricing-faq">
+            <h2 id="pricing-faq" className="text-xl font-bold tracking-tight text-center">
+              Pricing questions
+            </h2>
+            <div className="mt-6 divide-y divide-border/70 rounded-2xl border border-border/70 bg-card">
+              {pricingFaqs.map((faq) => (
+                <details key={faq.question} className="group px-5 py-4">
+                  <summary className="cursor-pointer list-none font-medium text-sm sm:text-base">
+                    {faq.question}
+                  </summary>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{faq.answer}</p>
+                </details>
+              ))}
+            </div>
+          </section>
         </section>
       </main>
       <SiteFooter />

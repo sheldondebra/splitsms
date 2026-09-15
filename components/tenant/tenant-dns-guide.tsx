@@ -1,13 +1,24 @@
-import { normalizeHost } from "@/lib/reseller/tenant-host";
+import { PLATFORM_DNS_TARGET_HOST, normalizeHost } from "@/lib/reseller/tenant-host";
 
 function platformHostname() {
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL;
-  if (!fromEnv) return "app.splitsms.com";
-  try {
-    return normalizeHost(new URL(fromEnv).hostname);
-  } catch {
-    return "app.splitsms.com";
+  if (fromEnv) {
+    try {
+      const host = new URL(fromEnv).hostname.toLowerCase();
+      if (
+        host &&
+        !host.endsWith(".run.app") &&
+        !host.endsWith(".vercel.app") &&
+        host !== "localhost" &&
+        host !== "127.0.0.1"
+      ) {
+        return host.startsWith("www.") ? host : `www.${normalizeHost(host)}`;
+      }
+    } catch {
+      /* ignore */
+    }
   }
+  return PLATFORM_DNS_TARGET_HOST;
 }
 
 export function TenantDnsGuide({
