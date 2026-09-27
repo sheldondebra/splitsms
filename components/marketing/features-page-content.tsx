@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Cloud,
   LayoutTemplate,
+  Bell,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,11 @@ const sellingPoints = [
     desc: "Top up with Paystack, buy SMS credits, and see every charge. No surprise invoices or annual contracts.",
   },
   {
+    icon: Bell,
+    title: "SMS Reminders that collect",
+    desc: "Early SMS before the due date, due-date SMS on the day, monthly schedules — payments, appointments, birthdays. Stop calling the list by hand.",
+  },
+  {
     icon: LayoutTemplate,
     title: "Smart Forms + SMS automation",
     desc: "Build branded forms with short links and QR codes, save leads to contacts, and send instant SMS confirmations to respondents and admins.",
@@ -52,12 +58,19 @@ const sellingPoints = [
   },
 ];
 
-const coreFeatures = [
+const coreFeatures: {
+  icon: typeof Send;
+  title: string;
+  desc: string;
+  tags: string[];
+  href?: string;
+}[] = [
   {
     icon: Send,
     title: "Bulk SMS campaigns",
     desc: "Send thousands of personalized messages from contacts, CSV imports, or groups. Track delivery in real time.",
     tags: ["Personalization", "Scheduling", "Reports"],
+    href: "/products/bulk-sms",
   },
   {
     icon: FileSpreadsheet,
@@ -70,6 +83,7 @@ const coreFeatures = [
     title: "Google Workspace",
     desc: "Connect Google for Contacts import (select one or all), Sheets/Excel → SMS, Google Forms → SMS, and Smart Forms export to Sheets.",
     tags: ["Drive", "Forms", "Sheets"],
+    href: "/google",
   },
   {
     icon: BadgeCheck,
@@ -82,6 +96,7 @@ const coreFeatures = [
     title: "OTP & verification",
     desc: "Send and verify one-time passwords via API — perfect for login, checkout, and account security.",
     tags: ["Sandbox testing", "Fast delivery"],
+    href: "/solutions/otp",
   },
   {
     icon: Webhook,
@@ -96,6 +111,13 @@ const coreFeatures = [
     tags: ["Export", "Retry failed"],
   },
   {
+    icon: Bell,
+    title: "SMS Reminders",
+    desc: "Payment, birthday, meeting, and holiday reminders — early SMS before the due date, due-date SMS on the day, monthly schedules included.",
+    tags: ["Early + due", "Monthly", "Groups"],
+    href: "/products/reminder-sms",
+  },
+  {
     icon: Clock,
     title: "Schedule & automation",
     desc: "Schedule campaigns ahead of time, pause or resume sends, and starter automation workflows.",
@@ -106,6 +128,7 @@ const coreFeatures = [
     title: "WordPress & WooCommerce",
     desc: `Official plugin v${wordpressPlugin.version}: WooCommerce, CF7, WPForms, Elementor Pro, JetFormBuilder action, and Crocoblock.`,
     tags: ["E-commerce", "No code", "Auto-updates"],
+    href: "/solutions/woocommerce-sms",
   },
   {
     icon: Shield,
@@ -126,7 +149,7 @@ const useCases = [
   },
   {
     title: "Healthcare & clinics",
-    desc: "Appointment reminders, lab results ready, and vaccination campaigns — HIPAA-minded teams love SMS open rates.",
+    desc: "Appointment reminders with early + due-date SMS, lab-ready alerts, and vaccination campaigns — open rates that email cannot match.",
   },
   {
     title: "Events & NGOs",
@@ -196,8 +219,8 @@ export function FeaturesPageContent() {
           </h1>
           <p className="mt-5 text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed">
             SplitSMS is the modern bulk SMS platform for marketers, developers, and growing
-            businesses worldwide. Send campaigns, verify users with OTP, automate
-            WooCommerce notifications, and track every delivery — from one affordable dashboard.
+            businesses worldwide. Send campaigns, automate payment and appointment reminders,
+            verify users with OTP, and track every delivery — from one affordable dashboard.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row flex-wrap gap-3">
             <Link
@@ -272,26 +295,42 @@ export function FeaturesPageContent() {
             </p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {coreFeatures.map(({ icon: Icon, title, desc, tags }) => (
-              <article
-                key={title}
-                className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm flex flex-col"
-              >
-                <Icon className="h-9 w-9 text-primary" aria-hidden />
-                <h3 className="mt-4 text-base font-semibold">{title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed flex-1">{desc}</p>
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  {tags.map((t) => (
-                    <span
-                      key={t}
-                      className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-                    >
-                      {t}
+            {coreFeatures.map(({ icon: Icon, title, desc, tags, href }) => {
+              const inner = (
+                <>
+                  <Icon className="h-9 w-9 text-primary" aria-hidden />
+                  <h3 className="mt-4 text-base font-semibold">{title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed flex-1">{desc}</p>
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {tags.map((t) => (
+                      <span
+                        key={t}
+                        className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                  {href ? (
+                    <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
+                      Learn more
+                      <ArrowRight className="h-3.5 w-3.5" aria-hidden />
                     </span>
-                  ))}
-                </div>
-              </article>
-            ))}
+                  ) : null}
+                </>
+              );
+              const className =
+                "rounded-2xl border border-border/60 bg-card p-6 shadow-sm flex flex-col transition-colors hover:border-primary/30";
+              return href ? (
+                <Link key={title} href={href} className={className}>
+                  {inner}
+                </Link>
+              ) : (
+                <article key={title} className={className}>
+                  {inner}
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>

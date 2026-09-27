@@ -4,8 +4,20 @@ import {
   loadMnotifyBalanceCache,
 } from "@/lib/mnotify/balance";
 import type { SmsProviderType } from "@/lib/generated/prisma/client";
+import { loadProviderBalanceHistory } from "@/lib/sms/provider-balance-history";
+import { loadMnotifySettings } from "@/lib/mnotify-settings";
+import {
+  loadTwilioSettings,
+  loadInfobipSettings,
+  loadEasySendSmsSettings,
+} from "@/lib/sms/provider-credentials";
 
-export type ProviderBalanceStatus = "ok" | "unconfigured" | "error" | "unsupported";
+export type ProviderBalanceStatus =
+  | "ok"
+  | "unconfigured"
+  | "error"
+  | "unsupported"
+  | "disabled";
 
 export type ProviderSmsBalance = {
   type: SmsProviderType;
@@ -18,6 +30,10 @@ export type ProviderSmsBalance = {
   bonus: number | null;
   error?: string;
   hint?: string;
+  /** Whether outbound SMS via this provider is enabled. */
+  enabled?: boolean;
+  /** ISO time of the last recorded balance check (manual, refresh-all, or sync). */
+  checkedAt?: string | null;
 };
 
 function parseNumber(value: unknown): number | null {
@@ -52,6 +68,25 @@ function formatSmsCredits(amount: number | null, bonus: number | null = null): s
 
 export async function fetchMnotifyBalance(): Promise<ProviderSmsBalance> {
   const name = "mNotify";
+  const settings = await loadMnotifySettings();
+  const hasKey = Boolean(settings.apiKey || process.env.MNOTIFY_API_KEY?.trim());
+
+  if (!settings.enabled) {
+    return {
+      type: "MNOTIFY",
+      name,
+      status: "disabled",
+      display: "Disabled",
+      amount: null,
+      currency: null,
+      bonus: null,
+      enabled: false,
+      hint: hasKey
+        ? "Provider is turned off — enable it to send via mNotify."
+        : "Provider is turned off. Add an API key under Admin → mNotify.",
+    };
+  }
+
   if (!(await isMnotifyConfigured())) {
     return {
       type: "MNOTIFY",
@@ -61,6 +96,7 @@ export async function fetchMnotifyBalance(): Promise<ProviderSmsBalance> {
       amount: null,
       currency: null,
       bonus: null,
+      enabled: true,
       hint: "Add API key under Admin → mNotify",
     };
   }
@@ -77,6 +113,7 @@ export async function fetchMnotifyBalance(): Promise<ProviderSmsBalance> {
       amount: live.amount,
       currency: null,
       bonus: live.bonus,
+      enabled: true,
       hint: live.source?.startsWith("Cached")
         ? `Live API unavailable (${live.error ?? "unknown"}). Showing last known balance.`
         : `Updated from ${live.source ?? "mNotify API"}`,
@@ -94,7 +131,9 @@ export async function fetchMnotifyBalance(): Promise<ProviderSmsBalance> {
       amount: cached.amount,
       currency: null,
       bonus: cached.bonus,
-      hint: `Last known balance (${new Date(cached.at).toLocaleString()}) from ${cached.source}. Refresh page after sending SMS to update.`,
+      enabled: true,
+      checkedAt: cached.at,
+      hint: `Last known balance from ${cached.source}. Refresh to update.`,
       error: live.error,
     };
   }
@@ -107,6 +146,7 @@ export async function fetchMnotifyBalance(): Promise<ProviderSmsBalance> {
     amount: null,
     currency: null,
     bonus: null,
+    enabled: true,
     error: live.error ?? "Balance endpoint not available",
     hint: "Send a test SMS from Admin → mNotify — balance may appear in the send response. Or check balance on mNotify BMS dashboard.",
   };
@@ -114,11 +154,28 @@ export async function fetchMnotifyBalance(): Promise<ProviderSmsBalance> {
 
 async function fetchTwilioBalance(): Promise<ProviderSmsBalance> {
   const name = "Twilio";
-  const { loadTwilioSettings } = await import("@/lib/sms/provider-credentials");
   const twilio = await loadTwilioSettings();
   const sid = twilio.accountSid;
   const token = twilio.authToken;
-  if (!twilio.enabled || !sid || !token) {
+  const hasCreds = Boolean(sid && token);
+
+  if (!twilio.enabled) {
+    return {
+      type: "TWILIO",
+      name,
+      status: "disabled",
+      display: "Disabled",
+      amount: null,
+      currency: null,
+      bonus: null,
+      enabled: false,
+      hint: hasCreds
+        ? "Provider is turned off — enable it to send via Twilio."
+        : "Provider is turned off. Add Twilio credentials under Admin → Providers.",
+    };
+  }
+
+  if (!hasCreds) {
     return {
       type: "TWILIO",
       name,
@@ -127,6 +184,7 @@ async function fetchTwilioBalance(): Promise<ProviderSmsBalance> {
       amount: null,
       currency: null,
       bonus: null,
+      enabled: true,
       hint: "Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN",
     };
   }
@@ -187,11 +245,28 @@ async function fetchTwilioBalance(): Promise<ProviderSmsBalance> {
 
 async function fetchInfobipBalance(): Promise<ProviderSmsBalance> {
   const name = "Infobip";
-  const { loadInfobipSettings } = await import("@/lib/sms/provider-credentials");
   const infobip = await loadInfobipSettings();
   const apiKey = infobip.apiKey;
   const baseUrl = infobip.baseUrl.replace(/\/$/, "") || "https://api.infobip.com";
-  if (!infobip.enabled || !apiKey) {
+  const hasKey = Boolean(apiKey);
+
+  if (!infobip.enabled) {
+    return {
+      type: "INFOBIP",
+      name,
+      status: "disabled",
+      display: "Disabled",
+      amount: null,
+      currency: null,
+      bonus: null,
+      enabled: false,
+      hint: hasKey
+        ? "Provider is turned off — enable it to send via Infobip."
+        : "Provider is turned off. Add an API key under Admin → Providers.",
+    };
+  }
+
+  if (!hasKey) {
     return {
       type: "INFOBIP",
       name,
@@ -200,6 +275,7 @@ async function fetchInfobipBalance(): Promise<ProviderSmsBalance> {
       amount: null,
       currency: null,
       bonus: null,
+      enabled: true,
       hint: "Set INFOBIP_API_KEY in environment",
     };
   }
@@ -271,9 +347,26 @@ async function fetchInfobipBalance(): Promise<ProviderSmsBalance> {
 
 async function fetchEasySendSmsBalance(): Promise<ProviderSmsBalance> {
   const name = "EasySendSMS";
-  const { loadEasySendSmsSettings } = await import("@/lib/sms/provider-credentials");
   const cfg = await loadEasySendSmsSettings();
-  if (!cfg.enabled || !cfg.apiKey) {
+  const hasKey = Boolean(cfg.apiKey);
+
+  if (!cfg.enabled) {
+    return {
+      type: "EASYSENDSMS",
+      name,
+      status: "disabled",
+      display: "Disabled",
+      amount: null,
+      currency: null,
+      bonus: null,
+      enabled: false,
+      hint: hasKey
+        ? "Provider is turned off — enable it to send via EasySendSMS."
+        : "Provider is turned off. Add an API key under Admin → Providers.",
+    };
+  }
+
+  if (!hasKey) {
     return {
       type: "EASYSENDSMS",
       name,
@@ -282,6 +375,7 @@ async function fetchEasySendSmsBalance(): Promise<ProviderSmsBalance> {
       amount: null,
       currency: null,
       bonus: null,
+      enabled: true,
       hint: "Add API key under Admin → Providers → EasySendSMS",
     };
   }
@@ -341,14 +435,37 @@ async function fetchEasySendSmsBalance(): Promise<ProviderSmsBalance> {
   }
 }
 
+/** Attach last-check timestamps from balance history (without re-fetching APIs). */
+export async function enrichProviderBalanceMeta(
+  balances: ProviderSmsBalance[],
+): Promise<ProviderSmsBalance[]> {
+  const history = await loadProviderBalanceHistory();
+  const latestAt = new Map<SmsProviderType, string>();
+  for (const entry of history) {
+    if (!latestAt.has(entry.type)) latestAt.set(entry.type, entry.at);
+  }
+
+  return balances.map((b) => ({
+    ...b,
+    enabled: b.enabled ?? b.status !== "disabled",
+    checkedAt: b.checkedAt ?? latestAt.get(b.type) ?? null,
+  }));
+}
+
 /** Live balances from each upstream SMS provider (admin only). */
 export async function fetchSmsProviderBalance(
   type: SmsProviderType,
 ): Promise<ProviderSmsBalance> {
-  if (type === "MNOTIFY") return fetchMnotifyBalance();
-  if (type === "TWILIO") return fetchTwilioBalance();
-  if (type === "INFOBIP") return fetchInfobipBalance();
-  return fetchEasySendSmsBalance();
+  const balance =
+    type === "MNOTIFY"
+      ? await fetchMnotifyBalance()
+      : type === "TWILIO"
+        ? await fetchTwilioBalance()
+        : type === "INFOBIP"
+          ? await fetchInfobipBalance()
+          : await fetchEasySendSmsBalance();
+  const [enriched] = await enrichProviderBalanceMeta([balance]);
+  return enriched;
 }
 
 /** Live balances from each upstream SMS provider (admin only). */
@@ -359,5 +476,5 @@ export async function fetchAllSmsProviderBalances(): Promise<ProviderSmsBalance[
     fetchInfobipBalance(),
     fetchEasySendSmsBalance(),
   ]);
-  return [mnotify, twilio, infobip, easysendsms];
+  return enrichProviderBalanceMeta([mnotify, twilio, infobip, easysendsms]);
 }

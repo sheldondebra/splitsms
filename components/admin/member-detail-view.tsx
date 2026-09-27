@@ -42,6 +42,10 @@ import {
   adminBlockSenderIdAction,
 } from "@/lib/actions/admin-members";
 import {
+  addBlacklistedIpAction,
+  removeBlacklistedIpAction,
+} from "@/lib/actions/admin-ip-access";
+import {
   adminUpdateSmartFormStatusAction,
   adminUpdateCampaignStatusAction,
 } from "@/lib/actions/admin-platform";
@@ -71,6 +75,8 @@ import {
   ArrowUpRight,
   Mail,
   Phone,
+  Ban,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
@@ -445,7 +451,15 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
         <TabsContent value="sessions" className="mt-6">
           <AdminCard
             title="Sessions & devices"
-            description="IP addresses and user-agent from each login"
+            description="IP addresses and user-agent from each login. Block an IP to stop future sign-ins from that network."
+            actions={
+              <Link
+                href="/admin/ip-access"
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Manage all IPs
+              </Link>
+            }
           >
             {data.sessions.length === 0 ? (
               <AdminEmpty>No sessions recorded yet.</AdminEmpty>
@@ -453,21 +467,38 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
               <div className="grid gap-3 sm:grid-cols-2">
                 {data.sessions.map((s) => {
                   const Icon = s.device.mobile ? Smartphone : Monitor;
+                  const ip = s.ip?.trim() || null;
+                  const matchedBlock = ip
+                    ? data.ipBlacklist.find(
+                        (blockedIp) => ip === blockedIp || ip.startsWith(blockedIp),
+                      )
+                    : undefined;
+                  const returnTo = `/admin/members/${data.user.id}?tab=sessions`;
                   return (
                     <div
                       key={s.id}
-                      className="rounded-xl border border-border/50 bg-muted/10 p-4 flex gap-3"
+                      className={cn(
+                        "rounded-xl border bg-muted/10 p-4 flex gap-3",
+                        matchedBlock ? "border-destructive/40" : "border-border/50",
+                      )}
                     >
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm">{s.device.label}</p>
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-medium text-sm">{s.device.label}</p>
+                          {matchedBlock && (
+                            <Badge variant="destructive" className="text-[10px] shrink-0">
+                              Blocked
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           {s.device.browser} · {s.device.os}
                         </p>
                         <p className="font-mono text-xs mt-2 text-primary/90">
-                          {s.ip ?? "IP unknown"}
+                          {ip ?? "IP unknown"}
                         </p>
                         <p className="text-[10px] text-muted-foreground mt-2 line-clamp-2" title={s.userAgent ?? ""}>
                           {s.userAgent ?? "—"}
@@ -475,6 +506,44 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
                         <p className="text-[10px] text-muted-foreground mt-2">
                           Active {formatDistanceToNow(s.lastActiveAt, { addSuffix: true })}
                         </p>
+                        {ip && (
+                          <div className="mt-3">
+                            {matchedBlock ? (
+                              <form action={removeBlacklistedIpAction}>
+                                <input type="hidden" name="returnTo" value={returnTo} />
+                                <input type="hidden" name="ip" value={matchedBlock} />
+                                <Button
+                                  type="submit"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 gap-1.5 text-xs"
+                                >
+                                  <ShieldCheck className="h-3.5 w-3.5" />
+                                  Unblock IP
+                                </Button>
+                              </form>
+                            ) : (
+                              <form action={addBlacklistedIpAction}>
+                                <input type="hidden" name="returnTo" value={returnTo} />
+                                <input type="hidden" name="ip" value={ip} />
+                                <input
+                                  type="hidden"
+                                  name="reason"
+                                  value={`Blocked from member ${data.user.fullName}`}
+                                />
+                                <Button
+                                  type="submit"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 gap-1.5 text-xs text-destructive hover:text-destructive"
+                                >
+                                  <Ban className="h-3.5 w-3.5" />
+                                  Block IP
+                                </Button>
+                              </form>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

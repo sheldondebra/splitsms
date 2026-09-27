@@ -32,6 +32,8 @@ const SAVED_MESSAGES: Record<string, string> = {
   reply: "Support reply sent — member notified by email and SMS.",
   ticket: "Ticket status updated.",
   outreach_sent: "Message sent to member via SMS and/or email.",
+  ip_blocked: "IP added to the blacklist. Future logins from that address are blocked.",
+  ip_unblocked: "IP removed from the blacklist.",
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -55,6 +57,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   wallet: "Could not update wallet.",
   wallet_missing: "Member has no wallet.",
   wallet_negative: "Wallet balance cannot go below zero.",
+  invalid_ip: "That IP address is not valid.",
+  notfound: "That IP was not on the blacklist.",
 };
 
 type Props = {

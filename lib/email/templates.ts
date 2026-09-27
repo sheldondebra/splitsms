@@ -254,7 +254,7 @@ Sign in: ${loginUrl}
   return { subject, text, html };
 }
 
-/** Admin-initiated email with a secure reset link + login details. */
+/** Email with a secure reset link + login details (admin or self-serve). */
 export async function passwordResetLinkEmailContent(params: {
   memberName: string;
   memberId: string;
@@ -262,13 +262,19 @@ export async function passwordResetLinkEmailContent(params: {
   phone: string;
   resetUrl: string;
   loginUrl?: string;
+  /** Defaults to admin-initiated copy. */
+  initiatedBy?: "admin" | "self";
 }) {
   const firstName = params.memberName.trim().split(/\s+/)[0] || "there";
   const loginUrl = params.loginUrl ?? `${getSiteUrl()}/login`;
+  const selfServe = params.initiatedBy === "self";
   const subject = `${siteName}: Reset your password`;
+  const intro = selfServe
+    ? `You requested a password reset for your ${siteName} account.`
+    : `An admin sent you a password reset link for your ${siteName} account.`;
   const text = `Hi ${firstName},
 
-An admin sent you a password reset link for your ${siteName} account.
+${intro}
 
 Username: ${params.memberName}
 Member ID: ${params.memberId}
@@ -291,7 +297,9 @@ This link expires in 1 hour. If you didn't expect this, contact support.
     preheader: `Reset your ${siteName} password, then sign in.`,
     greeting: `Hi ${firstName},`,
     bodyHtml: `${textToEmailParagraphs(
-      `An admin sent you a password reset link for your ${siteName} account. Use the button below, then sign in with your email or phone.`,
+      selfServe
+        ? `You requested a password reset for your ${siteName} account. Use the button below, then sign in with your email or phone.`
+        : `An admin sent you a password reset link for your ${siteName} account. Use the button below, then sign in with your email or phone.`,
     )}${emailDetailTable([
       { label: "Username", value: params.memberName },
       { label: "Member ID", value: params.memberId, mono: true },

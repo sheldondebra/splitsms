@@ -9,6 +9,7 @@ type GeneralOfficeAlertsProps = {
     to?: string;
     error?: string;
     saved?: string;
+    detail?: string;
   };
   configured: boolean;
   envMailjetDiag: {
@@ -67,7 +68,14 @@ export function GeneralOfficeAlerts({
       )}
       {params.test === "connection" && params.result === "fail" && (
         <AdminAlert variant="warning">
-          {providerLabel} connection failed. Check your settings below.
+          {providerLabel} connection failed.
+          {params.detail ? (
+            <span className="mt-1 block text-xs opacity-90">
+              {decodeURIComponent(params.detail)}
+            </span>
+          ) : (
+            " Check your settings below."
+          )}
         </AdminAlert>
       )}
 

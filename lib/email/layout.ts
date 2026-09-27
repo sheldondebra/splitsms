@@ -92,17 +92,45 @@ export type EmailLayoutParams = {
   headerImageUrl?: string;
   /** Place header image above or below the headline. */
   headerImagePosition?: EmailHeaderImagePosition;
+  /** Make the header image a link. */
+  headerImageHref?: string;
+  /** Short tagline under the logo. */
+  headerTagline?: string;
+  /** Custom footer body text (admin branding). */
+  footerText?: string;
+  /** Full-width footer image. */
+  footerImageUrl?: string;
+  footerImagePosition?: EmailHeaderImagePosition;
+  footerImageHref?: string;
+  /** Extra footer link. */
+  footerLinkLabel?: string;
+  footerLinkUrl?: string;
   /** Campaign unsubscribe URL (CAN-SPAM / one-click). */
   unsubscribeUrl?: string;
 };
 
-function headerImageBlock(url: string) {
+function headerImageBlock(url: string, href?: string) {
   const src = url.startsWith("cid:") ? url : absoluteEmailUrl(url);
+  const img = `<img src="${escapeHtml(src)}" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto;border:0;" />`;
+  const link = href?.trim() ? absoluteEmailUrl(href) : "";
+  const inner = link
+    ? `<a href="${escapeHtml(link)}" style="text-decoration:none;border:0;">${img}</a>`
+    : img;
   return `<tr>
   <td style="padding:0;line-height:0;font-size:0;">
-    <img src="${escapeHtml(src)}" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto;border:0;" />
+    ${inner}
   </td>
 </tr>`;
+}
+
+function footerImageBlock(url: string, href?: string) {
+  const src = url.startsWith("cid:") ? url : absoluteEmailUrl(url);
+  const img = `<img src="${escapeHtml(src)}" alt="" width="496" style="display:block;width:100%;max-width:496px;height:auto;border:0;border-radius:8px;" />`;
+  const link = href?.trim() ? absoluteEmailUrl(href) : "";
+  const inner = link
+    ? `<a href="${escapeHtml(link)}" style="text-decoration:none;border:0;">${img}</a>`
+    : img;
+  return `<div style="margin:0 0 14px;">${inner}</div>`;
 }
 
 /** Shared layout for every SplitSMS email. One header, one body, one CTA, one footer. */
@@ -123,19 +151,47 @@ export function emailLayout(params: EmailLayoutParams) {
       : "";
 
   const logoUrl = `${siteUrl}/smslogo.png`;
+  const headerTagline = params.headerTagline?.trim()
+    ? `<p style="margin:8px 0 0;font-size:12px;line-height:1.45;color:${emailTheme.muted};">${escapeHtml(params.headerTagline.trim())}</p>`
+    : "";
   const headerBrand = `<a href="${escapeHtml(siteUrl)}" style="text-decoration:none;">
         <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(siteName)}" width="140" height="47" style="display:block;width:140px;height:auto;border:0;" />
-      </a>`;
+      </a>${headerTagline}`;
 
   const headerImageUrl = params.headerImageUrl?.trim() || "";
   const headerImagePosition = params.headerImagePosition === "below" ? "below" : "above";
+  const headerImageHref = params.headerImageHref?.trim() || "";
   const imageAbove =
     headerImageUrl && headerImagePosition === "above"
-      ? headerImageBlock(headerImageUrl)
+      ? headerImageBlock(headerImageUrl, headerImageHref)
       : "";
   const imageBelow =
     headerImageUrl && headerImagePosition === "below"
-      ? headerImageBlock(headerImageUrl)
+      ? headerImageBlock(headerImageUrl, headerImageHref)
+      : "";
+
+  const brandingFooterText = params.footerText?.trim()
+    ? params.footerText
+        .trim()
+        .split("\n")
+        .map(
+          (line) =>
+            `<p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:${emailTheme.muted};">${escapeHtml(line) || "&nbsp;"}</p>`,
+        )
+        .join("")
+    : "";
+  const footerImageUrl = params.footerImageUrl?.trim() || "";
+  const footerImagePosition = params.footerImagePosition === "below" ? "below" : "above";
+  const footerImageHref = params.footerImageHref?.trim() || "";
+  const footerImg =
+    footerImageUrl ? footerImageBlock(footerImageUrl, footerImageHref) : "";
+  const footerImageAbove =
+    footerImg && footerImagePosition === "above" ? footerImg : "";
+  const footerImageBelow =
+    footerImg && footerImagePosition === "below" ? footerImg : "";
+  const brandingFooterLink =
+    params.footerLinkLabel?.trim() && params.footerLinkUrl?.trim()
+      ? `<p style="margin:0 0 12px;font-size:12px;line-height:1.5;"><a href="${escapeHtml(absoluteEmailUrl(params.footerLinkUrl.trim()))}" style="color:${emailTheme.ink};text-decoration:underline;font-weight:600;">${escapeHtml(params.footerLinkLabel.trim())}</a></p>`
       : "";
 
   return `<!DOCTYPE html>
@@ -173,6 +229,10 @@ export function emailLayout(params: EmailLayoutParams) {
           </tr>
           <tr>
             <td style="padding:20px 32px 28px;border-top:1px solid ${emailTheme.rule};">
+              ${footerImageAbove}
+              ${brandingFooterText}
+              ${footerImageBelow}
+              ${brandingFooterLink}
               ${extraNote}
               ${
                 params.unsubscribeUrl

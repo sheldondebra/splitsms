@@ -54,7 +54,7 @@ export function PhoneChipInput({
   return (
     <div
       className={cn(
-        "flex min-h-16 w-full flex-wrap items-center gap-1.5 rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50",
+        "flex min-h-[3.25rem] w-full flex-wrap items-center gap-1.5 rounded-xl border border-input bg-background px-2.5 py-2 text-sm transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50",
         disabled && "cursor-not-allowed opacity-50",
       )}
     >
@@ -62,7 +62,7 @@ export function PhoneChipInput({
         <span
           key={`${chip.raw}-${i}`}
           className={cn(
-            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-xs",
+            "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-xs",
             chip.valid
               ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
               : "border-destructive/40 bg-destructive/10 text-destructive",
@@ -74,7 +74,7 @@ export function PhoneChipInput({
             <button
               type="button"
               onClick={() => removeAt(i)}
-              className="rounded-full hover:bg-black/10 dark:hover:bg-white/10"
+              className="rounded-sm hover:bg-black/10 dark:hover:bg-white/10"
               aria-label={`Remove ${chip.raw}`}
             >
               <X className="h-3 w-3" />
@@ -115,7 +115,7 @@ export function PhoneChipInput({
               commit(text);
             }
           }}
-          placeholder={value.length === 0 ? placeholder : ""}
+          placeholder={value.length === 0 ? placeholder : "Add another…"}
           className="min-w-[10ch] flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
       )}

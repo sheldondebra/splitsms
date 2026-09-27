@@ -5,7 +5,6 @@ import { ContactsBulkActions } from "@/components/contacts/contacts-bulk-actions
 import { ContactsMobileList } from "@/components/contacts/contacts-mobile-list";
 import { ContactsPagination } from "@/components/contacts/contacts-pagination";
 import { ContactSendLink } from "@/components/contacts/contact-send-link";
-import { EmptyState } from "@/components/dashboard/empty-state";
 import {
   deleteContactAction,
   addContactToGroupAction,
@@ -41,6 +40,7 @@ type ContactsTableProps = {
   contacts: Contact[];
   groups: Group[];
   total: number;
+  allCount: number;
   page: number;
   perPage: number;
   query: { q?: string; country?: string; tag?: string; groupId?: string };
@@ -71,6 +71,7 @@ export function ContactsTable({
   contacts,
   groups,
   total,
+  allCount,
   page,
   perPage,
   query,
@@ -95,19 +96,46 @@ export function ContactsTable({
   const selectedContacts = contacts.filter((c) => selected.has(c.id));
   const showingFrom = total === 0 ? 0 : (page - 1) * perPage + 1;
   const showingTo = Math.min(page * perPage, total);
+  const hasFilters = Boolean(query.q || query.country || query.tag || query.groupId);
 
   if (contacts.length === 0) {
+    if (allCount === 0) {
+      return (
+        <p className="px-4 py-8 text-center text-sm text-muted-foreground sm:px-8">
+          Your contacts will show up here after you import or add them.
+        </p>
+      );
+    }
+
     return (
-      <>
-        <ContactsMobileList contacts={[]} groups={groups} />
-        <div className="hidden md:block">
-          <EmptyState
-            icon={Users}
-            title="No contacts match"
-            description="Adjust your filters or import contacts from the Import tab."
-          />
+      <div className="px-4 py-10 sm:px-8 sm:py-14">
+        <div className="mx-auto flex max-w-md flex-col items-center text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+            <Users className="h-7 w-7" />
+          </span>
+          <h3 className="mt-5 text-lg font-semibold tracking-tight">No contacts match</h3>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            Try clearing filters, or import more contacts.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+            {hasFilters ? (
+              <a
+                href="/dashboard/contacts"
+                className="inline-flex h-11 items-center gap-2 rounded-xl border border-border/60 bg-background px-5 text-sm font-semibold hover:bg-muted/40"
+              >
+                Clear filters
+              </a>
+            ) : (
+              <a
+                href="/dashboard/contacts?tab=import"
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+              >
+                Import contacts
+              </a>
+            )}
+          </div>
         </div>
-      </>
+      </div>
     );
   }
 

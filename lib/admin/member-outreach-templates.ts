@@ -56,6 +56,41 @@ export function buildMemberOutreachVars(input: {
 
 export const MEMBER_OUTREACH_TEMPLATES: MemberOutreachTemplate[] = [
   {
+    id: "service_down",
+    label: "Service down",
+    description: "Notify customers of a temporary interruption",
+    sms: "Hi {{firstName}}, {{siteName}} is temporarily unavailable. We're working to restore access as quickly as possible and will update you shortly. Thank you for your patience.",
+    emailSubject: "{{siteName}} is temporarily unavailable",
+    emailText: `Hi {{firstName}},
+
+{{siteName}} is temporarily unavailable while we resolve an issue.
+
+We're working to restore full access as quickly as possible and will let you know when everything is back online.
+
+Thank you for your patience.
+
+— The {{siteName}} Team`,
+  },
+  {
+    id: "service_restored",
+    label: "Service restored",
+    description: "Apology after downtime — system is back online",
+    sms: "Hi {{firstName}}, apologies for the temporary interruption on {{siteName}}. Everything is back up and running. Thank you for your patience.",
+    emailSubject: "We're back online — thank you for your patience",
+    emailText: `Hi {{firstName}},
+
+We're sorry for the temporary interruption earlier. {{siteName}} is fully back online and working normally again.
+
+You can sign in and continue as usual:
+{{dashboardUrl}}
+
+Thank you for your patience and for choosing {{siteName}}.
+
+— The {{siteName}} Team`,
+    href: "/dashboard",
+    ctaLabel: "Open dashboard",
+  },
+  {
     id: "incomplete_registration",
     label: "Finish registration",
     description: "Member has not completed onboarding",

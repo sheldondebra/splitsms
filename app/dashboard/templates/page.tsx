@@ -22,8 +22,8 @@ export default async function TemplatesPage({
   return (
     <AppPage wide>
       <PageHeader
-        title="SMS templates"
-        description="Save messages you reuse, with {firstName} and other placeholders."
+        title="Templates"
+        description="Reusable SMS messages with personalization placeholders — use them when you send."
         icon={FileText}
         mobileDescription="Reusable SMS with personalization placeholders."
       />

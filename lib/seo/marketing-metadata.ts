@@ -62,11 +62,13 @@ export const featuresPageMetadata: Metadata = buildPageMetadata({
     "Bulk SMS Features — Campaigns, OTP API, Google & Ghana Pricing | SplitSMS",
   title: "Bulk SMS Features",
   description:
-    "Discover SplitSMS features: bulk SMS campaigns, Google Contacts/Sheets/Forms, contact management, OTP API, delivery webhooks, WooCommerce plugin, and rates from GHS 0.029 in Ghana.",
+    "Discover SplitSMS features: bulk SMS campaigns, SMS reminders, Google Contacts/Sheets/Forms, contact management, OTP API, delivery webhooks, WooCommerce plugin, and rates from GHS 0.029 in Ghana.",
   path: "/features",
   keywords: [
     "bulk SMS Ghana",
     "bulk SMS features",
+    "SMS reminders",
+    "payment reminder SMS",
     "Google Forms SMS",
     "Google Sheets SMS",
     "SMS marketing platform",

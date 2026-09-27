@@ -126,6 +126,86 @@ export async function requestPasswordResetSmsAction() {
   );
 }
 
+export async function requestPasswordResetEmailAction() {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  if (!(await isFeatureEnabled("password_reset"))) {
+    settingsRedirect({ error: "feature" });
+  }
+
+  const limit = await checkRateLimit(rateLimitKey("forgot_email", session.userId));
+  if (!limit.allowed) {
+    settingsRedirect({ error: "rate_limit" });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: {
+      id: true,
+      fullName: true,
+      phone: true,
+      email: true,
+      accountNumber: true,
+    },
+  });
+  if (!user) settingsRedirect({ error: "user" });
+
+  const email = user.email?.trim();
+  if (!email) {
+    settingsRedirect({ error: "reset_no_email" });
+  }
+
+  const { isEmailConfiguredAsync } = await import("@/lib/email/config");
+  if (!(await isEmailConfiguredAsync())) {
+    settingsRedirect({ error: "reset_email_config" });
+  }
+
+  const { ensureUserAccountNumber, formatAccountNumber } = await import(
+    "@/lib/auth/account-number"
+  );
+  const { buildPasswordResetLinkUrl, createPasswordResetLinkToken } = await import(
+    "@/lib/auth/password-reset-link"
+  );
+  const { sendEmail } = await import("@/lib/email");
+  const { passwordResetLinkEmailContent } = await import("@/lib/email/templates");
+  const { getSiteUrl } = await import("@/lib/site-config");
+
+  const accountNumber = user.accountNumber ?? (await ensureUserAccountNumber(user.id));
+  const memberId = formatAccountNumber(accountNumber);
+  const loginUrl = `${getSiteUrl()}/login`;
+  const token = await createPasswordResetLinkToken(user.id, user.phone);
+  const resetUrl = buildPasswordResetLinkUrl(token);
+
+  const content = await passwordResetLinkEmailContent({
+    memberName: user.fullName,
+    memberId,
+    email,
+    phone: user.phone,
+    resetUrl,
+    loginUrl,
+    initiatedBy: "self",
+  });
+
+  const mailResult = await sendEmail({
+    to: email,
+    toName: user.fullName,
+    subject: content.subject,
+    text: content.text,
+    html: content.html,
+  });
+
+  if (!mailResult.ok) {
+    settingsRedirect({ error: "reset_email_failed" });
+  }
+
+  await logAuthEvent(
+    "PASSWORD_RESET_LINK_SENT",
+    { phone: user.phone, email, byAdmin: false, channel: "email" },
+    user.id,
+  );
+  settingsRedirect({ password: "reset_email_sent" });
+}
+
 export async function saveWebhookAction(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/login");

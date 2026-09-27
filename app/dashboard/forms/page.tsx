@@ -36,16 +36,16 @@ export default async function SmartFormsPage({
     <AppPage wide>
       <PageHeader
         title="Smart Forms"
-        description="Create forms, collect contacts, and automate SMS follow-ups."
+        description="Build forms, share short links or QR codes, collect responses, and automate SMS follow-ups."
         icon={FileText}
-        mobileDescription="Build forms, share short links, and collect responses."
+        mobileDescription="Create forms, share links, collect responses."
         actions={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Link
               href="/dashboard/forms/templates"
               className={cn(
-                buttonVariants({ variant: "outline" }),
-                "h-11 w-full md:h-10 md:w-auto inline-flex items-center justify-center gap-2",
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "h-10 w-full gap-2 rounded-xl md:w-auto",
               )}
             >
               <FileStack className="h-4 w-4" />
@@ -54,8 +54,8 @@ export default async function SmartFormsPage({
             <Link
               href={limits.atLimit ? "/dashboard/forms?error=limit" : "/dashboard/forms/create"}
               className={cn(
-                buttonVariants(),
-                "h-11 w-full md:h-10 md:w-auto inline-flex items-center justify-center gap-2",
+                buttonVariants({ size: "sm" }),
+                "h-10 w-full gap-2 rounded-xl md:w-auto",
                 limits.atLimit && "pointer-events-none opacity-60",
               )}
               aria-disabled={limits.atLimit}

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
-import { normalizePhones, countSmsUnits } from "@/lib/sms/units";
+import { parseRecipientPhones, countSmsUnits } from "@/lib/sms/units";
 import { estimateCampaignCost } from "@/lib/sms/message-preview";
 import { dispatchCampaign } from "@/lib/campaigns/dispatch";
 import type { CampaignRecurrence } from "@/lib/generated/prisma/client";
@@ -32,12 +32,18 @@ export async function createCampaignAction(formData: FormData) {
   const recurrenceEndRaw = String(formData.get("recurrenceEndAt") ?? "");
 
   let recipientCount = 0;
+  let normalizedRecipientsText: string | undefined;
   if (contactGroupId) {
     recipientCount = await prisma.contactGroupMember.count({
       where: { groupId: contactGroupId },
     });
   } else {
-    recipientCount = normalizePhones(recipientsRaw).length;
+    const parsed = parseRecipientPhones(recipientsRaw, countryCode);
+    if (parsed.invalid.length > 0 && parsed.valid.length === 0) {
+      redirect("/dashboard/campaigns/new?error=invalid");
+    }
+    recipientCount = parsed.valid.length;
+    normalizedRecipientsText = parsed.valid.join("\n");
   }
 
   if (!message || recipientCount === 0) {
@@ -72,7 +78,7 @@ export async function createCampaignAction(formData: FormData) {
       senderId,
       message,
       contactGroupId,
-      recipientsText: contactGroupId ? undefined : recipientsRaw,
+      recipientsText: contactGroupId ? undefined : normalizedRecipientsText,
       recipientCount,
       estimatedCost,
       countryCode,

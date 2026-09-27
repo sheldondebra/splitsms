@@ -28,7 +28,7 @@ export default async function InvoicesPage() {
     <AppPage wide>
       <PageHeader
         title="Invoices"
-        description="Download PDFs, search your billing history, and export a CSV of paid invoices."
+        description="Paid invoices from wallet top-ups and credit purchases — download PDFs or export CSV for your records."
         icon={Receipt}
         mobileDescription="Search, filter, and download your invoices."
       />

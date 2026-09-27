@@ -30,12 +30,27 @@ export async function resolveCampaignRecipients(
   if (!campaign) return [];
 
   if (campaign.contactGroup) {
-    return campaign.contactGroup.members.map((m) => ({
-      phone: m.contact.phone,
-      name: m.contact.name,
-      countryCode: m.contact.countryCode ?? campaign.countryCode,
-      email: m.contact.email,
-    }));
+    const { normalizeOnePhone } = await import("@/lib/sms/units");
+    const { isValidPhoneNumber } = await import("libphonenumber-js");
+    const out: CampaignRecipient[] = [];
+    for (const m of campaign.contactGroup.members) {
+      const region = m.contact.countryCode ?? campaign.countryCode;
+      const phone = normalizeOnePhone(m.contact.phone, region);
+      let ok = false;
+      try {
+        ok = Boolean(phone) && isValidPhoneNumber(phone);
+      } catch {
+        ok = false;
+      }
+      if (!ok) continue;
+      out.push({
+        phone,
+        name: m.contact.name,
+        countryCode: m.contact.countryCode ?? campaign.countryCode,
+        email: m.contact.email,
+      });
+    }
+    return out;
   }
 
   if (campaign.messages.length > 0) {
@@ -48,7 +63,7 @@ export async function resolveCampaignRecipients(
   if (recipientsRaw || campaign.recipientsText) {
     const { normalizePhones } = await import("@/lib/sms/units");
     const raw = recipientsRaw ?? campaign.recipientsText ?? "";
-    return normalizePhones(raw).map((phone) => ({
+    return normalizePhones(raw, campaign.countryCode).map((phone) => ({
       phone,
       countryCode: campaign.countryCode,
     }));

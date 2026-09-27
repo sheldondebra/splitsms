@@ -104,29 +104,40 @@ export function AdminOutreachView({
   flash,
 }: {
   data: AdminOutreachDashboard;
-  flash?: { saved?: string; error?: string; count?: string; failed?: string };
+  flash?: {
+    saved?: string;
+    error?: string;
+    count?: string;
+    failed?: string;
+    sms?: string;
+    email?: string;
+    smsFail?: string;
+    emailFail?: string;
+    noEmail?: string;
+    detail?: string;
+  };
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const compose = useOutreachCompose();
 
   const rowIds = useMemo(() => data.rows.map((r) => r.id), [data.rows]);
-  const rowIdsKey = rowIds.join(",");
+  const filterKey = `${data.role}|${data.q}|${data.matchingUserIds.join(",")}`;
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [prevRowIdsKey, setPrevRowIdsKey] = useState(rowIdsKey);
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
   const [customContacts, setCustomContacts] = useState<CustomContact[]>([]);
   const [customPhones, setCustomPhones] = useState("");
   const [newContact, setNewContact] = useState({ name: "", phone: "", email: "" });
 
-  if (rowIdsKey !== prevRowIdsKey) {
-    setPrevRowIdsKey(rowIdsKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
     setSelected(new Set());
   }
 
-  const selectedUserIds = useMemo(
-    () => [...selected].filter((id) => rowIds.includes(id)),
-    [selected, rowIds],
-  );
+  const selectedUserIds = useMemo(() => {
+    const allowed = new Set(data.matchingUserIds);
+    return [...selected].filter((id) => allowed.has(id));
+  }, [selected, data.matchingUserIds]);
 
   const totalSelected = selectedUserIds.length + customContacts.length;
   const atLimit = totalSelected >= data.maxRecipients;
@@ -147,17 +158,24 @@ export function AdminOutreachView({
     page: data.page,
   });
 
-  const allSelected = rowIds.length > 0 && selectedUserIds.length === rowIds.length;
+  const allSelected =
+    data.matchingUserIds.length > 0 &&
+    data.matchingUserIds.every((id) => selected.has(id));
   const someSelected = selectedUserIds.length > 0 && !allSelected;
 
   function toggleAll(checked: boolean) {
     if (checked && atLimit) return;
     if (checked) {
       const room = data.maxRecipients - customContacts.length;
-      setSelected(new Set(rowIds.slice(0, room)));
+      setSelected(new Set(data.matchingUserIds.slice(0, room)));
     } else {
       setSelected(new Set());
     }
+  }
+
+  function selectAllMatching() {
+    const room = data.maxRecipients - customContacts.length;
+    setSelected(new Set(data.matchingUserIds.slice(0, room)));
   }
 
   function toggleOne(id: string, checked: boolean) {
@@ -217,9 +235,24 @@ export function AdminOutreachView({
       />
 
       {flash?.saved === "sent" && (
-        <AdminAlert variant="success">
-          {flash.count ?? "0"} message{(flash.count === "1" ? "" : "s")} sent successfully.
-          {flash.failed ? ` ${flash.failed} could not be delivered.` : ""}
+        <AdminAlert variant={Number(flash.failed ?? 0) > 0 && Number(flash.count ?? 0) === 0 ? "warning" : "success"}>
+          <p>
+            {flash.count ?? "0"} recipient{(flash.count === "1" ? "" : "s")} reached
+            {flash.failed ? ` · ${flash.failed} could not be reached on any channel` : ""}.
+          </p>
+          {(flash.sms || flash.email || flash.smsFail || flash.emailFail || flash.noEmail) && (
+            <p className="mt-1 text-xs opacity-90">
+              SMS: {flash.sms ?? "0"} sent
+              {flash.smsFail ? ` · ${flash.smsFail} failed` : ""}
+              {" · "}
+              Email: {flash.email ?? "0"} sent
+              {flash.emailFail ? ` · ${flash.emailFail} failed` : ""}
+              {flash.noEmail ? ` · ${flash.noEmail} had no email` : ""}
+            </p>
+          )}
+          {flash.detail ? (
+            <p className="mt-1 text-xs opacity-90">Last error: {flash.detail}</p>
+          ) : null}
         </AdminAlert>
       )}
       {flash?.error === "outreach_none" && (
@@ -335,6 +368,26 @@ export function AdminOutreachView({
               <p className="py-8 text-center text-sm text-muted-foreground">No users match this search.</p>
             ) : (
               <>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    {selectedUserIds.length.toLocaleString()} of{" "}
+                    {Math.min(data.filteredTotal, data.maxRecipients).toLocaleString()} selected
+                    {data.filteredTotal > data.maxRecipients
+                      ? ` (cap ${data.maxRecipients.toLocaleString()})`
+                      : ""}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={selectAllMatching}
+                    disabled={data.matchingUserIds.length === 0 || atLimit}
+                  >
+                    Select all {Math.min(data.filteredTotal, data.maxRecipients).toLocaleString()}{" "}
+                    customers
+                  </Button>
+                </div>
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
@@ -344,7 +397,7 @@ export function AdminOutreachView({
                           indeterminate={someSelected}
                           onChange={(e) => toggleAll(e.target.checked)}
                           disabled={atLimit && !someSelected}
-                          aria-label="Select all on page"
+                          aria-label="Select all matching customers"
                         />
                       </TableHead>
                       <TableHead>Name</TableHead>

@@ -20,7 +20,7 @@ const DEFAULT_START_MESSAGE =
   "We're currently performing scheduled maintenance to improve SplitSMS. Access will be temporarily unavailable — thank you for your patience.";
 
 const DEFAULT_END_MESSAGE =
-  "Maintenance is complete and SplitSMS is back online. Thank you for your patience — everything is working as normal.";
+  "We're sorry for the temporary interruption. SplitSMS is fully back online and working normally again. Thank you for your patience.";
 
 export function defaultMaintenanceConfig(): MaintenanceConfig {
   return {
@@ -33,10 +33,11 @@ export function defaultMaintenanceConfig(): MaintenanceConfig {
       "Hello,\n\nWe're currently performing scheduled maintenance on SplitSMS to improve reliability and add new features. During this time you won't be able to sign in or send messages.\n\nWe expect to be back online shortly and appreciate your patience.\n\nThank you for choosing SplitSMS.",
     startSmsBody:
       "SplitSMS: We're undergoing brief scheduled maintenance. Sign-in and sending are temporarily paused — we'll notify you once we're back. Thanks for your patience.",
-    endEmailSubject: "SplitSMS is back online",
+    endEmailSubject: "We're back online — thank you for your patience",
     endEmailBody:
-      "Hello,\n\nMaintenance is complete and SplitSMS is back online. You can sign in and send messages as normal.\n\nThank you for your patience while we made these improvements.",
-    endSmsBody: "SplitSMS: We're back online! Sign-in and sending are working normally again. Thanks for your patience.",
+      "Hello,\n\nWe're sorry for the temporary interruption earlier. SplitSMS is fully back online and working normally again.\n\nYou can sign in and continue as usual.\n\nThank you for your patience and for choosing SplitSMS.",
+    endSmsBody:
+      "Hi, apologies for the temporary interruption on SplitSMS. Everything is back up and running. Thank you for your patience.",
   };
 }
 

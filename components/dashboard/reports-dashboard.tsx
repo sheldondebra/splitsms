@@ -15,28 +15,30 @@ import { formatCampaignDisplayName } from "@/lib/campaigns/meta";
 import { DashboardChartsPanel } from "@/components/dashboard/dashboard-charts-panel";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { ExpandableMessage } from "@/components/admin/expandable-message";
+import { SmsFailureReasonLabel } from "@/components/dashboard/sms-failure-reason-label";
+import { toMemberFacingFailureReason } from "@/lib/sms/friendly-failure";
 import {
-  AppCard,
-  AppCardBody,
-  AppCardTitle,
   MobileCardList,
   MobileCardItem,
 } from "@/components/dashboard/page-shell";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
   BarChart3,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
   Download,
   Globe,
   Megaphone,
+  MessageSquare,
   RefreshCw,
   Search,
   Send,
+  XCircle,
 } from "lucide-react";
 
 export type MessageLogRow = {
@@ -154,9 +156,11 @@ function MessageDetails({ message }: { message: MessageLogRow }) {
         <span>Delivered: {formatReportWhen(message.deliveredAt)}</span>
         {message.failedAt && <span>Failed: {formatReportWhen(message.failedAt)}</span>}
       </div>
-      {message.status === "FAILED" && message.failureReason && (
+      {(message.status === "FAILED" ||
+        message.status === "REJECTED" ||
+        message.status === "EXPIRED") && (
         <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-destructive">
-          {message.failureReason}
+          {toMemberFacingFailureReason(message.failureReason)}
         </p>
       )}
       <p className="font-mono text-[10px]">{message.id}</p>
@@ -191,7 +195,14 @@ function MessageCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <p className="font-semibold text-foreground">{message.recipient}</p>
-              <p className={cn("shrink-0 text-sm font-semibold", meta.textClass)}>{meta.label}</p>
+              <div className="shrink-0 text-right">
+                <p className={cn("text-sm font-semibold", meta.textClass)}>{meta.label}</p>
+                <SmsFailureReasonLabel
+                  status={message.status}
+                  reason={message.failureReason}
+                  className="ml-auto max-w-[11rem]"
+                />
+              </div>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
               {formatReportWhen(message.createdAt)}
@@ -267,30 +278,154 @@ export function ReportsDashboard({
   const maxCountry = topCountries[0]?.count ?? 1;
 
   return (
-    <div className="space-y-6 lg:space-y-8">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {[
-          { label: "Total messages", value: overview.totalMessages.toLocaleString() },
-          { label: "Delivery rate", value: `${overview.deliveryRate}%` },
-          {
-            label: "Delivered",
-            value: overview.delivered.toLocaleString(),
-            accent: "text-emerald-600 dark:text-emerald-400",
-          },
-          { label: "Failed", value: overview.failed.toLocaleString(), accent: "text-destructive" },
-          { label: "Pending", value: overview.pending.toLocaleString() },
-          { label: "Today", value: overview.messagesToday.toLocaleString() },
-        ].map(({ label, value, accent }) => (
-          <div
-            key={label}
-            className="rounded-2xl border border-border/60 bg-card px-4 py-4 shadow-sm"
-          >
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {label}
-            </p>
-            <p className={cn("mt-1 text-lg font-bold tabular-nums", accent)}>{value}</p>
+    <div className="space-y-6">
+      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-border/50 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="flex items-start gap-3">
+            <span
+              className={cn(
+                "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1",
+                overview.totalMessages === 0
+                  ? "bg-primary/10 text-primary ring-primary/15"
+                  : overview.deliveryRate >= 80
+                    ? "bg-emerald-500/12 text-emerald-700 ring-emerald-500/20 dark:text-emerald-300"
+                    : overview.failed > 0
+                      ? "bg-amber-500/12 text-amber-800 ring-amber-500/20 dark:text-amber-200"
+                      : "bg-primary/10 text-primary ring-primary/15",
+              )}
+            >
+              {overview.totalMessages === 0 ? (
+                <BarChart3 className="h-4 w-4" />
+              ) : overview.deliveryRate >= 80 ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : (
+                <MessageSquare className="h-4 w-4" />
+              )}
+            </span>
+            <div>
+              <p className="text-sm font-semibold">
+                {overview.totalMessages === 0
+                  ? "No messages yet"
+                  : `${overview.totalMessages.toLocaleString()} message${overview.totalMessages === 1 ? "" : "s"} tracked`}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {overview.totalMessages === 0
+                  ? "Send SMS to see delivery analytics and logs here."
+                  : `${overview.deliveryRate}% delivery rate · ${overview.messagesToday.toLocaleString()} today`}
+              </p>
+            </div>
           </div>
-        ))}
+          <div className="flex flex-wrap gap-2">
+            {showQuickLinks ? (
+              <Link
+                href="/dashboard/send"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "h-9 gap-1.5 rounded-xl",
+                )}
+              >
+                <Send className="h-3.5 w-3.5" />
+                Send SMS
+              </Link>
+            ) : null}
+            <a
+              href={exportUrl}
+              className={cn(buttonVariants({ size: "sm" }), "h-9 gap-1.5 rounded-xl")}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export CSV
+            </a>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6">
+          {[
+            {
+              label: "Total",
+              value: overview.totalMessages.toLocaleString(),
+              hint: "All time",
+              icon: MessageSquare,
+              tone: "primary" as const,
+            },
+            {
+              label: "Delivery rate",
+              value: `${overview.deliveryRate}%`,
+              hint: "Delivered / total",
+              icon: CheckCircle2,
+              tone: overview.deliveryRate >= 80 ? ("ok" as const) : ("neutral" as const),
+            },
+            {
+              label: "Delivered",
+              value: overview.delivered.toLocaleString(),
+              hint: "Confirmed delivery",
+              icon: CheckCircle2,
+              tone: "ok" as const,
+            },
+            {
+              label: "Failed",
+              value: overview.failed.toLocaleString(),
+              hint: "Need attention",
+              icon: XCircle,
+              tone: overview.failed > 0 ? ("bad" as const) : ("neutral" as const),
+            },
+            {
+              label: "Pending",
+              value: overview.pending.toLocaleString(),
+              hint: "In transit",
+              icon: RefreshCw,
+              tone: "neutral" as const,
+            },
+            {
+              label: "Today",
+              value: overview.messagesToday.toLocaleString(),
+              hint: "Sent today",
+              icon: Send,
+              tone: "neutral" as const,
+            },
+          ].map(({ label, value, hint, icon: Icon, tone }, index) => (
+            <div
+              key={label}
+              className={cn(
+                "border-b border-border/50 p-4 xl:border-b-0",
+                index % 2 === 0 && "sm:border-r",
+                index < 5 && "xl:border-r",
+                index < 4 && "sm:border-b",
+                tone === "primary" && "bg-primary/[0.03]",
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-lg ring-1",
+                    tone === "primary" && "bg-primary/10 text-primary ring-primary/15",
+                    tone === "ok" &&
+                      "bg-emerald-500/12 text-emerald-700 ring-emerald-500/20 dark:text-emerald-300",
+                    tone === "bad" &&
+                      "bg-destructive/10 text-destructive ring-destructive/20",
+                    tone === "neutral" &&
+                      "bg-muted text-muted-foreground ring-border/60",
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                </span>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {label}
+                </p>
+              </div>
+              <p
+                className={cn(
+                  "mt-3 text-2xl font-bold tabular-nums tracking-tight",
+                  tone === "primary" && "text-primary",
+                  tone === "ok" && "text-emerald-700 dark:text-emerald-300",
+                  tone === "bad" && "text-destructive",
+                )}
+              >
+                {value}
+              </p>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">{hint}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-5 xl:gap-8">
@@ -307,21 +442,26 @@ export function ReportsDashboard({
           />
         </div>
 
-        <AppCard className="xl:col-span-2">
-          <AppCardBody className="space-y-4">
-            <AppCardTitle
-              title="Top countries"
-              description="Messages by destination"
-              icon={Globe}
-              className="mb-0"
-            />
+        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm xl:col-span-2">
+          <div className="flex items-start gap-3 border-b border-border/50 px-4 py-3.5 sm:px-5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
+              <Globe className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold">Top countries</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Messages by destination</p>
+            </div>
+          </div>
+          <div className="px-4 py-4 sm:px-5 sm:py-5">
             {topCountries.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No country data yet.</p>
+              <p className="rounded-xl border border-dashed border-border/70 px-4 py-8 text-center text-sm text-muted-foreground">
+                No country data yet.
+              </p>
             ) : (
-              <ul className="space-y-3">
+              <ul className="space-y-3.5">
                 {topCountries.map((c) => (
                   <li key={c.country}>
-                    <div className="mb-1 flex justify-between text-sm">
+                    <div className="mb-1.5 flex justify-between text-sm">
                       <span className="font-medium">{c.country}</span>
                       <span className="tabular-nums text-muted-foreground">
                         {c.count.toLocaleString()}
@@ -337,84 +477,101 @@ export function ReportsDashboard({
                 ))}
               </ul>
             )}
-          </AppCardBody>
-        </AppCard>
+          </div>
+        </div>
       </div>
 
       {campaignReport && (
-        <AppCard className="border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card">
-          <AppCardBody className="space-y-4">
+        <div className="overflow-hidden rounded-2xl border border-primary/25 bg-card shadow-sm">
+          <div className="border-b border-border/50 bg-gradient-to-br from-primary/[0.08] via-background to-muted/20 px-4 py-4 sm:px-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-                  Campaign report
-                </p>
-                <h2 className="mt-1 text-xl font-bold">
-                  {formatCampaignDisplayName(campaignReport.name)}
-                </h2>
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                  {campaignReport.message}
-                </p>
+              <div className="flex items-start gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary ring-1 ring-primary/20">
+                  <Megaphone className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
+                    Campaign report
+                  </p>
+                  <h2 className="mt-0.5 text-lg font-semibold tracking-tight">
+                    {formatCampaignDisplayName(campaignReport.name)}
+                  </h2>
+                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                    {campaignReport.message}
+                  </p>
+                </div>
               </div>
-              <Badge variant="outline" className="capitalize">
+              <Badge variant="outline" className="capitalize rounded-lg">
                 {campaignReport.status.toLowerCase()}
               </Badge>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {[
-                { label: "Recipients", value: campaignReport.recipientCount.toLocaleString() },
-                { label: "Delivered", value: campaignReport.delivered.toLocaleString() },
-                { label: "Failed", value: campaignReport.failed.toLocaleString() },
-                { label: "Success rate", value: `${campaignReport.deliveryPct}%` },
-              ].map(({ label, value }) => (
-                <div key={label} className="rounded-xl border bg-background/80 px-4 py-3">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {label}
-                  </p>
-                  <p className="mt-1 text-lg font-bold tabular-nums">{value}</p>
-                </div>
-              ))}
-            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-px border-b border-border/50 bg-border/40 sm:grid-cols-4">
+            {[
+              { label: "Recipients", value: campaignReport.recipientCount.toLocaleString() },
+              { label: "Delivered", value: campaignReport.delivered.toLocaleString() },
+              { label: "Failed", value: campaignReport.failed.toLocaleString() },
+              { label: "Success rate", value: `${campaignReport.deliveryPct}%` },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-card px-4 py-3.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {label}
+                </p>
+                <p className="mt-1 text-lg font-bold tabular-nums">{value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="px-4 py-3 sm:px-5">
             <Link
               href="/dashboard/campaigns"
-              className="inline-flex text-sm font-semibold text-primary hover:underline"
+              className="text-sm font-semibold text-primary hover:underline"
             >
               ← All campaigns
             </Link>
-          </AppCardBody>
-        </AppCard>
+          </div>
+        </div>
       )}
 
-      <AppCard>
-        <AppCardBody className="space-y-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <AppCardTitle
-              title="Message log"
-              description={`${total.toLocaleString()} message${total === 1 ? "" : "s"}${totalPages > 1 ? ` · page ${page} of ${totalPages}` : ""}`}
-              icon={BarChart3}
-              className="mb-0"
-            />
-            <div className="flex flex-wrap gap-2">
-              {showRetry && failedInView > 0 && (
-                <form action={retryFailedMessagesAction}>
-                  {filters.campaign && (
-                    <input type="hidden" name="campaignId" value={filters.campaign} />
-                  )}
-                  <Button type="submit" variant="outline" className="h-11 gap-2">
-                    <RefreshCw className="h-4 w-4" />
-                    Retry failed ({failedInView})
-                  </Button>
-                </form>
-              )}
-              <a href={exportUrl}>
-                <Button type="button" variant="outline" className="h-11 gap-2">
-                  <Download className="h-4 w-4" />
-                  Export CSV
-                </Button>
-              </a>
+      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-border/50 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="flex items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
+              <BarChart3 className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold">Message log</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {total.toLocaleString()} message{total === 1 ? "" : "s"}
+                {totalPages > 1 ? ` · page ${page} of ${totalPages}` : ""}
+              </p>
             </div>
           </div>
+          <div className="flex flex-wrap gap-2">
+            {showRetry && failedInView > 0 && (
+              <form action={retryFailedMessagesAction}>
+                {filters.campaign && (
+                  <input type="hidden" name="campaignId" value={filters.campaign} />
+                )}
+                <Button type="submit" variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl">
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Retry failed ({failedInView})
+                </Button>
+              </form>
+            )}
+            <a
+              href={exportUrl}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "h-9 gap-1.5 rounded-xl",
+              )}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export CSV
+            </a>
+          </div>
+        </div>
 
+        <div className="space-y-4 px-4 py-4 sm:px-5 sm:py-5">
           <form
             className="space-y-3"
             onSubmit={(e) => {
@@ -442,7 +599,7 @@ export function ReportsDashboard({
                     placeholder="Name, phone, or email…"
                     value={memberSearch}
                     onChange={(e) => setMemberSearch(e.target.value)}
-                    className="h-11"
+                    className="h-11 rounded-xl"
                   />
                 </div>
               )}
@@ -455,7 +612,7 @@ export function ReportsDashboard({
                     placeholder="Phone or message…"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="h-11 pl-9"
+                    className="h-11 rounded-xl pl-9"
                   />
                 </div>
               </div>
@@ -468,7 +625,7 @@ export function ReportsDashboard({
                   onBlur={(e) =>
                     goTo({ country: e.target.value.trim().toUpperCase() || null, page: null })
                   }
-                  className="h-11 uppercase"
+                  className="h-11 rounded-xl uppercase"
                 />
               </div>
               <div className="space-y-1.5">
@@ -490,7 +647,7 @@ export function ReportsDashboard({
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" className="h-10 px-5">
+              <Button type="submit" size="sm" className="h-9 rounded-xl px-5">
                 Search
               </Button>
               {(filters.q ||
@@ -502,7 +659,10 @@ export function ReportsDashboard({
                 filters.period) && (
                 <Link
                   href={basePath}
-                  className="inline-flex h-10 items-center justify-center rounded-xl border px-4 text-sm font-medium hover:bg-muted/50"
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                    "h-9 rounded-xl",
+                  )}
                 >
                   Clear filters
                 </Link>
@@ -510,7 +670,7 @@ export function ReportsDashboard({
             </div>
           </form>
 
-          <div className="flex gap-2 overflow-x-auto pb-1 app-scroll-x">
+          <div className="app-scroll-x flex gap-1 overflow-x-auto rounded-xl border border-border/60 bg-muted/30 p-1">
             {basePath.startsWith("/admin") ? (
               <Link
                 href={buildReportsQuery(
@@ -523,10 +683,10 @@ export function ReportsDashboard({
                   basePath,
                 )}
                 className={cn(
-                  "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                  "shrink-0 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors",
                   periodToday
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted/60 text-muted-foreground hover:bg-muted",
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 Sent today
@@ -545,10 +705,10 @@ export function ReportsDashboard({
                   basePath,
                 )}
                 className={cn(
-                  "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                  "shrink-0 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors",
                   !periodToday && statusFilter === o.value
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted/60 text-muted-foreground hover:bg-muted",
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {o.label}
@@ -578,18 +738,22 @@ export function ReportsDashboard({
                 ))}
               </MobileCardList>
 
-              <div className="hidden overflow-x-auto rounded-xl border md:block">
+              <div className="hidden overflow-hidden rounded-xl border border-border/60 md:block">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-muted/30 text-left text-xs text-muted-foreground">
+                    <tr className="border-b border-border/60 bg-muted/20 text-left text-xs text-muted-foreground">
                       {showMemberColumn && (
-                        <th className="px-5 py-3 font-medium">Member</th>
+                        <th className="px-5 py-3 font-semibold uppercase tracking-wide">Member</th>
                       )}
-                      <th className="px-5 py-3 font-medium">Recipient</th>
-                      <th className="px-5 py-3 font-medium">Status</th>
-                      <th className="px-5 py-3 font-medium">Country</th>
-                      <th className="hidden px-5 py-3 font-medium lg:table-cell">Campaign</th>
-                      <th className="px-5 py-3 font-medium text-right">When</th>
+                      <th className="px-5 py-3 font-semibold uppercase tracking-wide">Recipient</th>
+                      <th className="px-5 py-3 font-semibold uppercase tracking-wide">Status</th>
+                      <th className="px-5 py-3 font-semibold uppercase tracking-wide">Country</th>
+                      <th className="hidden px-5 py-3 font-semibold uppercase tracking-wide lg:table-cell">
+                        Campaign
+                      </th>
+                      <th className="px-5 py-3 text-right font-semibold uppercase tracking-wide">
+                        When
+                      </th>
                       <th className="w-10 px-3 py-3" />
                     </tr>
                   </thead>
@@ -602,7 +766,7 @@ export function ReportsDashboard({
                         <Fragment key={m.id}>
                           <tr
                             className={cn(
-                              "border-b border-border/40 last:border-0",
+                              "border-b border-border/40 last:border-0 hover:bg-muted/20",
                               expanded && "bg-muted/15",
                             )}
                           >
@@ -619,7 +783,7 @@ export function ReportsDashboard({
                                   "—"
                                 )}
                                 {m.memberPhone && (
-                                  <p className="mt-0.5 text-[10px] text-muted-foreground font-mono">
+                                  <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
                                     {m.memberPhone}
                                   </p>
                                 )}
@@ -638,6 +802,10 @@ export function ReportsDashboard({
                                 <Icon className="h-3 w-3" />
                                 {meta.label}
                               </Badge>
+                              <SmsFailureReasonLabel
+                                status={m.status}
+                                reason={m.failureReason}
+                              />
                             </td>
                             <td className="px-5 py-3.5 text-muted-foreground">
                               {m.countryCode ?? "—"}
@@ -655,7 +823,7 @@ export function ReportsDashboard({
                                 type="button"
                                 size="icon"
                                 variant="ghost"
-                                className="h-8 w-8"
+                                className="h-8 w-8 rounded-lg"
                                 onClick={() => setExpandedId((id) => (id === m.id ? null : m.id))}
                                 aria-label={expanded ? "Hide details" : "Show details"}
                               >
@@ -668,8 +836,14 @@ export function ReportsDashboard({
                             </td>
                           </tr>
                           {expanded && (
-                            <tr key={`${m.id}-detail`} className="border-b border-border/40 bg-muted/10">
-                              <td colSpan={showMemberColumn ? 7 : 6} className="px-5 py-4">
+                            <tr
+                              key={`${m.id}-detail`}
+                              className="border-b border-border/40 bg-muted/10"
+                            >
+                              <td
+                                colSpan={showMemberColumn ? 7 : 6}
+                                className="px-5 py-4"
+                              >
                                 <MessageDetails message={m} />
                               </td>
                             </tr>
@@ -684,11 +858,14 @@ export function ReportsDashboard({
           )}
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 pt-2">
+            <div className="flex items-center justify-center gap-3 pt-1">
               {page > 1 && (
                 <Link
                   href={buildReportsQuery(filterBase, { page: String(page - 1) }, basePath)}
-                  className="inline-flex h-11 items-center rounded-xl border px-5 text-sm font-semibold hover:bg-muted/50"
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                    "h-9 rounded-xl px-4",
+                  )}
                 >
                   Previous
                 </Link>
@@ -699,31 +876,48 @@ export function ReportsDashboard({
               {page < totalPages && (
                 <Link
                   href={buildReportsQuery(filterBase, { page: String(page + 1) }, basePath)}
-                  className="inline-flex h-11 items-center rounded-xl border px-5 text-sm font-semibold hover:bg-muted/50"
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                    "h-9 rounded-xl px-4",
+                  )}
                 >
                   Next
                 </Link>
               )}
             </div>
           )}
-        </AppCardBody>
-      </AppCard>
+        </div>
+      </div>
 
       {showQuickLinks && (
-        <div className="flex flex-wrap justify-center gap-3 sm:justify-start">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Link
             href="/dashboard/send"
-            className="inline-flex h-11 items-center gap-2 rounded-xl border border-border/60 px-5 text-sm font-semibold hover:bg-muted/50"
+            className="group flex items-center gap-3.5 rounded-2xl border border-border/60 bg-card px-4 py-3.5 shadow-sm transition-colors hover:border-primary/30 hover:bg-muted/20"
           >
-            <Send className="h-4 w-4" />
-            Send SMS
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
+              <Send className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold">Send SMS</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Compose a new message
+              </span>
+            </span>
           </Link>
           <Link
             href="/dashboard/campaigns"
-            className="inline-flex h-11 items-center gap-2 rounded-xl border border-border/60 px-5 text-sm font-semibold hover:bg-muted/50"
+            className="group flex items-center gap-3.5 rounded-2xl border border-border/60 bg-card px-4 py-3.5 shadow-sm transition-colors hover:border-primary/30 hover:bg-muted/20"
           >
-            <Megaphone className="h-4 w-4" />
-            Campaigns
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
+              <Megaphone className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold">Campaigns</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Bulk sends and scheduling
+              </span>
+            </span>
           </Link>
         </div>
       )}

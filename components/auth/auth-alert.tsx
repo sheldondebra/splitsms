@@ -138,6 +138,10 @@ const messages: Record<
     text: "Member sign-in is paused right now. Staff can still sign in with email and password.",
     variant: "info",
   },
+  ip_blocked: {
+    text: "Sign-in from this network is blocked. We’ve notified support — if this is a mistake, they’ll unblock your IP shortly.",
+    variant: "error",
+  },
   feature_login_off: {
     text: "Member sign-in is paused. Staff accounts can still sign in.",
     variant: "info",

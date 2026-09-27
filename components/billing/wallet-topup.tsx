@@ -176,7 +176,7 @@ export function WalletTopupClient({
                 id="topup-pricing-country"
                 value={countryCode}
                 onChange={(e) => setCountryCode(e.target.value)}
-                className="mt-1 flex h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                className="mt-1 flex h-9 w-full rounded-xl border border-input bg-background px-3 text-sm"
               >
                 {pricingOptions.map((option) => (
                   <option key={option.countryCode} value={option.countryCode}>
@@ -225,7 +225,7 @@ export function WalletTopupClient({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="Custom amount"
-          className="h-12 text-base tabular-nums"
+          className="h-12 rounded-xl text-base tabular-nums"
         />
 
         {smsPricing && selectedPricing ? (

@@ -12,6 +12,12 @@ export default async function AdminOutreachPage({
     error?: string;
     count?: string;
     failed?: string;
+    sms?: string;
+    email?: string;
+    smsFail?: string;
+    emailFail?: string;
+    noEmail?: string;
+    detail?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -25,6 +31,12 @@ export default async function AdminOutreachPage({
         error: params.error,
         count: params.count,
         failed: params.failed,
+        sms: params.sms,
+        email: params.email,
+        smsFail: params.smsFail,
+        emailFail: params.emailFail,
+        noEmail: params.noEmail,
+        detail: params.detail,
       }}
     />
   );

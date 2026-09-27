@@ -5,7 +5,7 @@ import { WalletBalanceCards } from "@/components/billing/wallet-balance-cards";
 import { WalletCreditsPanel } from "@/components/billing/wallet-credits-panel";
 import { WalletRecentActivity } from "@/components/billing/wallet-recent-activity";
 import { FriendlyAlert } from "@/components/dashboard/friendly-alert";
-import { AppPage, PageHeader, AppCard, AppCardBody, AppCardTitle } from "@/components/dashboard/page-shell";
+import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 import { Wallet, Plus, Coins } from "lucide-react";
 import { getPaymentMethodOptionsForUser, getDefaultPaymentMethodForUser } from "@/lib/payments/methods";
 import { getOfflineBankDetails } from "@/lib/payments/offline-config";
@@ -93,8 +93,8 @@ export default async function WalletPage({
     <AppPage wide>
       <WalletPaymentToasts moneyAdded={moneyAdded} convertedCredits={convertedCredits} />
       <PageHeader
-        title="Wallet & SMS credits"
-        description="Top up your wallet, buy credit packages, and track spending."
+        title="Wallet"
+        description="Add money, buy SMS credit packages, and track spending — all in one place."
         icon={Wallet}
         mobileDescription="Add money, buy SMS packages, view activity."
       />
@@ -127,76 +127,102 @@ export default async function WalletPage({
         <FriendlyAlert error={error} />
       )}
 
-      <WalletBalanceCards
-        currency={currency}
-        walletBalance={walletBalance}
-        smsCredits={smsCredits}
-        lowBalance={lowBalance}
-        pricePerCredit={activePrice.sellPrice}
-        pricingCurrency={activePrice.currency}
-        countryCode={activePrice.countryCode}
-      />
+      <div className="space-y-6">
+        <WalletBalanceCards
+          currency={currency}
+          walletBalance={walletBalance}
+          smsCredits={smsCredits}
+          lowBalance={lowBalance}
+          pricePerCredit={activePrice.sellPrice}
+          pricingCurrency={activePrice.currency}
+          countryCode={activePrice.countryCode}
+        />
 
-      <div className="grid gap-6 xl:grid-cols-2 xl:gap-8 xl:items-start">
-        <AppCard className="overflow-visible">
-          <AppCardBody>
-            <AppCardTitle
-              icon={Plus}
-              title="Add money to wallet"
-              description="See how many SMS this buys, then pay — or convert to credits automatically"
-            />
-            {topupEnabled ? (
-              <WalletTopupClient
+        <div className="grid gap-6 xl:grid-cols-2 xl:items-start xl:gap-8">
+          <div
+            id="wallet-topup"
+            className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm"
+          >
+            <div className="border-b border-border/50 px-4 py-4 sm:px-6">
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                  <Plus className="h-5 w-5" />
+                </span>
+                <div>
+                  <h2 className="text-lg font-semibold tracking-tight">Add money to wallet</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    See how many SMS this buys, then pay — or convert to credits automatically.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="px-4 py-5 sm:px-6 sm:py-6">
+              {topupEnabled ? (
+                <WalletTopupClient
+                  currency={currency}
+                  paymentMethods={paymentMethods}
+                  offlineBankDetails={offlineBankDetails}
+                  defaultMethod={defaultMethod ?? undefined}
+                  stripeFxPreview={stripeFxPreview ?? undefined}
+                  smsPricing={{
+                    countryCode: activePrice.countryCode,
+                    countryName: activePrice.countryName,
+                    pricePerCredit: activePrice.sellPrice,
+                    currency: activePrice.currency,
+                  }}
+                  pricingOptions={pricingOptions}
+                />
+              ) : (
+                <FeatureInlineNotice
+                  title="Wallet top-up is off"
+                  description="Adding money is turned off right now. You can still use existing balance."
+                />
+              )}
+            </div>
+          </div>
+
+          <div
+            id="wallet-credits"
+            className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm"
+          >
+            <div className="border-b border-border/50 px-4 py-4 sm:px-6">
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                  <Coins className="h-5 w-5" />
+                </span>
+                <div>
+                  <h2 className="text-lg font-semibold tracking-tight">SMS credit packages</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Pick a package or enter a custom amount at your pricing rate.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="px-4 py-5 sm:px-6 sm:py-6">
+              <WalletCreditsPanel
                 currency={currency}
-                paymentMethods={paymentMethods}
-                offlineBankDetails={offlineBankDetails}
-                defaultMethod={defaultMethod ?? undefined}
-                stripeFxPreview={stripeFxPreview ?? undefined}
-                smsPricing={{
-                  countryCode: activePrice.countryCode,
-                  countryName: activePrice.countryName,
-                  pricePerCredit: activePrice.sellPrice,
-                  currency: activePrice.currency,
-                }}
+                walletBalance={walletBalance}
                 pricingOptions={pricingOptions}
+                defaultCountryCode={defaultCountryCode}
               />
-            ) : (
-              <FeatureInlineNotice
-                title="Wallet top-up is off"
-                description="Adding money is turned off right now. You can still use existing balance."
-              />
-            )}
-          </AppCardBody>
-        </AppCard>
+            </div>
+          </div>
+        </div>
 
-        <AppCard>
-          <AppCardBody>
-            <AppCardTitle
-              icon={Coins}
-              title="SMS credit packages"
-              description="Pick a package or enter a custom amount based on your pricing rate"
-              className="mb-2"
-            />
-            <WalletCreditsPanel
-              currency={currency}
-              walletBalance={walletBalance}
-              pricingOptions={pricingOptions}
-              defaultCountryCode={defaultCountryCode}
-            />
-          </AppCardBody>
-        </AppCard>
+        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-border/50 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div>
+              <h2 className="text-sm font-semibold">Recent activity</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Latest wallet and credit movements
+              </p>
+            </div>
+          </div>
+          <div className="px-4 py-4 sm:px-5 sm:py-5">
+            <WalletRecentActivity transactions={transactions} />
+          </div>
+        </div>
       </div>
-
-      <AppCard>
-        <AppCardBody>
-          <AppCardTitle
-            title="Recent activity"
-            description="Your latest wallet and credit movements"
-            className="mb-6"
-          />
-          <WalletRecentActivity transactions={transactions} />
-        </AppCardBody>
-      </AppCard>
     </AppPage>
   );
 }

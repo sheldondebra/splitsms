@@ -4,6 +4,14 @@ import { isGoogleServiceAccountConfigured, getGoogleServiceAccountAccessToken } 
 import { googleFormsServiceAccountEmail } from "@/lib/google/sheet-id";
 import { getGoogleClientCredentials } from "@/lib/auth/google";
 import { getActiveEmailProvider, testEmailConnection } from "@/lib/email";
+import { getPostgresHealth, type PostgresHealth } from "@/lib/admin/postgres-health";
+import { getVercelStatus, type VercelStatus } from "@/lib/admin/vercel-status";
+import {
+  getSystemSyncHistory,
+  type SystemSyncHistoryEntry,
+} from "@/lib/admin/system-sync-history";
+
+export type { VercelStatus } from "@/lib/admin/vercel-status";
 
 async function withTimeout<T>(promise: Promise<T>, ms: number, onTimeout: T): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
@@ -17,20 +25,6 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, onTimeout: T): Pr
   }
 }
 
-export type VercelStatus = {
-  onVercel: boolean;
-  env: string | null;
-  region: string | null;
-  deploymentId: string | null;
-  url: string | null;
-  gitProvider: string | null;
-  gitRepo: string | null;
-  gitBranch: string | null;
-  gitCommitSha: string | null;
-  gitCommitMessage: string | null;
-  gitCommitAuthor: string | null;
-};
-
 export type DatabaseStatus = {
   connected: boolean;
   latencyMs: number | null;
@@ -42,6 +36,8 @@ export type DatabaseStatus = {
     messagesToday: number;
     wallets: number;
   } | null;
+  /** Live Postgres / Supabase health snapshot */
+  health: PostgresHealth;
 };
 
 export type GoogleStatus = {
@@ -71,6 +67,16 @@ export type FileUpload = {
   kind: "sender_id_document";
 };
 
+export type UpdateLogEntry = {
+  id: string;
+  source: "vercel" | "system_sync" | "cron";
+  title: string;
+  detail: string;
+  status: "ok" | "warn" | "danger" | "muted";
+  at: Date;
+  href: string | null;
+};
+
 export type SystemStatus = {
   vercel: VercelStatus;
   database: DatabaseStatus;
@@ -79,39 +85,27 @@ export type SystemStatus = {
   email: EmailStatus;
   fileUploads: FileUpload[];
   fileUploadsTotal: number;
+  syncHistory: SystemSyncHistoryEntry[];
+  updateLogs: UpdateLogEntry[];
   generatedAt: Date;
 };
 
-function getVercelStatus(): VercelStatus {
-  const onVercel = process.env.VERCEL === "1";
-  return {
-    onVercel,
-    env: process.env.VERCEL_ENV ?? null,
-    region: process.env.VERCEL_REGION ?? null,
-    deploymentId: process.env.VERCEL_DEPLOYMENT_ID ?? null,
-    url: process.env.VERCEL_URL ?? null,
-    gitProvider: process.env.VERCEL_GIT_PROVIDER ?? null,
-    gitRepo:
-      process.env.VERCEL_GIT_REPO_OWNER && process.env.VERCEL_GIT_REPO_SLUG
-        ? `${process.env.VERCEL_GIT_REPO_OWNER}/${process.env.VERCEL_GIT_REPO_SLUG}`
-        : null,
-    gitBranch: process.env.VERCEL_GIT_COMMIT_REF ?? null,
-    gitCommitSha: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
-    gitCommitMessage: process.env.VERCEL_GIT_COMMIT_MESSAGE ?? null,
-    gitCommitAuthor: process.env.VERCEL_GIT_COMMIT_AUTHOR_LOGIN ?? null,
-  };
-}
-
 async function getDatabaseStatus(): Promise<DatabaseStatus> {
-  const started = Date.now();
-  try {
-    await withTimeout(prisma.$queryRaw`SELECT 1`, 8_000, null);
-    const latencyMs = Date.now() - started;
+  const health = await getPostgresHealth();
 
-    const [sizeRow, users, messagesTotal, messagesToday, wallets] = await Promise.all([
-      prisma
-        .$queryRaw<{ size: string }[]>`SELECT pg_size_pretty(pg_database_size(current_database())) AS size`
-        .catch(() => null),
+  if (!health.connected) {
+    return {
+      connected: false,
+      latencyMs: health.latencyMs,
+      error: health.error,
+      sizeLabel: health.sizeLabel,
+      counts: null,
+      health,
+    };
+  }
+
+  try {
+    const [users, messagesTotal, messagesToday, wallets] = await Promise.all([
       prisma.user.count(),
       prisma.message.count(),
       prisma.message.count({
@@ -122,18 +116,33 @@ async function getDatabaseStatus(): Promise<DatabaseStatus> {
 
     return {
       connected: true,
-      latencyMs,
+      latencyMs: health.latencyMs,
       error: null,
-      sizeLabel: sizeRow?.[0]?.size ?? null,
+      sizeLabel: health.sizeLabel,
       counts: { users, messagesTotal, messagesToday, wallets },
+      health,
     };
   } catch (error) {
     return {
       connected: false,
-      latencyMs: null,
+      latencyMs: health.latencyMs,
       error: error instanceof Error ? error.message : "Unknown database error",
-      sizeLabel: null,
+      sizeLabel: health.sizeLabel,
       counts: null,
+      health: {
+        ...health,
+        connected: false,
+        error: error instanceof Error ? error.message : "Unknown database error",
+        overall: "down",
+        issues: [
+          ...health.issues,
+          {
+            severity: "danger",
+            code: "app_query_failed",
+            message: error instanceof Error ? error.message : "App query failed",
+          },
+        ],
+      },
     };
   }
 }
@@ -221,23 +230,102 @@ async function getFileUploads(): Promise<{ recent: FileUpload[]; total: number }
   };
 }
 
+function buildUpdateLogs(input: {
+  vercel: VercelStatus;
+  cronJobs: QstashScheduleStatus[];
+  syncHistory: SystemSyncHistoryEntry[];
+}): UpdateLogEntry[] {
+  const logs: UpdateLogEntry[] = [];
+
+  for (const deployment of input.vercel.deployments) {
+    const state = deployment.state.toUpperCase();
+    const status: UpdateLogEntry["status"] =
+      state === "READY" || state === "SUCCESS"
+        ? "ok"
+        : state === "ERROR" || state === "CANCELED"
+          ? "danger"
+          : state === "BUILDING" || state === "QUEUED" || state === "INITIALIZING"
+            ? "warn"
+            : "muted";
+    const sha = deployment.meta.gitCommitSha?.slice(0, 7);
+    const branch = deployment.meta.gitBranch;
+    logs.push({
+      id: `vercel-${deployment.id}`,
+      source: "vercel",
+      title: `Deploy ${state.toLowerCase()}${deployment.target ? ` · ${deployment.target}` : ""}`,
+      detail: [
+        deployment.meta.gitCommitMessage?.slice(0, 120) || deployment.url || deployment.id,
+        [sha, branch].filter(Boolean).join(" · ") || null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      status,
+      at: deployment.readyAt ?? deployment.createdAt,
+      href: deployment.inspectorUrl,
+    });
+  }
+
+  for (const entry of input.syncHistory.slice(0, 12)) {
+    logs.push({
+      id: `sync-${entry.id}`,
+      source: "system_sync",
+      title: entry.ok ? "System sync completed" : "System sync finished with issues",
+      detail: `${entry.actorName} · ${entry.summary.sent} sent · ${entry.summary.failed} failed · ${entry.summary.deliveryRowsUpdated} delivery updates`,
+      status: entry.ok ? "ok" : "warn",
+      at: entry.createdAt,
+      href: "/admin/system-sync",
+    });
+  }
+
+  for (const job of input.cronJobs) {
+    if (!job.lastRunAt) continue;
+    logs.push({
+      id: `cron-${job.destination}`,
+      source: "cron",
+      title: `${job.label} cron`,
+      detail: job.isPaused
+        ? "Paused"
+        : job.lastRunOk === false
+          ? "Last run failed"
+          : job.lastRunOk
+            ? "Last run succeeded"
+            : "Last run recorded",
+      status: job.isPaused
+        ? "warn"
+        : job.lastRunOk === false
+          ? "danger"
+          : job.lastRunOk
+            ? "ok"
+            : "muted",
+      at: job.lastRunAt,
+      href: null,
+    });
+  }
+
+  return logs.sort((a, b) => b.at.getTime() - a.at.getTime()).slice(0, 24);
+}
+
 export async function getSystemStatus(): Promise<SystemStatus> {
-  const [database, google, cronJobs, email, fileUploads] = await Promise.all([
+  const [database, google, cronJobs, email, fileUploads, vercel, syncHistory] = await Promise.all([
     getDatabaseStatus(),
     getGoogleStatus(),
     getQstashScheduleStatuses(),
     getEmailStatus(),
     getFileUploads(),
+    getVercelStatus(),
+    getSystemSyncHistory(12),
   ]);
 
   return {
-    vercel: getVercelStatus(),
+    vercel,
     database,
     google,
     cronJobs,
     email,
     fileUploads: fileUploads.recent,
     fileUploadsTotal: fileUploads.total,
+    syncHistory,
+    updateLogs: buildUpdateLogs({ vercel, cronJobs, syncHistory }),
     generatedAt: new Date(),
   };
 }

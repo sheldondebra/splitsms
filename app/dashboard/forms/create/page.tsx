@@ -22,10 +22,10 @@ export default async function CreateSmartFormPage({
   });
 
   return (
-    <AppPage>
+    <AppPage narrow>
       <PageHeader
         title="Create form"
-        description="Start from a template or blank canvas, then customize in the builder."
+        description="Three quick steps: template, name, then contacts."
         icon={FileText}
       />
 

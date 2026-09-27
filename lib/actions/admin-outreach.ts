@@ -132,7 +132,7 @@ export async function adminSendOutreachAction(formData: FormData) {
     redirect(withReturnParams(returnTo, { error: "outreach_limit" }));
   }
 
-  const { sent, failed } = await sendOutreachToRecipients({
+  const result = await sendOutreachToRecipients({
     recipients,
     templateId,
     sendSms,
@@ -148,8 +148,14 @@ export async function adminSendOutreachAction(formData: FormData) {
   redirect(
     withReturnParams(returnTo, {
       saved: "sent",
-      count: String(sent),
-      failed: failed > 0 ? String(failed) : undefined,
+      count: String(result.sent),
+      failed: result.failed > 0 ? String(result.failed) : undefined,
+      sms: String(result.smsSent),
+      email: String(result.emailSent),
+      smsFail: result.smsFailed > 0 ? String(result.smsFailed) : undefined,
+      emailFail: result.emailFailed > 0 ? String(result.emailFailed) : undefined,
+      noEmail: result.skippedNoEmail > 0 ? String(result.skippedNoEmail) : undefined,
+      detail: result.errors[0] ? result.errors[0].slice(0, 160) : undefined,
     }),
   );
 }

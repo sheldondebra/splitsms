@@ -104,8 +104,8 @@ export default async function ReportsPage({
     <AppPage wide>
       <DeliverySyncPoller active={hasInTransit} />
       <PageHeader
-        title="Delivery reports"
-        description="Detailed delivery analytics, filters, and per-message logs for every SMS you send."
+        title="Message results"
+        description="Delivery analytics, filters, and per-message logs for every SMS you send."
         icon={BarChart3}
         mobileDescription="Charts, filters, and message-level delivery details."
       />

@@ -75,25 +75,31 @@ export default async function AdminSystemSyncPage() {
               </Badge>
             }
           >
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <AdminStatCard
+                embedded
                 label="SMS sent"
                 value={last.summary.sent}
                 hint={`${last.summary.failed} failed · ${last.summary.remaining} remaining`}
                 icon={Send}
               />
               <AdminStatCard
-                label="Delivery reports updated"
+                embedded
+                label="Delivery reports"
                 value={last.summary.deliveryRowsUpdated}
+                hint="Rows updated from carriers"
                 icon={History}
               />
               <AdminStatCard
-                label="Provider balances checked"
+                embedded
+                label="Provider balances"
                 value={last.summary.providerBalancesChecked}
+                hint="Providers checked"
                 icon={Radio}
               />
               <AdminStatCard
-                label="Sender IDs checked"
+                embedded
+                label="Sender IDs"
                 value={last.summary.senderIdsChecked}
                 hint={`${last.summary.senderIdsApproved} approved · ${last.summary.senderIdsPending} pending`}
                 icon={BadgeCheck}

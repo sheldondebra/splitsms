@@ -25,10 +25,26 @@ export type EmailOfficeStored = {
   smtpSecure: boolean;
   smtpUser: string;
   smtpPassword: string;
-  /** Full-width header image URL for transactional emails. Empty = none. */
+  /** Full-width header image URL. Empty = none. */
   headerImageUrl: string;
   /** Place the header image above or below the headline. */
   headerImagePosition: EmailHeaderImagePosition;
+  /** Optional click target for the header image. */
+  headerImageHref: string;
+  /** Short line under the logo (e.g. tagline). */
+  headerTagline: string;
+  /** Custom footer body text. Empty keeps the default footer chrome only. */
+  footerText: string;
+  /** Optional full-width footer image. */
+  footerImageUrl: string;
+  /** Place the footer image above or below the footer text. */
+  footerImagePosition: EmailHeaderImagePosition;
+  /** Optional click target for the footer image. */
+  footerImageHref: string;
+  /** Extra footer link label (paired with footerLinkUrl). */
+  footerLinkLabel: string;
+  /** Extra footer link URL. */
+  footerLinkUrl: string;
   updatedAt?: string;
 };
 
@@ -91,6 +107,14 @@ const envDefaults = (): Omit<EmailOfficeStored, "updatedAt"> => {
       "",
     headerImageUrl: "",
     headerImagePosition: "above",
+    headerImageHref: "",
+    headerTagline: "",
+    footerText: "",
+    footerImageUrl: "",
+    footerImagePosition: "above",
+    footerImageHref: "",
+    footerLinkLabel: "",
+    footerLinkUrl: "",
   };
 };
 
@@ -141,6 +165,36 @@ function normalizeStored(
       stored.headerImagePosition,
       base.headerImagePosition,
     ),
+    headerImageHref:
+      typeof stored.headerImageHref === "string"
+        ? stored.headerImageHref.trim()
+        : base.headerImageHref,
+    headerTagline:
+      typeof stored.headerTagline === "string"
+        ? stored.headerTagline.trim()
+        : base.headerTagline,
+    footerText:
+      typeof stored.footerText === "string" ? stored.footerText.trim() : base.footerText,
+    footerImageUrl:
+      typeof stored.footerImageUrl === "string"
+        ? stored.footerImageUrl.trim()
+        : base.footerImageUrl,
+    footerImagePosition: parseHeaderImagePosition(
+      stored.footerImagePosition,
+      base.footerImagePosition,
+    ),
+    footerImageHref:
+      typeof stored.footerImageHref === "string"
+        ? stored.footerImageHref.trim()
+        : base.footerImageHref,
+    footerLinkLabel:
+      typeof stored.footerLinkLabel === "string"
+        ? stored.footerLinkLabel.trim()
+        : base.footerLinkLabel,
+    footerLinkUrl:
+      typeof stored.footerLinkUrl === "string"
+        ? stored.footerLinkUrl.trim()
+        : base.footerLinkUrl,
     updatedAt: stored.updatedAt,
   };
 }
@@ -202,6 +256,14 @@ export function toPublicEmailOffice(stored: EmailOfficeStored): EmailOfficePubli
     smtpUser: stored.smtpUser,
     headerImageUrl: stored.headerImageUrl,
     headerImagePosition: stored.headerImagePosition,
+    headerImageHref: stored.headerImageHref,
+    headerTagline: stored.headerTagline,
+    footerText: stored.footerText,
+    footerImageUrl: stored.footerImageUrl,
+    footerImagePosition: stored.footerImagePosition,
+    footerImageHref: stored.footerImageHref,
+    footerLinkLabel: stored.footerLinkLabel,
+    footerLinkUrl: stored.footerLinkUrl,
     updatedAt: stored.updatedAt,
     hasApiKey: Boolean(stored.apiKey),
     hasApiSecret: Boolean(stored.apiSecret),
@@ -319,6 +381,36 @@ export async function saveEmailOfficeConfig(
       input.headerImagePosition,
       current.headerImagePosition,
     ),
+    headerImageHref:
+      input.headerImageHref !== undefined
+        ? input.headerImageHref.trim()
+        : current.headerImageHref,
+    headerTagline:
+      input.headerTagline !== undefined
+        ? input.headerTagline.trim()
+        : current.headerTagline,
+    footerText:
+      input.footerText !== undefined ? input.footerText.trim() : current.footerText,
+    footerImageUrl:
+      input.footerImageUrl !== undefined
+        ? input.footerImageUrl.trim()
+        : current.footerImageUrl,
+    footerImagePosition: parseHeaderImagePosition(
+      input.footerImagePosition,
+      current.footerImagePosition,
+    ),
+    footerImageHref:
+      input.footerImageHref !== undefined
+        ? input.footerImageHref.trim()
+        : current.footerImageHref,
+    footerLinkLabel:
+      input.footerLinkLabel !== undefined
+        ? input.footerLinkLabel.trim()
+        : current.footerLinkLabel,
+    footerLinkUrl:
+      input.footerLinkUrl !== undefined
+        ? input.footerLinkUrl.trim()
+        : current.footerLinkUrl,
     updatedAt: new Date().toISOString(),
   };
 

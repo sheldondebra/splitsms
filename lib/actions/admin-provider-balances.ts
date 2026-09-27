@@ -60,7 +60,10 @@ export async function refreshProviderBalanceJsonAction(
     const balance = await fetchSmsProviderBalance(type);
     await recordProviderBalances([balance], "manual");
     revalidateBalancePaths();
-    return { ok: true, balance };
+    return {
+      ok: true,
+      balance: { ...balance, checkedAt: new Date().toISOString() },
+    };
   } catch (e) {
     return {
       ok: false,
@@ -82,11 +85,53 @@ export async function refreshAllProviderBalancesJsonAction(): Promise<
     await recordProviderBalances(balances, "refresh-all");
     void maybeNotifyLowBalanceAlerts().catch(() => undefined);
     revalidateBalancePaths();
-    return { ok: true, balances };
+    const checkedAt = new Date().toISOString();
+    return {
+      ok: true,
+      balances: balances.map((b) => ({ ...b, checkedAt })),
+    };
   } catch (e) {
     return {
       ok: false,
       error: e instanceof Error ? e.message : "Failed to refresh balances",
+    };
+  }
+}
+
+export async function setProviderEnabledJsonAction(
+  type: SmsProviderType,
+  enabled: boolean,
+): Promise<{ ok: true; balance: ProviderSmsBalance } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session || !isAdminRole(session.role)) {
+    return { ok: false, error: "Unauthorized" };
+  }
+  if (!PROVIDER_TYPES.has(type)) {
+    return { ok: false, error: "Unknown provider" };
+  }
+
+  try {
+    if (type === "MNOTIFY") {
+      const { saveMnotifySettings } = await import("@/lib/mnotify-settings");
+      await saveMnotifySettings({ enabled }, session.userId);
+    } else if (type === "TWILIO") {
+      const { saveTwilioSettings } = await import("@/lib/sms/provider-credentials");
+      await saveTwilioSettings({ enabled }, session.userId);
+    } else if (type === "INFOBIP") {
+      const { saveInfobipSettings } = await import("@/lib/sms/provider-credentials");
+      await saveInfobipSettings({ enabled }, session.userId);
+    } else {
+      const { saveEasySendSmsSettings } = await import("@/lib/sms/provider-credentials");
+      await saveEasySendSmsSettings({ enabled }, session.userId);
+    }
+
+    const balance = await fetchSmsProviderBalance(type);
+    revalidateBalancePaths();
+    return { ok: true, balance };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to update provider",
     };
   }
 }

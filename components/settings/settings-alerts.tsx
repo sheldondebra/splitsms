@@ -5,6 +5,10 @@ const MESSAGES: Record<string, { text: string; variant: "success" | "error" }> =
   profile_saved: { text: "Profile updated successfully.", variant: "success" },
   password_changed: { text: "Your password was updated.", variant: "success" },
   password_updated: { text: "Password reset complete. You can keep using the app.", variant: "success" },
+  reset_email_sent: {
+    text: "Password reset link sent. Check your email inbox (and spam).",
+    variant: "success",
+  },
   webhook_saved: { text: "Delivery notification URL saved.", variant: "success" },
   webhook_cleared: { text: "Webhook URL removed.", variant: "success" },
   profile: { text: "Please check your name and try again.", variant: "error" },
@@ -18,6 +22,22 @@ const MESSAGES: Record<string, { text: string; variant: "success" | "error" }> =
   webhook_url: { text: "Enter a valid https URL for webhooks.", variant: "error" },
   rate_limit: { text: "Too many attempts. Please wait a few minutes.", variant: "error" },
   cooldown: { text: "Please wait before requesting another SMS code.", variant: "error" },
+  reset_no_email: {
+    text: "Add an email on your profile before resetting via email.",
+    variant: "error",
+  },
+  reset_email_config: {
+    text: "Email is not configured right now. Try Reset via SMS, or contact support.",
+    variant: "error",
+  },
+  reset_email_failed: {
+    text: "Could not send the reset email. Try again or use Reset via SMS.",
+    variant: "error",
+  },
+  feature: {
+    text: "Password reset is turned off right now. Contact support if you need help.",
+    variant: "error",
+  },
 };
 
 type SettingsAlertsProps = {
@@ -38,8 +58,14 @@ export function SettingsAlerts({
   const codes: string[] = [];
 
   if (profile === "saved") codes.push("profile_saved");
-  if (password === "changed" || password === "updated") {
-    codes.push(password === "updated" ? "password_updated" : "password_changed");
+  if (password === "changed" || password === "updated" || password === "reset_email_sent") {
+    codes.push(
+      password === "updated"
+        ? "password_updated"
+        : password === "reset_email_sent"
+          ? "reset_email_sent"
+          : "password_changed",
+    );
   }
   if (webhook === "saved") codes.push("webhook_saved");
   if (webhook === "cleared") codes.push("webhook_cleared");

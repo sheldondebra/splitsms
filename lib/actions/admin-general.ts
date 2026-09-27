@@ -82,6 +82,17 @@ export async function saveEmailOfficeConfigAction(formData: FormData) {
         String(formData.get("headerImagePosition") ?? "above").trim() === "below"
           ? "below"
           : "above",
+      headerImageHref: String(formData.get("headerImageHref") ?? "").trim(),
+      headerTagline: String(formData.get("headerTagline") ?? "").trim(),
+      footerText: String(formData.get("footerText") ?? "").trim(),
+      footerImageUrl: String(formData.get("footerImageUrl") ?? "").trim(),
+      footerImagePosition:
+        String(formData.get("footerImagePosition") ?? "above").trim() === "below"
+          ? "below"
+          : "above",
+      footerImageHref: String(formData.get("footerImageHref") ?? "").trim(),
+      footerLinkLabel: String(formData.get("footerLinkLabel") ?? "").trim(),
+      footerLinkUrl: String(formData.get("footerLinkUrl") ?? "").trim(),
     },
     session.userId,
   );
@@ -143,7 +154,11 @@ export async function testEmailConnectionAction() {
   });
 
   revalidateGeneral();
-  redirect(`/admin/general?test=connection&result=${result.ok ? "ok" : "fail"}`);
+  if (result.ok) {
+    redirect("/admin/general?test=connection&result=ok");
+  }
+  const detail = encodeURIComponent((result.error ?? "Connection failed").slice(0, 160));
+  redirect(`/admin/general?test=connection&result=fail&detail=${detail}`);
 }
 
 /** @deprecated Use testEmailConnectionAction */
@@ -205,6 +220,7 @@ export async function saveSlackOfficeConfigAction(formData: FormData) {
       notifyUserRegistration: formData.get("notifyUserRegistration") === "on",
       notifyUserLogin: formData.get("notifyUserLogin") === "on",
       notifyAuthFailures: formData.get("notifyAuthFailures") === "on",
+      notifyBlockedIpLogin: formData.get("notifyBlockedIpLogin") === "on",
       notifySenderIdRequests: formData.get("notifySenderIdRequests") === "on",
       notifyOfflinePayments: formData.get("notifyOfflinePayments") === "on",
       notifyOnlinePayments: formData.get("notifyOnlinePayments") === "on",

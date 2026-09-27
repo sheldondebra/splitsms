@@ -3,7 +3,6 @@ import {
   AdminAlert,
   AdminCard,
   AdminEmpty,
-  AdminStatCard,
 } from "@/components/admin/admin-page-shell";
 import {
   SaveCreditCoverThresholdButton,
@@ -18,17 +17,18 @@ import { isCreditCoverAlertable, type CreditCoverStatus } from "@/lib/admin/cred
 import type { CreditCoverDashboard } from "@/lib/admin/credit-cover-dashboard";
 import { cn } from "@/lib/utils";
 import {
+  BellRing,
   Cloud,
   Globe,
   History,
   Layers3,
   Mail,
-  MessageSquare,
   Radio,
   RefreshCw,
   Scale,
   Users,
   Wallet,
+  Trophy,
 } from "lucide-react";
 
 function formatCredits(n: number) {
@@ -39,6 +39,41 @@ function holderHref(role: string, userId: string) {
   if (role === "RESELLER") return `/admin/resellers/${userId}`;
   if (role === "ENTERPRISE") return `/admin/enterprise`;
   return `/admin/members/${userId}`;
+}
+
+function roleLabel(role: string) {
+  if (role === "RESELLER") return "Reseller";
+  if (role === "ENTERPRISE") return "Enterprise";
+  return "Member";
+}
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+  return `${parts[0]![0] ?? ""}${parts[parts.length - 1]![0] ?? ""}`.toUpperCase();
+}
+
+function RankMark({ rank }: { rank: number }) {
+  if (rank <= 3) {
+    return (
+      <span
+        className={cn(
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold tabular-nums ring-1",
+          rank === 1 && "bg-amber-500/15 text-amber-800 ring-amber-500/25 dark:text-amber-200",
+          rank === 2 && "bg-slate-400/15 text-slate-700 ring-slate-400/25 dark:text-slate-200",
+          rank === 3 && "bg-orange-500/12 text-orange-800 ring-orange-500/20 dark:text-orange-200",
+        )}
+      >
+        {rank}
+      </span>
+    );
+  }
+  return (
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/50 text-xs font-semibold tabular-nums text-muted-foreground ring-1 ring-border/60">
+      {rank}
+    </span>
+  );
 }
 
 function statusCopy(status: CreditCoverStatus) {
@@ -52,35 +87,6 @@ function statusCopy(status: CreditCoverStatus) {
     return "Could not read mNotify stock. Refresh balances, then check again.";
   }
   return "Provider stock covers member credits and sits above your threshold.";
-}
-
-function CoverMeter({
-  label,
-  value,
-  pct,
-  barClass,
-  trackClass,
-}: {
-  label: string;
-  value: string;
-  pct: number;
-  barClass: string;
-  trackClass?: string;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-sm font-medium">{label}</span>
-        <span className="text-sm font-semibold tabular-nums">{value}</span>
-      </div>
-      <div className={cn("h-2 overflow-hidden rounded-full bg-muted", trackClass)}>
-        <div
-          className={cn("h-full rounded-full", barClass)}
-          style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
-        />
-      </div>
-    </div>
-  );
 }
 
 export function AdminCreditCoverView({
@@ -99,10 +105,20 @@ export function AdminCreditCoverView({
       : data.cover >= 0
         ? `${formatCredits(data.cover)} surplus`
         : `${formatCredits(Math.abs(data.cover))} short`;
+  const topHoldersTotal = data.topHolders.reduce((sum, row) => sum + row.credits, 0);
+  const topHoldersLeader = data.topHolders[0]?.credits || 1;
+  const topHoldersShareOfSold =
+    data.memberCredits > 0
+      ? Math.round((topHoldersTotal / data.memberCredits) * 1000) / 10
+      : null;
   const scale = Math.max(data.memberCredits, data.providerCredits ?? 0, 1);
   const memberPct = Math.min(100, (data.memberCredits / scale) * 100);
   const providerPct =
     data.providerCredits == null ? 0 : Math.min(100, (data.providerCredits / scale) * 100);
+  const thresholdHeadroom =
+    data.providerCredits == null ? null : data.providerCredits - data.threshold;
+  const stockBelowThreshold =
+    data.providerCredits != null && data.providerCredits < data.threshold;
 
   return (
     <div className="space-y-6">
@@ -120,51 +136,230 @@ export function AdminCreditCoverView({
         </AdminAlert>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <AdminStatCard
-          label="Member SMS credits"
-          value={formatCredits(data.memberCredits)}
-          hint="Credits held by members, resellers, and enterprise"
-          icon={Users}
-          variant="primary"
-        />
-        <AdminStatCard
-          label="Provider SMS stock"
-          value={data.providerCredits == null ? "—" : formatCredits(data.providerCredits)}
-          hint={data.mnotify?.display ?? "mNotify main balance"}
-          icon={MessageSquare}
-          variant={data.status === "unknown" ? "warning" : "default"}
-          href="/admin/providers"
-        />
-        <AdminStatCard
-          label="Cover"
-          value={coverLabel}
-          hint="Provider stock minus member credits"
-          icon={Scale}
-          variant={
-            data.status === "underwater"
-              ? "danger"
+      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-border/50 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="flex items-start gap-3">
+            <span
+              className={cn(
+                "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1",
+                data.status === "ok" &&
+                  "bg-emerald-500/12 text-emerald-700 ring-emerald-500/20 dark:text-emerald-300",
+                data.status === "low" &&
+                  "bg-amber-500/12 text-amber-800 ring-amber-500/20 dark:text-amber-200",
+                (data.status === "underwater" || data.status === "unknown") &&
+                  "bg-destructive/12 text-destructive ring-destructive/20",
+              )}
+            >
+              <Scale className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold">
+                {data.status === "ok"
+                  ? "Cover is healthy"
+                  : data.status === "low"
+                    ? "Stock is below alert threshold"
+                    : data.status === "underwater"
+                      ? "Cover is underwater"
+                      : "Provider stock unknown"}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{statusCopy(data.status)}</p>
+            </div>
+          </div>
+          <Badge
+            variant="outline"
+            className={cn(
+              "w-fit shrink-0 gap-1 text-[10px] font-semibold",
+              data.status === "ok" &&
+                "border-emerald-500/40 text-emerald-700 dark:text-emerald-300",
+              data.status === "low" &&
+                "border-amber-500/40 text-amber-800 dark:text-amber-200",
+              (data.status === "underwater" || data.status === "unknown") &&
+                "border-destructive/40 text-destructive",
+            )}
+          >
+            {data.status === "underwater"
+              ? "Underwater"
               : data.status === "low"
-                ? "warning"
-                : "default"
-          }
-        />
-        <AdminStatCard
-          label="Alert threshold"
-          value={formatCredits(data.threshold)}
-          hint="Warn when provider stock falls below this"
-          icon={Wallet}
-        />
+                ? "Low stock"
+                : data.status === "unknown"
+                  ? "Unknown"
+                  : "Covered"}
+          </Badge>
+        </div>
+
+        <div className="grid sm:grid-cols-2 xl:grid-cols-4">
+          <div className="border-b border-border/50 p-4 sm:border-r xl:border-b-0">
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
+                <Users className="h-3.5 w-3.5" />
+              </span>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Sold credits
+              </p>
+            </div>
+            <p className="mt-3 text-2xl font-bold tabular-nums tracking-tight text-primary">
+              {formatCredits(data.memberCredits)}
+            </p>
+            <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${memberPct}%` }}
+              />
+            </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Members · resellers · enterprise
+            </p>
+          </div>
+
+          <Link
+            href="/admin/providers"
+            className={cn(
+              "border-b border-border/50 p-4 transition-colors hover:bg-muted/30 xl:border-b-0 xl:border-r",
+              data.status === "unknown" && "bg-amber-500/[0.04]",
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-lg ring-1",
+                  data.status === "unknown"
+                    ? "bg-amber-500/12 text-amber-800 ring-amber-500/20 dark:text-amber-200"
+                    : "bg-emerald-500/12 text-emerald-700 ring-emerald-500/20 dark:text-emerald-300",
+                )}
+              >
+                <Radio className="h-3.5 w-3.5" />
+              </span>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Provider stock
+              </p>
+            </div>
+            <p
+              className={cn(
+                "mt-3 text-2xl font-bold tabular-nums tracking-tight",
+                data.status === "unknown"
+                  ? "text-amber-800 dark:text-amber-200"
+                  : "text-emerald-700 dark:text-emerald-300",
+              )}
+            >
+              {data.providerCredits == null ? "—" : formatCredits(data.providerCredits)}
+            </p>
+            <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className={cn(
+                  "h-full rounded-full",
+                  data.status === "unknown" ? "bg-amber-500" : "bg-emerald-600",
+                )}
+                style={{ width: `${providerPct}%` }}
+              />
+            </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              {data.mnotify?.display ?? "mNotify main balance"}
+            </p>
+          </Link>
+
+          <div
+            className={cn(
+              "border-b border-border/50 p-4 sm:border-r sm:border-b-0",
+              data.status === "underwater" && "bg-destructive/[0.04]",
+              data.status === "low" && "bg-amber-500/[0.04]",
+              data.status === "ok" && "bg-emerald-500/[0.03]",
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-lg ring-1",
+                  data.status === "underwater" &&
+                    "bg-destructive/12 text-destructive ring-destructive/20",
+                  data.status === "low" &&
+                    "bg-amber-500/12 text-amber-800 ring-amber-500/20 dark:text-amber-200",
+                  data.status === "ok" &&
+                    "bg-emerald-500/12 text-emerald-700 ring-emerald-500/20 dark:text-emerald-300",
+                  data.status === "unknown" &&
+                    "bg-muted text-muted-foreground ring-border/60",
+                )}
+              >
+                <Scale className="h-3.5 w-3.5" />
+              </span>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Cover
+              </p>
+            </div>
+            <p
+              className={cn(
+                "mt-3 text-2xl font-bold tabular-nums tracking-tight",
+                data.cover != null && data.cover < 0 && "text-destructive",
+                data.status === "ok" && "text-emerald-700 dark:text-emerald-300",
+                data.status === "low" && "text-amber-800 dark:text-amber-200",
+              )}
+            >
+              {coverLabel}
+            </p>
+            <p className="mt-2.5 text-[11px] text-muted-foreground">
+              {data.cover == null
+                ? "Stock minus sold credits"
+                : data.cover >= 0
+                  ? "Provider stock exceeds sold credits"
+                  : "Sold credits exceed provider stock"}
+            </p>
+          </div>
+
+          <div
+            className={cn(
+              "p-4",
+              stockBelowThreshold && "bg-amber-500/[0.04]",
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-lg ring-1",
+                  stockBelowThreshold
+                    ? "bg-amber-500/12 text-amber-800 ring-amber-500/20 dark:text-amber-200"
+                    : "bg-muted text-muted-foreground ring-border/60",
+                )}
+              >
+                <BellRing className="h-3.5 w-3.5" />
+              </span>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Alert line
+              </p>
+            </div>
+            <p
+              className={cn(
+                "mt-3 text-2xl font-bold tabular-nums tracking-tight",
+                stockBelowThreshold && "text-amber-800 dark:text-amber-200",
+              )}
+            >
+              {formatCredits(data.threshold)}
+            </p>
+            <p className="mt-2.5 text-[11px] text-muted-foreground">
+              {data.threshold === 0
+                ? "Threshold off — set a value to arm alerts"
+                : thresholdHeadroom == null
+                  ? "Warn when stock falls below this"
+                  : stockBelowThreshold
+                    ? `${formatCredits(Math.abs(thresholdHeadroom))} under the alert line`
+                    : `${formatCredits(thresholdHeadroom)} headroom above alert`}
+            </p>
+          </div>
+        </div>
       </div>
 
       <AdminCard
         title="Member credits vs provider stock"
+        description="How sold credits sit against mNotify stock — and who holds them."
         actions={
           <Badge
-            variant={alertable ? "destructive" : "secondary"}
+            variant="outline"
             className={cn(
-              "shrink-0",
-              data.status === "ok" && "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
+              "shrink-0 gap-1 text-[10px] font-semibold",
+              data.status === "ok" &&
+                "border-emerald-500/40 text-emerald-700 dark:text-emerald-300",
+              data.status === "low" &&
+                "border-amber-500/40 text-amber-800 dark:text-amber-200",
+              (data.status === "underwater" || data.status === "unknown") &&
+                "border-destructive/40 text-destructive",
             )}
           >
             {data.status === "underwater"
@@ -177,109 +372,386 @@ export function AdminCreditCoverView({
           </Badge>
         }
       >
-        <div className="space-y-5">
-          {data.status !== "ok" && (
-            <p
-              className={cn(
-                "rounded-lg border px-3 py-2 text-sm",
-                data.status === "unknown"
-                  ? "border-amber-500/30 bg-amber-500/8 text-amber-800 dark:text-amber-200"
-                  : "border-destructive/25 bg-destructive/5 text-destructive",
-              )}
-            >
-              {statusCopy(data.status)}
-              {data.cover != null && data.cover < 0 ? (
-                <span className="font-semibold"> {formatCredits(Math.abs(data.cover))} credits short.</span>
-              ) : null}
-            </p>
-          )}
-
-          <div className="space-y-4">
-            <CoverMeter
-              label="Sold to accounts"
-              value={formatCredits(data.memberCredits)}
-              pct={memberPct}
-              barClass="bg-primary"
-            />
-            <CoverMeter
-              label="mNotify stock"
-              value={data.providerCredits == null ? "—" : formatCredits(data.providerCredits)}
-              pct={providerPct}
-              barClass={alertable ? "bg-red-600" : "bg-emerald-600"}
-              trackClass={data.status === "underwater" ? "bg-red-600/15" : undefined}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 divide-y divide-border/60 rounded-lg border border-border/60 bg-muted/10 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-            {(
-              [
-                ["Members", data.buckets.members],
-                ["Resellers", data.buckets.resellers],
-                ["Enterprise", data.buckets.enterprise],
-              ] as const
-            ).map(([label, bucket]) => (
-              <div key={label} className="px-4 py-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {label}
+        <div className="space-y-4">
+          <div
+            className={cn(
+              "flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between",
+              data.status === "ok" && "border-emerald-500/25 bg-emerald-500/[0.04]",
+              data.status === "low" && "border-amber-500/30 bg-amber-500/[0.05]",
+              (data.status === "underwater" || data.status === "unknown") &&
+                "border-destructive/30 bg-destructive/[0.05]",
+            )}
+          >
+            <div className="flex items-start gap-3">
+              <span
+                className={cn(
+                  "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1",
+                  data.status === "ok" &&
+                    "bg-emerald-500/12 text-emerald-700 ring-emerald-500/20 dark:text-emerald-300",
+                  data.status === "low" &&
+                    "bg-amber-500/12 text-amber-800 ring-amber-500/20 dark:text-amber-200",
+                  (data.status === "underwater" || data.status === "unknown") &&
+                    "bg-destructive/12 text-destructive ring-destructive/20",
+                )}
+              >
+                <Scale className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold">
+                  {data.status === "ok"
+                    ? "Stock covers sold credits"
+                    : data.status === "low"
+                      ? "Stock is below your alert threshold"
+                      : data.status === "underwater"
+                        ? "Members hold more than provider stock"
+                        : "Provider stock could not be read"}
                 </p>
-                <p className="mt-1 text-base font-bold tabular-nums">
-                  {formatCredits(bucket.credits)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {bucket.accounts.toLocaleString()} account{bucket.accounts === 1 ? "" : "s"}
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {statusCopy(data.status)}
+                  {data.cover != null && data.cover < 0 ? (
+                    <span className="font-semibold text-destructive">
+                      {" "}
+                      {formatCredits(Math.abs(data.cover))} credits short.
+                    </span>
+                  ) : null}
                 </p>
               </div>
-            ))}
+            </div>
+            <div className="sm:text-right">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Cover
+              </p>
+              <p
+                className={cn(
+                  "text-lg font-bold tabular-nums tracking-tight",
+                  data.cover != null && data.cover < 0 && "text-destructive",
+                  data.status === "ok" && "text-emerald-700 dark:text-emerald-300",
+                )}
+              >
+                {coverLabel}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="overflow-hidden rounded-xl border border-primary/20 bg-primary/[0.04]">
+              <div className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
+                    <Users className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold">Sold to accounts</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Members · resellers · enterprise
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-3 px-4 py-3.5">
+                <p className="text-2xl font-bold tabular-nums tracking-tight text-primary">
+                  {formatCredits(data.memberCredits)}
+                </p>
+                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{ width: `${memberPct}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {Math.round(memberPct)}% of the larger side in this comparison
+                </p>
+              </div>
+            </div>
+
+            <div
+              className={cn(
+                "overflow-hidden rounded-xl border",
+                alertable
+                  ? "border-destructive/25 bg-destructive/[0.04]"
+                  : "border-emerald-500/25 bg-emerald-500/[0.04]",
+              )}
+            >
+              <div className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className={cn(
+                      "flex h-9 w-9 items-center justify-center rounded-lg ring-1",
+                      alertable
+                        ? "bg-destructive/12 text-destructive ring-destructive/20"
+                        : "bg-emerald-500/12 text-emerald-700 ring-emerald-500/20 dark:text-emerald-300",
+                    )}
+                  >
+                    <Radio className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold">mNotify stock</p>
+                    <p className="text-[11px] text-muted-foreground">Upstream SMS credits</p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-3 px-4 py-3.5">
+                <p
+                  className={cn(
+                    "text-2xl font-bold tabular-nums tracking-tight",
+                    alertable && "text-destructive",
+                    !alertable && data.providerCredits != null && "text-emerald-700 dark:text-emerald-300",
+                  )}
+                >
+                  {data.providerCredits == null ? "—" : formatCredits(data.providerCredits)}
+                </p>
+                <div
+                  className={cn(
+                    "h-2 overflow-hidden rounded-full bg-muted",
+                    data.status === "underwater" && "bg-destructive/15",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "h-full rounded-full",
+                      alertable ? "bg-destructive" : "bg-emerald-600",
+                    )}
+                    style={{ width: `${providerPct}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {data.providerCredits == null
+                    ? "Refresh balances to read stock"
+                    : `${Math.round(providerPct)}% of the larger side in this comparison`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-2.5 sm:grid-cols-3">
+            {(
+              [
+                ["Members", data.buckets.members, Users],
+                ["Resellers", data.buckets.resellers, Layers3],
+                ["Enterprise", data.buckets.enterprise, Wallet],
+              ] as const
+            ).map(([label, bucket, Icon]) => {
+              const sharePct =
+                data.memberCredits > 0
+                  ? Math.round((bucket.credits / data.memberCredits) * 1000) / 10
+                  : 0;
+              return (
+                <div
+                  key={label}
+                  className="rounded-xl border border-border/60 bg-muted/15 px-3.5 py-3"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {label}
+                      </p>
+                    </div>
+                    <span className="text-[10px] tabular-nums text-muted-foreground">
+                      {sharePct}%
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xl font-bold tabular-nums tracking-tight">
+                    {formatCredits(bucket.credits)}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {bucket.accounts.toLocaleString()}{" "}
+                    {bucket.accounts === 1 ? "account" : "accounts"}
+                  </p>
+                  <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary/70"
+                      style={{ width: `${Math.min(100, sharePct)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </AdminCard>
 
-      <div className="rounded-2xl border border-border/60 bg-card px-5 py-4 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold">Low-balance threshold</p>
-            <p className="text-xs text-muted-foreground">
-              Alert admins when mNotify stock falls below this.
-            </p>
+      <AdminCard
+        title="Low-balance threshold"
+        description="Alert admins when mNotify stock falls below this level."
+        actions={
+          <Badge
+            variant="outline"
+            className={cn(
+              "shrink-0 gap-1 text-[10px] font-semibold",
+              data.status === "low" || data.status === "underwater"
+                ? "border-amber-500/40 text-amber-800 dark:text-amber-200"
+                : "border-emerald-500/40 text-emerald-700 dark:text-emerald-300",
+            )}
+          >
+            {data.status === "low" || data.status === "underwater"
+              ? "Alert armed"
+              : "Watching"}
+          </Badge>
+        }
+      >
+        <div className="space-y-4">
+          <div
+            className={cn(
+              "flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between",
+              stockBelowThreshold
+                ? "border-amber-500/30 bg-amber-500/[0.05]"
+                : data.providerCredits == null
+                  ? "border-border/60 bg-muted/20"
+                  : "border-emerald-500/25 bg-emerald-500/[0.04]",
+            )}
+          >
+            <div className="flex items-start gap-3">
+              <span
+                className={cn(
+                  "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1",
+                  stockBelowThreshold
+                    ? "bg-amber-500/12 text-amber-800 ring-amber-500/20 dark:text-amber-200"
+                    : data.providerCredits == null
+                      ? "bg-muted text-muted-foreground ring-border/60"
+                      : "bg-emerald-500/12 text-emerald-700 ring-emerald-500/20 dark:text-emerald-300",
+                )}
+              >
+                <BellRing className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold">
+                  {data.providerCredits == null
+                    ? "Stock unavailable"
+                    : stockBelowThreshold
+                      ? "Stock is below threshold"
+                      : data.threshold === 0
+                        ? "Threshold is off (0)"
+                        : "Stock is above threshold"}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {data.providerCredits == null
+                    ? "Refresh balances to compare stock against this alert level."
+                    : stockBelowThreshold
+                      ? `${formatCredits(Math.abs(thresholdHeadroom ?? 0))} credits under the alert line.`
+                      : data.threshold === 0
+                        ? "Set a value above 0 to start low-balance alerts."
+                        : `${formatCredits(thresholdHeadroom ?? 0)} credits of headroom before alerts fire.`}
+                </p>
+              </div>
+            </div>
+            <div className="sm:text-right">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Current stock
+              </p>
+              <p
+                className={cn(
+                  "text-lg font-bold tabular-nums tracking-tight",
+                  stockBelowThreshold && "text-amber-800 dark:text-amber-200",
+                  !stockBelowThreshold &&
+                    data.providerCredits != null &&
+                    "text-emerald-700 dark:text-emerald-300",
+                )}
+              >
+                {data.providerCredits == null
+                  ? "—"
+                  : formatCredits(data.providerCredits)}
+              </p>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <form action={saveCreditCoverThresholdAction} className="flex items-center gap-2">
-              <div className="relative">
-                <Input
-                  id="credit-cover-threshold"
-                  name="credits"
-                  type="number"
-                  min={0}
-                  step={1}
-                  required
-                  aria-label="Low-balance threshold in credits"
-                  defaultValue={data.threshold}
-                  className="h-9 w-36 pr-16 text-right tabular-nums"
-                />
-                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
-                  credits
-                </span>
+          <div className="grid gap-3 lg:grid-cols-[1.2fr_1fr]">
+            <form
+              action={saveCreditCoverThresholdAction}
+              className="overflow-hidden rounded-xl border border-border/60 bg-muted/10"
+            >
+              <div className="border-b border-border/50 px-4 py-3">
+                <p className="text-sm font-semibold">Alert when stock falls below</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Saved value is compared against mNotify SMS credits.
+                </p>
               </div>
-              <SaveCreditCoverThresholdButton />
+              <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-end">
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <label
+                    htmlFor="credit-cover-threshold"
+                    className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                  >
+                    Threshold
+                  </label>
+                  <div className="relative">
+                    <Input
+                      id="credit-cover-threshold"
+                      name="credits"
+                      type="number"
+                      min={0}
+                      step={1}
+                      required
+                      aria-label="Low-balance threshold in credits"
+                      defaultValue={data.threshold}
+                      className="h-11 pr-16 text-lg font-semibold tabular-nums"
+                    />
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                      credits
+                    </span>
+                  </div>
+                </div>
+                <SaveCreditCoverThresholdButton />
+              </div>
             </form>
 
+            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-1">
+              <div className="rounded-xl border border-border/60 bg-muted/15 px-3.5 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Threshold
+                </p>
+                <p className="mt-1.5 text-xl font-bold tabular-nums tracking-tight">
+                  {formatCredits(data.threshold)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Credits that trigger the alert
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-muted/15 px-3.5 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Headroom
+                </p>
+                <p
+                  className={cn(
+                    "mt-1.5 text-xl font-bold tabular-nums tracking-tight",
+                    stockBelowThreshold && "text-amber-800 dark:text-amber-200",
+                  )}
+                >
+                  {thresholdHeadroom == null
+                    ? "—"
+                    : stockBelowThreshold
+                      ? `−${formatCredits(Math.abs(thresholdHeadroom))}`
+                      : formatCredits(thresholdHeadroom)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Stock minus threshold
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 border-t border-border/50 pt-3">
             {alertable ? (
               <form action={sendCreditCoverAlertAction}>
                 <SendCreditCoverAlertButton />
               </form>
             ) : null}
-
             <Link
               href="/admin/general?tab=alerts"
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-9 gap-1.5")}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "h-9 gap-1.5",
+              )}
             >
               <Mail className="h-3.5 w-3.5" />
-              Contacts
+              Alert contacts
             </Link>
+            <p className="text-[11px] text-muted-foreground sm:ml-auto">
+              Email, Slack, and SMS to office alert contacts.
+            </p>
           </div>
         </div>
-      </div>
+      </AdminCard>
 
       <AdminCard
         title="Other provider wallets"
@@ -356,61 +828,102 @@ export function AdminCreditCoverView({
         {data.topHolders.length === 0 ? (
           <AdminEmpty>No credit balances yet.</AdminEmpty>
         ) : (
-          <div className="max-h-[22rem] overflow-auto -mx-5 -mb-5">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-card">
-                <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-                  <th className="w-10 px-5 py-2 font-semibold">#</th>
-                  <th className="px-3 py-2 font-semibold">Account</th>
-                  <th className="px-3 py-2 font-semibold">Role</th>
-                  <th className="w-32 px-3 py-2 font-semibold">Share</th>
-                  <th className="px-5 py-2 text-right font-semibold">Credits</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.topHolders.map((row, index) => {
-                  const maxHold = data.topHolders[0]?.credits || 1;
-                  const barPct = Math.min(100, (row.credits / maxHold) * 100);
-                  return (
-                    <tr
-                      key={row.userId}
-                      className="border-b border-border/40 last:border-0 hover:bg-muted/30"
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-muted/15 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
+                  <Trophy className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold">
+                    {formatCredits(topHoldersTotal)} credits in this list
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {topHoldersShareOfSold != null
+                      ? `${topHoldersShareOfSold}% of all sold credits · ranked vs the top holder`
+                      : "Ranked by wallet balance"}
+                  </p>
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground sm:shrink-0">
+                Leader holds{" "}
+                <span className="font-semibold tabular-nums text-foreground">
+                  {formatCredits(topHoldersLeader)}
+                </span>
+              </p>
+            </div>
+
+            <ul className="space-y-2">
+              {data.topHolders.map((row, index) => {
+                const rank = index + 1;
+                const barPct = Math.min(100, (row.credits / topHoldersLeader) * 100);
+                const shareOfSold =
+                  data.memberCredits > 0
+                    ? Math.round((row.credits / data.memberCredits) * 1000) / 10
+                    : null;
+
+                return (
+                  <li key={row.userId}>
+                    <Link
+                      href={holderHref(row.role, row.userId)}
+                      className={cn(
+                        "group flex flex-col gap-3 rounded-xl border px-3.5 py-3 transition-colors hover:border-primary/30 hover:bg-muted/25 sm:flex-row sm:items-center",
+                        rank === 1
+                          ? "border-amber-500/25 bg-amber-500/[0.04]"
+                          : "border-border/60 bg-card",
+                      )}
                     >
-                      <td className="px-5 py-2 text-xs tabular-nums text-muted-foreground">
-                        {index + 1}
-                      </td>
-                      <td className="px-3 py-2 min-w-0">
-                        <Link
-                          href={holderHref(row.role, row.userId)}
-                          className="font-medium hover:underline truncate block"
-                        >
-                          {row.fullName}
-                        </Link>
-                        <p className="font-mono text-[11px] text-muted-foreground">{row.phone}</p>
-                      </td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
-                        {row.role === "MEMBER"
-                          ? "Member"
-                          : row.role === "RESELLER"
-                            ? "Reseller"
-                            : "Enterprise"}
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full rounded-full bg-primary/80"
-                            style={{ width: `${barPct}%` }}
-                          />
+                      <div className="flex min-w-0 flex-1 items-center gap-3">
+                        <RankMark rank={rank} />
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-[11px] font-semibold tracking-wide text-muted-foreground ring-1 ring-border/60">
+                          {initials(row.fullName)}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <p className="truncate text-sm font-semibold group-hover:underline">
+                              {row.fullName}
+                            </p>
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] font-semibold text-muted-foreground"
+                            >
+                              {roleLabel(row.role)}
+                            </Badge>
+                          </div>
+                          <p className="font-mono text-[11px] text-muted-foreground">
+                            {row.phone}
+                          </p>
                         </div>
-                      </td>
-                      <td className="px-5 py-2 text-right font-semibold tabular-nums whitespace-nowrap">
-                        {formatCredits(row.credits)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </div>
+
+                      <div className="flex w-full items-center gap-3 sm:w-[min(100%,18rem)] sm:shrink-0">
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                            <span>Share of leader</span>
+                            <span className="tabular-nums font-medium">
+                              {Math.round(barPct)}%
+                              {shareOfSold != null ? ` · ${shareOfSold}% sold` : ""}
+                            </span>
+                          </div>
+                          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                            <div
+                              className={cn(
+                                "h-full rounded-full",
+                                rank === 1 ? "bg-amber-500/80" : "bg-primary/80",
+                              )}
+                              style={{ width: `${barPct}%` }}
+                            />
+                          </div>
+                        </div>
+                        <p className="w-[4.5rem] shrink-0 text-right text-base font-bold tabular-nums tracking-tight">
+                          {formatCredits(row.credits)}
+                        </p>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
       </AdminCard>

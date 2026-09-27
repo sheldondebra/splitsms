@@ -100,29 +100,53 @@ export async function importContactsSelectedAction(formData: FormData) {
 }
 
 export async function createContactAction(formData: FormData) {
-  const userId = await requireUserId();
-  const phone = normalizePhones(String(formData.get("phone") ?? ""))[0];
-  if (!phone) redirect("/dashboard/contacts?error=phone");
-
-  const existing = await prisma.contact.findUnique({
-    where: { userId_phone: { userId, phone } },
-  });
-  const countryCode = detectCountryCode(phone);
-  const name = String(formData.get("name") ?? "") || undefined;
-  const email = String(formData.get("email") ?? "") || undefined;
-  const tags = String(formData.get("tags") ?? "") || undefined;
-
-  await prisma.contact.upsert({
-    where: { userId_phone: { userId, phone } },
-    update: { name, email, tags, countryCode },
-    create: { userId, phone, name, email, tags, countryCode },
-  });
-
-  if (!existing) {
-    void runContactSignupAutomations(userId, { phone, name, email, countryCode });
+  const result = await createContactSyncAction(formData);
+  if (!result.ok) {
+    redirect(`/dashboard/contacts?error=${encodeURIComponent(result.error)}`);
   }
-
   redirect("/dashboard/contacts");
+}
+
+/** Non-redirecting variant for offline queue flush. */
+export async function createContactSyncAction(
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const session = await getSession();
+    if (!session) return { ok: false, error: "Please sign in again" };
+    if (!(await isFeatureEnabled("contacts"))) {
+      return { ok: false, error: "Contacts feature is disabled" };
+    }
+    const userId = session.userId;
+    const phone = normalizePhones(String(formData.get("phone") ?? ""))[0];
+    if (!phone) return { ok: false, error: "phone" };
+
+    const existing = await prisma.contact.findUnique({
+      where: { userId_phone: { userId, phone } },
+    });
+    const countryCode = detectCountryCode(phone);
+    const name = String(formData.get("name") ?? "") || undefined;
+    const email = String(formData.get("email") ?? "") || undefined;
+    const tags = String(formData.get("tags") ?? "") || undefined;
+
+    await prisma.contact.upsert({
+      where: { userId_phone: { userId, phone } },
+      update: { name, email, tags, countryCode },
+      create: { userId, phone, name, email, tags, countryCode },
+    });
+
+    if (!existing) {
+      void runContactSignupAutomations(userId, { phone, name, email, countryCode });
+    }
+
+    revalidatePath("/dashboard/contacts");
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Could not save contact",
+    };
+  }
 }
 
 export async function updateContactAction(formData: FormData) {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
+  Bell,
   CheckCircle2,
   Cloud,
   Code2,
@@ -27,6 +28,15 @@ const products = [
     tagline: "The workhorse. One message, many phones, a report you can actually read.",
     body: "Upload a list, write the copy, pick a Sender ID, and send. SplitSMS is for the Friday flash sale, the Monday fee reminder, and the 6pm “your order left the warehouse” blast — without exporting CSVs into three different tools.",
     points: ["Personalize with names and order IDs", "Schedule or send now", "Live delivered / failed counts"],
+  },
+  {
+    id: "reminder-sms",
+    icon: Bell,
+    name: "SMS Reminders",
+    href: "/products/reminder-sms",
+    tagline: "Early nudge before the due date. Final SMS on the day. Monthly if you need it.",
+    body: "Built for the gold-payment and fee-collection problem: stop calling members by hand. Set payment, birthday, meeting, or holiday reminders in a short wizard — group, all contacts, or pasted numbers — and let SplitSMS send on schedule. Early nudge before the due date, final SMS on the day, monthly if the cycle repeats.",
+    points: ["Early + due-date messages", "Monthly recurrence", "Pause or cancel anytime"],
   },
   {
     id: "otp",

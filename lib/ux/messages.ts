@@ -2,6 +2,8 @@
 
 export const UX_ERRORS: Record<string, string> = {
   invalid: "Please add your phone numbers and message before sending.",
+  invalid_phones:
+    "Some phone numbers are invalid. Use full international format (e.g. 233201234567) or a local number that matches the selected country, then remove the red ones.",
   empty: "Add a message or at least one phone number before saving a draft.",
   notfound: "That draft could not be found. It may have been sent or deleted.",
   sender: "Use an approved Sender ID before sending. Request one from Sender IDs.",

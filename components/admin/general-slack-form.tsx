@@ -174,6 +174,11 @@ export function GeneralSlackForm({
             { name: "notifyUserRegistration", label: "New member registration", default: config.notifyUserRegistration },
             { name: "notifyUserLogin", label: "Member logins", default: config.notifyUserLogin },
             { name: "notifyAuthFailures", label: "Failed login attempts", default: config.notifyAuthFailures },
+            {
+              name: "notifyBlockedIpLogin",
+              label: "Blocked IP login attempts (so you can unblock)",
+              default: config.notifyBlockedIpLogin,
+            },
             { name: "notifySenderIdRequests", label: "Sender ID registration requests", default: config.notifySenderIdRequests },
             { name: "notifyOfflinePayments", label: "Offline / bank transfer top-ups (pending)", default: config.notifyOfflinePayments },
             { name: "notifyOnlinePayments", label: "Online payments completed", default: config.notifyOnlinePayments },

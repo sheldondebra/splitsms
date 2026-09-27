@@ -1,7 +1,8 @@
 export type OutreachRoleFilter = "all" | "member" | "reseller" | "enterprise";
 
 export const OUTREACH_PAGE_SIZE = 25;
-export const OUTREACH_MAX_RECIPIENTS = 50;
+/** Enough for a full customer broadcast (matches maintenance notify cap). */
+export const OUTREACH_MAX_RECIPIENTS = 500;
 
 export type AdminOutreachRow = {
   id: string;
@@ -22,6 +23,8 @@ export type AdminOutreachDashboard = {
   filteredTotal: number;
   pageSize: number;
   maxRecipients: number;
+  /** Up to maxRecipients IDs matching the current filter (for “select all”). */
+  matchingUserIds: string[];
   roleCounts: Record<"member" | "reseller" | "enterprise", number>;
   rows: AdminOutreachRow[];
 };
@@ -34,6 +37,12 @@ export function buildOutreachHref(params: {
   error?: string;
   count?: string;
   failed?: string;
+  sms?: string;
+  email?: string;
+  smsFail?: string;
+  emailFail?: string;
+  noEmail?: string;
+  detail?: string;
 }) {
   const sp = new URLSearchParams();
   if (params.q?.trim()) sp.set("q", params.q.trim());
@@ -44,6 +53,12 @@ export function buildOutreachHref(params: {
   if (params.error) sp.set("error", params.error);
   if (params.count) sp.set("count", params.count);
   if (params.failed) sp.set("failed", params.failed);
+  if (params.sms) sp.set("sms", params.sms);
+  if (params.email) sp.set("email", params.email);
+  if (params.smsFail) sp.set("smsFail", params.smsFail);
+  if (params.emailFail) sp.set("emailFail", params.emailFail);
+  if (params.noEmail) sp.set("noEmail", params.noEmail);
+  if (params.detail) sp.set("detail", params.detail);
   const qs = sp.toString();
   return `/admin/outreach${qs ? `?${qs}` : ""}`;
 }

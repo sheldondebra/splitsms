@@ -14,7 +14,7 @@ export async function getContactsForUser(
     groupId: params.groupId,
   });
 
-  const [contacts, total, countryBreakdown] = await Promise.all([
+  const [contacts, total, allCount, countryBreakdown] = await Promise.all([
     prisma.contact.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -23,6 +23,7 @@ export async function getContactsForUser(
       include: { groups: { include: { group: true } } },
     }),
     prisma.contact.count({ where }),
+    prisma.contact.count({ where: { userId } }),
     prisma.contact.groupBy({
       by: ["countryCode"],
       where: { userId },
@@ -30,5 +31,5 @@ export async function getContactsForUser(
     }),
   ]);
 
-  return { contacts, total, page, perPage, countryBreakdown };
+  return { contacts, total, allCount, page, perPage, countryBreakdown };
 }

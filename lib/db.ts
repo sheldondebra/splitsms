@@ -3,6 +3,7 @@ import { Pool, type PoolClient } from "pg";
 import { PrismaClient } from "@/lib/generated/prisma/client";
 import {
   isNeonDatabaseUrl,
+  isSupabaseDatabaseUrl,
   normalizeDatabaseUrl,
   resolveDatabaseUrl,
 } from "@/lib/postgres-connection";
@@ -12,6 +13,8 @@ const globalForPrisma = globalThis as unknown as {
   pool: Pool;
   /** Bumped when the schema changes so dev hot-reload picks up new fields/models */
   prismaBuildId?: string;
+  /** Last resolved connection string — recreate pool when env switches DB hosts */
+  poolConnectionString?: string;
 };
 
 /** Increment when Prisma schema changes require a fresh client in dev */
@@ -39,14 +42,18 @@ function isRetriableDbError(err: unknown): boolean {
 function createPool(connectionString: string): Pool {
   const normalized = normalizeDatabaseUrl(connectionString);
   const neon = isNeonDatabaseUrl(normalized);
+  const supabase = isSupabaseDatabaseUrl(normalized);
+  const managed = neon || supabase;
+  // Serverless + Supabase transaction pooler: keep the client pool tiny.
+  const max = neon ? 5 : supabase ? 3 : 10;
 
   const pool = new Pool({
     connectionString: normalized,
-    max: neon ? 5 : 10,
-    connectionTimeoutMillis: neon ? 25_000 : 10_000,
+    max,
+    connectionTimeoutMillis: managed ? 25_000 : 10_000,
     idleTimeoutMillis: 20_000,
     allowExitOnIdle: true,
-    ...(neon ? { ssl: { rejectUnauthorized: false } } : {}),
+    ...(managed ? { ssl: { rejectUnauthorized: false } } : {}),
   });
 
   const baseConnect = pool.connect.bind(pool) as {
@@ -98,8 +105,20 @@ function resetPrismaClient() {
 
 function createPrisma() {
   const connectionString = resolveDatabaseUrl();
+  if (
+    globalForPrisma.pool &&
+    globalForPrisma.poolConnectionString &&
+    globalForPrisma.poolConnectionString !== connectionString
+  ) {
+    void globalForPrisma.pool.end().catch(() => undefined);
+    globalForPrisma.pool = undefined as unknown as Pool;
+    globalForPrisma.prisma = undefined as unknown as PrismaClient;
+  }
   const pool = globalForPrisma.pool ?? createPool(connectionString);
-  if (!globalForPrisma.pool) globalForPrisma.pool = pool;
+  if (!globalForPrisma.pool) {
+    globalForPrisma.pool = pool;
+    globalForPrisma.poolConnectionString = connectionString;
+  }
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
 }

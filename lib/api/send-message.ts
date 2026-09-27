@@ -1,6 +1,6 @@
 import { prisma, warmDatabaseConnection } from "@/lib/db";
 import { after } from "next/server";
-import { countSmsUnits, normalizePhones } from "@/lib/sms/units";
+import { countSmsUnits, parseRecipientPhones } from "@/lib/sms/units";
 import { deductSmsCredits } from "@/lib/sms/billing";
 import { resolveSmsPriceForUser } from "@/lib/reseller/pricing";
 import { enqueueSmsJobsInline, shouldAwaitSmsDispatch } from "@/lib/queue/enqueue-sms";
@@ -18,9 +18,16 @@ export type SendSmsInput = {
 };
 
 export async function apiSendMessages(ctx: ApiContext, input: SendSmsInput) {
-  const recipientList = normalizePhones(input.recipients.join("\n"));
+  const parsed = parseRecipientPhones(input.recipients.join("\n"), input.countryCode);
+  const recipientList = parsed.valid;
   if (recipientList.length === 0) {
-    return apiError("INVALID_REQUEST", "No valid recipients", 400);
+    return apiError(
+      "INVALID_REQUEST",
+      parsed.invalid.length > 0
+        ? `No valid recipients. Invalid numbers: ${parsed.invalid.slice(0, 5).join(", ")}. Use E.164 (e.g. +233201234567).`
+        : "No valid recipients",
+      400,
+    );
   }
 
   let approvedSender: string;

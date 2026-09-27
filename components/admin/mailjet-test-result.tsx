@@ -97,6 +97,12 @@ export function MailjetTestResult({
               </dd>
             </div>
           )}
+          {detailText(details, "host") && (
+            <div className="flex gap-2">
+              <dt className="text-muted-foreground shrink-0">Host</dt>
+              <dd className="font-mono break-all">{detailText(details, "host")}</dd>
+            </div>
+          )}
           {detailText(details, "provider") && (
             <div className="flex gap-2">
               <dt className="text-muted-foreground shrink-0">Provider</dt>

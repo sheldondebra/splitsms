@@ -42,7 +42,7 @@ export const PLATFORM_FEATURE_GROUPS = [
       {
         id: "bulk_sms",
         label: "Bulk SMS",
-        description: "Campaigns and scheduled bulk sends.",
+        description: "Campaigns, scheduled bulk sends, and SMS reminders.",
         requires: ["sms"] as const,
       },
       {
@@ -331,6 +331,7 @@ const DASHBOARD_FEATURE_ROUTES: { prefix: string; feature: PlatformFeatureId }[]
   { prefix: "/dashboard/forms/create", feature: "smart_forms_builder" },
   { prefix: "/dashboard/send", feature: "sms" },
   { prefix: "/dashboard/campaigns", feature: "bulk_sms" },
+  { prefix: "/dashboard/reminders", feature: "bulk_sms" },
   { prefix: "/dashboard/contacts", feature: "contacts" },
   { prefix: "/dashboard/templates", feature: "templates" },
   { prefix: "/dashboard/forms", feature: "smart_forms" },

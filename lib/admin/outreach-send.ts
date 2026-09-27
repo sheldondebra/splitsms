@@ -27,6 +27,14 @@ export type OutreachSendInput = {
 export type OutreachSendResult = {
   sent: number;
   failed: number;
+  smsSent: number;
+  emailSent: number;
+  smsFailed: number;
+  emailFailed: number;
+  skippedNoPhone: number;
+  skippedNoEmail: number;
+  /** First distinct failure reasons (for admin flash). */
+  errors: string[];
 };
 
 function interpolateOutreach(
@@ -43,6 +51,12 @@ function interpolateOutreach(
     .replace(/\{\{senderIdsUrl\}\}/g, vars.senderIdsUrl)
     .replace(/\{\{walletUrl\}\}/g, vars.walletUrl)
     .replace(/\{\{supportUrl\}\}/g, vars.supportUrl);
+}
+
+function pushError(errors: string[], message: string) {
+  const trimmed = message.trim().slice(0, 180);
+  if (!trimmed) return;
+  if (!errors.includes(trimmed) && errors.length < 5) errors.push(trimmed);
 }
 
 async function logOutreach(
@@ -88,6 +102,13 @@ export async function sendOutreachToRecipients(
 
   let sent = 0;
   let failed = 0;
+  let smsSent = 0;
+  let emailSent = 0;
+  let smsFailed = 0;
+  let emailFailed = 0;
+  let skippedNoPhone = 0;
+  let skippedNoEmail = 0;
+  const errors: string[] = [];
 
   for (const recipient of recipients) {
     const vars = buildMemberOutreachVars({ fullName: recipient.fullName });
@@ -96,21 +117,30 @@ export async function sendOutreachToRecipients(
     const emailSubject = sendEmail ? interpolateOutreach(emailSubjectRaw, vars) : "";
     const emailText = sendEmail ? interpolateOutreach(emailTextRaw, vars) : "";
 
-    let ok = true;
+    let anySuccess = false;
+    let anyHardFailure = false;
 
     if (sendSms) {
-      if (!recipient.phone?.trim()) {
-        ok = false;
+      const phone = recipient.phone?.trim();
+      if (!phone) {
+        skippedNoPhone += 1;
       } else {
-        const smsResult = await sendPlatformAlertSms(recipient.phone, smsBody);
-        if (!smsResult.ok) ok = false;
+        const smsResult = await sendPlatformAlertSms(phone, smsBody);
+        if (smsResult.ok) {
+          smsSent += 1;
+          anySuccess = true;
+        } else {
+          smsFailed += 1;
+          anyHardFailure = true;
+          pushError(errors, smsResult.error || "SMS send failed");
+        }
       }
     }
 
-    if (sendEmail && ok) {
+    if (sendEmail) {
       const email = recipient.email?.trim();
       if (!email) {
-        ok = false;
+        skippedNoEmail += 1;
       } else {
         const { subject, text, html } = await adminMemberOutreachEmailContent({
           memberName: recipient.fullName,
@@ -126,11 +156,20 @@ export async function sendOutreachToRecipients(
           text,
           html,
         });
-        if (!mailResult.ok) ok = false;
+        if (mailResult.ok) {
+          emailSent += 1;
+          anySuccess = true;
+        } else {
+          emailFailed += 1;
+          anyHardFailure = true;
+          pushError(errors, mailResult.error || "Email send failed");
+        }
       }
     }
 
-    if (ok) {
+    // Recipient counts as sent if any requested channel delivered.
+    // Only failed when every attempted channel failed, or nothing could be attempted.
+    if (anySuccess) {
       if (recipient.id) {
         await createNotification(
           recipient.id,
@@ -162,10 +201,20 @@ export async function sendOutreachToRecipients(
         });
       }
       sent += 1;
-    } else {
+    } else if (anyHardFailure || sendSms || sendEmail) {
       failed += 1;
     }
   }
 
-  return { sent, failed };
+  return {
+    sent,
+    failed,
+    smsSent,
+    emailSent,
+    smsFailed,
+    emailFailed,
+    skippedNoPhone,
+    skippedNoEmail,
+    errors,
+  };
 }

@@ -3,6 +3,7 @@ import { isSlackConfigured } from "@/lib/slack/config-shared";
 import { postSlackMessage } from "@/lib/slack/client";
 import {
   slackAuthFailureBlocks,
+  slackBlockedIpLoginBlocks,
   slackOfflinePaymentBlocks,
   slackOnlinePaymentBlocks,
   slackSenderIdRequestBlocks,
@@ -65,6 +66,27 @@ export async function notifySlackAuthFailure(input: { identifier: string }) {
     {
       text: `Failed login: ${input.identifier}`,
       blocks: slackAuthFailureBlocks(input),
+    },
+    config,
+  );
+}
+
+export async function notifySlackBlockedIpLogin(input: {
+  userId: string;
+  fullName: string;
+  phone: string;
+  email?: string | null;
+  ip: string;
+  reason: "blacklisted" | "not_whitelisted";
+  matched?: string;
+}) {
+  const config = await shouldNotify((c) => c.notifyBlockedIpLogin);
+  if (!config) return;
+
+  await postSlackMessage(
+    {
+      text: `Blocked IP login: ${input.fullName} from ${input.ip}`,
+      blocks: slackBlockedIpLoginBlocks(input),
     },
     config,
   );

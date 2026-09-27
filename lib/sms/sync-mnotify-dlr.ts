@@ -68,6 +68,7 @@ async function applyDeliveryUpdate(
     recipient: string;
     smsUnits: number;
     cost: { toNumber: () => number } | null;
+    failureReason?: string | null;
     user: { wallet: { currency: string } | null };
   },
   status: "DELIVERED" | "FAILED" | "SENT",
@@ -81,7 +82,14 @@ async function applyDeliveryUpdate(
       ...(providerRef ? { providerRef } : {}),
       ...(status === "DELIVERED" ? { deliveredAt: new Date() } : {}),
       ...(status === "FAILED"
-        ? { failedAt: new Date(), failureReason: failureReason ?? "Delivery failed" }
+        ? {
+            failedAt: new Date(),
+            failureReason: (
+              await import("@/lib/sms/friendly-failure")
+            ).toMemberFacingFailureReason(
+              failureReason ?? message.failureReason ?? "Delivery failed",
+            ),
+          }
         : {}),
     },
   });

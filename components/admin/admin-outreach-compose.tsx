@@ -51,11 +51,11 @@ export type OutreachComposeState = {
   emailText: string;
 };
 
-export function useOutreachCompose(initialTemplateId = "welcome_check_in") {
+export function useOutreachCompose(initialTemplateId = "service_restored") {
   const previewVars = buildMemberOutreachVars({ fullName: "Member" });
   const [templateId, setTemplateId] = useState(initialTemplateId);
   const [sendSms, setSendSms] = useState(true);
-  const [sendEmail, setSendEmail] = useState(false);
+  const [sendEmail, setSendEmail] = useState(true);
   const [activePane, setActivePane] = useState<"sms" | "email">("sms");
 
   const template = useMemo(

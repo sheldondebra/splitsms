@@ -467,6 +467,83 @@ export const seoLandingPages: SeoLandingPage[] = [
     primaryCta: { href: "/signup", label: "Start free — 5 SMS credits" },
     secondaryCta: { href: "/smart-forms", label: "See Smart Forms" },
   },
+  {
+    slug: "sms-reminders",
+    title: "SMS Reminders Ghana — Payment & Appointment Alerts | SplitSMS",
+    h1: "Automated SMS Reminders for Ghana Businesses",
+    excerpt:
+      "Stop calling members by hand. Automate payment due SMS, appointment alerts, birthday wishes, and holiday greetings — early nudge before the deadline, due-date SMS on the day, monthly schedules included. Start with 5 free credits.",
+    keywords: [
+      "SMS reminders Ghana",
+      "payment reminder SMS Ghana",
+      "appointment reminder SMS Ghana",
+      "automated SMS reminders Ghana",
+      "monthly SMS reminder",
+      "due date SMS Ghana",
+      "fee reminder SMS",
+      "school fees SMS reminder Ghana",
+      "church contribution SMS",
+      "susu reminder SMS",
+      "SplitSMS",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "Manual reminder calls do not scale across a susu group, a PTA fee list, or a church pledge book. SplitSMS Reminders let Ghana businesses, churches, schools, clinics, and savings groups schedule SMS once — including an early nudge before the due date and a clear message on the day.",
+          "Recipients see your approved Sender ID on any handset. You control the copy, the audience, and whether the reminder repeats every month. Pause when someone has paid; leave the rest of the list running.",
+        ],
+      },
+      {
+        heading: "Payment and fee reminders that actually get paid",
+        paragraphs: [
+          "Set the next due date, write an early message (for example three days before), write the due-date message, and choose monthly. Ideal for school fees, church contributions, gold or susu collections, microfinance instalments, and rent.",
+          "The early-plus-due pattern is what collectors already do by phone — SplitSMS just does it without Monday call lists. Compare late-payment rates against last month’s call-only process after one cycle.",
+        ],
+      },
+      {
+        heading: "Appointments, birthdays, and holidays",
+        paragraphs: [
+          "Clinics and salons cut no-shows with Meeting reminders. Birthday and Holiday types keep greetings on brand without another spreadsheet. Send to a contact group, all contacts, or pasted numbers. Personalize with {name}.",
+        ],
+      },
+      {
+        heading: "Priced like the rest of SplitSMS",
+        paragraphs: [
+          "Reminders share your wallet with bulk campaigns and OTP — Ghana from around GHS 0.029 per segment, top up via Paystack, no monthly minimum. Five free credits on signup so you can test on your own phone first.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: "How do I create an SMS payment reminder in Ghana?",
+        answer:
+          "Sign up on SplitSMS, register a Sender ID, import or group your contacts, then open Dashboard → Reminders. Choose Payment, set the due date, optionally enable an early reminder, write both messages, and save.",
+      },
+      {
+        question: "Can SMS reminders run every month automatically?",
+        answer:
+          "Yes. Select Every month when creating the reminder. After each send, SplitSMS schedules the next month until you pause or cancel.",
+      },
+      {
+        question: "Why use SMS instead of WhatsApp for payment reminders?",
+        answer:
+          "SMS works on feature phones without data and sits on the lock screen. For school fees, church funds, and susu groups, reliability beats rich chat. Pair with an approved Sender ID so members trust the text.",
+      },
+      {
+        question: "How much do SMS reminders cost in Ghana?",
+        answer:
+          "Reminders use the same per-segment rates as other SplitSMS traffic — typically from around GHS 0.029 per segment. You pay only when messages send from your wallet.",
+      },
+    ],
+    relatedLinks: [
+      { href: "/products/reminder-sms", label: "Reminder SMS product" },
+      { href: "/how-to/set-up-sms-reminders", label: "Setup guide" },
+      { href: "/blog/sms-payment-reminders-ghana", label: "Payment reminder playbook" },
+      { href: "/pricing", label: "Pricing" },
+    ],
+    primaryCta: { href: "/signup", label: "Start free — 5 SMS credits" },
+    secondaryCta: { href: "/products/reminder-sms", label: "See Reminder SMS" },
+  },
 ];
 
 export function getSeoLandingPage(slug: string) {

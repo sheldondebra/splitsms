@@ -46,7 +46,7 @@ export const howToCategories: { id: HowToCategoryId; label: string; blurb: strin
   {
     id: "features",
     label: "Features",
-    blurb: "Send SMS, contacts, campaigns, templates.",
+    blurb: "Send SMS, contacts, campaigns, reminders, templates.",
   },
   {
     id: "wordpress",
@@ -266,6 +266,50 @@ export const howToGuides: HowToGuide[] = [
       { href: "/dashboard/campaigns", label: "Campaigns" },
       { href: "/how-to/personalize-messages", label: "Personalize messages" },
       { href: "/how-to/wallet-topup", label: "Top up wallet" },
+    ],
+  },
+  {
+    id: "set-up-sms-reminders",
+    category: "features",
+    title: "Set up SMS reminders (payments, birthdays, meetings)",
+    summary:
+      "Create early + due-date payment and appointment reminders, send monthly or one time, and pause anytime — collect fees without calling members by hand.",
+    minutes: 8,
+    level: "beginner",
+    audience: "Operations, finance, churches, schools, clinics, susu groups",
+    keywords:
+      "SMS reminder Ghana payment due date birthday meeting monthly early reminder fee collection SplitSMS",
+    steps: [
+      {
+        title: "Open Reminders",
+        body: "Sign in and go to Dashboard → Reminders → New reminder. You need an approved Sender ID and SMS credits in your wallet.",
+      },
+      {
+        title: "Choose the type and name",
+        body: "Pick Payment, Birthday, Meeting, Holiday, or Custom. Name it clearly — for example “Gold payment” or “March PTA meeting”.",
+      },
+      {
+        title: "Pick who gets the SMS",
+        body: "Send to a contact group, all contacts, or paste phone numbers. Valid numbers become green cards. Choose your Sender ID and country pricing.",
+      },
+      {
+        title: "Set the schedule",
+        body: "Choose One time or Every month. Set the due date and time. Optionally turn on an early reminder (e.g. 3 days before) for payment and meeting nudges.",
+      },
+      {
+        title: "Write the messages and save",
+        body: "Edit the early message (if enabled) and the due-date message. Use {name} to personalize. Review the summary, then Save reminder. Pause or cancel later from the Reminders list.",
+      },
+    ],
+    notes: [
+      "Monthly reminders keep scheduling the next run after each send until you pause or cancel.",
+      "Promotional greetings need consent; payment and appointment reminders should stay factual and use an approved Sender ID.",
+    ],
+    related: [
+      { href: "/dashboard/reminders", label: "Reminders" },
+      { href: "/products/reminder-sms", label: "Reminder SMS product" },
+      { href: "/how-to/run-campaign", label: "Bulk campaigns" },
+      { href: "/blog/sms-payment-reminders-ghana", label: "Payment reminder playbook" },
     ],
   },
   {

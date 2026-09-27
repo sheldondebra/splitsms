@@ -4,6 +4,7 @@ import {
   Bell,
   Briefcase,
   Building2,
+  CalendarClock,
   Church,
   Code2,
   FormInput,
@@ -52,6 +53,14 @@ const jobs = [
     body: "Payment received. Parcel at the gate. Ticket issued. Shift starts at 6. Transactional SMS is the message people expect — short, timed, tied to an ID in your system.",
     uses: ["Receipts and balances", "Status and dispatch", "Duty and roster texts"],
     href: "/solutions/woocommerce-sms",
+  },
+  {
+    id: "remind",
+    icon: CalendarClock,
+    title: "Nudge them before money or meetings are due",
+    body: "Early SMS days before the deadline. Due-date SMS on the day. Monthly if the cycle repeats. Built for susu collections, school fees, church pledges, rent, and clinic appointments — without calling the list by hand.",
+    uses: ["Payment due reminders", "Appointment alerts", "Birthday & holiday texts"],
+    href: "/solutions/sms-reminders",
   },
   {
     id: "collect",

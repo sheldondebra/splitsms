@@ -28,7 +28,11 @@ const INITIAL_STATE: AdminSystemSyncState = {
   tasks: [],
 };
 
-export function AdminSystemSyncButton() {
+export function AdminSystemSyncButton({
+  compact = false,
+}: {
+  compact?: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [stepIndex, setStepIndex] = useState(0);
@@ -86,6 +90,14 @@ export function AdminSystemSyncButton() {
     });
   }, [state, pathname, router]);
 
+  const label = pending
+    ? compact
+      ? "Syncing…"
+      : SYNC_STEPS[stepIndex]
+    : compact
+      ? "Sync"
+      : "System sync";
+
   return (
     <form action={formAction} className="relative">
       <input type="hidden" name="returnTo" value={pathname || "/admin"} />
@@ -93,7 +105,10 @@ export function AdminSystemSyncButton() {
         type="submit"
         size="sm"
         variant="outline"
-        className="hidden lg:inline-flex h-9 gap-1.5"
+        className={cn(
+          "inline-flex gap-1.5",
+          compact ? "h-8 px-2.5 text-xs" : "h-9",
+        )}
         disabled={pending}
         title="Run full system sync (SMS, delivery, balances, sender ID carriers)"
         onClick={() => setStepIndex(0)}
@@ -103,12 +118,12 @@ export function AdminSystemSyncButton() {
         ) : (
           <RefreshCw className="h-3.5 w-3.5" />
         )}
-        {pending ? SYNC_STEPS[stepIndex] : "System sync"}
+        <span>{label}</span>
       </Button>
 
       {pending && (
         <div
-          className="absolute right-0 top-11 z-50 w-80 rounded-xl border border-border/70 bg-popover p-3 text-popover-foreground shadow-xl"
+          className="absolute right-0 top-11 z-50 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-border/70 bg-popover p-3 text-popover-foreground shadow-xl"
           aria-live="polite"
         >
           <div className="flex items-center gap-2 border-b border-border/50 pb-2">

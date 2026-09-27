@@ -12,7 +12,11 @@ export function ReportPeriodTabs({
   extraQuery?: Record<string, string | undefined>;
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5 rounded-xl border border-border/60 bg-muted/20 p-1">
+    <div
+      role="tablist"
+      aria-label="Report period"
+      className="inline-flex gap-1 rounded-xl border border-border/60 bg-muted/30 p-1"
+    >
       {REPORT_PERIOD_OPTIONS.map((d) => {
         const qs = new URLSearchParams();
         qs.set("days", String(d));
@@ -24,12 +28,14 @@ export function ReportPeriodTabs({
         return (
           <Link
             key={d}
+            role="tab"
+            aria-selected={period === d}
             href={`${basePath}?${qs.toString()}`}
             className={cn(
               "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
               period === d
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             {d}d
@@ -50,19 +56,25 @@ export function ReportSubnav({
   items: { href: string; label: string }[];
 }) {
   return (
-    <div className="flex gap-1 overflow-x-auto pb-1 app-scroll-x">
+    <div
+      role="tablist"
+      aria-label="Report sections"
+      className="flex gap-1 overflow-x-auto rounded-xl border border-border/60 bg-muted/30 p-1 app-scroll-x"
+    >
       {items.map((item) => {
         const href = item.href === "" ? base : `${base}${item.href}`;
         const active = current === href;
         return (
           <Link
             key={href}
+            role="tab"
+            aria-selected={active}
             href={href}
             className={cn(
-              "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+              "shrink-0 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors",
               active
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted/60 text-muted-foreground hover:bg-muted",
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             {item.label}

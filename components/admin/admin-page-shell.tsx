@@ -70,6 +70,7 @@ export function AdminStatCard({
   variant = "default",
   className,
   href,
+  embedded,
 }: {
   label: string;
   value: ReactNode;
@@ -78,9 +79,13 @@ export function AdminStatCard({
   variant?: "default" | "primary" | "danger" | "warning";
   className?: string;
   href?: string;
+  /** Flatten chrome when nested inside AdminCard — avoids cards-in-cards. */
+  embedded?: boolean;
 }) {
   const variants = {
-    default: "border-border/60 bg-card",
+    default: embedded
+      ? "border-transparent bg-muted/35"
+      : "border-border/60 bg-card",
     primary: "border-primary/25 bg-primary/5",
     danger: "border-destructive/25 bg-destructive/5",
     warning: "border-amber-500/30 bg-amber-500/8",
@@ -96,10 +101,10 @@ export function AdminStatCard({
   const inner = (
     <>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide leading-snug pr-1">
           {label}
         </p>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           {Icon ? <Icon className={iconClass} /> : null}
           {href ? (
             <ArrowRight
@@ -122,12 +127,15 @@ export function AdminStatCard({
       >
         {value}
       </p>
-      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+      <p className="mt-1 min-h-[1rem] text-xs text-muted-foreground">{hint ?? "\u00a0"}</p>
     </>
   );
 
   const cardClass = cn(
-    "rounded-2xl border p-5 shadow-sm transition-shadow hover:shadow-md block",
+    "block transition-shadow",
+    embedded
+      ? "rounded-xl border px-4 py-3.5 shadow-none hover:bg-muted/50"
+      : "rounded-2xl border p-5 shadow-sm hover:shadow-md",
     variants[variant],
     href && "group/stat hover:border-primary/30 cursor-pointer",
     className,

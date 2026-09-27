@@ -14,6 +14,81 @@ export type BlogPost = {
 
 export const blogPosts: BlogPost[] = [
   {
+    slug: "sms-payment-reminders-ghana",
+    title: "SMS Payment Reminders in Ghana: Stop Calling Members by Hand",
+    excerpt:
+      "How susu groups, churches, schools, and clinics use early + due-date SMS reminders — and how to set monthly payment alerts on SplitSMS without a developer.",
+    category: "Guides",
+    readTime: "11 min read",
+    published: "2026-09-18",
+    updated: "2026-09-18",
+    keywords: [
+      "SMS payment reminder Ghana",
+      "payment due SMS",
+      "monthly fee reminder SMS",
+      "susu contribution SMS",
+      "school fees SMS reminder",
+      "automated payment reminder",
+      "SplitSMS reminders",
+    ],
+    sections: [
+      {
+        paragraphs: [
+          "If your team still phones members the week before contributions are due, you already know the cost: missed calls, awkward follow-ups, and money that arrives late because nobody got a clear reminder. SMS fixes that. Feature phones still dominate in Ghana. A short text with your brand name as the Sender ID lands whether or not the recipient has data.",
+          "This playbook covers why payment reminders work, the early-plus-due-date pattern (the one gold and susu collectors actually need), and how to set it up on SplitSMS Reminders in a few minutes.",
+        ],
+      },
+      {
+        heading: "Why SMS beats WhatsApp for due dates",
+        paragraphs: [
+          "WhatsApp needs a smartphone, data, and an open chat. SMS works on any handset. For school fees, church building funds, microfinance instalments, and gold contribution groups, reliability matters more than rich media.",
+          "Open rates for SMS stay high because the message sits on the lock screen. Pair that with an approved Sender ID (for example MYCHURCH or SCHOOLNAME) and members trust the text instead of treating it like spam from a random number.",
+        ],
+      },
+      {
+        heading: "The pattern that works: early nudge + due-date message",
+        paragraphs: [
+          "One reminder on the due date is often too late. People need a heads-up. The proven cadence is simple:",
+          "1) Early reminder — for example three days before: “Hi {name}, your contribution is due on Friday. Please prepare payment.”",
+          "2) Due-date reminder — on the day: “Hi {name}, today is your payment due date. Please complete payment. Thank you.”",
+          "On SplitSMS you enable both in one Reminder. Choose Every month if the due day repeats. Pause when a cycle ends.",
+        ],
+      },
+      {
+        heading: "Who should use automated payment SMS",
+        paragraphs: [
+          "Savings and susu groups that currently call contributors. Churches collecting monthly pledges. Schools chasing fee balances. Clinics and pharmacies with instalment plans. Landlords and estate managers collecting rent. HR teams reminding staff about loan repayments or welfare dues.",
+        ],
+      },
+      {
+        heading: "How to set it up on SplitSMS",
+        paragraphs: [
+          "1) Sign up and register a Sender ID.",
+          "2) Import contacts or create a group for the people who owe.",
+          "3) Open Dashboard → Reminders → New reminder.",
+          "4) Choose Payment, name it (e.g. Gold payment), pick recipients.",
+          "5) Set the next due date, turn on early reminder (e.g. 3 days), choose monthly if needed.",
+          "6) Edit both messages, save, and leave it running.",
+          "Step-by-step screens: splitsms.com/how-to/set-up-sms-reminders. Product overview: splitsms.com/products/reminder-sms.",
+        ],
+      },
+      {
+        heading: "Copy that converts without sounding rude",
+        paragraphs: [
+          "Keep payment SMS short, factual, and polite. Include the due date or amount when you can. Avoid ALL CAPS threats. Example early line: “Friendly reminder: your {amount} contribution is due in 3 days.” Example due line: “Today is your contribution due date. Please pay to stay current. Reply STOP to opt out of marketing texts.”",
+          "Transactional payment reminders are not the same as promotional blasts. Still honour opt-outs for marketing, and keep contribution language clear.",
+        ],
+      },
+      {
+        heading: "Cost and next steps",
+        paragraphs: [
+          "Reminders use the same wallet rates as other SplitSMS traffic — Ghana from around GHS 0.029 per segment. You pay when messages send, not for sitting on a schedule.",
+          "Start with a small group this month, compare late-payment rates against last month’s call-only process, then roll the reminder out to the full list.",
+        ],
+      },
+    ],
+  },
+  {
     slug: "how-to-send-bulk-sms-ghana-complete-guide",
     title: "How to Send Bulk SMS in Ghana in 2026: A Complete Step-by-Step Guide",
     excerpt:
@@ -2330,13 +2405,19 @@ export const blogPosts: BlogPost[] = [
     sections: [
       {
         paragraphs: [
-          "A missed appointment is lost revenue. SMS reminders reach patients and clients who ignore email. Clinics, dental offices, salons, and tutors across Ghana use bulk SMS to confirm bookings 24 hours before the slot.",
+          "A missed appointment is lost revenue. SMS reminders reach patients and clients who ignore email. Clinics, dental offices, salons, and tutors across Ghana use SplitSMS Reminders to confirm bookings with an early nudge and a due-date text on the day — without calling the list by hand.",
         ],
       },
       {
         heading: "What to send",
         paragraphs: [
-          "Confirmation immediately after booking: Hi {firstName}, your appointment is booked for {date} at {time}. Reply YES to confirm. Reminder 24 hours before: Reminder: see you tomorrow at {time} — {business_name}. Optional follow-up after the visit for feedback or rebooking.",
+          "Confirmation immediately after booking: Hi {name}, your appointment is booked for {date} at {time}. Reply YES to confirm. Early reminder a day or two before: Reminder: see you on {date} at {time} — {business_name}. Due-date message on the day: Today is your appointment. We look forward to seeing you.",
+        ],
+      },
+      {
+        heading: "Set it up on SplitSMS Reminders",
+        paragraphs: [
+          "Open Dashboard → Reminders → New reminder, choose Meeting, pick your contact group, enable an early reminder, write both messages, and save. For one-off slots use One time; for recurring clinics use Every month where it fits. Full walkthrough: splitsms.com/how-to/set-up-sms-reminders. Product page: splitsms.com/products/reminder-sms.",
         ],
       },
       {
@@ -2371,6 +2452,7 @@ export const blogPosts: BlogPost[] = [
         heading: "Fee reminders that get paid",
         paragraphs: [
           "A polite SMS three days before term fees are due: Dear parent, {student_name}'s fees of GHS {amount} are due on {date}. Pay via MoMo or at the office. — {school_name}. Schools report faster collections when reminders are consistent and short.",
+          "On SplitSMS Reminders, set that early nudge and a due-date message once, choose Every month for term cycles where it fits, and pause when a class is settled. Guide: splitsms.com/how-to/set-up-sms-reminders.",
         ],
       },
       {

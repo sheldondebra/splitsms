@@ -58,7 +58,7 @@ export async function getAdminOutreachDashboard(params: {
       : {}),
   };
 
-  const [users, filteredTotal, roleCounts] = await Promise.all([
+  const [users, filteredTotal, roleCounts, matchingIds] = await Promise.all([
     prisma.user.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -81,6 +81,12 @@ export async function getAdminOutreachDashboard(params: {
         count: await prisma.user.count({ where: { role: ROLE_MAP[key] } }),
       })),
     ),
+    prisma.user.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: OUTREACH_MAX_RECIPIENTS,
+      select: { id: true },
+    }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTotal / OUTREACH_PAGE_SIZE));
@@ -93,6 +99,7 @@ export async function getAdminOutreachDashboard(params: {
     filteredTotal,
     pageSize: OUTREACH_PAGE_SIZE,
     maxRecipients: OUTREACH_MAX_RECIPIENTS,
+    matchingUserIds: matchingIds.map((u) => u.id),
     roleCounts: Object.fromEntries(roleCounts.map((r) => [r.key, r.count])) as Record<
       "member" | "reseller" | "enterprise",
       number

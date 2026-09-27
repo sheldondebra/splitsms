@@ -44,6 +44,40 @@ export type EmailMarketingTemplateSeed = {
 
 export const EMAIL_MARKETING_SYSTEM_TEMPLATES: EmailMarketingTemplateSeed[] = [
   {
+    slug: "service-down",
+    name: "Service down",
+    description: "Notify customers of a temporary interruption (no technical details)",
+    category: "reengagement",
+    subject: "SplitSMS is temporarily unavailable",
+    preheader: "We're working to restore access as quickly as possible",
+    headline: "Temporary interruption",
+    bodyText: `SplitSMS is temporarily unavailable while we resolve an issue.
+
+We're working to restore full access as quickly as possible and will let you know when everything is back online.
+
+Thank you for your patience.`,
+    ctaLabel: "Visit SplitSMS",
+    ctaHref: "/",
+    footerNote: "You are receiving this because you have a SplitSMS account.",
+    imageUrl: "/logo.png",
+  },
+  {
+    slug: "service-restored",
+    name: "Service restored",
+    description: "Apology after downtime — system is back online (no technical details)",
+    category: "reengagement",
+    subject: "We're back online — thank you for your patience",
+    preheader: "SplitSMS is up and running again",
+    headline: "We're back online",
+    bodyText: `We're sorry for the temporary interruption earlier. SplitSMS is fully back online and working normally again.
+
+You can sign in and continue sending as usual. Thank you for your patience and for choosing SplitSMS.`,
+    ctaLabel: "Open dashboard",
+    ctaHref: "/dashboard",
+    footerNote: "You are receiving this because you have a SplitSMS account.",
+    imageUrl: "/logo.png",
+  },
+  {
     slug: "smart-forms",
     name: "SmartForms",
     description: "Promote lead-capture forms with SMS follow-up",

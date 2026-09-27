@@ -25,6 +25,7 @@ import {
   Receipt,
   Puzzle,
   Link2,
+  Bell,
 } from "lucide-react";
 
 export type DashboardNavItem = {
@@ -64,6 +65,7 @@ export const dashboardNavSections: DashboardNavSection[] = [
       { href: "/dashboard/contacts", label: "Contacts", icon: Users, feature: "contacts" },
       { href: "/dashboard/forms", label: "Smart Forms", icon: FileText, mobile: true, feature: "smart_forms" },
       { href: "/dashboard/campaigns", label: "Campaigns", icon: Megaphone, feature: "bulk_sms" },
+      { href: "/dashboard/reminders", label: "Reminders", icon: Bell, feature: "bulk_sms" },
       { href: "/dashboard/wallet", label: "Wallet", icon: Wallet, mobile: true },
     ],
   },

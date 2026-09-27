@@ -12,6 +12,7 @@ import {
   ScrollText,
   BarChart3,
   ShieldAlert,
+  ShieldBan,
   Settings,
   ListChecks,
   FileText,
@@ -138,6 +139,7 @@ export const adminNavSections: AdminNavSection[] = [
       { href: "/admin/analytics", label: "Analytics", icon: BarChart3, permission: "activity.read" },
       { href: "/admin/site-traffic", label: "Website Traffic", icon: Globe2, permission: "activity.read" },
       { href: "/admin/fraud", label: "Fraud", icon: ShieldAlert, permission: "activity.read" },
+      { href: "/admin/ip-access", label: "IP access", icon: ShieldBan, permission: "settings.write" },
     ],
   },
 ];

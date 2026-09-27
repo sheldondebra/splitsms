@@ -24,6 +24,7 @@ import {
 
 const productLinks = [
   { href: "/products", label: "SMS products" },
+  { href: "/products/reminder-sms", label: "SMS Reminders" },
   { href: "/solutions", label: "SMS solutions" },
   { href: "/features", label: "SMS features" },
   { href: "/how-to", label: "How to" },
@@ -39,6 +40,7 @@ const solutionLinks = [
   { href: "/solutions", label: "All solutions" },
   { href: "/solutions#use-cases", label: "Use cases" },
   { href: "/solutions/sms", label: "SMS Ghana" },
+  { href: "/solutions/sms-reminders", label: "SMS Reminders" },
   { href: "/solutions/otp", label: "OTP SMS API" },
   { href: "/solutions/woocommerce-sms", label: "WooCommerce SMS" },
   { href: "/solutions/paystack-sms", label: "Paystack SMS" },

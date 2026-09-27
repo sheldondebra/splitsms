@@ -264,6 +264,10 @@ export async function getAdminMemberDetail(userId: string) {
   const memberPricing =
     pricingOptions.find((p) => p.countryCode === user.countryCode) ?? pricingOptions[0] ?? null;
 
+  const { loadPlatformIpAccessConfig } = await import("@/lib/admin/ip-access");
+  const ipAccess = await loadPlatformIpAccessConfig();
+  const ipBlacklist = ipAccess.blacklist.map((e) => e.ip);
+
   return {
     user: {
       id: user.id,
@@ -359,6 +363,7 @@ export async function getAdminMemberDetail(userId: string) {
       vars: buildMemberOutreachVars({ fullName: user.fullName }),
     },
     products,
+    ipBlacklist,
   };
 }
 

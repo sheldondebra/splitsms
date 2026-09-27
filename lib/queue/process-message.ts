@@ -146,7 +146,9 @@ export async function processMessageJob(
     data: {
       status: "FAILED",
       failedAt: new Date(),
-      failureReason: result.error,
+      failureReason: (await import("@/lib/sms/friendly-failure")).toMemberFacingFailureReason(
+        result.error,
+      ),
     },
   });
   await dispatchUserWebhooks(message.userId, failed);
@@ -183,8 +185,9 @@ export async function updateMessageFromDlr(
       ...(status === "FAILED"
         ? {
             failedAt: new Date(),
-            // Don't leave the internal resend marker looking like the failure reason.
-            ...(hasResendMarker ? { failureReason: "Delivery failed (carrier report)" } : {}),
+            failureReason: hasResendMarker
+              ? "Delivery failed (carrier report)"
+              : message.failureReason?.trim() || "Delivery failed (carrier report)",
           }
         : {}),
     },

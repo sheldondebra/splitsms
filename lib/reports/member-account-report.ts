@@ -85,6 +85,8 @@ export async function getMemberAccountReport(
     loginCount,
     loginEvents,
     senderRows,
+    allTimeMessageCount,
+    lastMessage,
   ] = await Promise.all([
     prisma.message.groupBy({
       by: ["status"],
@@ -196,11 +198,20 @@ export async function getMemberAccountReport(
       select: { value: true, isDefault: true, status: true, countryCode: true },
       orderBy: [{ isDefault: "desc" }, { value: "asc" }],
     }),
+    prisma.message.count({
+      where: { userId, isSandbox: false },
+    }),
+    prisma.message.findFirst({
+      where: { userId, isSandbox: false },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    }),
   ]);
 
   const messageCount = statusBreakdown.reduce((sum, row) => sum + row._count, 0);
   const delivered = statusCount(statusBreakdown, "DELIVERED");
   const failed = statusCount(statusBreakdown, "FAILED");
+  const smsUnits = unitsAgg._sum.smsUnits ?? 0;
 
   return {
     periodDays,
@@ -235,10 +246,13 @@ export async function getMemberAccountReport(
       pending: statusCount(statusBreakdown, "PENDING") + statusCount(statusBreakdown, "PROCESSING"),
       rejected: statusCount(statusBreakdown, "REJECTED"),
       expired: statusCount(statusBreakdown, "EXPIRED"),
-      smsUnits: unitsAgg._sum.smsUnits ?? 0,
+      smsUnits,
+      avgUnitsPerMessage: messageCount > 0 ? Math.round((smsUnits / messageCount) * 10) / 10 : 0,
       campaigns: campaignCount,
       transactions: transactionCount,
       logins: loginCount,
+      allTimeMessages: allTimeMessageCount,
+      lastMessageAt: lastMessage?.createdAt ?? null,
     },
     charts: {
       smsVolume: mergeDayCounts(days, volumeRows).map((d) => ({ date: d.date, sent: d.value })),

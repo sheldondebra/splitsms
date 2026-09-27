@@ -290,10 +290,10 @@ export function SettingsPanel({
             <AppCardBody>
               <AppCardTitle
                 title="Password"
-                description="Change your password or reset via SMS"
+                description="Update with your current password, or reset via SMS or email"
                 icon={Shield}
               />
-              <ChangePasswordSection phone={user.phone} />
+              <ChangePasswordSection phone={user.phone} email={user.email} />
             </AppCardBody>
           </AppCard>
 

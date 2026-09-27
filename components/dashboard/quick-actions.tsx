@@ -1,58 +1,51 @@
 import Link from "next/link";
-import { Send, Wallet, BadgeCheck, Users, BarChart3 } from "lucide-react";
+import { ArrowUpRight, Megaphone, Send, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const actions = [
   {
     href: "/dashboard/send",
-    label: "Send SMS",
     icon: Send,
-    className: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20",
+    title: "Send SMS",
+    text: "One number or a list",
   },
   {
-    href: "/dashboard/sender-ids",
-    label: "Sender ID",
-    icon: BadgeCheck,
-    className: "bg-foreground text-background hover:bg-foreground/90",
+    href: "/dashboard/campaigns",
+    icon: Megaphone,
+    title: "Campaigns",
+    text: "Schedule bulk sends",
   },
   {
     href: "/dashboard/wallet",
-    label: "Add Money",
     icon: Wallet,
-    className: "bg-card border border-border hover:bg-muted/60 shadow-sm",
-  },
-  {
-    href: "/dashboard/contacts",
-    label: "Contacts",
-    icon: Users,
-    className: "bg-card border border-border hover:bg-muted/60 shadow-sm",
-  },
-  {
-    href: "/dashboard/reports",
-    label: "Results",
-    icon: BarChart3,
-    className: "bg-card border border-border hover:bg-muted/60 shadow-sm",
+    title: "Wallet",
+    text: "Top up & buy credits",
   },
 ];
 
 export function QuickActions() {
   return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-        Quick actions
-      </p>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {actions.map(({ href, label, icon: Icon, className }) => (
+    <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+      <div className="grid sm:grid-cols-3">
+        {actions.map(({ href, icon: Icon, title, text }, index) => (
           <Link
             key={href}
             href={href}
             className={cn(
-              "flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl p-4 text-center text-sm font-semibold transition-all active:scale-[0.98]",
-              className,
+              "group flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/30 sm:px-5",
+              index < actions.length - 1 && "border-b border-border/50 sm:border-b-0 sm:border-r",
             )}
           >
-            <Icon className="h-6 w-6 shrink-0" strokeWidth={2} />
-            <span>{label}</span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
+              <Icon className="h-4 w-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1 text-sm font-semibold">
+                {title}
+                <ArrowUpRight className="h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+              </span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">{text}</span>
+            </span>
           </Link>
         ))}
       </div>

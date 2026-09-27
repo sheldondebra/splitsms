@@ -10,10 +10,10 @@ import {
   Users,
   ArrowUpRight,
   BadgeCheck,
+  Bell,
   ChevronDown,
   CheckCircle2,
   KeyRound,
-  Layers,
   Link2,
   Megaphone,
   Puzzle,
@@ -63,6 +63,11 @@ const useCases = [
     icon: Megaphone,
   },
   {
+    title: "Payment reminders",
+    desc: "Early SMS before due date, due-date SMS on the day — monthly if you need it.",
+    icon: Bell,
+  },
+  {
     title: "OTP & alerts",
     desc: "Login codes, payment confirmations, and shipping updates.",
     icon: KeyRound,
@@ -81,11 +86,6 @@ const useCases = [
     title: "Webhooks",
     desc: "Push delivery receipts to your backend the moment status changes.",
     icon: Webhook,
-  },
-  {
-    title: "Connect API",
-    desc: "Embed SMS in your SaaS — sub-accounts, credits, and sender IDs.",
-    icon: Layers,
   },
 ] as const;
 
@@ -303,8 +303,8 @@ export function HomePageContent() {
               </h2>
               <p className="mt-5 text-muted-foreground leading-relaxed">
                 Email gets ignored. SMS gets opened. SplitSMS gives your business a direct line to
-                customers — for promotions, order updates, OTP codes, and appointment reminders —
-                without locking you into an expensive annual contract.
+                customers — for promotions, payment reminders, order updates, OTP codes, and
+                appointment alerts — without locking you into an expensive annual contract.
               </p>
               <p className="mt-4 text-muted-foreground leading-relaxed">
                 Built in Ghana by Tecunit, we know local Sender ID rules, mobile money top-ups, and

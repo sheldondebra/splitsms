@@ -36,6 +36,7 @@ export default async function AdminGeneralOfficePage({
     to?: string;
     error?: string;
     saved?: string;
+    detail?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -60,15 +61,21 @@ export default async function AdminGeneralOfficePage({
     loadGatewayLastTest("email_send_test"),
     prisma.senderId.findMany({
       where: { status: "APPROVED" },
-      select: { value: true },
+      select: {
+        value: true,
+        user: { select: { fullName: true, email: true, phone: true } },
+      },
       distinct: ["value"],
       orderBy: { value: "asc" },
-      take: 100,
+      take: 200,
     }),
     getAdminSmsTestHistory(25),
     loadMaintenanceConfig(),
   ]);
-  const smsTestSenderIds = smsTestSenderIdRows.map((s) => s.value);
+  const smsTestSenders = smsTestSenderIdRows.map((s) => ({
+    value: s.value,
+    ownerName: s.user.fullName?.trim() || s.user.email || s.user.phone || null,
+  }));
   const envMailjetConfigured = isMailjetConfigured();
   const envSmtpConfigured = isSmtpEnvConfigured();
   const envResendConfigured = isResendEnvConfigured();
@@ -102,7 +109,7 @@ export default async function AdminGeneralOfficePage({
         officeConfig={officeConfig}
         slackConfig={slackConfig}
         eventsUrl={`${getSiteUrl()}/api/slack/events`}
-        smsTestSenderIds={smsTestSenderIds}
+        smsTestSenders={smsTestSenders}
         smsTestHistory={smsTestHistory}
         maintenanceConfig={maintenanceConfig}
       />

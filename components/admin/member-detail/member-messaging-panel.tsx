@@ -4,6 +4,7 @@ import { AdminCard, AdminEmpty } from "@/components/admin/admin-page-shell";
 import { ExpandableMessage } from "@/components/admin/expandable-message";
 import { MemberOutreachPanel } from "@/components/admin/member-detail/member-outreach-panel";
 import { ProviderBadge } from "@/components/admin/provider-badge";
+import { SmsFailureReasonLabel } from "@/components/dashboard/sms-failure-reason-label";
 import { Badge } from "@/components/ui/badge";
 import type { AdminMemberDetail } from "@/lib/admin/member-detail";
 import type { SmsProviderType } from "@/lib/generated/prisma/client";
@@ -185,6 +186,7 @@ export function MemberMessagingPanel({
                               Sandbox
                             </Badge>
                           )}
+                          <SmsFailureReasonLabel status={m.status} reason={m.failureReason} />
                         </td>
                         <td className="px-3 py-2.5">
                           {m.providerType ? (

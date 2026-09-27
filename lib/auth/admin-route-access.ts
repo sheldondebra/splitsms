@@ -53,6 +53,7 @@ export const ADMIN_PATH_PERMISSIONS: Record<string, AdminPermission | readonly A
   "/admin/reports": "activity.read",
   "/admin/analytics": "activity.read",
   "/admin/fraud": "activity.read",
+  "/admin/ip-access": "settings.write",
 };
 
 export function canAccessAdminPath(actor: AdminActor, pathname: string): boolean {

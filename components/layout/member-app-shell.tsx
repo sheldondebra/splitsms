@@ -15,6 +15,8 @@ import type { BalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
 import type { MemberProfileSummary } from "@/components/dashboard/user-profile-menu";
 import { PlatformFeaturesProvider } from "@/components/platform/platform-features-context";
 import type { PlatformFeatureFlags } from "@/lib/platform/feature-catalog";
+import { OfflineProvider } from "@/components/offline/offline-provider";
+import { OfflineBanner } from "@/components/offline/offline-banner";
 
 type MemberAppShellProps = {
   children: React.ReactNode;
@@ -46,50 +48,54 @@ export function MemberAppShell({
 
   return (
     <PlatformFeaturesProvider flags={featureFlags}>
-    <MemberSidebarCollapseProvider>
-      <div className="flex min-h-[100dvh] bg-background max-md:h-[100dvh] max-md:overflow-hidden">
-        {!isDevelopers && <DashboardSidebar />}
-        {isDevelopers && <DevelopersSidebar />}
+      <OfflineProvider>
+        <MemberSidebarCollapseProvider>
+          <div className="flex min-h-[100dvh] bg-background max-md:h-[100dvh] max-md:overflow-hidden">
+            {!isDevelopers && <DashboardSidebar />}
+            {isDevelopers && <DevelopersSidebar />}
 
-        <div className="flex min-h-0 flex-1 flex-col min-w-0 w-full max-w-[100vw]">
-          <MobileAppHeader
-            profile={profile}
-            notifications={notifications}
-            unreadCount={unreadCount}
-          />
+            <div className="flex min-h-0 flex-1 flex-col min-w-0 w-full max-w-[100vw]">
+              <MobileAppHeader
+                profile={profile}
+                notifications={notifications}
+                unreadCount={unreadCount}
+              />
 
-          <div className="hidden md:block">
-            <DashboardTopbar
-              greeting={greeting}
-              profile={profile}
-              notifications={notifications}
-              unreadCount={unreadCount}
-              balance={balance}
-              showResellerPortal={showResellerPortal}
-            />
+              <div className="hidden md:block">
+                <DashboardTopbar
+                  greeting={greeting}
+                  profile={profile}
+                  notifications={notifications}
+                  unreadCount={unreadCount}
+                  balance={balance}
+                  showResellerPortal={showResellerPortal}
+                />
+              </div>
+
+              <OfflineBanner />
+
+              <main className="member-main flex-1 overflow-y-auto overflow-x-hidden">
+                <div className="member-content">{children}</div>
+              </main>
+
+              <MobileNav
+                menuOpen={menuOpen}
+                onMenuOpen={() =>
+                  setMenuPath((current) => (current === pathname ? null : pathname))
+                }
+                onTabNavigate={() => setMenuPath(null)}
+              />
+              <MobileNavDrawer
+                open={menuOpen}
+                onClose={() => setMenuPath(null)}
+                tenant={tenant}
+                profile={profile}
+                showResellerPortal={showResellerPortal}
+              />
+            </div>
           </div>
-
-          <main className="member-main flex-1 overflow-y-auto overflow-x-hidden">
-            <div className="member-content">{children}</div>
-          </main>
-
-          <MobileNav
-            menuOpen={menuOpen}
-            onMenuOpen={() =>
-              setMenuPath((current) => (current === pathname ? null : pathname))
-            }
-            onTabNavigate={() => setMenuPath(null)}
-          />
-          <MobileNavDrawer
-            open={menuOpen}
-            onClose={() => setMenuPath(null)}
-            tenant={tenant}
-            profile={profile}
-            showResellerPortal={showResellerPortal}
-          />
-        </div>
-      </div>
-    </MemberSidebarCollapseProvider>
+        </MemberSidebarCollapseProvider>
+      </OfflineProvider>
     </PlatformFeaturesProvider>
   );
 }

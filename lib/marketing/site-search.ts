@@ -59,6 +59,27 @@ const extraItems: SiteSearchItem[] = [
     group: "Developers",
   },
   {
+    href: "/products/reminder-sms",
+    title: "SMS Reminders",
+    description: "Payment, appointment, birthday — early + due-date SMS.",
+    group: "Products",
+    keywords: "reminder payment due appointment birthday monthly fee",
+  },
+  {
+    href: "/solutions/sms-reminders",
+    title: "SMS Reminders for Ghana",
+    description: "Automate fee and appointment alerts.",
+    group: "Solutions",
+    keywords: "payment reminder Ghana susu school fees",
+  },
+  {
+    href: "/how-to/set-up-sms-reminders",
+    title: "How to set up SMS reminders",
+    description: "Early + due-date, monthly or one time.",
+    group: "Company",
+    keywords: "howto reminder payment setup",
+  },
+  {
     href: "/smart-forms",
     title: "Smart Forms",
     description: "Forms with confirmation SMS and QR.",

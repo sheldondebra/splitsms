@@ -58,6 +58,7 @@ import {
   clearPasswordResetSession,
 } from "@/lib/auth/reset-session";
 import { logAuthEvent } from "@/lib/auth/audit";
+import { enforceLoginIpAccess } from "@/lib/auth/login-ip-access";
 import { getMemberAccountForUser, isMemberSuspended } from "@/lib/admin/member-account";
 import { userNeedsOnboarding } from "@/lib/onboarding";
 import { assertTenantLoginAllowed } from "@/lib/auth/tenant-login";
@@ -172,6 +173,8 @@ async function finishLogin(
     id: string;
     role: UserRole;
     phone: string;
+    fullName?: string;
+    email?: string | null;
   },
   returnTo?: string | null,
 ) {
@@ -182,6 +185,17 @@ async function finishLogin(
     !(await isFeatureEnabled("login"))
   ) {
     redirect("/login?error=feature_login");
+  }
+
+  const ipAccess = await enforceLoginIpAccess({
+    userId: user.id,
+    role: user.role,
+    fullName: user.fullName,
+    phone: user.phone,
+    email: user.email,
+  });
+  if (!ipAccess.ok) {
+    redirect("/login?error=ip_blocked");
   }
 
   await prisma.user.update({

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { createSession } from "@/lib/auth/session";
 import { recordDeviceSession } from "@/lib/auth/device-session";
 import { logAuthEvent } from "@/lib/auth/audit";
+import { enforceLoginIpAccess } from "@/lib/auth/login-ip-access";
 import { getMemberAccountForUser, isMemberSuspended } from "@/lib/admin/member-account";
 import { assertTenantLoginAllowed } from "@/lib/auth/tenant-login";
 import {
@@ -51,6 +52,7 @@ export async function establishGoogleSession(user: {
   role: UserRole;
   phone: string;
   fullName: string;
+  email?: string | null;
 }, returnTo?: string | null): Promise<string> {
   await assertTenantLoginAllowed(user.id, user.role);
 
@@ -59,6 +61,18 @@ export async function establishGoogleSession(user: {
     !(await isFeatureEnabled("login"))
   ) {
     return "/login?error=feature_login";
+  }
+
+  const ipAccess = await enforceLoginIpAccess({
+    userId: user.id,
+    role: user.role,
+    fullName: user.fullName,
+    phone: user.phone,
+    email: user.email,
+    method: "google",
+  });
+  if (!ipAccess.ok) {
+    return "/login?error=ip_blocked";
   }
 
   await prisma.user.update({
@@ -100,6 +114,7 @@ export async function resolveGoogleSignIn(identity: GoogleIdentity): Promise<
         fullName: string;
         countryCode: string;
         isVerified: boolean;
+        email?: string | null;
       };
     }
   | { status: "needs_phone" }
@@ -189,6 +204,7 @@ export async function resolveGoogleSignIn(identity: GoogleIdentity): Promise<
       fullName: user.fullName,
       countryCode: user.countryCode,
       isVerified: user.isVerified,
+      email: identity.email,
     },
   };
 }

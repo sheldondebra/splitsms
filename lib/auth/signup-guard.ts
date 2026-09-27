@@ -73,11 +73,9 @@ type GuardInput = {
 };
 
 async function readRequestMeta() {
+  const { getRequestIp } = await import("@/lib/auth/request-ip");
   const h = await headers();
-  const ip =
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    h.get("x-real-ip") ??
-    "unknown";
+  const ip = await getRequestIp();
   return { ip, userAgent: h.get("user-agent") };
 }
 

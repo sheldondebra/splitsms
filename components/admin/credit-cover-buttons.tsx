@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 export function SaveCreditCoverThresholdButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" className="h-9 gap-1.5" disabled={pending}>
+    <Button type="submit" className="h-11 gap-1.5 px-4" disabled={pending}>
       {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
       {pending ? "Saving…" : "Save"}
     </Button>

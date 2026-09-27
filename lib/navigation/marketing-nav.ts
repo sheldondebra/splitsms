@@ -79,6 +79,12 @@ export const marketingNavItems: MarketingNavItem[] = [
               icon: Megaphone,
             },
             {
+              href: "/products/reminder-sms",
+              label: "SMS Reminders",
+              description: "Payment, birthday, and meeting due dates.",
+              icon: Bell,
+            },
+            {
               href: "/solutions/otp",
               label: "OTP & verification",
               description: "Login and payout codes over SMS.",
@@ -131,7 +137,7 @@ export const marketingNavItems: MarketingNavItem[] = [
       featured: {
         eyebrow: "Start here",
         title: "See the product catalogue",
-        body: "One wallet for campaigns, OTP, forms, and the API. Five free credits on signup.",
+        body: "One wallet for campaigns, reminders, OTP, forms, and the API. Five free credits on signup.",
         href: "/products",
         cta: "Explore products",
       },
@@ -154,6 +160,12 @@ export const marketingNavItems: MarketingNavItem[] = [
               icon: Megaphone,
             },
             {
+              href: "/solutions/sms-reminders",
+              label: "Payment & appointment reminders",
+              description: "Early + due-date SMS, monthly schedules.",
+              icon: Bell,
+            },
+            {
               href: "/solutions/otp",
               label: "OTP & verification",
               description: "Login, payout, and reset codes.",
@@ -163,7 +175,7 @@ export const marketingNavItems: MarketingNavItem[] = [
               href: "/solutions/woocommerce-sms",
               label: "Alerts & receipts",
               description: "Status, payments, duty texts.",
-              icon: Bell,
+              icon: ShoppingBag,
             },
             {
               href: "/solutions/sms-integration",

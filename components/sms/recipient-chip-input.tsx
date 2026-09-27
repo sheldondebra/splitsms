@@ -16,8 +16,20 @@ export type RecipientChip = {
   display: string;
 };
 
-function toChip(raw: string): RecipientChip {
-  const check = validateRecipientPhone(raw);
+type RecipientChipInputProps = {
+  value: string;
+  onChange: (value: string, chips: RecipientChip[]) => void;
+  disabled?: boolean;
+  id?: string;
+  name?: string;
+  placeholder?: string;
+  className?: string;
+  /** ISO country used to validate local numbers (e.g. GH, NG). */
+  defaultCountry?: string | null;
+};
+
+function toChip(raw: string, defaultCountry?: string | null): RecipientChip {
+  const check = validateRecipientPhone(raw, defaultCountry);
   return {
     id: `${check.display || raw}-${Math.random().toString(36).slice(2, 9)}`,
     raw,
@@ -29,19 +41,9 @@ function chipsToRecipients(chips: RecipientChip[]): string {
   return chips.map((c) => c.display || c.raw).join("\n");
 }
 
-function parseValueToChips(value: string): RecipientChip[] {
-  return splitRecipientInput(value).map(toChip);
+function parseValueToChips(value: string, defaultCountry?: string | null): RecipientChip[] {
+  return splitRecipientInput(value).map((raw) => toChip(raw, defaultCountry));
 }
-
-type RecipientChipInputProps = {
-  value: string;
-  onChange: (value: string, chips: RecipientChip[]) => void;
-  disabled?: boolean;
-  id?: string;
-  name?: string;
-  placeholder?: string;
-  className?: string;
-};
 
 export function RecipientChipInput({
   value,
@@ -51,20 +53,23 @@ export function RecipientChipInput({
   name = "recipients",
   placeholder = "Type a number, then space or comma",
   className,
+  defaultCountry,
 }: RecipientChipInputProps) {
   const autoId = useId();
   const inputId = id ?? autoId;
   const inputRef = useRef<HTMLInputElement>(null);
   const [chipState, setChipState] = useState(() => ({
     value,
-    chips: parseValueToChips(value),
+    country: defaultCountry ?? null,
+    chips: parseValueToChips(value, defaultCountry),
     draft: "",
   }));
 
-  if (value !== chipState.value) {
+  if (value !== chipState.value || (defaultCountry ?? null) !== chipState.country) {
     setChipState({
       value,
-      chips: parseValueToChips(value),
+      country: defaultCountry ?? null,
+      chips: parseValueToChips(value, defaultCountry),
       draft: "",
     });
   }
@@ -83,7 +88,7 @@ export function RecipientChipInput({
   function commitDraft(text?: string) {
     const part = (text ?? draft).trim();
     if (!part) return;
-    const newOnes = splitRecipientInput(part).map(toChip);
+    const newOnes = splitRecipientInput(part).map((raw) => toChip(raw, defaultCountry));
     if (newOnes.length === 0) return;
     emit([...chips, ...newOnes]);
     setChipState((prev) => ({ ...prev, draft: "" }));
@@ -115,13 +120,13 @@ export function RecipientChipInput({
     e.preventDefault();
     const parts = splitRecipientInput(text);
     if (parts.length === 0) return;
-    emit([...chips, ...parts.map(toChip)]);
+    emit([...chips, ...parts.map((raw) => toChip(raw, defaultCountry))]);
     setChipState((prev) => ({ ...prev, draft: "" }));
   }
 
   const validCount = chips.filter((c) => c.valid).length;
   const invalidCount = chips.length - validCount;
-  const draftCheck = draft.trim() ? validateRecipientPhone(draft) : null;
+  const draftCheck = draft.trim() ? validateRecipientPhone(draft, defaultCountry) : null;
 
   return (
     <div className={cn("space-y-2", className)}>

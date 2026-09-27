@@ -169,6 +169,38 @@ export async function sendMnotifyQuickSms(
       };
     }
 
+    // mNotify sometimes returns HTTP 200 with status/message describing a failure
+    // (e.g. unapproved Sender ID, invalid destination). Treat those as send failures.
+    const bodyStatus = String(data.status ?? "").toLowerCase();
+    if (bodyStatus && bodyStatus !== "success" && bodyStatus !== "ok") {
+      return {
+        ok: false as const,
+        error: parseMnotifyError(data, res.status),
+        httpStatus: res.status,
+      };
+    }
+    const bodyMessage = String(data.message ?? "").toLowerCase();
+    if (
+      bodyMessage &&
+      (bodyMessage.includes("not registered") ||
+        bodyMessage.includes("not approved") ||
+        bodyMessage.includes("invalid") ||
+        bodyMessage.includes("failed") ||
+        bodyMessage.includes("error"))
+    ) {
+      const looksSuccessful =
+        bodyStatus === "success" ||
+        bodyStatus === "ok" ||
+        String(data.code ?? "") === "2000";
+      if (!looksSuccessful) {
+        return {
+          ok: false as const,
+          error: parseMnotifyError(data, res.status),
+          httpStatus: res.status,
+        };
+      }
+    }
+
     const providerRef = extractMnotifyProviderRef(data);
     if (!providerRef) {
       console.warn("[mnotify] SMS accepted without delivery report id", {

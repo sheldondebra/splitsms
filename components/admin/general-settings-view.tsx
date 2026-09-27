@@ -24,6 +24,7 @@ type Props = {
     to?: string;
     error?: string;
     saved?: string;
+    detail?: string;
   };
   configured: boolean;
   stored: EmailOfficePublic;
@@ -39,7 +40,7 @@ type Props = {
   officeConfig: GeneralOfficeConfig;
   slackConfig: SlackOfficeConfig;
   eventsUrl: string;
-  smsTestSenderIds: string[];
+  smsTestSenders: { value: string; ownerName: string | null }[];
   smsTestHistory: AdminSmsTestEntry[];
   maintenanceConfig: MaintenanceConfig;
 };
@@ -95,7 +96,7 @@ export function GeneralSettingsView(props: Props) {
         }
         slack={<GeneralSlackPanel config={props.slackConfig} eventsUrl={props.eventsUrl} />}
         smsTest={
-          <GeneralSmsTestPanel senderIds={props.smsTestSenderIds} history={props.smsTestHistory} />
+          <GeneralSmsTestPanel senders={props.smsTestSenders} history={props.smsTestHistory} />
         }
         maintenance={<GeneralMaintenancePanel config={props.maintenanceConfig} />}
       />

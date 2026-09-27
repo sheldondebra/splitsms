@@ -353,6 +353,50 @@ export function slackAuthFailureBlocks(input: { identifier: string }): SlackBloc
   });
 }
 
+export function slackBlockedIpLoginBlocks(input: {
+  userId: string;
+  fullName: string;
+  phone: string;
+  email?: string | null;
+  ip: string;
+  reason: "blacklisted" | "not_whitelisted";
+  matched?: string;
+}): SlackBlock[] {
+  const reasonLabel =
+    input.reason === "blacklisted"
+      ? `Blacklisted${input.matched ? ` (${input.matched})` : ""}`
+      : "Not on whitelist";
+
+  return buildSlackNotification({
+    category: "security",
+    status: "failure",
+    title: "Login blocked — IP restricted",
+    summary: slackQuote(
+      `${SLACK.security} *${input.fullName}* tried to sign in from ${slackCode(input.ip)}`,
+    ),
+    fields: [
+      slackField("Member", input.fullName, SLACK.member),
+      slackField("Phone", input.phone, SLACK.phone),
+      slackField("IP", slackCode(input.ip), SLACK.security),
+      slackField("Reason", reasonLabel, SLACK.warning),
+      slackField(
+        "Unblock",
+        "Open IP access and remove this IP from the blacklist, or unblock from the member Sessions tab",
+        SLACK.process,
+      ),
+    ],
+    actions: [
+      slackAction("Manage IPs", buildSlackGoUrl("/admin/ip-access"), {
+        style: "primary",
+        icon: SLACK.view,
+      }),
+      slackAction("View member", buildSlackGoUrl(`/admin/members/${input.userId}?tab=sessions`), {
+        icon: SLACK.member,
+      }),
+    ],
+  });
+}
+
 export function slackStuckSmsBlocks(input: {
   delayedCount: number;
   pendingTotal: number;

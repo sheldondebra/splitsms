@@ -6,33 +6,47 @@ import { ContactTagsInput } from "@/components/contacts/contact-tags-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Mail, Phone, User, UserPlus } from "lucide-react";
+import { Loader2, UserPlus, User, Phone, Mail } from "lucide-react";
+import { toast } from "sonner";
 
 export function ContactsAddForm() {
   const [pending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      startTransition(async () => {
+        try {
+          const { enqueueOfflineAction, formDataToPayload } = await import(
+            "@/lib/offline/queue"
+          );
+          const phone = String(formData.get("phone") ?? "").trim() || "contact";
+          await enqueueOfflineAction({
+            kind: "create_contact",
+            payload: formDataToPayload(formData),
+            label: `Add contact ${phone}`,
+          });
+          toast.success("Contact saved offline", {
+            description: "Will sync when you’re back online.",
+          });
+          form.reset();
+        } catch {
+          toast.error("Could not queue offline");
+        }
+      });
+      return;
+    }
+
     startTransition(() => {
       void createContactAction(formData);
     });
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl">
-      <div className="flex items-start gap-3 mb-6">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-          <UserPlus className="h-5 w-5 text-primary" />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Add a contact</h2>
-          <p className="text-sm text-muted-foreground mt-0.5 leading-relaxed">
-            Save someone manually for quick sends and campaigns.
-          </p>
-        </div>
-      </div>
-
+    <form onSubmit={handleSubmit} className="max-w-3xl space-y-5">
       <div className="rounded-xl border border-border/60 bg-muted/15 p-4 sm:p-5 space-y-5">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
@@ -45,7 +59,7 @@ export function ContactsAddForm() {
               name="name"
               placeholder="Jane Doe"
               disabled={pending}
-              className="h-11 bg-background"
+              className="h-11 rounded-xl bg-background"
             />
           </div>
 
@@ -60,7 +74,7 @@ export function ContactsAddForm() {
               placeholder="233201234567"
               required
               disabled={pending}
-              className="h-11 font-mono bg-background"
+              className="h-11 rounded-xl bg-background font-mono"
             />
             <p className="text-xs text-muted-foreground">International format without +</p>
           </div>
@@ -77,7 +91,7 @@ export function ContactsAddForm() {
               type="email"
               placeholder="jane@example.com"
               disabled={pending}
-              className="h-11 bg-background"
+              className="h-11 rounded-xl bg-background"
             />
           </div>
 
@@ -88,7 +102,7 @@ export function ContactsAddForm() {
             </Label>
             <ContactTagsInput disabled={pending} />
             <p className="text-xs text-muted-foreground">
-              Press Enter or comma to add each tag. Tags appear as cards you can remove.
+              Press Enter or comma to add each tag.
             </p>
           </div>
         </div>
@@ -97,7 +111,7 @@ export function ContactsAddForm() {
       <Button
         type="submit"
         disabled={pending}
-        className="mt-5 h-11 w-full sm:w-auto rounded-xl font-semibold px-8 gap-2"
+        className="h-11 w-full gap-2 rounded-xl px-8 font-semibold sm:w-auto"
       >
         {pending ? (
           <>
@@ -105,7 +119,10 @@ export function ContactsAddForm() {
             Saving…
           </>
         ) : (
-          "Save contact"
+          <>
+            <UserPlus className="h-4 w-4" />
+            Save contact
+          </>
         )}
       </Button>
     </form>

@@ -10,7 +10,7 @@ import {
   memberHasFeature,
 } from "@/lib/admin/member-account";
 import { ResellerAccessError } from "@/lib/reseller/access";
-import { countSmsUnits, normalizePhones, isGsm7 } from "@/lib/sms/units";
+import { countSmsUnits, parseRecipientPhones, isGsm7 } from "@/lib/sms/units";
 import { deductSmsCredits } from "@/lib/sms/billing";
 import { enqueueSmsJobsInline, shouldAwaitSmsDispatch } from "@/lib/queue/enqueue-sms";
 import { resolveMessagePriority } from "@/lib/enterprise/priority";
@@ -34,7 +34,7 @@ export type SendSmsResult =
       scheduledAt: string;
       estimatedCredits: number;
     }
-  | { ok: false; error: string };
+  | { ok: false; error: string; invalidPhones?: string[] };
 
 export type SaveSendDraftResult =
   | { ok: true; draftId: string }
@@ -94,7 +94,7 @@ export async function saveSendDraftAction(formData: FormData): Promise<SaveSendD
     return { ok: false, error: "sender" };
   }
 
-  const recipients = normalizePhones(recipientsRaw);
+  const recipients = parseRecipientPhones(recipientsRaw, countryCode).valid;
   const units = body.trim() ? countSmsUnits(body) : 0;
   const pricing = await prisma.smsPricing.findFirst({
     where: { country: { code: countryCode }, isActive: true },
@@ -169,7 +169,15 @@ export async function sendSmsAction(formData: FormData): Promise<SendSmsResult> 
   const scheduleRaw = String(formData.get("scheduledAt") ?? "");
   const draftId = String(formData.get("draftId") ?? "").trim() || undefined;
 
-  const recipients = normalizePhones(recipientsRaw);
+  const parsed = parseRecipientPhones(recipientsRaw, countryCode);
+  if (parsed.invalid.length > 0) {
+    return {
+      ok: false,
+      error: "invalid_phones",
+      invalidPhones: parsed.invalid.slice(0, 12),
+    };
+  }
+  const recipients = parsed.valid;
   if (!body || recipients.length === 0) {
     return { ok: false, error: "invalid" };
   }

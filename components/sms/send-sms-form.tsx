@@ -303,6 +303,27 @@ export function SendSmsForm({
       formData.set("draftId", draftCampaignId);
     }
 
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      startSaveDraft(async () => {
+        try {
+          const { enqueueOfflineAction, formDataToPayload } = await import(
+            "@/lib/offline/queue"
+          );
+          await enqueueOfflineAction({
+            kind: "save_draft",
+            payload: formDataToPayload(formData),
+            label: "Save SMS draft",
+          });
+          toast.success("Draft queued offline", {
+            description: "Will save to your account when you’re back online.",
+          });
+        } catch {
+          toast.error("Could not queue draft offline");
+        }
+      });
+      return;
+    }
+
     const toastId = toast.loading("Saving draft…");
     startSaveDraft(async () => {
       try {
@@ -345,6 +366,33 @@ export function SendSmsForm({
     const form = e.currentTarget;
     const formData = new FormData(form);
     const count = recipientCount;
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      startTransition(async () => {
+        try {
+          const { enqueueOfflineAction, formDataToPayload } = await import(
+            "@/lib/offline/queue"
+          );
+          await enqueueOfflineAction({
+            kind: "send_sms",
+            payload: formDataToPayload(formData),
+            label: isScheduling
+              ? `Schedule ${count} SMS`
+              : `Send ${count} SMS`,
+          });
+          toast.success("Saved offline", {
+            description: "Will send automatically when you’re back online.",
+          });
+          resetCompose();
+        } catch {
+          toast.error("Could not queue offline", {
+            description: "Please try again when you have a connection.",
+          });
+        }
+      });
+      return;
+    }
+
     const toastId = toast.loading(
       isScheduling ? "Scheduling your messages…" : "Sending your messages…",
       {
@@ -393,9 +441,9 @@ export function SendSmsForm({
               },
             });
           } else {
-            toast.success("Messages sent successfully!", {
+            toast.success("Messages queued", {
               id: toastId,
-              description: `${result.recipientCount} recipient${result.recipientCount === 1 ? "" : "s"} · ${result.creditsUsed} credit${result.creditsUsed === 1 ? "" : "s"} used`,
+              description: `${result.recipientCount} recipient${result.recipientCount === 1 ? "" : "s"} · ${result.creditsUsed} credit${result.creditsUsed === 1 ? "" : "s"} — check Reports if any fail`,
               duration: 6000,
               action: {
                 label: "View report",
@@ -408,10 +456,16 @@ export function SendSmsForm({
           return;
         }
 
+        const invalidHint =
+          result.error === "invalid_phones" && result.invalidPhones?.length
+            ? result.invalidPhones.join(", ")
+            : undefined;
         toast.error("Could not send messages", {
           id: toastId,
-          description: friendlyError(result.error),
-          duration: 5000,
+          description: invalidHint
+            ? `${friendlyError(result.error)} Invalid: ${invalidHint}`
+            : friendlyError(result.error),
+          duration: 7000,
         });
       } catch {
         toast.error("Something went wrong", {
@@ -672,6 +726,7 @@ export function SendSmsForm({
               id="recipients"
               name="recipients"
               value={recipients}
+              defaultCountry={countryCode}
               onChange={(value, chips) => {
                 setRecipients(value);
                 setRecipientChips(chips);
@@ -681,7 +736,8 @@ export function SendSmsForm({
             />
             {hasInvalidRecipients && (
               <p className="text-xs text-red-700 dark:text-red-400">
-                Remove or fix invalid numbers before sending.
+                Remove or fix invalid numbers before sending. Use country code (e.g. 233…) or a
+                local number that matches the selected country.
               </p>
             )}
           </div>

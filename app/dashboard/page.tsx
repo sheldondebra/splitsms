@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { getDashboardOverview } from "@/lib/analytics/dashboard";
@@ -6,17 +5,14 @@ import { getBalanceSnapshot } from "@/lib/dashboard/balance-snapshot";
 import { userNeedsOnboarding } from "@/lib/onboarding";
 import { redirect } from "next/navigation";
 import { DashboardChartsPanel } from "@/components/dashboard/dashboard-charts-panel";
-import {
-  SupportChatPanel,
-} from "@/components/dashboard/support-chat-panel";
+import { SupportChatPanel } from "@/components/dashboard/support-chat-panel";
 import { buildSupportChatMessages } from "@/lib/support/chat";
 import { loadSupportPresence } from "@/lib/support/presence";
-import { DashboardMetrics, DashboardAlert } from "@/components/dashboard/dashboard-metrics";
 import { DashboardWelcomeHero } from "@/components/dashboard/dashboard-welcome-balance";
 import { RecentActivityList } from "@/components/dashboard/recent-activity-list";
 import { DeliverySyncPoller } from "@/components/dashboard/delivery-sync-poller";
 import { SetupStrip } from "@/components/dashboard/setup-strip";
-import { Send, Megaphone, Percent, BadgeCheck } from "lucide-react";
+import { QuickActions } from "@/components/dashboard/quick-actions";
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -75,9 +71,18 @@ export default async function DashboardPage() {
   );
 
   return (
-    <div className="app-page space-y-5 md:space-y-6 pb-2">
+    <div className="app-page space-y-5 pb-2 md:space-y-6">
       <DeliverySyncPoller active={hasInTransit} />
-      <DashboardWelcomeHero firstName={firstName} balance={balance} />
+
+      <DashboardWelcomeHero
+        firstName={firstName}
+        balance={balance}
+        messagesToday={data.messagesToday}
+        deliveryRate={data.deliveryRate}
+        campaigns={data.campaigns}
+        activeSenderIds={data.activeSenderIds}
+        hasApprovedSender={hasApprovedSender}
+      />
 
       <SetupStrip
         phoneVerified={user?.isVerified ?? false}
@@ -86,62 +91,10 @@ export default async function DashboardPage() {
         hasSentMessage={data.totalMessages > 0}
       />
 
-      {balance.lowBalance && (
-        <DashboardAlert variant="warning">
-          <span>
-            Low SMS balance — <strong>{balance.creditBalance}</strong> credits left.
-          </span>
-          <Link href="/dashboard/wallet" className="font-semibold text-primary text-sm">
-            Top up →
-          </Link>
-        </DashboardAlert>
-      )}
+      <QuickActions />
 
-      {!hasApprovedSender && (
-        <DashboardAlert>
-          <span>Add a Sender ID before sending bulk SMS.</span>
-          <Link href="/dashboard/sender-ids" className="font-semibold text-primary text-sm">
-            Set up →
-          </Link>
-        </DashboardAlert>
-      )}
-
-      <DashboardMetrics
-        metrics={[
-          {
-            label: "Sent today",
-            value: data.messagesToday,
-            icon: Send,
-            href: "/dashboard/reports",
-            tone: "primary",
-          },
-          {
-            label: "Delivery rate",
-            value: `${data.deliveryRate}%`,
-            icon: Percent,
-            href: "/dashboard/reports",
-            tone:
-              data.deliveryRate >= 80 ? "success" : data.deliveryRate >= 50 ? "primary" : "warning",
-          },
-          {
-            label: "Campaigns",
-            value: data.campaigns,
-            icon: Megaphone,
-            href: "/dashboard/campaigns",
-            tone: "neutral",
-          },
-          {
-            label: "Sender IDs",
-            value: data.activeSenderIds,
-            icon: BadgeCheck,
-            href: "/dashboard/sender-ids",
-            tone: "neutral",
-          },
-        ]}
-      />
-
-      <div className="grid min-w-0 gap-6 lg:grid-cols-5 lg:items-stretch">
-        <div className="min-w-0 space-y-6 lg:col-span-3">
+      <div className="grid min-w-0 gap-5 lg:grid-cols-5 lg:items-stretch lg:gap-6">
+        <div className="min-w-0 space-y-5 lg:col-span-3 lg:space-y-6">
           <DashboardChartsPanel
             dailySms={data.charts.dailySms}
             deliveryChart={data.charts.deliveryChart}

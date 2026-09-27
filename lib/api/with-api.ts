@@ -21,10 +21,9 @@ export function withApi(
 ) {
   return async (request: Request) => {
     const start = Date.now();
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      request.headers.get("x-real-ip") ??
-      undefined;
+    const { getClientIpFromRequest } = await import("@/lib/auth/request-ip");
+    const resolved = getClientIpFromRequest(request);
+    const ip = resolved === "unknown" ? undefined : resolved;
 
     let requestBytes: number | undefined;
     try {

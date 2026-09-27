@@ -11,7 +11,6 @@ import {
 import { SenderIdPendingPoller } from "@/components/dashboard/sender-id-pending-poller";
 import { AppPage, PageHeader } from "@/components/dashboard/page-shell";
 import { BadgeCheck } from "lucide-react";
-import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SenderIdItem } from "@/components/dashboard/sender-id-list";
@@ -114,19 +113,20 @@ export default async function SenderIdsPage({
     <AppPage wide>
       <PageHeader
         title="Sender IDs"
-        description="The brand name recipients see on their phone. Register, track approval, and set your default."
+        description="Register the brand name recipients see on SMS. Submit once — we review it, then you can send."
         icon={BadgeCheck}
-        mobileDescription="Brand name on SMS — pending until approved."
+        mobileDescription="Register your brand name for SMS."
         actions={
-          <Link
-            href="/dashboard/send"
+          <a
+            href="#register-sender-id"
             className={cn(
-              buttonVariants({ variant: "outline" }),
-              "h-11 w-full md:h-10 md:w-auto inline-flex items-center justify-center gap-2",
+              buttonVariants(),
+              "h-11 w-full md:h-10 md:w-auto inline-flex items-center justify-center gap-2 rounded-xl",
             )}
           >
-            Send SMS →
-          </Link>
+            <BadgeCheck className="h-4 w-4" />
+            Register Sender ID
+          </a>
         }
       />
 

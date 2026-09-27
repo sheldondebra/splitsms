@@ -17,6 +17,14 @@ const stored: EmailOfficeStored = {
   smtpPassword: "must-never-leave-server",
   headerImageUrl: "",
   headerImagePosition: "above",
+  headerImageHref: "",
+  headerTagline: "",
+  footerText: "",
+  footerImageUrl: "",
+  footerImagePosition: "above",
+  footerImageHref: "",
+  footerLinkLabel: "",
+  footerLinkUrl: "",
 };
 
 describe("toPublicEmailOffice", () => {

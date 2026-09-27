@@ -16,6 +16,7 @@ export type SlackOfficeConfig = {
   notifyOnlinePayments: boolean;
   notifySupportTickets: boolean;
   notifyAuthFailures: boolean;
+  notifyBlockedIpLogin: boolean;
   notifyStuckSms: boolean;
   notifySmsFailures: boolean;
   notifySmsBatchResults: boolean;
@@ -39,6 +40,7 @@ export function defaultSlackOfficeConfig(): SlackOfficeConfig {
     notifyOnlinePayments: true,
     notifySupportTickets: true,
     notifyAuthFailures: true,
+    notifyBlockedIpLogin: true,
     notifyStuckSms: true,
     notifySmsFailures: true,
     notifySmsBatchResults: true,

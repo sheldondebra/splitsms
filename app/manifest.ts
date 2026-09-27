@@ -7,11 +7,28 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: siteName,
     description:
       "Bulk SMS platform and SMS API for 190+ countries — campaigns, OTP, webhooks, and pay-as-you-go pricing.",
-    start_url: "/",
+    start_url: "/dashboard",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#FF6A00",
     lang: "en",
+    scope: "/",
+    id: "/",
+    categories: ["business", "productivity"],
+    shortcuts: [
+      {
+        name: "Send SMS",
+        short_name: "Send",
+        url: "/dashboard/send",
+        description: "Compose and send SMS",
+      },
+      {
+        name: "Contacts",
+        short_name: "Contacts",
+        url: "/dashboard/contacts",
+        description: "Manage contacts",
+      },
+    ],
     icons: [
       {
         src: "/favicon.ico",

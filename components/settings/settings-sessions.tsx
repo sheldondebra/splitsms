@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Monitor, Smartphone } from "lucide-react";
 import { parseUserAgent } from "@/lib/user-agent";
+import { normalizeClientIp } from "@/lib/auth/client-ip";
 
 export type SessionRow = {
   id: string;
@@ -18,6 +19,14 @@ export type SessionRow = {
   createdAt: Date;
   lastActiveAt: Date;
 };
+
+function formatSessionIp(ip: string | null) {
+  if (!ip) return "—";
+  const normalized = normalizeClientIp(ip);
+  if (!normalized || normalized === "unknown") return "—";
+  if (normalized === "127.0.0.1") return "127.0.0.1 (local)";
+  return normalized;
+}
 
 function parseDevice(userAgent: string | null) {
   const p = parseUserAgent(userAgent);
@@ -63,7 +72,7 @@ export function SettingsSessions({
                   <dl className="mt-2 space-y-1.5 text-xs">
                     <div className="flex justify-between gap-3">
                       <dt className="text-muted-foreground">IP</dt>
-                      <dd className="font-mono text-foreground">{s.ip ?? "—"}</dd>
+                      <dd className="font-mono text-foreground">{formatSessionIp(s.ip)}</dd>
                     </div>
                     <div className="flex justify-between gap-3">
                       <dt className="text-muted-foreground">Last active</dt>
@@ -113,7 +122,7 @@ export function SettingsSessions({
                     </div>
                   </TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
-                    {s.ip ?? "—"}
+                    {formatSessionIp(s.ip)}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {format(s.createdAt, "MMM d, yyyy")}

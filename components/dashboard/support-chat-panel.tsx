@@ -259,13 +259,13 @@ export function SupportChatPanel({
         "flex min-w-0 flex-col overflow-hidden",
         embedded
           ? "min-h-[360px] min-w-0 bg-transparent"
-          : "flex h-[min(28rem,calc(100dvh-11.5rem))] max-h-[28rem] min-w-0 w-full rounded-2xl border border-border/60 bg-card md:h-[min(420px,55vh)] md:max-h-[420px]",
+          : "flex h-[min(28rem,calc(100dvh-11.5rem))] max-h-[28rem] min-w-0 w-full rounded-2xl border border-border/60 bg-card shadow-sm md:h-[min(420px,55vh)] md:max-h-[420px]",
         className,
       )}
     >
-      <div className="flex min-w-0 items-center gap-2.5 px-3 py-2.5 border-b border-border/50 shrink-0">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-          <Headphones className="h-3.5 w-3.5" />
+      <div className="flex min-w-0 shrink-0 items-center gap-2.5 border-b border-border/50 px-4 py-3.5 sm:px-5">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
+          <Headphones className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold leading-none truncate">Support chat</p>
