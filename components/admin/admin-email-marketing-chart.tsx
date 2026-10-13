@@ -18,7 +18,7 @@ export function AdminEmailMarketingChart({
 }) {
   if (data.every((d) => d.sent === 0 && d.failed === 0)) {
     return (
-      <p className="text-sm text-muted-foreground text-center py-16">
+      <p className="text-sm text-muted-foreground text-center py-10">
         No campaign sends in the last 14 days.
       </p>
     );

@@ -1,0 +1,4 @@
+=== SUPABASE ===
+psql: error: could not translate host name "db.fctjsvgcizrxerleqayd.supabase.co" to address: nodename nor servname provided, or not known
+psql: error: connection to server at "34.123.250.81", port 5432 failed: Operation not permitted
+	Is the server running on that host and accepting TCP/IP connections?

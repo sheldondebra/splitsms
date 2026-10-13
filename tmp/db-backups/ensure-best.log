@@ -1,0 +1,10 @@
+==> Probing databases…
+SUPABASE|UNREACHABLE|
+NEON_PROD|UNREACHABLE|
+NEON_BACKUP_BRANCH|UNREACHABLE|
+NEON_OLD|UNREACHABLE|
+CLOUDSQL|UNREACHABLE|
+
+==> Best source:  (0 users, latest )
+Supabase already has the best reachable data. No re-migrate needed.
+psql: error: could not translate host name "db.fctjsvgcizrxerleqayd.supabase.co" to address: nodename nor servname provided, or not known

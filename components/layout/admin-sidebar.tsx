@@ -33,7 +33,7 @@ export function AdminSidebar({ badges, staffAccess, onNavigate, className }: Adm
   return (
     <aside
       className={cn(
-        "flex w-[232px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-[100dvh]",
+        "flex h-full min-h-0 w-[232px] shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground",
         className,
       )}
     >

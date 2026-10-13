@@ -9,6 +9,8 @@ const SAVED_MESSAGES: Record<string, string> = {
   credits_email_failed: "SMS credits updated, but the notification email failed.",
   wallet: "Wallet updated. Member notified by email when enabled.",
   wallet_email_failed: "Wallet updated, but the notification email failed.",
+  reverted: "Unused credits were moved back to the wallet.",
+  reverted_email_failed: "Credits were moved to the wallet, but the notification email failed.",
   access: "Access settings saved.",
   verify: "Verification status updated.",
   unlock: "Login lock cleared.",
@@ -57,6 +59,11 @@ const ERROR_MESSAGES: Record<string, string> = {
   wallet: "Could not update wallet.",
   wallet_missing: "Member has no wallet.",
   wallet_negative: "Wallet balance cannot go below zero.",
+  revert_credits: "Enter a whole number of credits to revert.",
+  revert_balance: "That account does not have enough unused credits.",
+  revert_rate: "There is no credit price for this account.",
+  revert_member: "That account could not be found.",
+  revert_unpaid: "Only credits the member paid for can be turned into wallet money.",
   invalid_ip: "That IP address is not valid.",
   notfound: "That IP was not on the blacklist.",
 };
@@ -99,7 +106,8 @@ export function MemberAdminToasts({ memberId }: Props) {
         saved === "suspended_email_failed" ||
         saved === "suspended_no_email" ||
         saved === "credits_email_failed" ||
-        saved === "wallet_email_failed"
+        saved === "wallet_email_failed" ||
+        saved === "reverted_email_failed"
       ) {
         toast.warning("Done with warnings", {
           description: SAVED_MESSAGES[saved],

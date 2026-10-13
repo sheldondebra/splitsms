@@ -4,12 +4,17 @@ import { sendEmail } from "@/lib/email";
 import {
   senderIdAdminAlertContent,
   senderIdApprovedMemberContent,
+  senderIdAssignedMemberContent,
+  senderIdBlockedMemberContent,
   senderIdDocumentRequestMemberContent,
   senderIdDocumentUploadedAdminAlertContent,
   senderIdDocumentUploadedMemberContent,
   senderIdLiveMemberContent,
   senderIdRejectedMemberContent,
+  senderIdRestoredMemberContent,
   senderIdSubmittedMemberContent,
+  senderIdSuspendedMemberContent,
+  senderIdUnassignedMemberContent,
 } from "@/lib/email/templates";
 import { resolveAdminAlertRecipients } from "@/lib/admin/alert-recipients";
 import { createNotification } from "@/lib/notifications";
@@ -399,4 +404,213 @@ export async function notifyDocumentUploaded(documentId: string) {
       }),
     )
     .catch(() => undefined);
+}
+
+async function loadSenderWithUser(senderRecordId: string) {
+  return prisma.senderId.findUnique({
+    where: { id: senderRecordId },
+    include: {
+      user: { select: { id: true, fullName: true, phone: true, email: true } },
+    },
+  });
+}
+
+export async function notifyUserSenderIdSuspended(
+  senderRecordId: string,
+  reason: string,
+  until: Date | null,
+) {
+  const sender = await loadSenderWithUser(senderRecordId);
+  if (!sender) return;
+
+  const untilText = until
+    ? until.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })
+    : null;
+  const title = `Sender ID suspended: ${sender.value}`;
+  const message = untilText
+    ? `Suspended until ${untilText}. Reason: ${reason}`
+    : `Suspended indefinitely. Reason: ${reason}`;
+  const smsText = `${siteName}: Sender ID "${sender.value}" has been suspended. ${reason}`;
+
+  await createNotification(sender.user.id, "SYSTEM", title, message, {
+    kind: "sender_id_suspended",
+    senderId: senderRecordId,
+    value: sender.value,
+    href: "/dashboard/sender-ids",
+  });
+
+  const tasks: Promise<unknown>[] = [];
+  if (sender.user.email) {
+    const { subject, text, html } = await senderIdSuspendedMemberContent({
+      value: sender.value,
+      memberName: sender.user.fullName,
+      reason,
+      until: untilText,
+    });
+    tasks.push(sendEmail({ to: sender.user.email, toName: sender.user.fullName, subject, text, html }));
+  }
+  if (sender.user.phone) {
+    tasks.push(sendPlatformAlertSms(sender.user.phone, smsText));
+  }
+  await Promise.allSettled(tasks);
+}
+
+export async function notifyUserSenderIdBlocked(senderRecordId: string, reason: string) {
+  const sender = await loadSenderWithUser(senderRecordId);
+  if (!sender) return;
+
+  const title = `Sender ID blocked: ${sender.value}`;
+  const message = `Blocked by admin. Reason: ${reason}`;
+  const smsText = `${siteName}: Sender ID "${sender.value}" has been blocked. ${reason}`;
+
+  await createNotification(sender.user.id, "SYSTEM", title, message, {
+    kind: "sender_id_blocked",
+    senderId: senderRecordId,
+    value: sender.value,
+    href: "/dashboard/sender-ids",
+  });
+
+  const tasks: Promise<unknown>[] = [];
+  if (sender.user.email) {
+    const { subject, text, html } = await senderIdBlockedMemberContent({
+      value: sender.value,
+      memberName: sender.user.fullName,
+      reason,
+    });
+    tasks.push(sendEmail({ to: sender.user.email, toName: sender.user.fullName, subject, text, html }));
+  }
+  if (sender.user.phone) {
+    tasks.push(sendPlatformAlertSms(sender.user.phone, smsText));
+  }
+  await Promise.allSettled(tasks);
+}
+
+export async function notifyUserSenderIdRestored(senderRecordId: string) {
+  const sender = await loadSenderWithUser(senderRecordId);
+  if (!sender) return;
+
+  const title = `Sender ID restored: ${sender.value}`;
+  const message = `Your sender ID "${sender.value}" is active again.`;
+  const smsText = `${siteName}: Sender ID "${sender.value}" has been restored and is active again.`;
+
+  await createNotification(sender.user.id, "SYSTEM", title, message, {
+    kind: "sender_id_restored",
+    senderId: senderRecordId,
+    value: sender.value,
+    href: "/dashboard/send",
+    ctaLabel: "Send SMS",
+  });
+
+  const tasks: Promise<unknown>[] = [];
+  if (sender.user.email) {
+    const { subject, text, html } = await senderIdRestoredMemberContent({
+      value: sender.value,
+      memberName: sender.user.fullName,
+    });
+    tasks.push(sendEmail({ to: sender.user.email, toName: sender.user.fullName, subject, text, html }));
+  }
+  if (sender.user.phone) {
+    tasks.push(sendPlatformAlertSms(sender.user.phone, smsText));
+  }
+  await Promise.allSettled(tasks);
+}
+
+/** Reassignment moves the same record to a new owner — notify both sides. */
+export async function notifyUserSenderIdReassigned(
+  senderRecordId: string,
+  previousOwner: { id: string; fullName: string; phone: string; email: string | null },
+) {
+  const sender = await loadSenderWithUser(senderRecordId);
+  if (!sender) return;
+
+  const newOwnerTasks: Promise<unknown>[] = [];
+  const newOwnerTitle = `Sender ID assigned to you: ${sender.value}`;
+  await createNotification(
+    sender.user.id,
+    "SYSTEM",
+    newOwnerTitle,
+    `The sender ID "${sender.value}" has been assigned to your account.`,
+    {
+      kind: "sender_id_assigned",
+      senderId: senderRecordId,
+      value: sender.value,
+      href: "/dashboard/send",
+      ctaLabel: "Send SMS",
+    },
+  );
+  if (sender.user.email) {
+    const { subject, text, html } = await senderIdAssignedMemberContent({
+      value: sender.value,
+      memberName: sender.user.fullName,
+    });
+    newOwnerTasks.push(
+      sendEmail({ to: sender.user.email, toName: sender.user.fullName, subject, text, html }),
+    );
+  }
+  if (sender.user.phone) {
+    newOwnerTasks.push(
+      sendPlatformAlertSms(
+        sender.user.phone,
+        `${siteName}: Sender ID "${sender.value}" has been assigned to your account.`,
+      ),
+    );
+  }
+
+  const prevOwnerTasks: Promise<unknown>[] = [];
+  await createNotification(
+    previousOwner.id,
+    "SYSTEM",
+    `Sender ID reassigned: ${sender.value}`,
+    `Your sender ID "${sender.value}" has been reassigned to another account.`,
+    { kind: "sender_id_unassigned", senderId: senderRecordId, value: sender.value },
+  );
+  if (previousOwner.email) {
+    const { subject, text, html } = await senderIdUnassignedMemberContent({
+      value: sender.value,
+      memberName: previousOwner.fullName,
+    });
+    prevOwnerTasks.push(
+      sendEmail({ to: previousOwner.email, toName: previousOwner.fullName, subject, text, html }),
+    );
+  }
+
+  await Promise.allSettled([...newOwnerTasks, ...prevOwnerTasks]);
+}
+
+/** A newly cloned sender ID granted to another member (shared text, separate record). */
+export async function notifyUserSenderIdAssignedCopy(senderRecordId: string) {
+  const sender = await loadSenderWithUser(senderRecordId);
+  if (!sender) return;
+
+  await createNotification(
+    sender.user.id,
+    "SYSTEM",
+    `Sender ID assigned to you: ${sender.value}`,
+    `An admin has assigned the approved sender ID "${sender.value}" to your account.`,
+    {
+      kind: "sender_id_assigned",
+      senderId: senderRecordId,
+      value: sender.value,
+      href: "/dashboard/send",
+      ctaLabel: "Send SMS",
+    },
+  );
+
+  const tasks: Promise<unknown>[] = [];
+  if (sender.user.email) {
+    const { subject, text, html } = await senderIdAssignedMemberContent({
+      value: sender.value,
+      memberName: sender.user.fullName,
+    });
+    tasks.push(sendEmail({ to: sender.user.email, toName: sender.user.fullName, subject, text, html }));
+  }
+  if (sender.user.phone) {
+    tasks.push(
+      sendPlatformAlertSms(
+        sender.user.phone,
+        `${siteName}: Sender ID "${sender.value}" has been assigned to your account.`,
+      ),
+    );
+  }
+  await Promise.allSettled(tasks);
 }

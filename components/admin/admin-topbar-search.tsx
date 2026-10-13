@@ -11,6 +11,8 @@ import {
   BadgeCheck,
   CreditCard,
   Loader2,
+  MessageSquare,
+  Receipt,
   Search,
   User,
   X,
@@ -19,6 +21,8 @@ import {
 function KindIcon({ kind }: { kind: AdminSearchHit["kind"] }) {
   if (kind === "sender") return <BadgeCheck className="h-3.5 w-3.5" />;
   if (kind === "payment") return <CreditCard className="h-3.5 w-3.5" />;
+  if (kind === "transaction") return <Receipt className="h-3.5 w-3.5" />;
+  if (kind === "message") return <MessageSquare className="h-3.5 w-3.5" />;
   return <User className="h-3.5 w-3.5" />;
 }
 
@@ -143,7 +147,7 @@ export function AdminTopbarSearch({ className }: { className?: string }) {
             if (query.trim().length >= 2) setOpen(true);
           }}
           onKeyDown={onKeyDown}
-          placeholder="Search sender ID, phone, email, name, payment…"
+          placeholder="Member ID, phone, email, amount, sender ID…"
           className="h-9 w-full rounded-lg border border-border/70 bg-muted/30 pl-9 pr-9 text-sm outline-none transition-colors placeholder:text-muted-foreground/80 focus:border-primary/40 focus:bg-background focus:ring-2 focus:ring-primary/15"
           role="combobox"
           aria-expanded={showPanel}
@@ -175,13 +179,13 @@ export function AdminTopbarSearch({ className }: { className?: string }) {
         <div
           id={listId}
           role="listbox"
-          className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-xl border border-border/70 bg-popover shadow-lg"
+          className="absolute left-0 top-[calc(100%+6px)] z-50 w-[min(36rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-border/70 bg-popover shadow-lg"
         >
           {error ? (
             <p className="px-3 py-3 text-xs text-destructive">{error}</p>
           ) : hits.length === 0 && !isPending ? (
             <p className="px-3 py-3 text-xs text-muted-foreground">
-              No matches for “{query.trim()}”
+              No matches for “{query.trim()}”. Try a member ID, phone, email, amount, or sender ID.
             </p>
           ) : (
             <ul className="max-h-[min(70vh,420px)] overflow-y-auto py-1">
@@ -204,6 +208,8 @@ export function AdminTopbarSearch({ className }: { className?: string }) {
                         "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
                         hit.kind === "sender" && "bg-amber-500/12 text-amber-700 dark:text-amber-300",
                         hit.kind === "payment" && "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
+                        hit.kind === "transaction" && "bg-sky-500/12 text-sky-700 dark:text-sky-300",
+                        hit.kind === "message" && "bg-violet-500/12 text-violet-700 dark:text-violet-300",
                         hit.kind === "member" && "bg-primary/10 text-primary",
                       )}
                     >
@@ -213,6 +219,9 @@ export function AdminTopbarSearch({ className }: { className?: string }) {
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                           {hit.label}
+                        </span>
+                        <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                          {hit.related}
                         </span>
                         <StatusBadge status={hit.status} tone={hit.statusTone} />
                       </div>

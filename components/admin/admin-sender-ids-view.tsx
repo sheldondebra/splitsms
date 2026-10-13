@@ -42,7 +42,7 @@ import {
 } from "@/components/admin/admin-page-shell";
 import type { AdminSenderIdsDashboard } from "@/lib/admin/sender-ids-dashboard";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,6 +71,7 @@ import {
   RefreshCw,
   RotateCcw,
   Send,
+  Settings2,
   ShieldX,
   User,
   XCircle,
@@ -848,6 +849,16 @@ function SenderIdAdminRow({
               )}
               {primary.label}
             </Button>
+          ) : null}
+
+          {s.status === "APPROVED" ? (
+            <Link
+              href={`/admin/sender-ids/${s.id}?returnTo=${encodeURIComponent(returnTo)}`}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 gap-1.5 text-xs")}
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+              Manage
+            </Link>
           ) : null}
 
           <DropdownMenu>

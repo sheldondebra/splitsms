@@ -4,6 +4,7 @@ import {
   creditCoverPulse,
   creditCoverPulseMeters,
   creditCoverStatus,
+  holderCreditBreakdown,
   isCreditCoverAlertable,
   parseCreditCoverThreshold,
 } from "../../lib/admin/credit-cover";
@@ -103,6 +104,56 @@ describe("creditCoverPulseMeters", () => {
     });
     assert.equal(meters.members.tone, "muted");
     assert.equal(meters.stock.pct, 0);
+  });
+});
+
+describe("holderCreditBreakdown", () => {
+  it("reports bought, used, unused, and unused percent", () => {
+    const row = holderCreditBreakdown({
+      purchased: 1000,
+      promo: 50,
+      resellerFund: 0,
+      adminDelta: 100,
+      debited: 950,
+      refunded: 22,
+      unused: 222,
+    });
+    assert.equal(row.bought, 1150);
+    assert.equal(row.used, 950);
+    assert.equal(row.refunded, 22);
+    assert.equal(row.unused, 222);
+    assert.equal(row.unusedPct, 18.9);
+  });
+
+  it("keeps refunded sends in used and shows leftover share of credits in", () => {
+    const row = holderCreditBreakdown({
+      purchased: 100,
+      promo: 0,
+      resellerFund: 0,
+      adminDelta: 0,
+      debited: 1878,
+      refunded: 1995,
+      unused: 222,
+    });
+    assert.equal(row.bought, 105);
+    assert.equal(row.used, 1878);
+    assert.equal(row.refunded, 1995);
+    assert.equal(row.unusedPct, 10.6);
+  });
+
+  it("counts admin removals as used and the rest as credits received", () => {
+    const row = holderCreditBreakdown({
+      purchased: 0,
+      promo: 0,
+      resellerFund: 0,
+      adminDelta: -30,
+      debited: 0,
+      refunded: 0,
+      unused: 70,
+    });
+    assert.equal(row.bought, 100);
+    assert.equal(row.used, 30);
+    assert.equal(row.unusedPct, 70);
   });
 });
 

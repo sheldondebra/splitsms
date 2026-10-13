@@ -182,7 +182,7 @@ export function AdminCard({
 }: {
   children: ReactNode;
   className?: string;
-  title?: string;
+  title?: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
   dense?: boolean;

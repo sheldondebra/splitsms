@@ -1,3 +1,4 @@
+import { refundWalletCover } from "@/lib/admin/credit-revert-quote";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { paymentRefundIssuedEmailContent } from "@/lib/email/templates";
@@ -50,6 +51,13 @@ export type RefundEligibility = {
     mismatch: boolean;
     /** Set whenever refunding would currently fail — surfaced before the admin confirms. */
     error: string | null;
+    channel: string | null;
+    instrumentSummary: string | null;
+    reference: string | null;
+    customerEmail: string | null;
+    customerName: string | null;
+    customerPhone: string | null;
+    fees: number | null;
   };
 };
 
@@ -86,6 +94,13 @@ export async function getRefundEligibility(
         error: live.details.providerPaid
           ? null
           : `${payment.method === "STRIPE" ? "Stripe" : "Paystack"} does not currently show this payment as paid (status: ${live.details.providerStatus}).`,
+        channel: live.details.channel,
+        instrumentSummary: live.details.instrumentSummary,
+        reference: live.details.providerReference,
+        customerEmail: live.details.customerEmail,
+        customerName: live.details.customerName,
+        customerPhone: live.details.customerPhone,
+        fees: live.details.fees,
       }
     : {
         checked: false,
@@ -94,6 +109,13 @@ export async function getRefundEligibility(
         gatewayResponse: null,
         mismatch: false,
         error: `Could not verify this payment with ${payment.method === "STRIPE" ? "Stripe" : "Paystack"}: ${live.error}`,
+        channel: null,
+        instrumentSummary: null,
+        reference: null,
+        customerEmail: null,
+        customerName: null,
+        customerPhone: null,
+        fees: null,
       };
 
   return {
@@ -373,16 +395,82 @@ export async function issueRefund(params: {
   }
   configStep.status = "done";
 
+  const funded = await prisma.transaction.findFirst({
+    where: { paymentId, type: "WALLET_TOPUP", status: "completed" },
+    select: { id: true },
+  });
+  const walletBeforeHold = funded
+    ? await prisma.wallet.findUnique({
+        where: { userId: payment.userId },
+        select: { balance: true },
+      })
+    : null;
+  const walletBalance = walletBeforeHold?.balance.toNumber() ?? 0;
+  const cover = refundWalletCover({
+    paymentWasCredited: Boolean(funded),
+    walletBalance,
+    amount,
+  });
+  let walletHeld = false;
+  if (cover.required) {
+    const holdStep = addStep("wallet_hold", "Holding wallet funds before the provider refund");
+    if (!cover.covered) {
+      const error = `Wallet has ${payment.currency} ${walletBalance.toFixed(2)}. Revert purchased credits into the wallet before refunding ${payment.currency} ${amount.toFixed(2)}, so the member cannot keep the credits and the cash.`;
+      await prisma.refund.update({
+        where: { id: refundId },
+        data: { status: "FAILED", failureReason: error },
+      });
+      return fail(holdStep, error);
+    }
+    const held = await prisma.wallet.updateMany({
+      where: { userId: payment.userId, balance: { gte: amount } },
+      data: { balance: { decrement: amount } },
+    });
+    if (held.count === 0) {
+      const error = "The wallet balance changed before the refund could be held.";
+      await prisma.refund.update({
+        where: { id: refundId },
+        data: { status: "FAILED", failureReason: error },
+      });
+      return fail(holdStep, error);
+    }
+    walletHeld = true;
+    holdStep.status = "done";
+    holdStep.detail = `${payment.currency} ${amount.toFixed(2)} held`;
+  }
+
   const submitStep = addStep(
     "submit",
     `Submitting refund to ${payment.method === "STRIPE" ? "Stripe" : "Paystack"}`,
   );
-  const providerResult =
-    payment.method === "STRIPE"
-      ? await callStripeRefund(secretKey, chargeRef.reference, amount, reason)
-      : await callPaystackRefund(secretKey, chargeRef.reference, amount, payment.currency, reason);
+  let providerResult: Awaited<ReturnType<typeof callStripeRefund>>;
+  try {
+    providerResult =
+      payment.method === "STRIPE"
+        ? await callStripeRefund(secretKey, chargeRef.reference, amount, reason)
+        : await callPaystackRefund(secretKey, chargeRef.reference, amount, payment.currency, reason);
+  } catch (err) {
+    if (walletHeld) {
+      await prisma.wallet.update({
+        where: { userId: payment.userId },
+        data: { balance: { increment: amount } },
+      });
+    }
+    const error = err instanceof Error ? err.message : "Provider refund request failed";
+    await prisma.refund.update({
+      where: { id: refundId },
+      data: { status: "FAILED", failureReason: error },
+    });
+    return fail(submitStep, error);
+  }
 
   if (!providerResult.ok) {
+    if (walletHeld) {
+      await prisma.wallet.update({
+        where: { userId: payment.userId },
+        data: { balance: { increment: amount } },
+      });
+    }
     await prisma.refund.update({
       where: { id: refundId },
       data: { status: "FAILED", failureReason: providerResult.error },
@@ -397,13 +485,10 @@ export async function issueRefund(params: {
 
   await prisma.$transaction(async (tx) => {
     const wallet = await tx.wallet.findUnique({ where: { userId: payment.userId } });
-    const before = wallet?.balance.toNumber() ?? 0;
-    walletDebited = Math.min(before, amount);
-    const after = round2(before - walletDebited);
-
-    if (wallet && walletDebited > 0) {
-      await tx.wallet.update({ where: { userId: payment.userId }, data: { balance: after } });
-    }
+    const current = wallet?.balance.toNumber() ?? 0;
+    walletDebited = walletHeld ? amount : 0;
+    const before = walletHeld ? round2(current + amount) : current;
+    const after = current;
 
     const txRow = await tx.transaction.create({
       data: {

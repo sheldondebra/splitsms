@@ -27,7 +27,7 @@ export function AdminMobileHeader({ onMenuOpen, subtitle, profile, badges }: Adm
   const attention = badges?.["operations-attention"] ?? pendingPayments + pendingSender + openSupport;
 
   return (
-    <header className="sticky top-0 z-30 shrink-0 border-b border-border/70 bg-background/95 backdrop-blur-lg safe-top md:hidden">
+    <header className="z-30 shrink-0 border-b border-border/70 bg-background/95 backdrop-blur-lg safe-top md:hidden">
       <div className="flex h-12 items-center gap-2 px-4">
         <button
           type="button"
@@ -59,7 +59,7 @@ export function AdminMobileHeader({ onMenuOpen, subtitle, profile, badges }: Adm
       </div>
       <div className="flex items-center gap-2 px-4 pb-2.5">
         <AdminTopbarSearch className="min-w-0 flex-1" />
-        {profile.role === "SUPER_ADMIN" && <AdminSystemSyncButton />}
+        {profile.role === "SUPER_ADMIN" && <AdminSystemSyncButton iconOnly />}
       </div>
       {(pendingPayments > 0 || pendingSender > 0 || openSupport > 0) && (
         <div className="flex gap-2 overflow-x-auto px-4 pb-2.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

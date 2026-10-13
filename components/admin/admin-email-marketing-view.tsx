@@ -376,7 +376,10 @@ function ComposePanel({
           : `~${data.audienceCounts[audienceType as keyof typeof data.audienceCounts] ?? 0} recipients (cap ${data.maxRecipients})`;
 
   return (
-    <form action={adminSendEmailMarketingAction} className="grid gap-6 lg:grid-cols-2">
+    <form
+      action={adminSendEmailMarketingAction}
+      className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,440px)]"
+    >
       <input type="hidden" name="returnTo" value="/admin/email-marketing?tab=compose" />
       <input type="hidden" name="templateId" value={templateId} />
 
@@ -596,13 +599,13 @@ function ComposePanel({
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 lg:sticky lg:top-4 lg:self-start">
         <Label>Live preview</Label>
         <div className="overflow-hidden rounded-xl border border-border/60 bg-zinc-100 dark:bg-zinc-900">
           <iframe
             title="Email preview"
             srcDoc={previewHtml}
-            className="h-[720px] w-full bg-white"
+            className="h-[min(40rem,calc(100dvh-11rem))] w-full bg-white"
             sandbox=""
           />
         </div>
@@ -838,7 +841,7 @@ export function AdminEmailMarketingView({
 
       <nav
         aria-label="Email marketing"
-        className="flex gap-1 overflow-x-auto border-b border-border app-scroll-x"
+        className="flex flex-wrap gap-x-1 gap-y-1 border-b border-border"
       >
         {TABS.map((tab) => {
           const Icon = tab.icon;
@@ -866,7 +869,7 @@ export function AdminEmailMarketingView({
 
       {data.tab === "overview" && (
         <div className="space-y-6">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <AdminStatCard
               label="Campaigns"
               value={data.stats.campaignCount}
@@ -903,36 +906,35 @@ export function AdminEmailMarketingView({
             />
           </div>
 
-          <AdminCard title="Sends (14 days)">
-            <AdminEmailMarketingChart data={data.chart} />
-          </AdminCard>
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.85fr)]">
+            <AdminCard title="Sends (14 days)" description="Delivered and failed messages each day">
+              <AdminEmailMarketingChart data={data.chart} />
+            </AdminCard>
 
-          <AdminCard title="Audience snapshot">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {(
-                [
-                  ["All with email", data.audienceCounts.all],
-                  ["Inactive", data.audienceCounts.inactive],
-                  ["Members", data.audienceCounts.role_member],
-                  ["Resellers", data.audienceCounts.role_reseller],
-                  ["Enterprise", data.audienceCounts.role_enterprise],
-                  ["Newsletter", data.audienceCounts.newsletter],
-                  ["Low credits", data.audienceCounts.low_credits],
-                  ["New members", data.audienceCounts.new_members],
-                ] as const
-              ).map(([label, value]) => (
-                <div
-                  key={label}
-                  className="rounded-xl border border-border/60 bg-card px-4 py-3"
-                >
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {label}
-                  </p>
-                  <p className="mt-1 text-xl font-bold tabular-nums">{value}</p>
-                </div>
-              ))}
-            </div>
-          </AdminCard>
+            <AdminCard title="Audience snapshot" description="People you can reach right now">
+              <div className="grid grid-cols-2 gap-2">
+                {(
+                  [
+                    ["All with email", data.audienceCounts.all],
+                    ["Inactive", data.audienceCounts.inactive],
+                    ["Members", data.audienceCounts.role_member],
+                    ["Resellers", data.audienceCounts.role_reseller],
+                    ["Enterprise", data.audienceCounts.role_enterprise],
+                    ["Newsletter", data.audienceCounts.newsletter],
+                    ["Low credits", data.audienceCounts.low_credits],
+                    ["New members", data.audienceCounts.new_members],
+                  ] as const
+                ).map(([label, value]) => (
+                  <div key={label} className="rounded-xl bg-muted/40 px-3 py-2.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {label}
+                    </p>
+                    <p className="mt-0.5 text-lg font-bold tabular-nums">{value}</p>
+                  </div>
+                ))}
+              </div>
+            </AdminCard>
+          </div>
 
           <AdminCard
             title="Recent campaigns"
@@ -955,7 +957,7 @@ export function AdminEmailMarketingView({
       )}
 
       {data.tab === "compose" && (
-        <AdminCard title="Compose campaign">
+        <AdminCard title="Compose campaign" className="overflow-visible">
           <ComposePanel
             data={data}
             initialTemplateId={templateId}

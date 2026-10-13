@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { AdminMobileHeader } from "@/components/layout/admin-mobile-header";
@@ -55,11 +55,24 @@ export function AdminAppShell({
     support: [],
   };
 
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtml = html.style.overflow;
+    const prevBody = body.style.overflow;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    return () => {
+      html.style.overflow = prevHtml;
+      body.style.overflow = prevBody;
+    };
+  }, []);
+
   return (
-    <div className="flex min-h-[100dvh] bg-background">
+    <div className="fixed inset-0 flex overflow-hidden bg-background">
       <AdminSidebar badges={badges} staffAccess={staffAccess} className="hidden md:flex" />
 
-      <div className="flex flex-1 flex-col min-w-0 w-full max-w-[100vw]">
+      <div className="flex h-full min-h-0 flex-1 flex-col min-w-0 w-full max-w-[100vw]">
         {banner}
         <AdminMobileHeader
           onMenuOpen={() => setMenuOpen(true)}
@@ -68,7 +81,7 @@ export function AdminAppShell({
           badges={badges}
         />
 
-        <header className="admin-topbar hidden md:flex sticky top-0 z-30 h-14 shrink-0 items-center justify-between gap-4 border-b border-border/70 bg-background/95 px-6 lg:px-8 backdrop-blur-md">
+        <header className="admin-topbar hidden md:flex z-30 h-14 shrink-0 items-center justify-between gap-4 border-b border-border/70 bg-background/95 px-6 lg:px-8 backdrop-blur-md">
           <div className="min-w-0 flex items-center gap-3 shrink-0">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
               <Shield className="h-4 w-4" />
@@ -127,13 +140,13 @@ export function AdminAppShell({
                 )}
               </div>
             )}
-            {profile.role === "SUPER_ADMIN" && <AdminSystemSyncButton />}
+            {profile.role === "SUPER_ADMIN" && <AdminSystemSyncButton iconOnly />}
             <ThemeToggle className="h-9 w-9 rounded-lg shrink-0" />
             <HeaderAccountMenu profile={profile} variant="pill" />
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden admin-main">
+        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain admin-main">
           <div className="admin-content">{children}</div>
         </main>
       </div>

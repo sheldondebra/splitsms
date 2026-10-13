@@ -11,7 +11,10 @@ export async function POST(request: Request) {
   const { config } = await loadStripeSettings();
   const secret = config.webhookSecret || process.env.STRIPE_WEBHOOK_SECRET;
 
-  if (secret && !verifyStripeWebhookSignature(rawBody, signature, secret)) {
+  if (!secret) {
+    return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
+  }
+  if (!verifyStripeWebhookSignature(rawBody, signature, secret)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 

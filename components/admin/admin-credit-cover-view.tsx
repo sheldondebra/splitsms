@@ -13,8 +13,11 @@ import { Input } from "@/components/ui/input";
 import { buttonVariants } from "@/components/ui/button";
 import { saveCreditCoverThresholdAction, sendCreditCoverAlertAction } from "@/lib/actions/admin-credit-cover";
 import { refreshProviderBalancesAction } from "@/lib/actions/admin-provider-balances";
+import { CreditRevertSection } from "@/components/admin/credit-revert-section";
 import { isCreditCoverAlertable, type CreditCoverStatus } from "@/lib/admin/credit-cover";
 import type { CreditCoverDashboard } from "@/lib/admin/credit-cover-dashboard";
+import type { CreditRevertContext } from "@/lib/admin/credit-revert";
+import type { GatewayRefundReadiness } from "@/lib/admin/credit-revert-quote";
 import { cn } from "@/lib/utils";
 import {
   BellRing,
@@ -52,6 +55,32 @@ function initials(name: string) {
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
   return `${parts[0]![0] ?? ""}${parts[parts.length - 1]![0] ?? ""}`.toUpperCase();
+}
+
+function HolderStat({
+  label,
+  value,
+  emphasis,
+}: {
+  label: string;
+  value: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "truncate tabular-nums",
+          emphasis ? "text-sm font-bold" : "text-sm font-semibold",
+        )}
+      >
+        {value}
+      </p>
+    </div>
+  );
 }
 
 function RankMark({ rank }: { rank: number }) {
@@ -93,10 +122,17 @@ export function AdminCreditCoverView({
   data,
   saved,
   error,
+  revert,
 }: {
   data: CreditCoverDashboard;
   saved?: string;
   error?: string;
+  revert?: {
+    context: CreditRevertContext | null;
+    gateways: GatewayRefundReadiness[];
+    canIssueRefund: boolean;
+    returnTo: string;
+  };
 }) {
   const alertable = isCreditCoverAlertable(data.status);
   const coverLabel =
@@ -133,6 +169,35 @@ export function AdminCreditCoverView({
       {error === "not-low" && (
         <AdminAlert variant="warning">
           Main SMS stock is not below the threshold, so the alert was not sent.
+        </AdminAlert>
+      )}
+      {saved === "reverted" && (
+        <AdminAlert variant="success">
+          Credits were moved back to the wallet. Refund a Paystack or Stripe payment below if the money should return to the customer.
+        </AdminAlert>
+      )}
+      {saved === "reverted_email_failed" && (
+        <AdminAlert variant="warning">
+          Credits were moved back to the wallet, but the notification email failed.
+        </AdminAlert>
+      )}
+      {error === "revert_balance" && (
+        <AdminAlert variant="warning">That account does not have enough unused credits.</AdminAlert>
+      )}
+      {error === "revert_rate" && (
+        <AdminAlert variant="warning">
+          There is no credit price for this account, so the wallet amount cannot be calculated.
+        </AdminAlert>
+      )}
+      {error === "revert_credits" && (
+        <AdminAlert variant="warning">Enter a whole number of credits to revert.</AdminAlert>
+      )}
+      {error === "revert_member" && (
+        <AdminAlert variant="warning">That account could not be found.</AdminAlert>
+      )}
+      {error === "revert_unpaid" && (
+        <AdminAlert variant="warning">
+          Only credits the member paid for can be moved to the wallet. Signup and refunded send credits stay on the SMS balance.
         </AdminAlert>
       )}
 
@@ -809,12 +874,28 @@ export function AdminCreditCoverView({
         </div>
       </AdminCard>
 
+      {revert ? (
+        <CreditRevertSection
+          key={revert.context?.userId ?? "none"}
+          options={data.topHolders.map((row) => ({
+            userId: row.userId,
+            fullName: row.fullName,
+            unused: row.credits,
+          }))}
+          context={revert.context}
+          gateways={revert.gateways}
+          canIssueRefund={revert.canIssueRefund}
+          returnTo={revert.returnTo}
+          selectAction="/admin/credit-cover"
+        />
+      ) : null}
+
       <AdminCard
         title="Largest credit holders"
         description={
           data.topHolders.length === 0
             ? "Accounts with the most SMS credits"
-            : `Top ${data.topHolders.length} by SMS credits`
+            : `Top ${data.topHolders.length} by unused credits — bought, used, and what’s left`
         }
         actions={
           <Link
@@ -840,8 +921,8 @@ export function AdminCreditCoverView({
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {topHoldersShareOfSold != null
-                      ? `${topHoldersShareOfSold}% of all sold credits · ranked vs the top holder`
-                      : "Ranked by wallet balance"}
+                      ? `${topHoldersShareOfSold}% of all unused member credits · ranked by what’s left`
+                      : "Ranked by unused credits"}
                   </p>
                 </div>
               </div>
@@ -856,11 +937,7 @@ export function AdminCreditCoverView({
             <ul className="space-y-2">
               {data.topHolders.map((row, index) => {
                 const rank = index + 1;
-                const barPct = Math.min(100, (row.credits / topHoldersLeader) * 100);
-                const shareOfSold =
-                  data.memberCredits > 0
-                    ? Math.round((row.credits / data.memberCredits) * 1000) / 10
-                    : null;
+                const unusedPct = Math.min(100, row.unusedPct);
 
                 return (
                   <li key={row.userId}>
@@ -896,28 +973,36 @@ export function AdminCreditCoverView({
                         </div>
                       </div>
 
-                      <div className="flex w-full items-center gap-3 sm:w-[min(100%,18rem)] sm:shrink-0">
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
-                            <span>Share of leader</span>
-                            <span className="tabular-nums font-medium">
-                              {Math.round(barPct)}%
-                              {shareOfSold != null ? ` · ${shareOfSold}% sold` : ""}
-                            </span>
-                          </div>
-                          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                            <div
-                              className={cn(
-                                "h-full rounded-full",
-                                rank === 1 ? "bg-amber-500/80" : "bg-primary/80",
-                              )}
-                              style={{ width: `${barPct}%` }}
-                            />
-                          </div>
+                      <div
+                        className={cn(
+                          "grid w-full gap-2 sm:shrink-0",
+                          row.refunded > 0
+                            ? "grid-cols-4 sm:w-[22rem]"
+                            : "grid-cols-3 sm:w-[16.5rem]",
+                        )}
+                      >
+                        <HolderStat label="Bought" value={formatCredits(row.bought)} />
+                        <HolderStat label="Used" value={formatCredits(row.used)} />
+                        {row.refunded > 0 ? (
+                          <HolderStat label="Refunded" value={formatCredits(row.refunded)} />
+                        ) : null}
+                        <HolderStat label="Unused" value={formatCredits(row.credits)} emphasis />
+                      </div>
+
+                      <div className="w-full space-y-1 sm:w-36 sm:shrink-0">
+                        <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                          <span>Left</span>
+                          <span className="tabular-nums font-medium">{row.unusedPct}%</span>
                         </div>
-                        <p className="w-[4.5rem] shrink-0 text-right text-base font-bold tabular-nums tracking-tight">
-                          {formatCredits(row.credits)}
-                        </p>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className={cn(
+                              "h-full rounded-full",
+                              rank === 1 ? "bg-amber-500/80" : "bg-primary/80",
+                            )}
+                            style={{ width: `${unusedPct}%` }}
+                          />
+                        </div>
                       </div>
                     </Link>
                   </li>

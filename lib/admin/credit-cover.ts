@@ -90,6 +90,36 @@ export function creditCoverPulseMeters(params: {
   };
 }
 
+/** Bought, used, refunded, and unused SMS credits for one account. */
+export function holderCreditBreakdown(input: {
+  purchased: number;
+  promo: number;
+  resellerFund: number;
+  adminDelta: number;
+  debited: number;
+  refunded: number;
+  unused: number;
+}) {
+  const recordedIn =
+    input.purchased + input.promo + input.resellerFund + input.adminDelta;
+  const opening = input.unused - recordedIn - input.refunded + input.debited;
+  const bought = Math.max(
+    0,
+    input.purchased +
+      input.promo +
+      input.resellerFund +
+      Math.max(0, input.adminDelta) +
+      Math.max(0, opening),
+  );
+  const used = Math.max(0, input.debited + Math.max(0, -input.adminDelta));
+  const refunded = Math.max(0, input.refunded);
+  const unused = Math.max(0, input.unused);
+  const inflow = bought + refunded;
+  const unusedPct =
+    inflow > 0 ? Math.round((unused / inflow) * 1000) / 10 : unused > 0 ? 100 : 0;
+  return { bought, used, refunded, unused, unusedPct };
+}
+
 export function creditCoverPulse(params: {
   status: CreditCoverStatus;
   memberCredits: number;

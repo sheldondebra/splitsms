@@ -85,6 +85,11 @@ import { toast } from "sonner";
 type Props = {
   data: AdminMemberDetail;
   initialTab?: string;
+  revert?: {
+    context: import("@/lib/admin/credit-revert").CreditRevertContext | null;
+    gateways: import("@/lib/admin/credit-revert").GatewayRefundReadiness[];
+    canIssueRefund: boolean;
+  };
   flash?: {
     saved?: string;
     error?: string;
@@ -136,7 +141,16 @@ function defaultTab(saved?: string) {
   if (saved.startsWith("sender") || saved === "created") return "senders";
   if (saved === "reply" || saved === "ticket") return "activity";
   if (saved === "api_key") return "api";
-  if (saved === "credits" || saved === "wallet" || saved.startsWith("credits_") || saved.startsWith("wallet_")) return "billing";
+  if (
+    saved === "credits" ||
+    saved === "wallet" ||
+    saved === "reverted" ||
+    saved === "reverted_email_failed" ||
+    saved.startsWith("credits_") ||
+    saved.startsWith("wallet_")
+  ) {
+    return "billing";
+  }
   if (
     saved === "access" ||
     saved === "verify" ||
@@ -153,7 +167,7 @@ function defaultTab(saved?: string) {
   return "overview";
 }
 
-export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
+export function MemberDetailView({ data, flash, initialTab: tabParam, revert }: Props) {
   const { user, account, wallet, smsCredit, counts } = data;
   const id = user.id;
   const initialTab = useMemo(() => {
@@ -956,6 +970,7 @@ export function MemberDetailView({ data, flash, initialTab: tabParam }: Props) {
             walletCurrency={data.walletCurrency}
             pricePerCredit={data.billingPricing.pricePerCredit}
             pricingCurrency={data.billingPricing.currency}
+            revert={revert}
           />
           <MemberTransactionHistory transactions={data.transactions} />
         </TabsContent>

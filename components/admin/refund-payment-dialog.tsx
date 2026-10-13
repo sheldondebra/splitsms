@@ -9,6 +9,7 @@ import {
 } from "@/lib/actions/admin-refunds";
 import type { RefundEligibility, RefundStep } from "@/lib/payments/refund";
 import { SenderIdActionProgress } from "@/components/admin/sender-id-action-progress";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +26,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   ChevronLeft,
+  Copy,
   Loader2,
   RotateCcw,
   ShieldCheck,
@@ -32,9 +34,25 @@ import {
 } from "lucide-react";
 
 const dialogFooterClass =
-  "mx-0 mb-0 flex-col-reverse gap-2 border-t border-border/60 bg-muted/20 px-5 py-4 sm:flex-row sm:justify-end";
+  "mx-0 mb-0 shrink-0 flex-col-reverse gap-2 border-t border-border/60 bg-muted/20 px-5 py-4 sm:flex-row sm:justify-end";
 
 const CONFIRM_WORD = "REFUND";
+
+const REASON_PRESETS = [
+  "Unused SMS credits",
+  "Duplicate payment",
+  "Failed delivery",
+  "Service issue",
+  "Goodwill",
+] as const;
+
+function channelLabel(channel: string | null) {
+  if (!channel) return null;
+  if (channel === "mobile_money") return "Mobile money";
+  if (channel === "card") return "Card";
+  if (channel === "bank" || channel === "bank_transfer") return "Bank";
+  return channel.replace(/_/g, " ");
+}
 
 type Phase = "review" | "confirm" | "result";
 
@@ -118,9 +136,16 @@ export function RefundPaymentDialog({
   const parsedAmount = Number(amount);
   const amountValid = Number.isFinite(parsedAmount) && parsedAmount > 0;
   const providerBlocks = Boolean(eligibility?.provider.error);
+  const amountTooHigh =
+    !!eligibility && parsedAmount > eligibility.refundableAmount + 0.005;
   const canContinue =
-    !!eligibility && !eligibility.fullyRefunded && !providerBlocks && amountValid;
+    !!eligibility && !eligibility.fullyRefunded && !providerBlocks && amountValid && !amountTooHigh;
   const confirmMatches = confirmText.trim().toUpperCase() === CONFIRM_WORD;
+  const remainingAfter =
+    eligibility && amountValid && !amountTooHigh
+      ? Math.max(0, Math.round((eligibility.refundableAmount - parsedAmount) * 100) / 100)
+      : null;
+  const providerName = payment.method === "STRIPE" ? "Stripe" : "Paystack";
 
   function goToConfirm() {
     if (!eligibility) return;
@@ -169,8 +194,8 @@ export function RefundPaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !pending && onOpenChange(next)}>
-      <DialogContent className="sm:max-w-md gap-0 p-0 overflow-hidden">
-        <div className="px-5 pt-5 pb-4">
+      <DialogContent className="flex max-h-[min(92dvh,44rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5 pb-4">
           <DialogHeader className="text-left gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 mb-1">
               <RotateCcw className="h-5 w-5" />
@@ -182,8 +207,8 @@ export function RefundPaymentDialog({
             </DialogTitle>
             {phase === "review" && (
               <DialogDescription className="leading-relaxed">
-                This sends a real refund request to {payment.method === "STRIPE" ? "Stripe" : "Paystack"} for{" "}
-                {payment.userFullName}&apos;s payment method.
+                This sends a real refund to {providerName} for {payment.userFullName}. The money
+                returns to the original payment method, and the wallet is debited by the same amount.
               </DialogDescription>
             )}
           </DialogHeader>
@@ -194,7 +219,7 @@ export function RefundPaymentDialog({
               {loadingEligibility && (
                 <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Checking refund eligibility with {payment.method === "STRIPE" ? "Stripe" : "Paystack"}…
+                  Checking this payment with {providerName}…
                 </div>
               )}
 
@@ -206,46 +231,138 @@ export function RefundPaymentDialog({
 
               {eligibility && !loadingEligibility && (
                 <>
-                  <dl className="mt-4 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 text-xs space-y-1.5">
-                    <div className="flex justify-between gap-3">
-                      <dt className="text-muted-foreground">Original amount</dt>
-                      <dd className="font-semibold">
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <div className="rounded-xl bg-muted/30 px-3 py-2.5">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Original
+                      </p>
+                      <p className="mt-1 text-base font-bold tabular-nums">
                         {formatMoney(eligibility.totalAmount, eligibility.currency)}
-                      </dd>
-                    </div>
-                    {eligibility.refundedAmount > 0 && (
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-muted-foreground">Already refunded</dt>
-                        <dd>{formatMoney(eligibility.refundedAmount, eligibility.currency)}</dd>
-                      </div>
-                    )}
-                    <div className="flex justify-between gap-3">
-                      <dt className="text-muted-foreground">Refundable</dt>
-                      <dd className="font-semibold">
-                        {formatMoney(eligibility.refundableAmount, eligibility.currency)}
-                      </dd>
-                    </div>
-                  </dl>
-
-                  {/* Provider message / error — shown before the admin can proceed */}
-                  {eligibility.provider.error ? (
-                    <div className="mt-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-xs text-destructive">
-                      <XCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                      <p>{eligibility.provider.error}</p>
-                    </div>
-                  ) : (
-                    <div className="mt-3 flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-800 dark:text-emerald-200">
-                      <ShieldCheck className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                      <p>
-                        Confirmed with {payment.method === "STRIPE" ? "Stripe" : "Paystack"}: status{" "}
-                        <strong>{eligibility.provider.status}</strong>
-                        {eligibility.provider.gatewayResponse
-                          ? ` — ${eligibility.provider.gatewayResponse}`
-                          : ""}
-                        {eligibility.provider.mismatch ? " (differs from our records)" : ""}
                       </p>
                     </div>
-                  )}
+                    <div className="rounded-xl bg-muted/30 px-3 py-2.5">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Refundable
+                      </p>
+                      <p className="mt-1 text-base font-bold tabular-nums">
+                        {formatMoney(eligibility.refundableAmount, eligibility.currency)}
+                      </p>
+                      {eligibility.refundedAmount > 0 ? (
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {formatMoney(eligibility.refundedAmount, eligibility.currency)} already refunded
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 rounded-xl border border-border/60 px-3 py-3 text-xs">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="text-sm font-semibold">{providerName}</p>
+                      {channelLabel(eligibility.provider.channel) ? (
+                        <Badge variant="outline" className="text-[10px]">
+                          {channelLabel(eligibility.provider.channel)}
+                        </Badge>
+                      ) : null}
+                      {eligibility.provider.paid ? (
+                        <Badge className="bg-emerald-600 text-[10px] hover:bg-emerald-600">Paid</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px]">
+                          {eligibility.provider.status ?? "Unverified"}
+                        </Badge>
+                      )}
+                    </div>
+                    {eligibility.provider.instrumentSummary ? (
+                      <p className="mt-2 font-medium">{eligibility.provider.instrumentSummary}</p>
+                    ) : null}
+                    <dl className="mt-2 space-y-1.5 text-muted-foreground">
+                      {eligibility.provider.reference ? (
+                        <div className="flex items-start justify-between gap-2">
+                          <dt className="shrink-0">Reference</dt>
+                          <dd className="flex min-w-0 items-center gap-1">
+                            <span className="truncate font-mono text-[11px] text-foreground">
+                              {eligibility.provider.reference}
+                            </span>
+                            <button
+                              type="button"
+                              className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                              aria-label="Copy payment reference"
+                              onClick={() => {
+                                void navigator.clipboard.writeText(eligibility.provider.reference ?? "");
+                                toast.success("Reference copied");
+                              }}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </button>
+                          </dd>
+                        </div>
+                      ) : null}
+                      {eligibility.provider.customerPhone ? (
+                        <div className="flex justify-between gap-3">
+                          <dt>Phone</dt>
+                          <dd className="font-mono text-foreground">{eligibility.provider.customerPhone}</dd>
+                        </div>
+                      ) : null}
+                      {eligibility.provider.customerEmail ? (
+                        <div className="flex justify-between gap-3">
+                          <dt>Email</dt>
+                          <dd className="min-w-0 truncate text-foreground">
+                            {eligibility.provider.customerEmail}
+                          </dd>
+                        </div>
+                      ) : null}
+                      {eligibility.provider.fees != null ? (
+                        <div className="flex justify-between gap-3">
+                          <dt>Provider fee</dt>
+                          <dd className="text-foreground">
+                            {formatMoney(eligibility.provider.fees, eligibility.currency)}
+                          </dd>
+                        </div>
+                      ) : null}
+                    </dl>
+                    {eligibility.provider.error ? (
+                      <div className="mt-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-destructive">
+                        <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <p className="min-w-0 break-words">{eligibility.provider.error}</p>
+                      </div>
+                    ) : (
+                      <div className="mt-3 space-y-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-emerald-800 dark:text-emerald-200">
+                        <p className="flex items-center gap-1.5 font-medium">
+                          <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                          Confirmed with {providerName}
+                        </p>
+                        <p className="break-words pl-5">
+                          Status {eligibility.provider.status ?? "unknown"}
+                          {eligibility.provider.gatewayResponse
+                            ? ` · ${eligibility.provider.gatewayResponse}`
+                            : ""}
+                          {eligibility.provider.mismatch ? " · Differs from SplitSMS records" : ""}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {eligibility.refunds.length > 0 ? (
+                    <div className="mt-3 space-y-1.5">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Earlier refunds
+                      </p>
+                      <ul className="space-y-1">
+                        {eligibility.refunds.map((refund) => (
+                          <li
+                            key={refund.id}
+                            className="flex items-center justify-between gap-2 rounded-lg bg-muted/25 px-2.5 py-1.5 text-[11px]"
+                          >
+                            <span className="min-w-0 truncate">
+                              {refund.reason || "Refund"} · {refund.status.toLowerCase()}
+                            </span>
+                            <span className="shrink-0 font-semibold tabular-nums">
+                              {formatMoney(refund.amount, eligibility.currency)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
 
                   {eligibility.fullyRefunded ? (
                     <div className="mt-4 rounded-lg border border-border/60 bg-muted/10 px-3 py-2.5 text-xs text-muted-foreground">
@@ -254,9 +371,19 @@ export function RefundPaymentDialog({
                   ) : (
                     <div className="mt-4 space-y-3">
                       <div className="space-y-1.5">
-                        <Label htmlFor="refund-amount" className="text-xs">
-                          Refund amount ({eligibility.currency})
-                        </Label>
+                        <div className="flex items-center justify-between gap-2">
+                          <Label htmlFor="refund-amount" className="text-xs">
+                            Refund amount ({eligibility.currency})
+                          </Label>
+                          <button
+                            type="button"
+                            className="text-[11px] font-medium text-primary hover:underline"
+                            disabled={providerBlocks}
+                            onClick={() => setAmount(eligibility.refundableAmount.toFixed(2))}
+                          >
+                            Full refund
+                          </button>
+                        </div>
                         <Input
                           id="refund-amount"
                           type="number"
@@ -268,20 +395,53 @@ export function RefundPaymentDialog({
                           disabled={providerBlocks}
                           className="h-9"
                         />
+                        {amountTooHigh ? (
+                          <p className="text-[11px] text-destructive">
+                            That is more than the{" "}
+                            {formatMoney(eligibility.refundableAmount, eligibility.currency)} still
+                            refundable.
+                          </p>
+                        ) : remainingAfter != null ? (
+                          <p className="text-[11px] text-muted-foreground">
+                            {formatMoney(remainingAfter, eligibility.currency)} would remain on this
+                            payment. If this charge already funded the wallet, the wallet must cover
+                            the full refund before {providerName} is contacted.
+                          </p>
+                        ) : null}
                       </div>
 
                       <div className="space-y-1.5">
                         <Label htmlFor="refund-reason" className="text-xs">
-                          Reason (optional, sent to the member)
+                          Reason sent to the member
                         </Label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {REASON_PRESETS.map((preset) => {
+                            const selected = reason === preset;
+                            return (
+                              <button
+                                key={preset}
+                                type="button"
+                                disabled={providerBlocks}
+                                onClick={() => setReason(selected ? "" : preset)}
+                                className={
+                                  selected
+                                    ? "rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground"
+                                    : "rounded-md bg-muted/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                                }
+                              >
+                                {preset}
+                              </button>
+                            );
+                          })}
+                        </div>
                         <Textarea
                           id="refund-reason"
                           value={reason}
                           onChange={(e) => setReason(e.target.value)}
                           rows={2}
                           disabled={providerBlocks}
-                          className="text-sm resize-none"
-                          placeholder="e.g. Duplicate charge, service issue…"
+                          className="resize-none text-sm"
+                          placeholder="Add a note the member will see in the refund email"
                         />
                       </div>
                     </div>
@@ -298,8 +458,11 @@ export function RefundPaymentDialog({
                 <p>
                   Refund{" "}
                   <span className="font-semibold">{formatMoney(parsedAmount, payment.currency)}</span> to{" "}
-                  <span className="font-semibold">{payment.userFullName}</span> via{" "}
-                  {payment.method === "STRIPE" ? "Stripe" : "Paystack"}.
+                  <span className="font-semibold">{payment.userFullName}</span> via {providerName}
+                  {eligibility.provider.instrumentSummary
+                    ? ` (${eligibility.provider.instrumentSummary})`
+                    : ""}
+                  .
                 </p>
                 {reason.trim() && (
                   <p className="mt-1.5 text-xs text-muted-foreground">Reason: {reason.trim()}</p>
@@ -308,9 +471,9 @@ export function RefundPaymentDialog({
 
               <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-200">
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                <p>
-                  {refundTimingNote(payment.method)} This cannot be undone from SplitSMS once
-                  submitted.
+                <p className="break-words">
+                  {refundTimingNote(payment.method)} SplitSMS cannot undo it after {providerName}{" "}
+                  accepts the request.
                 </p>
               </div>
 

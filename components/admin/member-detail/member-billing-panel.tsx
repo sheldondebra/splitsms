@@ -16,6 +16,9 @@ import {
   packageTotalCost,
 } from "@/lib/billing/sms-packages";
 import { cn } from "@/lib/utils";
+import { CreditRevertSection } from "@/components/admin/credit-revert-section";
+import type { CreditRevertContext } from "@/lib/admin/credit-revert";
+import type { GatewayRefundReadiness } from "@/lib/admin/credit-revert-quote";
 import { Mail, MessageSquare, Wallet } from "lucide-react";
 
 const CREDIT_NOTE_PRESETS = [
@@ -124,6 +127,11 @@ type Props = {
   walletCurrency: string;
   pricePerCredit: number;
   pricingCurrency: string;
+  revert?: {
+    context: CreditRevertContext | null;
+    gateways: GatewayRefundReadiness[];
+    canIssueRefund: boolean;
+  };
 };
 
 export function MemberBillingPanel({
@@ -135,6 +143,7 @@ export function MemberBillingPanel({
   walletCurrency,
   pricePerCredit,
   pricingCurrency,
+  revert,
 }: Props) {
   const [creditPackageId, setCreditPackageId] = useState<string | null>("growth");
   const [creditAmount, setCreditAmount] = useState(() => {
@@ -188,6 +197,16 @@ export function MemberBillingPanel({
   }
 
   return (
+    <div className="space-y-4">
+    {revert ? (
+      <CreditRevertSection
+        key={revert.context?.userId ?? userId}
+        context={revert.context}
+        gateways={revert.gateways}
+        canIssueRefund={revert.canIssueRefund}
+        returnTo={`/admin/members/${userId}?tab=billing`}
+      />
+    ) : null}
     <div className="grid gap-4 lg:grid-cols-2">
       <AdminCard
         title="SMS credits"
@@ -390,6 +409,7 @@ export function MemberBillingPanel({
           <AdminEmpty>No wallet.</AdminEmpty>
         )}
       </AdminCard>
+    </div>
     </div>
   );
 }

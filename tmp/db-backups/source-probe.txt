@@ -1,0 +1,5 @@
+SUPABASE|123|2026-07-29 14:20:11.658|postgresql://postgres:DkzJ0ntrS4FUnkTC@db.fctjsvgcizrxerleqayd.supabase.co:5432/postgres?sslmode=require
+NEON_PROD|UNREACHABLE|
+NEON_BACKUP_BRANCH|UNREACHABLE|
+NEON_OLD|123|2026-07-29 14:20:11.658|postgresql://neondb_owner:npg_ByLYX8ZQ0Ktr@ep-dark-paper-apowpcc6.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require
+CLOUDSQL|UNREACHABLE|

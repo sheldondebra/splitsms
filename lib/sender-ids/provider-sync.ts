@@ -169,6 +169,40 @@ export async function registerSenderIdWithAllProviders(params: {
   };
 }
 
+/**
+ * Submit (or retry) registration with exactly one named provider — for an admin who wants
+ * to push an already-approved sender ID to a carrier it isn't registered with yet, without
+ * resetting the sender back through platform review like a full resubmit does.
+ */
+export async function registerSenderIdWithSingleProvider(params: {
+  senderRecordId: string;
+  value: string;
+  purpose: string;
+  countryCode: string;
+  provider: Extract<SenderIdProviderType, "MNOTIFY" | "TWILIO" | "INFOBIP">;
+}) {
+  await ensureSenderProviderRows(params.senderRecordId);
+
+  let result: import("@/lib/sender-ids/types").ProviderRegistrationResult;
+  if (params.provider === "MNOTIFY") {
+    result = await registerMnotifySenderRegistration(params.value, params.purpose);
+  } else if (params.provider === "TWILIO") {
+    result = await registerTwilioSenderRegistration(params.value);
+  } else {
+    result = await registerInfobipSenderRegistration(params.value, params.countryCode, params.purpose);
+  }
+
+  await updateSenderProviderRegistration(params.senderRecordId, params.provider, {
+    status: result.status,
+    providerStatus: result.providerStatus,
+    externalRef: result.externalRef,
+    error: result.error,
+    submittedAt: new Date(),
+  });
+
+  return result;
+}
+
 export async function syncSenderIdFromProviders(senderRecordId: string) {
   const sender = await prisma.senderId.findUnique({
     where: { id: senderRecordId },

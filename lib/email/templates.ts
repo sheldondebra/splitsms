@@ -776,6 +776,152 @@ ${registerUrl}
   return { subject, text, html };
 }
 
+export async function senderIdSuspendedMemberContent(params: {
+  value: string;
+  memberName: string;
+  reason: string;
+  until: string | null;
+}) {
+  const subject = `Sender ID suspended: ${params.value}`;
+  const untilLine = params.until ? `Suspended until: ${params.until}` : "Suspended indefinitely until restored by an admin.";
+  const text = `Hi ${params.memberName},
+
+Your sender ID "${params.value}" has been suspended on ${siteName}.
+
+Reason: ${params.reason}
+${untilLine}
+
+You cannot send SMS with this sender ID while it is suspended. Contact support if you believe this is a mistake.
+
+— ${siteName}`;
+
+  const html = await renderEmailLayout({
+    headline: "Sender ID suspended",
+    preheader: `${params.value} is temporarily suspended`,
+    greeting: `Hi ${params.memberName},`,
+    bodyHtml: `${textToEmailParagraphs(
+      "Your sender ID has been suspended. You cannot send SMS with it while suspended.",
+    )}${emailDetailTable([
+      { label: "Sender ID", value: params.value, mono: true },
+      { label: "Reason", value: params.reason },
+      { label: "Status", value: params.until ? `Suspended until ${params.until}` : "Suspended indefinitely" },
+    ])}`,
+    footerNote: "Contact support if you believe this is a mistake.",
+  });
+
+  return { subject, text, html };
+}
+
+export async function senderIdBlockedMemberContent(params: {
+  value: string;
+  memberName: string;
+  reason: string;
+}) {
+  const subject = `Sender ID blocked: ${params.value}`;
+  const text = `Hi ${params.memberName},
+
+Your sender ID "${params.value}" has been blocked on ${siteName}.
+
+Reason: ${params.reason}
+
+You cannot send SMS with this sender ID. Contact support if you believe this is a mistake.
+
+— ${siteName}`;
+
+  const html = await renderEmailLayout({
+    headline: "Sender ID blocked",
+    preheader: `${params.value} has been blocked`,
+    greeting: `Hi ${params.memberName},`,
+    bodyHtml: `${textToEmailParagraphs(
+      "Your sender ID has been blocked and can no longer be used to send SMS.",
+    )}${emailDetailTable([
+      { label: "Sender ID", value: params.value, mono: true },
+      { label: "Reason", value: params.reason },
+    ])}`,
+    footerNote: "Contact support if you believe this is a mistake.",
+  });
+
+  return { subject, text, html };
+}
+
+export async function senderIdRestoredMemberContent(params: {
+  value: string;
+  memberName: string;
+}) {
+  const subject = `Sender ID restored: ${params.value}`;
+  const text = `Hi ${params.memberName},
+
+Good news — your sender ID "${params.value}" has been restored on ${siteName} and is active again.
+
+You can resume sending SMS with it right away.
+
+— ${siteName}`;
+
+  const html = await renderEmailLayout({
+    headline: "Sender ID restored",
+    preheader: `${params.value} is active again`,
+    greeting: `Hi ${params.memberName},`,
+    bodyHtml: `${textToEmailParagraphs(
+      "Good news — your sender ID has been restored and is active again. You can resume sending SMS with it right away.",
+    )}${emailDetailTable([{ label: "Sender ID", value: params.value, mono: true }])}`,
+    ctaHref: `${getSiteUrl()}/dashboard/send`,
+    ctaLabel: "Send SMS",
+  });
+
+  return { subject, text, html };
+}
+
+export async function senderIdAssignedMemberContent(params: {
+  value: string;
+  memberName: string;
+}) {
+  const subject = `Sender ID assigned to you: ${params.value}`;
+  const text = `Hi ${params.memberName},
+
+An admin has assigned the approved sender ID "${params.value}" to your account on ${siteName}.
+
+You can use it to send SMS right away.
+
+— ${siteName}`;
+
+  const html = await renderEmailLayout({
+    headline: "Sender ID assigned to you",
+    preheader: `${params.value} is ready to use`,
+    greeting: `Hi ${params.memberName},`,
+    bodyHtml: `${textToEmailParagraphs(
+      "An admin has assigned this approved sender ID to your account. You can use it to send SMS right away.",
+    )}${emailDetailTable([{ label: "Sender ID", value: params.value, mono: true }])}`,
+    ctaHref: `${getSiteUrl()}/dashboard/send`,
+    ctaLabel: "Send SMS",
+  });
+
+  return { subject, text, html };
+}
+
+export async function senderIdUnassignedMemberContent(params: {
+  value: string;
+  memberName: string;
+}) {
+  const subject = `Sender ID reassigned: ${params.value}`;
+  const text = `Hi ${params.memberName},
+
+Your sender ID "${params.value}" has been reassigned to another account by an admin on ${siteName}, and is no longer available on your account.
+
+— ${siteName}`;
+
+  const html = await renderEmailLayout({
+    headline: "Sender ID reassigned",
+    preheader: `${params.value} moved to another account`,
+    greeting: `Hi ${params.memberName},`,
+    bodyHtml: textToEmailParagraphs(
+      "This sender ID has been reassigned to another account by an admin and is no longer available on your account.",
+    ) + emailDetailTable([{ label: "Sender ID", value: params.value, mono: true }]),
+    footerNote: "Contact support if you have questions about this change.",
+  });
+
+  return { subject, text, html };
+}
+
 const SENDER_ID_DOC_TYPE_LABEL: Record<
   "BUSINESS_REGISTRATION" | "PASSPORT" | "GHANA_CARD" | "OTHER_ID",
   string

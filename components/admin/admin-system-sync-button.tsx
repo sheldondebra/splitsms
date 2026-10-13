@@ -30,8 +30,10 @@ const INITIAL_STATE: AdminSystemSyncState = {
 
 export function AdminSystemSyncButton({
   compact = false,
+  iconOnly = false,
 }: {
   compact?: boolean;
+  iconOnly?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -103,13 +105,14 @@ export function AdminSystemSyncButton({
       <input type="hidden" name="returnTo" value={pathname || "/admin"} />
       <Button
         type="submit"
-        size="sm"
+        size={iconOnly ? "icon-lg" : "sm"}
         variant="outline"
         className={cn(
-          "inline-flex gap-1.5",
-          compact ? "h-8 px-2.5 text-xs" : "h-9",
+          iconOnly ? "shrink-0 rounded-lg" : "inline-flex gap-1.5",
+          !iconOnly && (compact ? "h-8 px-2.5 text-xs" : "h-9"),
         )}
         disabled={pending}
+        aria-label="System sync"
         title="Run full system sync (SMS, delivery, balances, sender ID carriers)"
         onClick={() => setStepIndex(0)}
       >
@@ -118,7 +121,7 @@ export function AdminSystemSyncButton({
         ) : (
           <RefreshCw className="h-3.5 w-3.5" />
         )}
-        <span>{label}</span>
+        {iconOnly ? <span className="sr-only">{label}</span> : <span>{label}</span>}
       </Button>
 
       {pending && (

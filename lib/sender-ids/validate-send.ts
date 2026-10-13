@@ -1,12 +1,24 @@
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/auth/session";
 import { senderHasProviderApproval } from "@/lib/sender-ids/reconcile-status";
+import {
+  describeRestriction,
+  isRestrictionInEffect,
+  type SenderIdRestriction,
+} from "@/lib/sender-ids/management";
 
 export class SenderIdValidationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "SenderIdValidationError";
   }
+}
+
+function assertNotRestricted(normalized: string, management: SenderIdRestriction | null) {
+  if (!management || !isRestrictionInEffect(management)) return;
+  throw new SenderIdValidationError(
+    `Sender ID "${normalized}" is restricted and cannot be used right now. ${describeRestriction(management)}.`,
+  );
 }
 
 async function assertApprovedSenderOwnedByUser(userId: string, senderValue: string) {
@@ -17,7 +29,7 @@ async function assertApprovedSenderOwnedByUser(userId: string, senderValue: stri
       value: normalized,
       status: "APPROVED",
     },
-    include: { providerRegistrations: true },
+    include: { providerRegistrations: true, management: true },
   });
 
   if (!sender) {
@@ -25,6 +37,8 @@ async function assertApprovedSenderOwnedByUser(userId: string, senderValue: stri
       `Sender ID "${normalized}" is not approved for this account. Register and approve it in Sender IDs first.`,
     );
   }
+
+  assertNotRestricted(normalized, sender.management);
 
   if (!senderHasProviderApproval(sender.providerRegistrations)) {
     throw new SenderIdValidationError(
@@ -43,7 +57,7 @@ async function assertApprovedSenderForAdmin(senderValue: string) {
       value: { equals: normalized, mode: "insensitive" },
       status: "APPROVED",
     },
-    include: { providerRegistrations: true },
+    include: { providerRegistrations: true, management: true },
     orderBy: [{ isDefault: "desc" }, { updatedAt: "desc" }],
   });
 
@@ -52,6 +66,8 @@ async function assertApprovedSenderForAdmin(senderValue: string) {
       `Sender ID "${normalized}" is not an approved platform sender. Search the list or register it first.`,
     );
   }
+
+  assertNotRestricted(normalized, sender.management);
 
   if (!senderHasProviderApproval(sender.providerRegistrations)) {
     throw new SenderIdValidationError(
@@ -85,16 +101,20 @@ export async function resolveApprovedSenderForUser(
     return sender.value;
   }
 
-  const defaultSender = await prisma.senderId.findFirst({
+  const defaultCandidates = await prisma.senderId.findMany({
     where: { userId, status: "APPROVED", isDefault: true },
     orderBy: { updatedAt: "desc" },
+    include: { management: true },
   });
+  const defaultSender = defaultCandidates.find((s) => !isRestrictionInEffect(s.management));
   if (defaultSender) return defaultSender.value;
 
-  const anyApproved = await prisma.senderId.findFirst({
+  const approvedCandidates = await prisma.senderId.findMany({
     where: { userId, status: "APPROVED" },
     orderBy: { createdAt: "asc" },
+    include: { management: true },
   });
+  const anyApproved = approvedCandidates.find((s) => !isRestrictionInEffect(s.management));
   if (anyApproved) return anyApproved.value;
 
   const user = await prisma.user.findUnique({

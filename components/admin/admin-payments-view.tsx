@@ -33,6 +33,7 @@ import {
   RefreshCw,
   Settings,
   ShieldCheck,
+  Smartphone,
   User,
   XCircle,
   Zap,
@@ -539,6 +540,13 @@ export function AdminPaymentsView({
         icon={CreditCard}
         actions={
           <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin/payments/manual"
+              className={cn(buttonVariants({ size: "sm" }), "h-8 gap-1.5")}
+            >
+              <Smartphone className="h-3.5 w-3.5" />
+              Manual payment
+            </Link>
             <form action={syncPendingPaymentsAction}>
               <Button type="submit" variant="outline" size="sm" className="gap-1.5 h-8">
                 <RefreshCw className="h-3.5 w-3.5" />
