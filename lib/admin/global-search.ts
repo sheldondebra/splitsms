@@ -282,7 +282,7 @@ export async function adminGlobalSearch(query: string, limit = 8): Promise<Admin
           { recipient: { contains: needles[0] ?? q } },
           { senderId: { contains: q, mode: "insensitive" } },
           { providerRef: { contains: q, mode: "insensitive" } },
-          ...(idQuery ? [{ id: { contains: q, mode: "insensitive" } }] : []),
+          ...(idQuery ? [{ id: { contains: q } }] : []),
           ...(!money && !looksLikePhone(q) && q.length >= 4
             ? [{ body: { contains: q, mode: "insensitive" as const } }]
             : []),
