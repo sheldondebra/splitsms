@@ -57,9 +57,9 @@ export async function sendWhatsAppTemplate(params: {
   authorizedToSend: boolean;
 }): Promise<{ messages?: Array<{ id: string }>; [key: string]: unknown }> {
   if (!params.authorizedToSend) throw new Error("WhatsApp send requires authorization and wallet verification");
-  if (!/^v\\d+\\.\\d+$/.test(params.graphApiVersion)) throw new Error("Invalid Graph API version");
-  if (!/^\\d+$/.test(params.phoneNumberId)) throw new Error("Invalid phone number ID");
-  if (!/^\\d{7,15}$/.test(params.to)) throw new Error("Recipient must be E.164 digits without the plus sign");
+  if (!/^v\d+\.\d+$/.test(params.graphApiVersion)) throw new Error("Invalid Graph API version");
+  if (!/^\d+$/.test(params.phoneNumberId)) throw new Error("Invalid phone number ID");
+  if (!/^\d{7,15}$/.test(params.to)) throw new Error("Recipient must be E.164 digits without the plus sign");
   if (!params.accessToken) throw new Error("Missing WhatsApp access token");
   if (!params.templateName || !params.languageCode) throw new Error("Missing approved template configuration");
 
