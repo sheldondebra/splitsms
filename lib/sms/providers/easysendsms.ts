@@ -38,7 +38,9 @@ export async function sendViaEasySendSms(params: SendParams): Promise<SendResult
 
   if (!res.ok || data.status !== "OK" || !data.messageIds?.length) {
     const code = data.error != null ? ` (${data.error})` : "";
-    return { success: false, error: `${data.description ?? "EasySendSMS send failed"}${code}` };
+    return { success: false, error: `${data.description ?? "EasySendSMS send failed"}${code}`,
+      ...((res.status >= 500 || res.status === 408 || (res.ok && (!data.status || data.status === "OK"))) ? { outcome: "unknown" as const } : {}),
+    };
   }
 
   const providerRef = data.messageIds[0]?.replace(/^OK:\s*/i, "").trim();

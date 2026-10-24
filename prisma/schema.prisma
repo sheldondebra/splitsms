@@ -812,6 +812,8 @@ model Message {
    * Set permanently once this message has been force-resent for slow/missing delivery confirmation — caps it at one resend, ever.
    */
   slowDlrResent Boolean          @default(false)
+  /// Atomic refund receipt for the current billed attempt; paid admin retries reset it.
+  refundProcessed Boolean        @default(false)
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
   routingLogs   SmsRoutingLog[]

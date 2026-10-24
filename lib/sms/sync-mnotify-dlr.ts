@@ -4,8 +4,8 @@ import {
   fetchPeriodicDeliveryReport,
   normalizeMnotifyPhone,
 } from "@/lib/mnotify";
-import { dispatchUserWebhooks } from "@/lib/webhooks/dispatch";
-import { syncCampaignStatus } from "@/lib/campaigns/sync-status";
+import { applyMessageDeliveryStatus } from "@/lib/queue/process-message";
+import { mapMnotifyStatus } from "@/lib/sms/delivery-status";
 import { SMS_BATCH_CONCURRENCY } from "@/lib/queue/sms-dispatch-config";
 
 /** Poll delivery reports for a set of campaign refs, bounded concurrency instead of one-at-a-time. */
@@ -21,28 +21,6 @@ async function syncCampaignsConcurrently(campaignIds: string[]) {
   return updated;
 }
 
-function mapMnotifyStatus(raw: string): "DELIVERED" | "FAILED" | "SENT" {
-  const s = raw.toUpperCase().trim();
-  if (!s) return "SENT";
-  if (
-    s.includes("DELIVER") ||
-    s === "SUCCESS" ||
-    s === "SUCCESSFUL" ||
-    s.includes("READ")
-  ) {
-    return "DELIVERED";
-  }
-  if (
-    s.includes("FAIL") ||
-    s.includes("REJECT") ||
-    s.includes("UNDELIVER") ||
-    s.includes("EXPIRED")
-  ) {
-    return "FAILED";
-  }
-  return "SENT";
-}
-
 function phoneVariants(phone: string) {
   const digits = normalizeMnotifyPhone(phone.replace(/^\+/, ""));
   const variants = new Set<string>([
@@ -56,60 +34,6 @@ function phoneVariants(phone: string) {
     variants.add(`0${digits.slice(3)}`);
   }
   return [...variants];
-}
-
-async function applyDeliveryUpdate(
-  message: {
-    id: string;
-    userId: string;
-    status: string;
-    channel: string | null;
-    countryCode: string | null;
-    recipient: string;
-    smsUnits: number;
-    cost: { toNumber: () => number } | null;
-    failureReason?: string | null;
-    user: { wallet: { currency: string } | null };
-  },
-  status: "DELIVERED" | "FAILED" | "SENT",
-  failureReason?: string,
-  providerRef?: string | null,
-) {
-  const updatedMsg = await prisma.message.update({
-    where: { id: message.id },
-    data: {
-      status,
-      ...(providerRef ? { providerRef } : {}),
-      ...(status === "DELIVERED" ? { deliveredAt: new Date() } : {}),
-      ...(status === "FAILED"
-        ? {
-            failedAt: new Date(),
-            failureReason: (
-              await import("@/lib/sms/friendly-failure")
-            ).toMemberFacingFailureReason(
-              failureReason ?? message.failureReason ?? "Delivery failed",
-            ),
-          }
-        : {}),
-    },
-  });
-
-  if (status === "FAILED" && message.status !== "FAILED") {
-    try {
-      const { refundMessageBilling } = await import("@/lib/sms/message-billing");
-      await refundMessageBilling(
-        message,
-        message.user.wallet?.currency ?? "GHS",
-        `DLR failed: ${message.recipient}`,
-      );
-    } catch (err) {
-      console.error("[applyDeliveryUpdate] refund failed", message.id, err);
-    }
-  }
-
-  await dispatchUserWebhooks(message.userId, updatedMsg);
-  await syncCampaignStatus(updatedMsg.campaignId);
-  return updatedMsg;
 }
 
 type PendingMnotifyMessage = {
@@ -186,7 +110,7 @@ async function syncPeriodicDeliveries(messages: PendingMnotifyMessage[]) {
       if (!message) continue;
 
       const status = mapMnotifyStatus(row.status ?? "SENT");
-      await applyDeliveryUpdate(message, status, row.status, row.campaign_id);
+      await applyMessageDeliveryStatus(message.id, status, message.providerRef, row.campaign_id);
       matched.add(message.id);
       updated++;
     }
@@ -209,13 +133,14 @@ export async function syncMnotifyCampaignDelivery(campaignId: string) {
     const message = await prisma.message.findFirst({
       where: {
         providerRef: campaignId,
+        providerType: "MNOTIFY",
         recipient: { in: variants },
       },
       include: { user: { include: { wallet: true } } },
     });
     if (!message) continue;
 
-    await applyDeliveryUpdate(message, status, row.status);
+    await applyMessageDeliveryStatus(message.id, status, message.providerRef);
     updated++;
   }
 

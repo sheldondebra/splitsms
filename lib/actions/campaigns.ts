@@ -86,7 +86,7 @@ export async function createCampaignAction(formData: FormData) {
       recurrence: recurrence !== "NONE" ? recurrence : "NONE",
       recurrenceDays: recurrence === "CUSTOM_DAYS" ? recurrenceDays : undefined,
       recurrenceEndAt,
-      status: isScheduled ? "SCHEDULED" : "SENDING",
+      status: "SCHEDULED",
       scheduledAt: scheduledAt ?? undefined,
     },
   });

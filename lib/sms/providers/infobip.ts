@@ -34,11 +34,13 @@ export async function sendViaInfobip(params: SendParams): Promise<SendResult> {
     return {
       success: false,
       error: data?.messages?.[0]?.status?.description ?? "Infobip send failed",
+      ...((res.status >= 500 || res.status === 408) ? { outcome: "unknown" as const } : {}),
     };
   }
 
   const msg = data.messages?.[0];
-  return { success: true, providerRef: msg?.messageId ?? `infobip-${Date.now()}` };
+  if (!msg?.messageId) return { success: false, outcome: "unknown", error: "Infobip returned no acceptance reference" };
+  return { success: true, providerRef: msg.messageId };
 }
 
 export const infobipAdapter: SmsProviderAdapter = {

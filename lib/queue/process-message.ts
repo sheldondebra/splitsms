@@ -5,14 +5,21 @@ import { dispatchUserWebhooks } from "@/lib/webhooks/dispatch";
 import { syncCampaignStatus } from "@/lib/campaigns/sync-status";
 import type { SmsProviderType } from "@/lib/generated/prisma/client";
 
+import { mnotifyMaintenanceHold, MAINTENANCE_HOLD_PREFIX, UNKNOWN_SUBMISSION_PREFIX } from "@/lib/sms/maintenance";
+import { canApplyDeliveryStatus } from "@/lib/sms/delivery-status";
+
+const REFUND_PENDING = "billing-refund-pending:";
 const STALE_PROCESSING_MS = 5 * 60 * 1000;
 
-/** Reset messages stuck in PROCESSING (worker crash / timeout). */
+/** A crashed worker may already have submitted: quarantine rather than resend. */
 export async function resetStaleProcessingMessages() {
   const cutoff = new Date(Date.now() - STALE_PROCESSING_MS);
   await prisma.message.updateMany({
-    where: { status: "PROCESSING", updatedAt: { lt: cutoff } },
-    data: { status: "PENDING" },
+    where: {
+      status: "PROCESSING", updatedAt: { lt: cutoff },
+      OR: [{ failureReason: null }, { NOT: { failureReason: { startsWith: UNKNOWN_SUBMISSION_PREFIX } } }],
+    },
+    data: { failureReason: `${UNKNOWN_SUBMISSION_PREFIX} worker interrupted; reconcile before retry` },
   });
 }
 
@@ -41,8 +48,9 @@ export async function processMessageJob(
 
   const existing = await prisma.message.findUnique({
     where: { id: messageId },
-    select: { status: true },
+    select: { status: true, failureReason: true },
   });
+  if (existing?.failureReason?.startsWith(MAINTENANCE_HOLD_PREFIX) && mnotifyMaintenanceHold().active) return;
   if (!existing || existing.status !== "PENDING") return;
 
   const claimed = await claimMessage(messageId);
@@ -95,6 +103,20 @@ export async function processMessageJob(
     },
   );
 
+  if (result.outcome) {
+    const deferred = result.outcome === "deferred";
+    await prisma.message.update({
+      where: { id: messageId },
+      data: {
+        status: deferred ? "PENDING" : "PROCESSING",
+        providerType: result.provider,
+        failureReason: `${deferred ? MAINTENANCE_HOLD_PREFIX : UNKNOWN_SUBMISSION_PREFIX} ${result.error ?? result.outcome}`,
+      },
+    });
+    // Keep the original charge reserved. No refund or new send on ambiguous acceptance.
+    return;
+  }
+
   if (result.success) {
     const updated = await prisma.message.update({
       where: { id: messageId },
@@ -131,26 +153,20 @@ export async function processMessageJob(
   }
 
   const currency = message.user.wallet?.currency ?? "GHS";
+  const reason = (await import("@/lib/sms/friendly-failure")).toMemberFacingFailureReason(result.error);
+  let failed = await prisma.message.update({
+    where: { id: messageId },
+    data: { status: "FAILED", failedAt: new Date(), failureReason: `${REFUND_PENDING} ${reason}` },
+  });
   try {
-    await refundMessageBilling(
-      message,
-      currency,
-      `Refund failed SMS to ${message.recipient}`,
-    );
+    await refundMessageBilling(message, currency, `Refund failed SMS to ${message.recipient}`);
+    failed = await prisma.message.update({ where: { id: messageId }, data: { failureReason: reason } });
   } catch (err) {
+    // The pending marker allows an authoritative replay/operator reconciliation
+    // to finish a failed refund without issuing a second credit adjustment.
     console.error("[processMessageJob] refund failed", messageId, err);
   }
 
-  const failed = await prisma.message.update({
-    where: { id: messageId },
-    data: {
-      status: "FAILED",
-      failedAt: new Date(),
-      failureReason: (await import("@/lib/sms/friendly-failure")).toMemberFacingFailureReason(
-        result.error,
-      ),
-    },
-  });
   await dispatchUserWebhooks(message.userId, failed);
   if (!options?.skipCampaignSync) {
     await syncCampaignStatus(message.campaignId);
@@ -163,57 +179,63 @@ export async function processMessageJob(
   }
 }
 
-export async function updateMessageFromDlr(
-  providerRef: string,
+/** Apply reports with compare-and-set so pollers/callbacks cannot regress terminal states. */
+export async function applyMessageDeliveryStatus(
+  messageId: string,
   status: "DELIVERED" | "FAILED" | "SENT",
-  recipient?: string,
+  expectedProviderRef: string | null,
+  replacementProviderRef?: string | null,
 ) {
-  const message = recipient
-    ? await prisma.message.findFirst({
-        where: { providerRef, recipient },
-      })
-    : await prisma.message.findFirst({ where: { providerRef } });
-  if (!message) return;
+  const message = await prisma.message.findUnique({ where: { id: messageId } });
+  if (!message || message.providerRef !== expectedProviderRef) return false;
+  const mayChange = canApplyDeliveryStatus(message.status, status);
+  if (!mayChange && !(message.status === "FAILED" && status === "FAILED" && message.failureReason?.startsWith(REFUND_PENDING))) return false;
 
-  const hasResendMarker = message.slowDlrResent;
-
-  const updated = await prisma.message.update({
-    where: { id: message.id },
-    data: {
-      status,
-      ...(status === "DELIVERED" ? { deliveredAt: new Date(), failureReason: null } : {}),
-      ...(status === "FAILED"
-        ? {
-            failedAt: new Date(),
-            failureReason: hasResendMarker
-              ? "Delivery failed (carrier report)"
-              : message.failureReason?.trim() || "Delivery failed (carrier report)",
-          }
-        : {}),
-    },
-  });
-
-  if (status === "FAILED" && message.status !== "FAILED") {
-    const user = await prisma.user.findUnique({
-      where: { id: message.userId },
-      include: { wallet: true },
+  let updated = message;
+  if (mayChange) {
+    const changed = await prisma.message.updateMany({
+      where: { id: message.id, status: message.status, providerRef: expectedProviderRef },
+      data: {
+        status,
+        ...(replacementProviderRef ? { providerRef: replacementProviderRef } : {}),
+        ...(status === "DELIVERED" ? { deliveredAt: new Date(), failureReason: null } : {}),
+        ...(status === "FAILED" ? { failedAt: new Date(), failureReason: `${REFUND_PENDING} Delivery failed (carrier report)` } : {}),
+      },
     });
-    const currency = user?.wallet?.currency ?? "GHS";
-    try {
-      await refundMessageBilling(
-        message,
-        currency,
-        `DLR failed: ${message.recipient}`,
-      );
-    } catch (err) {
-      console.error("[updateMessageFromDlr] refund failed", message.id, err);
-    }
+    if (!changed.count) return false;
+    updated = (await prisma.message.findUnique({ where: { id: message.id } }))!;
+  }
 
+  if (status === "FAILED") {
+    const wallet = await prisma.wallet.findUnique({ where: { userId: message.userId } });
+    // Safe on repeated FAILED reports; also repairs a refund interrupted after status commit.
+    await refundMessageBilling(message, wallet?.currency ?? "GHS", `DLR failed: ${message.recipient}`);
+    await prisma.message.updateMany({
+      where: { id: message.id, status: "FAILED", failureReason: { startsWith: REFUND_PENDING } },
+      data: { failureReason: "Delivery failed (carrier report)" },
+    });
+    updated = { ...updated, failureReason: "Delivery failed (carrier report)" };
+  }
+  if (!mayChange) return false;
+  if (status === "FAILED") {
     void import("@/lib/slack/notify")
       .then(({ notifySlackSmsFailed }) => notifySlackSmsFailed(message.id))
       .catch(() => undefined);
   }
-
   await dispatchUserWebhooks(message.userId, updated);
   await syncCampaignStatus(message.campaignId);
+  return true;
+}
+
+export async function updateMessageFromDlr(
+  providerRef: string,
+  status: "DELIVERED" | "FAILED" | "SENT",
+  recipient?: string,
+  providerType?: SmsProviderType,
+) {
+  const message = await prisma.message.findFirst({
+    where: { providerRef, ...(recipient ? { recipient } : {}), ...(providerType ? { providerType } : {}) },
+  });
+  if (!message) return;
+  await applyMessageDeliveryStatus(message.id, status, providerRef);
 }

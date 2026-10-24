@@ -1,3 +1,4 @@
+import { mnotifyMaintenanceHold, MAINTENANCE_HOLD_PREFIX } from "@/lib/sms/maintenance";
 import { prisma } from "@/lib/db";
 import { processMessageJob, resetStaleProcessingMessages } from "@/lib/queue/process-message";
 import { syncAllSendingCampaigns } from "@/lib/campaigns/sync-status";
@@ -48,10 +49,14 @@ export async function processPendingMessagesBatch(limit = 25, options?: ProcessP
       ? new Date(Date.now() - options.minAgeMs)
       : undefined;
 
+  const holdFilter = mnotifyMaintenanceHold().active ? {
+    OR: [{ failureReason: null }, { NOT: { failureReason: { startsWith: MAINTENANCE_HOLD_PREFIX } } }],
+  } : {};
   const messages = await prisma.message.findMany({
     where: {
       status: "PENDING",
       isSandbox: false,
+      ...holdFilter,
       ...(createdBefore ? { createdAt: { lte: createdBefore } } : {}),
     },
     orderBy: { createdAt: "asc" },
@@ -64,6 +69,7 @@ export async function processPendingMessagesBatch(limit = 25, options?: ProcessP
       where: {
         status: "PENDING",
         isSandbox: false,
+        ...holdFilter,
         ...(createdBefore ? { createdAt: { lte: createdBefore } } : {}),
       },
     });
@@ -100,6 +106,7 @@ export async function processPendingMessagesBatch(limit = 25, options?: ProcessP
     where: {
       status: "PENDING",
       isSandbox: false,
+      ...holdFilter,
       ...(createdBefore ? { createdAt: { lte: createdBefore } } : {}),
     },
   });

@@ -18,7 +18,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /** Increment when Prisma schema changes require a fresh client in dev */
-const PRISMA_CLIENT_BUILD_ID = "sender-id-management-2026-10-05";
+const PRISMA_CLIENT_BUILD_ID = "sms-refund-receipt-2026-10-24";
 
 const NEON_WAKE_DELAYS_MS = [500, 1500, 3000, 5000];
 

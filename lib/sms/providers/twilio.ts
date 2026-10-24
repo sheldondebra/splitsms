@@ -46,7 +46,8 @@ export async function sendViaTwilio(params: SendParams): Promise<SendResult> {
   );
 
   const data = (await res.json()) as { sid?: string; message?: string };
-  if (!res.ok) return { success: false, error: data?.message ?? "Twilio send failed" };
+  if (!res.ok) return { success: false, error: data?.message ?? "Twilio send failed", ...((res.status >= 500 || res.status === 408) ? { outcome: "unknown" as const } : {}) };
+  if (!data.sid) return { success: false, outcome: "unknown", error: "Twilio returned no acceptance reference" };
   return { success: true, providerRef: data.sid };
 }
 

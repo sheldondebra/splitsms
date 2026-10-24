@@ -23,6 +23,7 @@
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
+    "test:sms-safety": "node --experimental-test-module-mocks --import tsx --test tests/sms/maintenance/*.test.mts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",

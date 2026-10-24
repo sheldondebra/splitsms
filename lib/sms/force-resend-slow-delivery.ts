@@ -1,161 +1,37 @@
 import { prisma } from "@/lib/db";
-import { processMessageJob } from "@/lib/queue/process-message";
 
-/** Resend once when carrier has not confirmed delivery within this window. */
+/** Retained for callers; delayed DLR is never proof that another SMS is safe. */
 export const SLOW_DELIVERY_MS = 10_000;
-
-/** Marks a message that already received one slow-delivery force resend. */
 export const SLOW_DLR_RESEND_MARKER = "auto-resend:slow-dlr";
-
-const WATCH_POLL_MS = [2_500, 2_500, 2_500, 3_000] as const;
-const BATCH_MAX_AGE_MS = 5 * 60 * 1000;
 
 async function syncDeliveryIfPossible(messageId: string) {
   const message = await prisma.message.findUnique({
     where: { id: messageId },
-    select: {
-      status: true,
-      providerType: true,
-      providerRef: true,
-    },
+    select: { status: true, providerType: true, providerRef: true },
   });
-  if (!message || message.status !== "SENT") return message?.status ?? null;
-
-  if (message.providerType === "MNOTIFY" && message.providerRef) {
+  if (message?.status === "SENT" && message.providerType === "MNOTIFY" && message.providerRef) {
     const { syncMnotifyCampaignDelivery } = await import("@/lib/sms/sync-mnotify-dlr");
-    await syncMnotifyCampaignDelivery(message.providerRef).catch(() => undefined);
+    await syncMnotifyCampaignDelivery(message.providerRef);
   }
-
-  const refreshed = await prisma.message.findUnique({
-    where: { id: messageId },
-    select: { status: true },
-  });
-  return refreshed?.status ?? null;
+  const refreshed = await prisma.message.findUnique({ where: { id: messageId }, select: { status: true } });
+  return refreshed?.status;
 }
 
-/**
- * Force-resend a SENT message that still has no delivery confirmation after 10s.
- * Does not re-bill. Runs at MOST once per message, ever — gated by the durable
- * `slowDlrResent` column (not `failureReason`, which gets cleared on every
- * successful send and previously let this run again and again on messages
- * whose DLR never arrives, silently burning provider credit on repeat sends).
- */
+/** Compatibility entry point: reconcile only, preserving the original provider reference. */
 export async function forceResendSlowDeliveryMessage(
   messageId: string,
 ): Promise<"resent" | "skipped" | "delivered" | "failed"> {
-  const current = await prisma.message.findUnique({
-    where: { id: messageId },
-    select: {
-      id: true,
-      status: true,
-      sentAt: true,
-      countryCode: true,
-      slowDlrResent: true,
-      isSandbox: true,
-    },
-  });
-
-  if (!current || current.isSandbox) return "skipped";
-  if (current.status === "DELIVERED") return "delivered";
-  if (current.status !== "SENT" || !current.sentAt) return "skipped";
-  if (current.slowDlrResent) return "skipped";
-  if (Date.now() - current.sentAt.getTime() < SLOW_DELIVERY_MS) return "skipped";
-
-  await syncDeliveryIfPossible(messageId);
-
-  const afterSync = await prisma.message.findUnique({
-    where: { id: messageId },
-    select: { status: true, slowDlrResent: true, sentAt: true },
-  });
-  if (!afterSync) return "skipped";
-  if (afterSync.status === "DELIVERED") return "delivered";
-  if (afterSync.status !== "SENT" || !afterSync.sentAt) return "skipped";
-  if (afterSync.slowDlrResent) return "skipped";
-  if (Date.now() - afterSync.sentAt.getTime() < SLOW_DELIVERY_MS) return "skipped";
-
-  const claimed = await prisma.message.updateMany({
-    where: { id: messageId, status: "SENT", slowDlrResent: false },
-    data: {
-      status: "PENDING",
-      sentAt: null,
-      deliveredAt: null,
-      failedAt: null,
-      providerRef: null,
-      providerType: null,
-      slowDlrResent: true,
-      failureReason: SLOW_DLR_RESEND_MARKER,
-    },
-  });
-
-  if (claimed.count === 0) return "skipped";
-
-  await processMessageJob(messageId, current.countryCode ?? "GH", {
-    skipStaleReset: true,
-    notifySlackOnFailure: false,
-  });
-
-  const final = await prisma.message.findUnique({
-    where: { id: messageId },
-    select: { status: true },
-  });
-  if (final?.status === "FAILED") return "failed";
-  if (final?.status === "DELIVERED" || final?.status === "SENT") return "resent";
-  return "resent";
+  const status = await syncDeliveryIfPossible(messageId);
+  return status === "DELIVERED" ? "delivered" : status === "FAILED" ? "failed" : "skipped";
 }
 
-/** Post-send watcher: poll delivery, then force-resend once if still in transit after 10s. */
-export async function watchDeliveryAndForceResend(messageId: string) {
-  for (const delay of WATCH_POLL_MS) {
-    await new Promise((resolve) => setTimeout(resolve, delay));
-    const status = await syncDeliveryIfPossible(messageId);
-    if (!status || status === "DELIVERED" || status === "FAILED") return;
-
-    if (status === "SENT") {
-      const msg = await prisma.message.findUnique({
-        where: { id: messageId },
-        select: { sentAt: true, slowDlrResent: true },
-      });
-      if (!msg?.sentAt || msg.slowDlrResent) return;
-      if (Date.now() - msg.sentAt.getTime() >= SLOW_DELIVERY_MS) {
-        await forceResendSlowDeliveryMessage(messageId);
-        return;
-      }
-    }
-  }
-
-  await forceResendSlowDeliveryMessage(messageId);
+/** No background resubmission. Periodic report workers continue normal reconciliation. */
+export async function watchDeliveryAndForceResend(_messageId: string) {
+  void _messageId;
 }
 
-/** Cron/batch: force-resend recent SENT messages stuck past the 10s delivery window. */
-export async function forceResendSlowDeliveries(limit = 25) {
-  const now = Date.now();
-  const olderThan = new Date(now - SLOW_DELIVERY_MS);
-  const newerThan = new Date(now - BATCH_MAX_AGE_MS);
-
-  const candidates = await prisma.message.findMany({
-    where: {
-      status: "SENT",
-      isSandbox: false,
-      sentAt: { lte: olderThan, gte: newerThan },
-      slowDlrResent: false,
-    },
-    orderBy: { sentAt: "asc" },
-    take: limit,
-    select: { id: true },
-  });
-
-  let resent = 0;
-  let delivered = 0;
-  let skipped = 0;
-  let failed = 0;
-
-  for (const { id } of candidates) {
-    const result = await forceResendSlowDeliveryMessage(id);
-    if (result === "resent") resent++;
-    else if (result === "delivered") delivered++;
-    else if (result === "failed") failed++;
-    else skipped++;
-  }
-
-  return { checked: candidates.length, resent, delivered, skipped, failed };
+/** The report-sync cron owns polling; the former resend pass is intentionally inert. */
+export async function forceResendSlowDeliveries(_limit = 25) {
+  void _limit;
+  return { checked: 0, resent: 0, delivered: 0, skipped: 0, failed: 0 };
 }
