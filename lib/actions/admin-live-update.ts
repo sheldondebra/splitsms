@@ -55,7 +55,7 @@ export async function adminRetryLiveMessageAction(
 
   await prisma.message.update({
     where: { id: msg.id },
-    data: { status: "PENDING", failureReason: null, failedAt: null },
+    data: { status: "PENDING", failureReason: null, failedAt: null, refundProcessed: false, providerRef: null, providerType: null, sentAt: null },
   });
 
   await warmDatabaseConnection().catch(() => undefined);
@@ -116,7 +116,7 @@ export async function adminRetryLiveCampaignFailedAction(
 
   await prisma.message.updateMany({
     where: { id: { in: failed.map((m) => m.id) } },
-    data: { status: "PENDING", failureReason: null, failedAt: null },
+    data: { status: "PENDING", failureReason: null, failedAt: null, refundProcessed: false, providerRef: null, providerType: null, sentAt: null },
   });
 
   const { enqueueSmsJobsInline } = await import("@/lib/queue/enqueue-sms");

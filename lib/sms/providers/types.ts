@@ -10,6 +10,8 @@ export type SendResult = {
   success: boolean;
   providerRef?: string;
   error?: string;
+  /** Unknown acceptance must never trigger failover, refund, or automatic resend. */
+  outcome?: "unknown" | "deferred";
 };
 
 export type NormalizedDlr = {

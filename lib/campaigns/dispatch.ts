@@ -5,7 +5,6 @@ import { personalizeMessage } from "@/lib/sms/personalize";
 import { enqueueSmsJobsInline } from "@/lib/queue/enqueue-sms";
 import { resolveMessagePriority } from "@/lib/enterprise/priority";
 import { createNotification } from "@/lib/notifications";
-import type { CampaignRecurrence } from "@/lib/generated/prisma/client";
 
 export type CampaignRecipient = {
   phone: string;
@@ -76,9 +75,17 @@ export async function dispatchCampaign(campaignId: string) {
   const campaign = await prisma.campaign.findUnique({
     where: { id: campaignId },
   });
-  if (!campaign || !["SCHEDULED", "SENDING"].includes(campaign.status)) {
+  if (!campaign || campaign.status !== "SCHEDULED") {
     return { ok: false as const, reason: "invalid_status" };
   }
+
+  // Only the winner may debit credits/create messages. Interrupted dispatches need
+  // reconciliation; automatically restarting SENDING can double-charge a campaign.
+  const claim = await prisma.campaign.updateMany({
+    where: { id: campaignId, status: "SCHEDULED" },
+    data: { status: "SENDING" },
+  });
+  if (!claim.count) return { ok: false as const, reason: "already_claimed" };
 
   const recipients = await resolveCampaignRecipients(campaignId);
   if (recipients.length === 0) {

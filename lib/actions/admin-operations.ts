@@ -682,7 +682,7 @@ export async function adminRetryFailedSmsAction(formData: FormData) {
   if (retryable.length > 0) {
     await prisma.message.updateMany({
       where: { id: { in: retryable.map((m) => m.id) } },
-      data: { status: "PENDING", failureReason: null, failedAt: null },
+      data: { status: "PENDING", failureReason: null, failedAt: null, refundProcessed: false, providerRef: null, providerType: null, sentAt: null },
     });
 
     await warmDatabaseConnection().catch(() => undefined);

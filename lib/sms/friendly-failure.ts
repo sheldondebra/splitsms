@@ -6,6 +6,15 @@ export function toMemberFacingFailureReason(raw: string | null | undefined): str
     return "Delivery failed (carrier report). Confirm the phone number is correct and active.";
   }
 
+  if (trimmed.startsWith("provider-maintenance:")) {
+    return "Your SMS is queued while the delivery service completes maintenance.";
+  }
+  if (trimmed.startsWith("submission-unknown:")) {
+    return "Delivery confirmation is pending. Support must check the original submission before retrying.";
+  }
+  if (trimmed.startsWith("billing-refund-pending:")) {
+    return "Delivery failed. Your credit refund is pending.";
+  }
   const lower = trimmed.toLowerCase();
 
   if (

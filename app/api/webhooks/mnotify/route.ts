@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { mapMnotifyStatus } from "@/lib/sms/delivery-status";
 import { updateMessageFromDlr } from "@/lib/queue/process-message";
 
 /**
@@ -16,13 +17,7 @@ export async function POST(request: Request) {
   if (!ref) return NextResponse.json({ ok: true });
 
   const raw = (payload.status ?? payload.delivery_status ?? "").toLowerCase();
-  const mapped =
-    raw.includes("deliver")
-      ? "DELIVERED"
-      : raw.includes("fail") || raw.includes("reject")
-        ? "FAILED"
-        : "SENT";
-
-  await updateMessageFromDlr(String(ref), mapped);
+  const mapped = mapMnotifyStatus(raw);
+  await updateMessageFromDlr(String(ref), mapped, undefined, "MNOTIFY");
   return NextResponse.json({ received: true });
 }

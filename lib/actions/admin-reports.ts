@@ -374,7 +374,7 @@ export async function adminRetryMemberDeliveryFailuresAction(formData: FormData)
 
   await prisma.message.updateMany({
     where: { id: { in: matched.map((m) => m.id) } },
-    data: { status: "PENDING", failureReason: null, failedAt: null },
+    data: { status: "PENDING", failureReason: null, failedAt: null, refundProcessed: false, providerRef: null, providerType: null, sentAt: null },
   });
 
   const { warmDatabaseConnection } = await import("@/lib/db");

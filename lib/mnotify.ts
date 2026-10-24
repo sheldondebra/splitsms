@@ -11,6 +11,7 @@ import {
 } from "@/lib/mnotify/balance";
 import { buildMnotifyUrl, trimApiKey } from "@/lib/mnotify/internal";
 import { extractMnotifySenderStatusText } from "@/lib/sender-ids/provider-status";
+import { mnotifyMaintenanceHold } from "@/lib/sms/maintenance";
 
 export type MnotifyQuickSmsParams = {
   recipients: string[];
@@ -139,6 +140,11 @@ export async function sendMnotifyQuickSms(
     };
   }
 
+  const hold = mnotifyMaintenanceHold();
+  if (hold.active) {
+    return { ok: false as const, outcome: "deferred" as const, error: hold.reason };
+  }
+
   const url = buildMnotifyUrl(baseUrl, "/api/sms/quick", apiKey);
   const recipients = params.recipients.map(normalizeMnotifyPhone);
 
@@ -166,6 +172,8 @@ export async function sendMnotifyQuickSms(
         ok: false as const,
         error: parseMnotifyError(data, res.status),
         httpStatus: res.status,
+        ...((res.status >= 500 || res.status === 408)
+          ? { outcome: "unknown" as const } : {}),
       };
     }
 
@@ -177,6 +185,9 @@ export async function sendMnotifyQuickSms(
         ok: false as const,
         error: parseMnotifyError(data, res.status),
         httpStatus: res.status,
+        // Only explicit rejection without an acceptance reference permits failover.
+        ...(!["error", "failed", "failure", "rejected"].includes(bodyStatus) || extractMnotifyProviderRef(data)
+          ? { outcome: "unknown" as const } : {}),
       };
     }
     const bodyMessage = String(data.message ?? "").toLowerCase();
@@ -202,6 +213,10 @@ export async function sendMnotifyQuickSms(
     }
 
     const providerRef = extractMnotifyProviderRef(data);
+    // An unrecognised response is not proof of either acceptance or rejection.
+    if (!providerRef && bodyStatus !== "success" && bodyStatus !== "ok" && String(data.code ?? "") !== "2000") {
+      return { ok: false as const, outcome: "unknown" as const, error: "mNotify returned no acceptance confirmation" };
+    }
     if (!providerRef) {
       console.warn("[mnotify] SMS accepted without delivery report id", {
         status: data.status,
@@ -220,6 +235,7 @@ export async function sendMnotifyQuickSms(
     return {
       ok: false as const,
       error: e instanceof Error ? e.message : "mNotify request failed",
+      outcome: "unknown" as const,
     };
   }
 }

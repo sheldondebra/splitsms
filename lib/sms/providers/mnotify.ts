@@ -9,7 +9,7 @@ export async function sendViaMnotify(params: SendParams): Promise<SendResult> {
   });
 
   if (!result.ok) {
-    return { success: false, error: result.error };
+    return { success: false, error: result.error, outcome: result.outcome };
   }
 
   return {
