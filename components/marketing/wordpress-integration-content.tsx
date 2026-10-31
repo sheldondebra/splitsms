@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  Download,
   Key,
   Puzzle,
   CheckCircle2,
@@ -13,6 +12,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getSiteUrl, wordpressPlugin } from "@/lib/site-config";
 import { CopyButton } from "@/components/developers/copy-button";
+import { DownloadPluginButton } from "@/components/marketing/download-plugin-button";
 import {
   wordpressIntegrationFeatureGroups,
   wordpressSetupSteps,
@@ -22,7 +22,6 @@ import {
 
 export function WordPressIntegrationContent() {
   const baseUrl = getSiteUrl();
-  const downloadUrl = wordpressPlugin.versionedDownloadUrl;
   const downloadLabel = wordpressPlugin.versionedDownloadFilename;
 
   return (
@@ -46,14 +45,7 @@ export function WordPressIntegrationContent() {
             for updates automatically.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <a
-              href={downloadUrl}
-              className={cn(buttonVariants({ size: "lg" }), "gap-2 font-semibold")}
-              download
-            >
-              <Download className="h-4 w-4" />
-              Download plugin
-            </a>
+            <DownloadPluginButton source="wordpress-integration-hero" />
             <Link
               href="/api-docs"
               className={cn(buttonVariants({ size: "lg", variant: "outline" }), "gap-2")}
@@ -84,10 +76,12 @@ export function WordPressIntegrationContent() {
                 <CopyButton value={baseUrl} label="Copy" size="sm" />
               </div>
             </div>
-            <a href={downloadUrl} className={cn(buttonVariants(), "shrink-0 gap-2")} download>
-              <Download className="h-4 w-4" />
-              {downloadLabel}
-            </a>
+            <DownloadPluginButton
+              source="wordpress-integration-auto-update"
+              size="default"
+              label={downloadLabel}
+              className="shrink-0"
+            />
           </div>
 
           <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">

@@ -1006,6 +1006,7 @@ class SplitSMS_Admin {
         if (!current_user_can('manage_options')) {
             return;
         }
+        SplitSMS_Plugin_Status::maybe_apply_remote_update();
         $configured = SplitSMS_Settings::is_configured();
         $account = $configured ? $this->get_account() : null;
         $status = SplitSMS_Plugin_Status::summary($configured);
@@ -1031,6 +1032,9 @@ class SplitSMS_Admin {
     private function get_account() {
         if (null !== $this->account_cache) {
             return $this->account_cache;
+        }
+        if (class_exists('SplitSMS_Plugin_Status') && SplitSMS_Plugin_Status::is_local_dev_site()) {
+            return null;
         }
         $api = new SplitSMS_API();
         $result = $api->get_account_status();

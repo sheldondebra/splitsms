@@ -18,7 +18,7 @@ export const POST = withApi(
       return apiError("INVALID_REQUEST", "Invalid site connection payload", 400);
     }
 
-    const site = await upsertWordPressSite(ctx, {
+    const { site, forceUpdate } = await upsertWordPressSite(ctx, {
       siteUrl: body.data.site_url,
       siteName: body.data.site_name,
       wpVersion: body.data.wp_version,
@@ -34,6 +34,7 @@ export const POST = withApi(
         connected_at: site.createdAt,
         last_sync: site.lastSyncAt,
       },
+      force_update: forceUpdate,
     });
   },
   "/api/v1/wordpress/connect",

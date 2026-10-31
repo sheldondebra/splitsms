@@ -98,6 +98,10 @@ class SplitSMS_Updater {
      * @return array<string, mixed>|null
      */
     private function fetch_remote() {
+        if (class_exists('SplitSMS_Plugin_Status') && SplitSMS_Plugin_Status::is_local_dev_site()) {
+            return null;
+        }
+
         $url = defined('SPLITSMS_UPDATE_CHECK_URL') ? SPLITSMS_UPDATE_CHECK_URL : SPLITSMS_APP_URL . '/api/plugin/update';
 
         $response = wp_remote_get(

@@ -406,7 +406,13 @@ export async function requestPhoneAuthAction(formData: FormData) {
     }
   }
 
-  const otp = await createAndSendOtp(phone, otpPurpose, countryCode, user.id);
+  let otp;
+  try {
+    otp = await createAndSendOtp(phone, otpPurpose, countryCode, user.id);
+  } catch (e) {
+    handleOtpSendError("phone otp", e);
+    authRedirect(returnPath, { error: "otp_send_failed", ...inviteParams });
+  }
   if (!otp.ok) {
     authRedirect(returnPath, {
       error: "otp_cooldown",
@@ -545,12 +551,18 @@ export async function completeGooglePhoneAction(formData: FormData) {
 
   await clearGooglePendingCookie();
 
-  const otp = await createAndSendOtp(
-    phone,
-    "SIGNUP_VERIFY",
-    verifiedCountry,
-    user.id,
-  );
+  let otp;
+  try {
+    otp = await createAndSendOtp(
+      phone,
+      "SIGNUP_VERIFY",
+      verifiedCountry,
+      user.id,
+    );
+  } catch (e) {
+    handleOtpSendError("google phone signup", e);
+    authRedirect("/complete-phone", { error: "otp_send_failed" });
+  }
   if (!otp.ok) {
     authRedirect("/verify-otp", {
       phone,
@@ -1198,9 +1210,10 @@ export async function loginPasswordAction(formData: FormData) {
       );
     } catch (e) {
       handleOtpSendError("password login verification", e);
-      if (usePhoneForm) passwordLoginRedirectPhone({ error: "email_send" });
+      const sendErrorCode = deliveryOpts ? "email_send" : "otp_send_failed";
+      if (usePhoneForm) passwordLoginRedirectPhone({ error: sendErrorCode });
       passwordLoginRedirect({
-        error: "email_send",
+        error: sendErrorCode,
         ...(emailRaw ? { email: emailRaw } : {}),
       });
     }
@@ -1253,7 +1266,7 @@ export async function loginOtpRequestAction(formData: FormData) {
     );
   } catch (e) {
     handleOtpSendError("otp login", e);
-    authRedirect("/login", { error: "email_send", mode: "sms" });
+    authRedirect("/login", { error: deliveryOpts ? "email_send" : "otp_send_failed", mode: "sms" });
   }
   if (!otp.ok) {
     authRedirect("/login", {
@@ -1308,7 +1321,7 @@ export async function forgotPasswordAction(formData: FormData) {
       );
     } catch (e) {
       handleOtpSendError("password reset", e);
-      authRedirect("/forgot-password", { error: "email_send" });
+      authRedirect("/forgot-password", { error: deliveryOpts ? "email_send" : "otp_send_failed" });
     }
 
     if (!otp.ok) {
@@ -1421,14 +1434,25 @@ export async function resendOtpAction(formData: FormData) {
 
   const countryCode = String(formData.get("countryCode") ?? DEFAULT_COUNTRY_CODE).toUpperCase();
   const user = await prisma.user.findUnique({ where: { phone } });
-  const otp = await createAndSendOtp(
-    phone,
-    purpose,
-    user?.countryCode ?? countryCode,
-    user?.id,
-  );
-
   const purposeParam = purposeRaw.toLowerCase().replace("_verify", "").replace("password_", "reset");
+
+  let otp;
+  try {
+    otp = await createAndSendOtp(
+      phone,
+      purpose,
+      user?.countryCode ?? countryCode,
+      user?.id,
+    );
+  } catch (e) {
+    handleOtpSendError("resend otp", e);
+    authRedirect("/verify-otp", {
+      phone,
+      purpose: purposeParam === "signup_verify" ? "signup" : purposeParam,
+      error: "otp_send_failed",
+    });
+  }
+
   if (!otp.ok) {
     authRedirect("/verify-otp", {
       phone,

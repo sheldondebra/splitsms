@@ -29,7 +29,7 @@ export type WordPressConnectPayload = {
 export async function upsertWordPressSite(ctx: ApiContext, payload: WordPressConnectPayload) {
   const siteUrl = payload.siteUrl.replace(/\/$/, "");
 
-  return prisma.wordPressSite.upsert({
+  const site = await prisma.wordPressSite.upsert({
     where: {
       userId_siteUrl: { userId: ctx.user.id, siteUrl },
     },
@@ -54,6 +54,19 @@ export async function upsertWordPressSite(ctx: ApiContext, payload: WordPressCon
       lastSyncAt: new Date(),
     },
   });
+
+  // Staff requested a remote update for this site (SplitSMS admin → WordPress → Connected sites).
+  // Hand the flag to the plugin once, then clear it — the plugin applies the update itself.
+  let forceUpdate = false;
+  if (site.updateRequestedAt) {
+    forceUpdate = true;
+    await prisma.wordPressSite.update({
+      where: { id: site.id },
+      data: { updateRequestedAt: null, updatedToAt: new Date() },
+    });
+  }
+
+  return { site, forceUpdate };
 }
 
 export async function createWordPressLog(

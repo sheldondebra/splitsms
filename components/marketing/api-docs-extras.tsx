@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Webhook, Gauge, FileCode2, Puzzle, Link2 } from "lucide-react";
 import { CopyButton } from "@/components/developers/copy-button";
+import { DownloadPluginButton } from "@/components/marketing/download-plugin-button";
 import { getSiteUrl, wordpressPlugin } from "@/lib/site-config";
 
 const WEBHOOK_EVENTS = [
@@ -151,13 +152,13 @@ await sms.messages.send({
           >
             Changelog
           </Link>
-          <a
-            href={wordpressPlugin.downloadUrl}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-border px-6 text-sm font-semibold hover:bg-muted/50 transition-colors"
-            download
-          >
-            Download zip
-          </a>
+          <DownloadPluginButton
+            source="api-docs-extras"
+            variant="outline"
+            size="default"
+            label="Download zip"
+            className="h-11 rounded-xl"
+          />
         </div>
       </div>
     </div>

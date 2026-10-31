@@ -6,7 +6,6 @@ import {
   Terminal,
   CheckCircle2,
   ArrowRight,
-  Download,
   Wallet,
   Send,
   Package,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import { CopyButton } from "@/components/developers/copy-button";
 import { SdkNpmInstallNotice } from "@/components/marketing/sdk-npm-install-notice";
+import { DownloadPluginButton } from "@/components/marketing/download-plugin-button";
 import { wordpressPlugin } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
@@ -256,14 +256,12 @@ Authorization: Bearer YOUR_PARTNER_KEY
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <a
-            href={wordpressPlugin.downloadUrl}
-            download
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            <Download className="h-4 w-4" />
-            Download plugin (v{wordpressPlugin.version})
-          </a>
+          <DownloadPluginButton
+            source="developers-docs-guide"
+            size="default"
+            label={`Download plugin (v${wordpressPlugin.version})`}
+            className="rounded-xl"
+          />
           <Link
             href="/docs"
             className="inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-semibold hover:bg-muted/50 transition-colors"

@@ -47,6 +47,7 @@ export const ADMIN_PATH_PERMISSIONS: Record<string, AdminPermission | readonly A
   "/admin/credit-cover": "providers.write",
   "/admin/balances": "providers.write",
   "/admin/forms": "members.read",
+  "/admin/wordpress": "operations.read",
   "/admin/campaigns": "operations.read",
   "/admin/support": "support.read",
   "/admin/api-logs": "activity.read",

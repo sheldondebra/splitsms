@@ -16,6 +16,10 @@ export type GoogleOAuthState = {
   returnTo?: string;
   resellerInvite?: string;
   nonce: string;
+  /** Origin used to build the authorize-step redirect_uri — reused verbatim at
+   * callback time so the token exchange's redirect_uri always matches exactly,
+   * even if a proxy reports a different x-forwarded-host on the second request. */
+  origin: string;
 };
 
 export type GooglePendingPayload = GoogleIdentity & {
@@ -107,6 +111,7 @@ export async function signOAuthState(payload: GoogleOAuthState) {
     returnTo: payload.returnTo ?? "",
     resellerInvite: payload.resellerInvite ?? "",
     nonce: payload.nonce,
+    origin: payload.origin,
     purpose: "google_oauth_state",
   })
     .setProtectedHeader({ alg: "HS256" })
@@ -120,13 +125,15 @@ export async function verifyOAuthState(token: string): Promise<GoogleOAuthState 
     const { payload } = await jwtVerify(token, getSecret());
     if (payload.purpose !== "google_oauth_state") return null;
     const nonce = String(payload.nonce ?? "");
-    if (!nonce) return null;
+    const origin = String(payload.origin ?? "");
+    if (!nonce || !origin) return null;
     return {
       returnTo: payload.returnTo ? String(payload.returnTo) : undefined,
       resellerInvite: payload.resellerInvite
         ? String(payload.resellerInvite)
         : undefined,
       nonce,
+      origin,
     };
   } catch {
     return null;

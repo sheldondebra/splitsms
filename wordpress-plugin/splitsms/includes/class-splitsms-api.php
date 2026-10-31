@@ -110,9 +110,6 @@ class SplitSMS_API {
         $response = $this->request('GET', $this->endpoint('/api/v1/sender-ids'));
         if (empty($response['ok'])) {
             $err = isset($response['error']) ? $response['error'] : __('Could not load sender IDs', 'splitsms');
-            if (is_string($err) && false !== stripos($err, 'FORBIDDEN')) {
-                $err .= ' ' . __('Add sender_ids.read to your API key scopes.', 'splitsms');
-            }
             return array('ok' => false, 'error' => $err, 'items' => array());
         }
 
@@ -127,7 +124,7 @@ class SplitSMS_API {
     /**
      * Register this WordPress site with SplitSMS.
      *
-     * @return array{ok:bool, error?:string}
+     * @return array{ok:bool, error?:string, force_update?:bool}
      */
     public function connect_site() {
         if (!SplitSMS_Settings::is_configured()) {
@@ -144,9 +141,12 @@ class SplitSMS_API {
         );
 
         $response = $this->request('POST', $this->endpoint('/api/v1/wordpress/connect'), $payload);
-        return !empty($response['ok'])
-            ? array('ok' => true)
-            : array('ok' => false, 'error' => isset($response['error']) ? $response['error'] : 'connect_failed');
+        if (empty($response['ok'])) {
+            return array('ok' => false, 'error' => isset($response['error']) ? $response['error'] : 'connect_failed');
+        }
+
+        $force_update = !empty($response['data']['force_update']);
+        return array('ok' => true, 'force_update' => $force_update);
     }
 
     /**
@@ -278,7 +278,17 @@ class SplitSMS_API {
         if (is_array($data) && isset($data['error']['message'])) {
             $message_err = $data['error']['message'];
             if (isset($data['error']['code']) && 'FORBIDDEN' === $data['error']['code']) {
-                $message_err .= ' ' . __('Add wallet.read permission to your API key.', 'splitsms');
+                // The API names the exact missing scope as "Missing permission: X" —
+                // surface that scope instead of guessing one.
+                if (preg_match('/missing permission:\s*([a-z_]+\.[a-z_]+)/i', $message_err, $m)) {
+                    $message_err .= ' ' . sprintf(
+                        /* translators: %s: required API key permission, e.g. sms.send */
+                        __('Add %s to your API key.', 'splitsms'),
+                        $m[1]
+                    );
+                } else {
+                    $message_err .= ' ' . __('Check your API key\'s permissions in Settings.', 'splitsms');
+                }
             }
         } else {
             $message_err = sprintf(

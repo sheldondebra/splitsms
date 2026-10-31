@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { buttonVariants } from "@/components/ui/button";
+import { DownloadPluginButton } from "@/components/marketing/download-plugin-button";
 import { cn } from "@/lib/utils";
 import {
   BarChart3,
@@ -681,17 +682,16 @@ export function HomePageContent() {
                     WordPress setup guide
                     <MarketingCtaArrow size="sm" />
                   </Link>
-                  <Link
-                    href={wordpressPlugin.downloadUrl}
+                  <DownloadPluginButton
+                    source="homepage-integrations"
+                    size="sm"
+                    variant="outline"
+                    label="Download plugin"
                     className={cn(
-                      buttonVariants({ size: "sm", variant: "outline" }),
                       marketingCtaClass,
-                      "border-white/40 bg-white/5 pl-3.5 pr-1 text-white hover:bg-white/15 hover:text-white",
+                      "border-white/40 bg-white/5 text-white hover:bg-white/15 hover:text-white",
                     )}
-                  >
-                    Download plugin
-                    <MarketingCtaArrow size="sm" />
-                  </Link>
+                  />
                 </div>
               </div>
             </article>

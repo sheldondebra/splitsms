@@ -6,7 +6,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, readdirSync, unlinkSync, rmSync, cpSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { execSync } from "child_process";
+import JSZip from "jszip";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -194,54 +194,60 @@ const REQUIRED_ZIP_FILES = [
   "splitsms/VERSION",
 ];
 
-function buildZip(outPath) {
-  prepareStagingDir();
-  const zipSource = join(root, ".tmp-plugin-zip");
-  if (process.platform === "win32") {
-    const psZip = [
-      `$src = '${zipSource.replace(/'/g, "''")}'`,
-      `$out = '${outPath.replace(/'/g, "''")}'`,
-      "if (Test-Path $out) { Remove-Item $out -Force }",
-      "Compress-Archive -Path (Join-Path $src 'splitsms') -DestinationPath $out -Force",
-    ].join("; ");
-    execSync(`powershell -NoProfile -Command "${psZip}"`, { stdio: "inherit", cwd: root });
-  } else {
-    execSync(`cd "${zipSource}" && zip -r "${outPath}" splitsms -x "*.DS_Store"`, { stdio: "inherit" });
+/**
+ * Add every file under dirPath into the zip, always using forward-slash
+ * entry paths regardless of OS — avoids the backslash-corrupted entries
+ * that Windows's PowerShell Compress-Archive used to produce.
+ */
+function addDirToZip(zip, dirPath, zipPath) {
+  for (const entry of readdirSync(dirPath, { withFileTypes: true })) {
+    if (entry.name === ".DS_Store") continue;
+    const diskPath = join(dirPath, entry.name);
+    const entryZipPath = `${zipPath}/${entry.name}`;
+    if (entry.isDirectory()) {
+      addDirToZip(zip, diskPath, entryZipPath);
+    } else {
+      zip.file(entryZipPath, readFileSync(diskPath));
+    }
   }
+}
+
+async function buildZip(outPath) {
+  prepareStagingDir();
+  const zip = new JSZip();
+  addDirToZip(zip, stagingDir, "splitsms");
+  const buffer = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+  writeFileSync(outPath, buffer);
   rmSync(join(root, ".tmp-plugin-zip"), { recursive: true, force: true });
 }
 
-function validateZip(zipOut) {
+async function validateZip(zipOut) {
   const expect = "splitsms/splitsms.php";
-  if (process.platform === "win32") {
-    const requiredList = REQUIRED_ZIP_FILES.map((f) => `'${f}'`).join(",");
-    execSync(
-      `powershell -NoProfile -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::OpenRead('${zipOut.replace(/'/g, "''")}'); $names=@($z.Entries | ForEach-Object { ($_.FullName -replace '\\\\','/').TrimEnd('/') }); $z.Dispose(); $required=@(${requiredList}); foreach ($r in $required) { if ($names -notcontains $r) { Write-Error \\"Missing $r\\"; exit 1 } }"`,
-      { encoding: "utf8" },
-    );
-    execSync(
-      `powershell -NoProfile -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::OpenRead('${zipOut.replace(/'/g, "''")}'); $ok=($z.Entries | Where-Object { $_.FullName -replace '\\\\','/' -eq '${expect}' }).Count -gt 0; $bad=($z.Entries | Where-Object { $_.FullName -replace '\\\\','/' -eq 'splitsms.php' }).Count -gt 0; $z.Dispose(); if (-not $ok -or $bad) { exit 1 }"`,
-      { encoding: "utf8" },
-    );
-  } else {
-    const listing = execSync(`unzip -l "${zipOut}"`, { encoding: "utf8" });
-    for (const required of REQUIRED_ZIP_FILES) {
-      if (!listing.includes(` ${required}`) && !listing.includes(required)) {
-        throw new Error(`Zip missing ${required}`);
-      }
+  const zip = await JSZip.loadAsync(readFileSync(zipOut));
+  const names = Object.keys(zip.files).filter((name) => !zip.files[name].dir);
+
+  for (const name of names) {
+    if (name.includes("\\")) {
+      throw new Error(`Zip entry has a literal backslash in its path: ${name}`);
     }
-    if (!listing.includes(` ${expect}`) && !listing.includes(`splitsms/splitsms.php`)) {
-      throw new Error(`Zip missing ${expect}`);
+  }
+
+  for (const required of REQUIRED_ZIP_FILES) {
+    if (!names.includes(required)) {
+      throw new Error(`Zip missing ${required}`);
     }
-    if (listing.match(/^\s+\d+\s+\d{2}-\d{2}-\d{2,4}\s+\d{2}:\d{2}\s+splitsms\.php$/m)) {
-      throw new Error("Zip has flat splitsms.php at archive root — must be splitsms/splitsms.php");
-    }
+  }
+  if (!names.includes(expect)) {
+    throw new Error(`Zip missing ${expect}`);
+  }
+  if (names.includes("splitsms.php")) {
+    throw new Error("Zip has flat splitsms.php at archive root — must be splitsms/splitsms.php");
   }
 }
 
 try {
-  buildZip(versionedZip);
-  validateZip(versionedZip);
+  await buildZip(versionedZip);
+  await validateZip(versionedZip);
   copyFileSync(versionedZip, latestZip);
 
   const legacyVersioned = join(publicWpDir, `splitsms-plugin-v${wp.version}.zip`);

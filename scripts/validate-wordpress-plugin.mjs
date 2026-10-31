@@ -5,7 +5,7 @@
 import { readFileSync, existsSync, readdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { execSync } from "child_process";
+import JSZip from "jszip";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -156,22 +156,15 @@ if (existsSync(manifestPath)) {
   }
 }
 
-function listZipEntries(zipPath) {
-  if (process.platform === "win32") {
-    const out = execSync(
-      `powershell -NoProfile -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::OpenRead('${zipPath.replace(/'/g, "''")}'); $z.Entries | ForEach-Object { ($_.FullName -replace '\\\\','/').TrimEnd('/') }; $z.Dispose()"`,
-      { encoding: "utf8" },
-    );
-    return out
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter(Boolean);
-  }
-  const listing = execSync(`unzip -l "${zipPath}"`, { encoding: "utf8" });
-  const names = [];
-  for (const line of listing.split(/\r?\n/)) {
-    const m = line.match(/^\s*\d+\s+\d+\s+[\d-]+\s+[\d:]+\s+(.+)$/);
-    if (m) names.push(m[1].replace(/\\/g, "/"));
+async function listZipEntries(zipPath) {
+  const zip = await JSZip.loadAsync(readFileSync(zipPath));
+  const names = Object.keys(zip.files).filter((name) => !zip.files[name].dir);
+  for (const name of names) {
+    if (name.includes("\\")) {
+      // Do not normalize — a literal backslash means the zip was built with a
+      // tool (e.g. Windows Compress-Archive) that corrupted the entry path.
+      throw new Error(`Zip entry has a literal backslash in its path: ${name}`);
+    }
   }
   return names;
 }
@@ -196,7 +189,7 @@ const FORBIDDEN_IN_ZIP = [
 if (existsSync(versionedZip)) {
   let entries;
   try {
-    entries = listZipEntries(versionedZip);
+    entries = await listZipEntries(versionedZip);
   } catch (e) {
     fail(`Could not read zip: ${e.message}`);
     entries = [];

@@ -59,7 +59,11 @@ export async function GET(request: NextRequest) {
     return loginError(origin, "google_failed");
   }
 
-  const redirectUri = googleCallbackUri(origin);
+  // Must exactly match the redirect_uri sent in the authorize step, so use the
+  // origin captured in the signed state rather than recomputing it from this
+  // request's headers (a proxy can report a different host across the two
+  // separate requests and cause Google to reject the token exchange).
+  const redirectUri = googleCallbackUri(state.origin);
   const tokenResult = await exchangeGoogleCode({
     code,
     codeVerifier,

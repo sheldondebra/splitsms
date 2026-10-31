@@ -12,12 +12,45 @@ class SplitSMS_Plugin_Status {
     const REMOTE_TTL = 3600;
     const SYNC_TRANSIENT = 'splitsms_cloud_sync_at';
     const SYNC_INTERVAL = 43200;
+    const UPDATE_CHECK_TRANSIENT = 'splitsms_force_update_checked_at';
+    const UPDATE_CHECK_INTERVAL = 60;
+
+    /**
+     * True on local dev installs (Local by Flywheel, Lando, Valet, etc.) where
+     * outbound HTTPS calls are known to crash some PHP-FPM builds (notably
+     * macOS + Objective-C fork-safety aborts). Skips non-essential background
+     * network calls there so the admin screens still load.
+     *
+     * @return bool
+     */
+    public static function is_local_dev_site() {
+        if (function_exists('wp_get_environment_type') && 'production' !== wp_get_environment_type()) {
+            return true;
+        }
+
+        $host = strtolower((string) wp_parse_url(home_url('/'), PHP_URL_HOST));
+        if ('' === $host) {
+            return false;
+        }
+
+        foreach (array('.local', '.test', '.localhost', 'localhost') as $suffix) {
+            if ($host === trim($suffix, '.') || substr($host, -strlen($suffix)) === $suffix) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /**
      * @return array<string, mixed>|null
      */
     public static function remote_manifest($force = false) {
         if (function_exists('splitsms_allow_cloud_packages') && !splitsms_allow_cloud_packages()) {
+            return null;
+        }
+
+        if (!$force && self::is_local_dev_site()) {
             return null;
         }
 
@@ -111,7 +144,7 @@ class SplitSMS_Plugin_Status {
      * Push site + version metadata to SplitSMS when API is connected.
      */
     public static function sync_with_cloud($force = false) {
-        if (!SplitSMS_Settings::is_configured()) {
+        if (!SplitSMS_Settings::is_configured() || self::is_local_dev_site()) {
             return false;
         }
 
@@ -127,6 +160,31 @@ class SplitSMS_Plugin_Status {
         }
 
         return !empty($result['ok']);
+    }
+
+    /**
+     * Check in with SplitSMS and apply a staff-requested update, if one is pending.
+     * Throttled to once a minute so repeat admin page loads stay cheap.
+     *
+     * @return void
+     */
+    public static function maybe_apply_remote_update() {
+        if (!SplitSMS_Settings::is_configured() || !current_user_can('update_plugins') || self::is_local_dev_site()) {
+            return;
+        }
+
+        if (get_transient(self::UPDATE_CHECK_TRANSIENT)) {
+            return;
+        }
+        set_transient(self::UPDATE_CHECK_TRANSIENT, time(), self::UPDATE_CHECK_INTERVAL);
+
+        $api = new SplitSMS_API();
+        $result = $api->connect_site();
+
+        if (!empty($result['ok']) && !empty($result['force_update']) && class_exists('SplitSMS_Install')) {
+            SplitSMS_Install::perform_plugin_update(true);
+            delete_transient(self::REMOTE_TRANSIENT);
+        }
     }
 
     /**

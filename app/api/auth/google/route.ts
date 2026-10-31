@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
     nonce: randomBytes(16).toString("base64url"),
     returnTo: safeReturn,
     resellerInvite,
+    origin,
   });
 
   await setPkceVerifierCookie(verifier);

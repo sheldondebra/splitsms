@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import type { IntegrationDef } from "@/lib/marketing/integrations-catalog";
 import { getIntegration } from "@/lib/marketing/integrations-catalog";
 import { IntegrationLogo } from "@/components/marketing/integration-logo";
+import { DownloadPluginButton } from "@/components/marketing/download-plugin-button";
+import { WordPressChangelogSection } from "@/components/marketing/wordpress-changelog-section";
 
 export function IntegrationDetailContent({ integration }: { integration: IntegrationDef }) {
   const related = integration.relatedSlugs
@@ -57,7 +59,9 @@ export function IntegrationDetailContent({ integration }: { integration: Integra
                 {integration.heroDescription}
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                {integration.primaryCta.external ? (
+                {integration.slug === "wordpress" ? (
+                  <DownloadPluginButton source="integration-detail-wordpress" />
+                ) : integration.primaryCta.external ? (
                   <a
                     href={integration.primaryCta.href}
                     className={cn(buttonVariants({ size: "lg" }), "gap-2 font-semibold")}
@@ -142,6 +146,8 @@ export function IntegrationDetailContent({ integration }: { integration: Integra
                 ))}
               </ol>
             </div>
+
+            {integration.slug === "wordpress" ? <WordPressChangelogSection /> : null}
           </div>
 
           <aside className="space-y-6">

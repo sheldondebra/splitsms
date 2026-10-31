@@ -317,6 +317,102 @@ This link expires in 1 hour. If you didn't expect this, contact support.
   return { subject, text, html };
 }
 
+export async function apiKeyIssuedEmailContent(params: {
+  memberName: string;
+  label: string;
+  rawKey: string;
+  reason?: string;
+}) {
+  const firstName = params.memberName.trim().split(/\s+/)[0] || "there";
+  const dashboardUrl = `${getSiteUrl()}/developers/api-keys`;
+  const subject = `${siteName}: New API key — ${params.label}`;
+  const reasonLine = params.reason ? `${params.reason}\n\n` : "";
+
+  const text = `Hi ${firstName},
+
+${reasonLine}A new SplitSMS API key was issued for your account: "${params.label}".
+
+API key: ${params.rawKey}
+
+Paste this into your WordPress plugin settings (SplitSMS → Settings) or wherever you use the SplitSMS API. This is the only time the full key is sent — we don't store it in plain text, so save it now.
+
+Manage your keys: ${dashboardUrl}
+
+If you didn't expect this, contact support right away.
+
+— ${siteName}`;
+
+  const html = await renderEmailLayout({
+    eyebrow: "API key",
+    headline: "Your new API key",
+    preheader: `A new SplitSMS API key was issued: ${params.label}.`,
+    greeting: `Hi ${firstName},`,
+    bodyHtml: `${textToEmailParagraphs(
+      `${params.reason ? params.reason + " " : ""}A new SplitSMS API key was issued for your account: "${params.label}". Paste it into your WordPress plugin settings (SplitSMS → Settings) or wherever you use the SplitSMS API.`,
+    )}${emailDetailTable([
+      { label: "Label", value: params.label },
+      { label: "API key", value: params.rawKey, mono: true },
+    ])}<p style="margin:0 0 14px;font-size:13px;line-height:1.6;color:#92400e;"><strong>This is the only time the full key is sent by email</strong> — SplitSMS stores only a hash, so save it somewhere safe now.</p>`,
+    ctaHref: dashboardUrl,
+    ctaLabel: "Manage API keys",
+    footerNote: "If you didn't expect this email, contact support right away.",
+  });
+
+  return { subject, text, html };
+}
+
+export async function wordpressPluginUpdateAvailableEmailContent(params: {
+  memberName: string;
+  siteUrls: string[];
+  installedVersion: string;
+  latestVersion: string;
+  whatsNew: string[];
+}) {
+  const firstName = params.memberName.trim().split(/\s+/)[0] || "there";
+  const base = getSiteUrl();
+  const changelogUrl = `${base}/integrations/wordpress`;
+  const subject = `${siteName} for WordPress — v${params.latestVersion} is ready to install`;
+
+  const siteLines = params.siteUrls.map((u) => `  • ${u}`).join("\n");
+  const whatsNewLines = params.whatsNew.map((item, i) => `  ${i + 1}. ${item}`).join("\n");
+
+  const text = `Hi ${firstName},
+
+A new version of the SplitSMS WordPress plugin is available — v${params.latestVersion} (you're running v${params.installedVersion}).
+
+Site${params.siteUrls.length === 1 ? "" : "s"} on the older version:
+${siteLines}
+
+What's new:
+${whatsNewLines}
+
+To update: log in to WordPress admin → Plugins, and click Update now next to SplitSMS. It keeps your settings.
+
+Full changelog: ${changelogUrl}
+
+— ${siteName}`;
+
+  const html = await renderEmailLayout({
+    eyebrow: "WordPress plugin",
+    headline: `v${params.latestVersion} is ready to install`,
+    preheader: `A new SplitSMS plugin version is available for ${params.siteUrls[0] ?? "your site"}.`,
+    greeting: `Hi ${firstName},`,
+    bodyHtml: `${textToEmailParagraphs(
+      `A new version of the SplitSMS WordPress plugin is available — v${params.latestVersion}. ${params.siteUrls.length === 1 ? "Your site is" : "These sites are"} running v${params.installedVersion}:`,
+    )}<ul style="margin:0 0 18px;padding:0 0 0 20px;">${params.siteUrls
+      .map(
+        (u) =>
+          `<li style="margin:0 0 4px;font-size:14px;line-height:1.6;color:#3f3f46;font-family:ui-monospace,monospace;">${escapeHtml(u)}</li>`,
+      )
+      .join("")}</ul>${emailSectionHeading("What's new")}${emailNumberedList(params.whatsNew)}<p style="margin:0 0 14px;font-size:14px;line-height:1.65;color:#3f3f46;">To update: log in to WordPress admin → Plugins, and click <strong>Update now</strong> next to SplitSMS. Your settings are kept.</p>`,
+    ctaHref: changelogUrl,
+    ctaLabel: "View full changelog",
+    footerNote: "You're receiving this because a WordPress site under your account connects to SplitSMS.",
+  });
+
+  return { subject, text, html };
+}
+
 export async function lowCreditBalanceEmailContent(params: {
   memberName: string;
   balance: number;

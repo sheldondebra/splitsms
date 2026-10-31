@@ -25,6 +25,10 @@ const messages: Record<
     text: "We could not send the verification email. Check email settings or try phone SMS instead.",
     variant: "error",
   },
+  otp_send_failed: {
+    text: "We couldn't send a verification code to that number right now. Please try again in a moment, or use email if you have one on file.",
+    variant: "error",
+  },
   locked: {
     text: "Account temporarily locked. Try again in 30 minutes or reset your password.",
     variant: "error",

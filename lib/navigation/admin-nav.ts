@@ -37,6 +37,7 @@ import {
   DatabaseBackup,
   RefreshCw,
   Server,
+  Puzzle,
 } from "lucide-react";
 
 import type { AdminPermission } from "@/lib/auth/admin-permissions";
@@ -126,6 +127,7 @@ export const adminNavSections: AdminNavSection[] = [
     label: "Products",
     items: [
       { href: "/admin/forms", label: "Smart Forms", icon: FileText, permission: "members.read" },
+      { href: "/admin/wordpress", label: "WordPress", icon: Puzzle, permission: "operations.read" },
       { href: "/admin/campaigns", label: "Campaigns", icon: Megaphone, permission: "operations.read" },
       { href: "/admin/support", label: "Support", icon: LifeBuoy, badge: "open-support-tickets", permission: "support.read" },
     ],

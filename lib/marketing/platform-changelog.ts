@@ -16,6 +16,46 @@ export type ChangelogRelease = {
 
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "1.7.2",
+    date: "2026-10-07",
+    product: "wordpress",
+    summary: "WordPress.org compliance and release tooling hardening.",
+    changes: [
+      {
+        type: "changed",
+        text: "External update downloads only in splitsms.com builds — WordPress.org installs use Dashboard → Updates instead.",
+      },
+      {
+        type: "changed",
+        text: "Release zip validation checks layout, required files, and strips dev artifacts before publishing.",
+      },
+      {
+        type: "added",
+        text: "license.txt and a License URI, as required for the WordPress.org plugin directory.",
+      },
+    ],
+  },
+  {
+    version: "1.7.1",
+    date: "2026-10-06",
+    product: "wordpress",
+    summary: "Fix a critical error on activation for some sites.",
+    changes: [
+      {
+        type: "fixed",
+        text: "Critical error on activate — integrations (Elementor, JetFormBuilder, WooCommerce) now lazy-load instead of all loading at once.",
+      },
+      {
+        type: "fixed",
+        text: "Safer activation — no filesystem deletes when WP_Filesystem is unavailable.",
+      },
+      {
+        type: "fixed",
+        text: "Bootstrap errors now show an admin notice instead of a white screen.",
+      },
+    ],
+  },
+  {
     version: "2.0.0",
     date: "2026-08-03",
     product: "platform",
@@ -560,3 +600,7 @@ export const changelogProductLabels: Record<ChangelogRelease["product"], string>
   wordpress: "WordPress plugin",
   api: "API",
 };
+
+export function getReleasesForProduct(product: ChangelogRelease["product"]) {
+  return changelogReleases.filter((r) => r.product === product);
+}
