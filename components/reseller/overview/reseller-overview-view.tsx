@@ -41,7 +41,7 @@ function money(currency: string, value: number) {
 }
 
 const ALERT_STYLES = {
-  info: "border-sky-500/30 bg-sky-500/8 text-sky-900 dark:text-sky-200",
+  info: "border-border bg-muted/60 text-foreground",
   warning: "border-amber-500/30 bg-amber-500/8 text-amber-900 dark:text-amber-200",
   destructive: "border-destructive/30 bg-destructive/8 text-destructive",
   success: "border-emerald-500/30 bg-emerald-500/8 text-emerald-800 dark:text-emerald-300",

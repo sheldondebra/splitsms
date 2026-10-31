@@ -120,7 +120,7 @@ export function ResellerReportsCharts({
                 type="monotone"
                 dataKey="commission"
                 name="commission"
-                stroke="#0ea5e9"
+                stroke="#a855f7"
                 strokeWidth={2}
                 dot={false}
               />
